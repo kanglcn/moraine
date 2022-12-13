@@ -1,0 +1,7 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - section: api
+        contents:
+          - api/shp.ipynb

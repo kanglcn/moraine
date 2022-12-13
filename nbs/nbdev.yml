@@ -1,0 +1,9 @@
+project:
+  output-dir: docs
+
+website:
+  title: "decorrelation"
+  site-url: "https://kanglcn.github.io/decorrelation"
+  description: "An InSAR postprocessing tool"
+  repo-branch: main
+  repo-url: "https://github.com/kanglcn/decorrelation"
