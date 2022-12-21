@@ -35,8 +35,6 @@ pip install -e '.[dev]'
 import decorrelation as dc
 ```
 
-    ModuleNotFoundError: No module named 'decorrelation'
-
 Please refer to the
 [Documentation](https://kanglcn.github.io/decorrelation) for detailed
 usage.

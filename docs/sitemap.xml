@@ -2,10 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kanglcn.github.io/decorrelation/api/shp.html</loc>
-    <lastmod>2022-12-13T21:37:01.403Z</lastmod>
+    <lastmod>2022-12-21T20:25:42.573Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/api/test_searchsorted.html</loc>
+    <lastmod>2022-12-21T20:25:43.097Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/index.html</loc>
-    <lastmod>2022-12-13T21:37:01.940Z</lastmod>
+    <lastmod>2022-12-21T20:25:43.567Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/tutorials/data_transform.html</loc>
+    <lastmod>2022-12-21T20:25:44.115Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/tutorials/loaddata.html</loc>
+    <lastmod>2022-12-21T20:25:44.736Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/tutorials/data_transform_loop.html</loc>
+    <lastmod>2022-12-21T20:25:45.293Z</lastmod>
   </url>
 </urlset>

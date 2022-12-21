@@ -5,3 +5,9 @@ website:
       - section: api
         contents:
           - api/shp.ipynb
+          - api/test_searchsorted.ipynb
+      - section: tutorials
+        contents:
+          - tutorials/data_transform.ipynb
+          - tutorials/data_transform_loop.ipynb
+          - tutorials/loaddata.ipynb

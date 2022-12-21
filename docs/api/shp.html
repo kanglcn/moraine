@@ -21,6 +21,69 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1.6em;
   vertical-align: middle;
 }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 </style>
 
 
@@ -117,6 +180,36 @@ ul.task-list li input[type="checkbox"] {
   <a href="../api/shp.html" class="sidebar-item-text sidebar-link active">SHP</a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../api/test_searchsorted.html" class="sidebar-item-text sidebar-link">speed test for <code>searchsorted</code></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">tutorials</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/data_transform.html" class="sidebar-item-text sidebar-link">data_transform.html</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/data_transform_loop.html" class="sidebar-item-text sidebar-link">data_transform_loop.html</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../tutorials/loaddata.html" class="sidebar-item-text sidebar-link">image_show</a>
+  </div>
+</li>
       </ul>
   </li>
     </ul>
@@ -128,7 +221,12 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#ks_test" id="toc-ks_test" class="nav-link active" data-scroll-target="#ks_test">ks_test</a></li>
+  <li><a href="#kolmogorov-smirnov-ks-two-sample-test" id="toc-kolmogorov-smirnov-ks-two-sample-test" class="nav-link active" data-scroll-target="#kolmogorov-smirnov-ks-two-sample-test">Kolmogorov-Smirnov (KS) two-sample test</a>
+  <ul class="collapse">
+  <li><a href="#searchsorted" id="toc-searchsorted" class="nav-link" data-scroll-target="#searchsorted">searchsorted</a></li>
+  <li><a href="#ecdf_distance" id="toc-ecdf_distance" class="nav-link" data-scroll-target="#ecdf_distance">ecdf_distance</a></li>
+  <li><a href="#ks_2sam" id="toc-ks_2sam" class="nav-link" data-scroll-target="#ks_2sam">ks_2sam</a></li>
+  </ul></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -158,14 +256,244 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="kolmogorov-smirnov-ks-two-sample-test" class="level2">
+<h2 class="anchored" data-anchor-id="kolmogorov-smirnov-ks-two-sample-test">Kolmogorov-Smirnov (KS) two-sample test</h2>
 <hr>
-<section id="ks_test" class="level3">
-<h3 class="anchored" data-anchor-id="ks_test">ks_test</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L11" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="searchsorted" class="level3">
+<h3 class="anchored" data-anchor-id="searchsorted">searchsorted</h3>
 <blockquote class="blockquote">
-<pre><code> ks_test ()</code></pre>
+<pre><code> searchsorted (ref:cupy.ndarray, sec:cupy.ndarray)</code></pre>
 </blockquote>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ref</td>
+<td>ndarray</td>
+<td>multi dimentional array</td>
+</tr>
+<tr class="even">
+<td>sec</td>
+<td>ndarray</td>
+<td>multi dimentional array</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>ndarray</strong></td>
+<td><strong>multi dimentional index array, dtype: cp.int</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Find the indices from the innermost dimension of <code>ref</code> such that, if the corresponding values in <code>sec</code> were inserted before the indices. <code>ref.shape</code> must equals to <code>sec.shape</code>. For example:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> cp.arange(<span class="dv">20</span>, dtype<span class="op">=</span>cp.float32)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sec <span class="op">=</span> cp.arange(<span class="fl">5.5</span>,<span class="fl">25.5</span>, dtype<span class="op">=</span>cp.float32)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> searchsorted2d(ref,sec)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> cp.arange(<span class="dv">20</span>, dtype<span class="op">=</span>cp.float32).reshape(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">5</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sec <span class="op">=</span> cp.arange(<span class="fl">5.5</span>,<span class="fl">15.5</span>, dtype<span class="op">=</span>cp.float32).reshape(<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">5</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>sec <span class="op">=</span> cp.tile(sec,(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ref</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[[ 0.,  1.,  2.,  3.,  4.],
+        [ 5.,  6.,  7.,  8.,  9.]],
+
+       [[10., 11., 12., 13., 14.],
+        [15., 16., 17., 18., 19.]]], dtype=float32)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>sec</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[[ 5.5,  6.5,  7.5,  8.5,  9.5,  5.5,  6.5,  7.5,  8.5,  9.5],
+        [ 5.5,  6.5,  7.5,  8.5,  9.5,  5.5,  6.5,  7.5,  8.5,  9.5]],
+
+       [[10.5, 11.5, 12.5, 13.5, 14.5, 10.5, 11.5, 12.5, 13.5, 14.5],
+        [10.5, 11.5, 12.5, 13.5, 14.5, 10.5, 11.5, 12.5, 13.5, 14.5]]],
+      dtype=float32)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> searchsorted2d(ref,sec)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[[5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]],
+
+       [[1, 2, 3, 4, 5, 1, 2, 3, 4, 5],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]])</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> (out[<span class="dv">0</span>,<span class="dv">1</span>,:<span class="dv">5</span>] <span class="op">==</span> cp.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>],dtype<span class="op">=</span>cp.int64)).<span class="bu">all</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test the speed of cp.max()</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> cp.arange(<span class="dv">20000</span>, dtype<span class="op">=</span>cp.float32).reshape(<span class="dv">200</span>,<span class="dv">100</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(benchmark(cp.<span class="bu">max</span>,(ref,), n_repeat<span class="op">=</span><span class="dv">1000</span>))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(benchmark(cp.<span class="bu">max</span>,(ref[:,<span class="op">-</span><span class="dv">1</span>],), n_repeat<span class="op">=</span><span class="dv">1000</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>amax                :    CPU:   18.950 us   +/- 1.750 (min:   18.280 / max:   71.205) us     GPU-0:   23.514 us   +/- 1.772 (min:   22.528 / max:   74.752) us
+amax                :    CPU:   17.984 us   +/- 0.606 (min:   17.390 / max:   26.476) us     GPU-0:   21.877 us   +/- 0.895 (min:   20.480 / max:   36.864) us</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># test the speed between cupy and torch</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># def torch_searchsorted(ref,sec):</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#     _ref = torch.as_tensor(ref)</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">#     _sec = torch.as_tensor(sec)</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">#     indices = torch.searchsorted(_ref,_sec,side='right')</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">#     indices = cp.asarray(indices)</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">#     return indices</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co"># width = 100</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co"># nlines = 10000</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co"># ref = cp.arange(-1.1,-1.1+width*nlines, dtype=cp.float32).reshape(nlines,width)</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co"># sec = cp.arange(-1.5,-1.5+width*nlines, dtype=cp.float32).reshape(nlines,width)</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co"># print(benchmark(torch_searchsorted,(ref, sec), n_repeat=100))</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co"># print(benchmark(searchsorted,(ref, sec), n_repeat=100))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L24" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="ecdf_distance" class="level3">
+<h3 class="anchored" data-anchor-id="ecdf_distance">ecdf_distance</h3>
+<blockquote class="blockquote">
+<pre><code> ecdf_distance (data1:cupy.ndarray, data2, n:int=0)</code></pre>
+</blockquote>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>data1</td>
+<td>ndarray</td>
+<td></td>
+<td>data set 1</td>
+</tr>
+<tr class="even">
+<td>data2</td>
+<td></td>
+<td></td>
+<td>data set 2</td>
+</tr>
+<tr class="odd">
+<td>n</td>
+<td>int</td>
+<td>0</td>
+<td>number of dimensions to compare</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> cp.arange(<span class="dv">20</span>, dtype<span class="op">=</span>cp.float32).reshape(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">5</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>sec <span class="op">=</span> cp.arange(<span class="op">-</span><span class="dv">1</span>,<span class="dv">19</span>, dtype<span class="op">=</span>cp.float32).reshape(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ref</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[[ 0.,  1.,  2.,  3.,  4.],
+        [ 5.,  6.,  7.,  8.,  9.]],
+
+       [[10., 11., 12., 13., 14.],
+        [15., 16., 17., 18., 19.]]], dtype=float32)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>sec</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[[-1.,  0.,  1.,  2.,  3.],
+        [ 4.,  5.,  6.,  7.,  8.]],
+
+       [[ 9., 10., 11., 12., 13.],
+        [14., 15., 16., 17., 18.]]], dtype=float32)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>ecdf_distance(ref,sec)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([[0.2, 0.2],
+       [0.2, 0.2]])</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L37" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="ks_2sam" class="level3">
+<h3 class="anchored" data-anchor-id="ks_2sam">ks_2sam</h3>
+<blockquote class="blockquote">
+<pre><code> ks_2sam (data1:cupy.ndarray, data2:cupy.ndarray, alpha:float=0.9)</code></pre>
+</blockquote>
+<p>GPU version of ks 2 sample test</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>data1</td>
+<td>ndarray</td>
+<td></td>
+<td>samples to be test, each innermost vector is samples from one distribution</td>
+</tr>
+<tr class="even">
+<td>data2</td>
+<td>ndarray</td>
+<td></td>
+<td>the seconds stack of samples,</td>
+</tr>
+<tr class="odd">
+<td>alpha</td>
+<td>float</td>
+<td>0.9</td>
+<td>significant value, the bigger the stricter in selecting SHP, between 0 and 1</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>array</strong></td>
+<td></td>
+<td><strong>stack of bool, if SHP or not</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># a test is needed here</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
