@@ -17,4 +17,5 @@ website:
   sidebar:
     style: floating
 
+bibliography: references.bib
 metadata-files: [nbdev.yml, sidebar.yml]

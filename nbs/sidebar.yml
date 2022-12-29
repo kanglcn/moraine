@@ -2,12 +2,12 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - section: api
+      - section: API
         contents:
-          - api/shp.ipynb
-          - api/test_searchsorted.ipynb
-      - section: tutorials
+          - API/co.ipynb
+          - API/pl.ipynb
+          - API/plot.ipynb
+          - API/shp.ipynb
+      - section: Tutorials
         contents:
-          - tutorials/data_transform.ipynb
-          - tutorials/data_transform_loop.ipynb
-          - tutorials/loaddata.ipynb
+          - Tutorials/Adaptive_multilook.ipynb

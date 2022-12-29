@@ -5,6 +5,7 @@ d = { 'settings': { 'branch': 'main',
                 'doc_host': 'https://kanglcn.github.io',
                 'git_url': 'https://github.com/kanglcn/decorrelation',
                 'lib_path': 'decorrelation'},
-  'syms': { 'decorrelation.shp': { 'decorrelation.shp.ecdf_distance': ('api/shp.html#ecdf_distance', 'decorrelation/shp.py'),
-                                   'decorrelation.shp.ks_2sam': ('api/shp.html#ks_2sam', 'decorrelation/shp.py'),
-                                   'decorrelation.shp.searchsorted': ('api/shp.html#searchsorted', 'decorrelation/shp.py')}}}
+  'syms': { 'decorrelation.co': {'decorrelation.co.co_mat': ('API/co.html#co_mat', 'decorrelation/co.py')},
+            'decorrelation.pl': {},
+            'decorrelation.plot': {'decorrelation.plot.bg_alpha': ('API/plot.html#bg_alpha', 'decorrelation/plot.py')},
+            'decorrelation.shp': {'decorrelation.shp.ks_test': ('API/shp.html#ks_test', 'decorrelation/shp.py')}}}

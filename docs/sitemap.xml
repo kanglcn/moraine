@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://kanglcn.github.io/decorrelation/api/shp.html</loc>
-    <lastmod>2022-12-21T20:25:42.573Z</lastmod>
+    <loc>https://kanglcn.github.io/decorrelation/Tutorials/adaptive_multilook.html</loc>
+    <lastmod>2022-12-29T07:15:48.732Z</lastmod>
   </url>
   <url>
-    <loc>https://kanglcn.github.io/decorrelation/api/test_searchsorted.html</loc>
-    <lastmod>2022-12-21T20:25:43.097Z</lastmod>
+    <loc>https://kanglcn.github.io/decorrelation/API/plot.html</loc>
+    <lastmod>2022-12-29T07:15:49.223Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/API/pl.html</loc>
+    <lastmod>2022-12-29T07:15:49.703Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/API/shp.html</loc>
+    <lastmod>2022-12-29T07:15:50.305Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/API/co.html</loc>
+    <lastmod>2022-12-29T07:15:50.801Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/index.html</loc>
-    <lastmod>2022-12-21T20:25:43.567Z</lastmod>
-  </url>
-  <url>
-    <loc>https://kanglcn.github.io/decorrelation/tutorials/data_transform.html</loc>
-    <lastmod>2022-12-21T20:25:44.115Z</lastmod>
-  </url>
-  <url>
-    <loc>https://kanglcn.github.io/decorrelation/tutorials/loaddata.html</loc>
-    <lastmod>2022-12-21T20:25:44.736Z</lastmod>
-  </url>
-  <url>
-    <loc>https://kanglcn.github.io/decorrelation/tutorials/data_transform_loop.html</loc>
-    <lastmod>2022-12-21T20:25:45.293Z</lastmod>
+    <lastmod>2022-12-29T07:15:51.402Z</lastmod>
   </url>
 </urlset>
