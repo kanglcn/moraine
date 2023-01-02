@@ -5,64 +5,10 @@ __all__ = ['co_mat']
 
 # %% ../nbs/API/co.ipynb 4
 import cupy as cp
-import math
-
-# %% ../nbs/API/co.ipynb 5
-# this function could be faster if the reducing is done 2 by 2
-_co_mat_kernel = cp.RawKernel(r'''
-#include <cuComplex.h>
-
-extern "C" __global__
-void co_mat(const cuFloatComplex* rslc, const bool* is_shp, const int nlines, const int width, const int nimages, const int az_half_win,const int r_half_win, cuFloatComplex* cov, cuFloatComplex* coh) {
-    int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tid >= nlines*width) return;
-    int az_win = 2*az_half_win+1;
-    int r_win = 2*r_half_win+1;
-    int win = az_win*r_win;
-    
-    int ref_az = tid/width;
-    int ref_r = tid -ref_az*width;
-
-    int sec_az, sec_r;
-
-    int i,j; // index of each coherence matrix
-    int k,l; // index of search window
-    cuFloatComplex _cov; // covariance
-    float _amp2_i; // sum of amplitude square for image i
-    float _amp2_j; // sum of amplitude aquare for image j
-    int rslc_inx_i, rslc_inx_j;
-
-    for (i = 0; i < nimages; i++) {
-        for (j = 0; j < nimages; j++) {
-            _cov = make_cuFloatComplex(0.0, 0.0);
-            _amp2_i = 0.0;
-            _amp2_j = 0.0;
-            for (k = 0; k < az_win; k++) {
-                for (l = 0; l < r_win; l++) {
-                    sec_az = ref_az-az_half_win+k;
-                    sec_r = ref_r-r_half_win+l;
-                    if (is_shp[tid*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
-                        rslc_inx_i = (sec_az*width+sec_r)*nimages+i;
-                        rslc_inx_j = (sec_az*width+sec_r)*nimages+j;
-                        _amp2_i += powf(cuCrealf(rslc[rslc_inx_i]),2)+powf(cuCimagf(rslc[rslc_inx_i]),2);
-                        _amp2_j += powf(cuCrealf(rslc[rslc_inx_j]),2)+powf(cuCimagf(rslc[rslc_inx_j]),2);
-                        _cov = cuCaddf(_cov, cuCmulf(rslc[rslc_inx_i], cuConjf(rslc[rslc_inx_j])));
-                        //if ( tid == 0 && i==1 && j ==1 ) printf("%f\n",cuCrealf(_cov));
-                    }
-                }
-            }
-            cov[(tid*nimages+i)*nimages+j] = _cov;
-            _amp2_i = sqrt(_amp2_i*_amp2_j);
-            coh[(tid*nimages+i)*nimages+j] = make_cuFloatComplex(cuCrealf(_cov)/_amp2_i, cuCimagf(_cov)/_amp2_i);
-            //if ( tid == 0 && i==1) printf("%f\n",cuCrealf(_cov));
-        }
-    }
-}
-''', 'co_mat')
 
 # %% ../nbs/API/co.ipynb 6
-def co_mat(rslc:cp.ndarray, # rslc stack, dtype: cupy.complex64
-            is_shp:cp.ndarray, # shp bool, dtype: cupy.bool
+def co_mat(rslc:cp.ndarray, # rslc stack, dtype: `cupy.complexfloating`
+            is_shp:cp.ndarray, # shp bool, dtype: `cupy.bool`
             block_size:int=128, # the CUDA block size, it only affects the calculation speed
             )-> tuple: # the covariance and coherence matrix
     nlines, width, nimages = rslc.shape
@@ -70,11 +16,9 @@ def co_mat(rslc:cp.ndarray, # rslc stack, dtype: cupy.complex64
     az_half_win = (az_win-1)//2
     r_half_win = (r_win-1)//2
 
-    cov = cp.zeros((nlines,width,nimages,nimages),dtype=cp.complex64)
-    coh = cp.empty((nlines,width,nimages,nimages),dtype=cp.complex64)
+    cov = cp.zeros((nlines,width,nimages,nimages),dtype=rslc.dtype)
+    coh = cp.empty((nlines,width,nimages,nimages),dtype=rslc.dtype)
 
-    grid_size = math.ceil(nlines*width/block_size)
-    _co_mat_kernel((grid_size,),(block_size,),
-                    (rslc, is_shp, cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                    cp.int32(az_half_win),cp.int32(r_half_win),cov,coh))
+    _co_mat_kernel(rslc, is_shp, cp.int32(nlines),cp.int32(width),cp.int32(nimages),
+                    cp.int32(az_half_win),cp.int32(r_half_win),cov,coh,size = nlines*width,block_size=block_size)
     return cov,coh
