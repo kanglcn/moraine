@@ -281,7 +281,7 @@ div.csl-indent {
 <section id="kolmogorov-smirnov-ks-two-sample-test" class="level2">
 <h2 class="anchored" data-anchor-id="kolmogorov-smirnov-ks-two-sample-test">Kolmogorov-Smirnov (KS) two-sample test</h2>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L77" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L75" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="ks_test" class="level3">
 <h3 class="anchored" data-anchor-id="ks_test">ks_test</h3>
 <blockquote class="blockquote">
@@ -308,7 +308,7 @@ div.csl-indent {
 <td>rmli_stack</td>
 <td>ndarray</td>
 <td></td>
-<td>the rmli stack, dtype: cupy.float32</td>
+<td>the rmli stack, dtype: cupy.floating</td>
 </tr>
 <tr class="even">
 <td>az_half_win</td>
@@ -363,13 +363,13 @@ div.csl-indent {
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>(1, 2, 3, 3)
-[[[[-1.  -1.  -1. ]
-   [-1.   0.   0.6]
-   [-1.  -1.  -1. ]]
+[[[[-1.   -1.   -1.  ]
+   [-1.    0.    0.55]
+   [-1.   -1.   -1.  ]]
 
-  [[-1.  -1.  -1. ]
-   [ 0.6  0.  -1. ]
-   [-1.  -1.  -1. ]]]]</code></pre>
+  [[-1.   -1.   -1.  ]
+   [ 0.55  0.   -1.  ]
+   [-1.   -1.   -1.  ]]]]</code></pre>
 </div>
 </div>
 <p><code>dist</code> is the ks test statistic. The shape of it shows for each pixel P in this <code>1*2</code> image, a <code>3*3</code> search window is defined and all pixels in this search window is test with P. The value <code>0</code> in <code>dist</code> is the ks test result of pixel P and pixel P itself. The value <code>-1</code> means the secondary pixel is out of the image and no ks test is applied.</p>
@@ -378,20 +378,20 @@ div.csl-indent {
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(p)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>(1, 2, 3, 3)
-[[[[-1.0000000e+00 -1.0000000e+00 -1.0000000e+00]
-   [-1.0000000e+00  0.0000000e+00  7.2528544e-04]
-   [-1.0000000e+00 -1.0000000e+00 -1.0000000e+00]]
+[[[[-1.         -1.         -1.        ]
+   [-1.          0.          0.00257061]
+   [-1.         -1.         -1.        ]]
 
-  [[-1.0000000e+00 -1.0000000e+00 -1.0000000e+00]
-   [ 7.2528544e-04  0.0000000e+00 -1.0000000e+00]
-   [-1.0000000e+00 -1.0000000e+00 -1.0000000e+00]]]]</code></pre>
+  [[-1.         -1.         -1.        ]
+   [ 0.00257061  0.         -1.        ]
+   [-1.         -1.         -1.        ]]]]</code></pre>
 </div>
 </div>
 <p><code>p</code> is the ks test p value with same shape of <code>dist</code>.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stats.ks_2samp(sample1, sample2,method<span class="op">=</span><span class="st">'asymp'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>KstestResult(statistic=0.6, pvalue=0.0005681672000000003)</code></pre>
+<pre><code>KstestResult(statistic=0.55, pvalue=0.0022805103214843725)</code></pre>
 </div>
 </div>
 <p>By comparing the result of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> and <code>ks_2samp</code> from <code>scipy</code>, the statistics are same which prove the correctness of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a>. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent.</p>

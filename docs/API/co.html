@@ -364,10 +364,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#import cupy as cp</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.load(<span class="st">'../../data/rslc.npy'</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> rslc[:<span class="dv">5</span>,:<span class="dv">10</span>,:<span class="dv">5</span>]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#rslc = rslc[:5,:10,:5]</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>rslc.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>(5, 10, 5)</code></pre>
+<pre><code>(2500, 1834, 17)</code></pre>
 </div>
 </div>
 <p><code>rslc</code> is a stack of 5 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. Apply ks test on it:</p>
@@ -385,7 +385,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> co_mat(rslc,is_shp)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>cov.shape, coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>((5, 10, 5, 5), (5, 10, 5, 5))</code></pre>
+<pre><code>((2500, 1834, 17, 17), (2500, 1834, 17, 17))</code></pre>
 </div>
 </div>
 <p>Both <code>cov</code> and <code>coh</code> are complex data. The shape shows each covarience or coherence matrix is 5 by 5 since there are 5 images. And <code>cov</code> and <code>coh</code> are matrix for all 5*10 pixels.</p>
