@@ -1,1 +1,2 @@
-rslc.npy
+*.npy
+*.h5

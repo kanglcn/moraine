@@ -9,6 +9,7 @@ import math
 
 # %% ../nbs/API/shp.ipynb 6
 # It looks cupy do not support pointer to pointer: float** rmli_stack
+# These code are modified from https://dev.thep.lu.se/yat under GPLv3 license.
 _ks_test_kernel = cp.ElementwiseKernel(
     'raw T rmli_stack, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win',
     'raw T dist, raw T p',
@@ -77,6 +78,9 @@ def ks_test(rmli_stack:cp.ndarray, # the rmli stack, dtype: cupy.floating
             r_half_win:int, # SHP identification half search window size in range direction
             block_size:int=128, # the CUDA block size, it only affects the calculation speed
            ) -> tuple : # the KS test statistics `dist` and p value `p`
+    '''
+    SHP identification based on Two-Sample Kolmogorov-Smirnov Test
+    '''
     az_win = 2*az_half_win+1
     r_win = 2*r_half_win+1
     nlines = rmli_stack.shape[0]

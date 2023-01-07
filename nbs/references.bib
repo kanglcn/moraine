@@ -10,5 +10,20 @@
   pages = {3460--3470},
   issn = {0196-2892, 1558-0644},
   doi = {10.1109/TGRS.2011.2124465},
+  abstract = {Permanent Scatterer SAR Interferometry (PSInSAR) aims to identify coherent radar targets exhibiting high phase stability over the entire observation time period. These targets often correspond to point-wise, man-made objects widely available over a city, but less present in non-urban areas. To overcome the limits of PSInSAR, analysis of interferometric data-stacks should aim at extracting geophysical parameters not only from point-wise deterministic objects (i.e., PS), but also from distributed scatterers (DS). Rather than developing hybrid processing chains where two or more algorithms are applied to the same data-stack, and results are then combined, in this paper we introduce a new approach, SqueeSAR, to jointly process PS and DS, taking into account their different statistical behavior. As it will be shown, PS and DS can be jointly processed without the need for significant changes to the traditional PSInSAR processing chain and without the need to unwrap hundreds of interferograms, provided that the coherence matrix associated with each DS is properly ``squeezed'' to provide a vector of optimum (wrapped) phase values. Results on real SAR data, acquired over an Alpine area, challenging for any InSAR analysis, confirm the effectiveness of this new approach.},
   langid = {english},
 }
+
+@article{zwiebackCheapValidRegularizers2022a,
+  title = {Cheap, {{Valid Regularizers}} for {{Improved Interferometric Phase Linking}}},
+  author = {Zwieback, S.},
+  year = {2022},
+  journal = {IEEE Geoscience and Remote Sensing Letters},
+  volume = {19},
+  pages = {1--4},
+  issn = {1558-0571},
+  doi = {10.1109/LGRS.2022.3197423},
+  abstract = {Retrieving a consistent phase history from a multilooked Interferometric synthetic aperture radar (InSAR) stack depends critically on the accuracy of the (coherence) magnitude estimates. To estimate the magnitudes more reliably, the author proposes three regularization methods: Hadamard, spectral, and Hadamard\textendash spectral regularization. All three are computationally cheap and parameterized such that they are guaranteed to yield valid magnitude matrices. These regularizers achieved relative improvements in the phase history with an accuracy of up to 40\% in simulations. The improvements were greatest for low long-term coherences. All three methods performed similarly in the simulations and in a Sentinel-1 stack, for which the local phase dispersion decreased with regularization. Implementation of the regularizers into operational processing chains is expected to improve deformation and uncertainty estimates, especially for local movements over decorrelating terrain.},
+  keywords = {Coherence,Decorrelation,Dispersion,Eigenvalues and eigenfunctions,Estimation,History,Radar interferometry,Snow,synthetic aperture radar (SAR)},
+}
+
