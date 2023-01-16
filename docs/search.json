@@ -1,5 +1,54 @@
 [
   {
+    "objectID": "Tutorials/ds_processing.html",
+    "href": "Tutorials/ds_processing.html",
+    "title": "DS Processing",
+    "section": "",
+    "text": "In this tutorial, we demostrate how to do standard DS processing with the decorrelation package."
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#load-rslc-stack",
+    "href": "Tutorials/ds_processing.html#load-rslc-stack",
+    "title": "DS Processing",
+    "section": "Load rslc stack",
+    "text": "Load rslc stack\n\nrslc = cp.load('../../data/rslc.npy')\nrslc.shape\n\n(2500, 1834, 17)"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#apply-ks-test",
+    "href": "Tutorials/ds_processing.html#apply-ks-test",
+    "title": "DS Processing",
+    "section": "Apply ks test",
+    "text": "Apply ks test\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\n\n\naz_half_win = 5\nr_half_win = 5\naz_win = 2*az_half_win+1\nr_win = 2*r_half_win+1\n\n\np = ks_test(sorted_rmli,az_half_win=az_half_win,r_half_win=r_half_win)[1]\n\nCPU times: user 1.19 ms, sys: 2.22 ms, total: 3.41 ms\nWall time: 2.54 ms"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#select-shps",
+    "href": "Tutorials/ds_processing.html#select-shps",
+    "title": "DS Processing",
+    "section": "Select SHPs",
+    "text": "Select SHPs\n\nis_shp = (p < 0.05) & (p >= 0.0)\n\n\nshp_num = cp.count_nonzero(is_shp,axis=(-2,-1))\nshp_num_np = cp.asnumpy(shp_num)\n\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(shp_num_np)\nax.set(title='Number of SHPs',xlabel='Range Index',ylabel='Azimuth Index')\nfig.colorbar(pcm)\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#select-dss",
+    "href": "Tutorials/ds_processing.html#select-dss",
+    "title": "DS Processing",
+    "section": "Select DSs",
+    "text": "Select DSs\nHere we select DSs as pixels have more than 50 brothers.\n\nis_ds = shp_num >= 50\n\nThe number of DSs:\n\ncp.count_nonzero(is_ds)\n\narray(740397)\n\n\nThe DSs distribution:\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(cp.asnumpy(is_ds),cmap='bwr')\nax.set(title='DS distribution',xlabel='Range Index',ylabel='Azimuth Index')\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#estimate-coherence-matrix",
+    "href": "Tutorials/ds_processing.html#estimate-coherence-matrix",
+    "title": "DS Processing",
+    "section": "Estimate coherence matrix",
+    "text": "Estimate coherence matrix\nIn order to save memory, here we only estimate coherence matrix on selected DSs:\n\nis_shp_ds = is_shp[is_ds]\nds_idx = cp.vstack(cp.where(is_ds)).T\ncov, coh = emperical_co_sp(rslc,ds_idx,is_shp_ds)\n\n\nds_idx.shape\n\n(740397, 2)\n\n\nPlot some coherence matrix:\n\nplot_ds = [8,40,80,444,344,5546,67433,22455,48204]\nfig, axes = plt.subplots(3,3,figsize=(12,10))\nfor i,ax in enumerate(axes.ravel()):\n    pcm = ax.imshow(cp.asnumpy(abs(coh[plot_ds[i]])),cmap='bwr')\n    ax.set(title=f'Coherence matrix for DS[{plot_ds[i]}]',xlabel='Secondary Image Index',ylabel='Reference Image Index')\n    fig.colorbar(pcm,ax=ax)\nfig.tight_layout()\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#phase-linking",
+    "href": "Tutorials/ds_processing.html#phase-linking",
+    "title": "DS Processing",
+    "section": "phase linking",
+    "text": "phase linking\n\nph_new = emi(coh)\n\nCPU times: user 1.38 ms, sys: 157 µs, total: 1.53 ms\nWall time: 1.17 ms\n\n\nStill under construction……"
+  },
+  {
     "objectID": "Tutorials/adaptive_multilook.html",
     "href": "Tutorials/adaptive_multilook.html",
     "title": "Adaptive Multilook",
@@ -11,14 +60,14 @@
     "href": "Tutorials/adaptive_multilook.html#load-rslc-stack",
     "title": "Adaptive Multilook",
     "section": "Load rslc stack",
-    "text": "Load rslc stack\n\ndecorrelation_dataset = h5py.File('../../data/decorrelation.h5','r')\nrslc = cp.asarray(decorrelation_dataset['rslc'][:])\nrslc.shape\n\n(2500, 1834, 17)"
+    "text": "Load rslc stack\n\ndecorrelation_dataset = h5py.File('../../data/rslc.h5','r')\nrslc = cp.asarray(decorrelation_dataset['rslc'][:])\nrslc.shape\n\n(2500, 1834, 17)"
   },
   {
     "objectID": "Tutorials/adaptive_multilook.html#apply-ks-test",
     "href": "Tutorials/adaptive_multilook.html#apply-ks-test",
     "title": "Adaptive Multilook",
     "section": "Apply ks test",
-    "text": "Apply ks test\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\n\n\naz_half_win = 5\nr_half_win = 5\naz_win = 2*az_half_win+1\nr_win = 2*r_half_win+1\n\n\np = ks_test(sorted_rmli,az_half_win=az_half_win,r_half_win=r_half_win)[1]"
+    "text": "Apply ks test\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\n\n\naz_half_win = 5\nr_half_win = 5\naz_win = 2*az_half_win+1\nr_win = 2*r_half_win+1\n\n\np = ks_test(sorted_rmli,az_half_win=az_half_win,r_half_win=r_half_win)[1]\n\nCPU times: user 954 µs, sys: 5.1 ms, total: 6.05 ms\nWall time: 5.99 ms\n\n\nks_test in decorrelation package is extremely fast!"
   },
   {
     "objectID": "Tutorials/adaptive_multilook.html#select-shps",
@@ -32,63 +81,21 @@
     "href": "Tutorials/adaptive_multilook.html#estimate-coherence-matrix",
     "title": "Adaptive Multilook",
     "section": "Estimate coherence matrix",
-    "text": "Estimate coherence matrix\n\ncoh = emperical_co(rslc,is_shp)[1]"
+    "text": "Estimate coherence matrix\n\ncoh = emperical_co(rslc,is_shp)[1]\n\nCPU times: user 9.44 ms, sys: 11 ms, total: 20.4 ms\nWall time: 19.9 ms"
   },
   {
-    "objectID": "Tutorials/adaptive_multilook.html#compare-1-look-interferogram-multilook-interferogram-and-adaptive-multilook-interferogram",
-    "href": "Tutorials/adaptive_multilook.html#compare-1-look-interferogram-multilook-interferogram-and-adaptive-multilook-interferogram",
+    "objectID": "Tutorials/adaptive_multilook.html#compare",
+    "href": "Tutorials/adaptive_multilook.html#compare",
     "title": "Adaptive Multilook",
-    "section": "Compare 1-look interferogram, multilook interferogram and adaptive multilook interferogram",
-    "text": "Compare 1-look interferogram, multilook interferogram and adaptive multilook interferogram\n\nref_image = 15\nsec_image = 16\n\n1 look interferogram:\n\ndiff = rslc[:,:,ref_image]*rslc[:,:,sec_image].conj()\n\nMultilook interferogram:\n\nml_diff = median_filter(diff,size=(az_win,r_win))\n\nAdaptive multilook interferogram:\n\nad_ml_diff = coh[:,:,ref_image,sec_image]\n\nThe plot background:\n\nplot_bg = rmli[:,:,0]\nplot_bg = cp.asnumpy(plot_bg)\nalpha = bg_alpha(plot_bg)\n\nPlot:\n\nfig,axes = plt.subplots(1,3,figsize=(23,7))\nxlabel = 'Range Index'\nylabel = 'Azimuth Index'\npcm0 = axes[0].imshow(cp.asnumpy(cp.angle(diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\npcm1 = axes[1].imshow(cp.asnumpy(cp.angle(ml_diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\npcm2 = axes[2].imshow(cp.asnumpy(cp.angle(ad_ml_diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\nfor ax in axes:\n    ax.set(facecolor = \"black\")\naxes[0].set(title='Orignal Interferogram',xlabel=xlabel,ylabel=ylabel)\naxes[1].set(title=f'Multilook {az_win} by {r_win} Interferogram',xlabel=xlabel,ylabel=ylabel)\naxes[2].set(title=f'Adaptive multilook {az_win} by {r_win} Interferogram',xlabel=xlabel,ylabel=ylabel)\nfig.colorbar(pcm0,ax=axes[0])\nfig.colorbar(pcm1,ax=axes[1])\nfig.colorbar(pcm1,ax=axes[2])\n\n<matplotlib.colorbar.Colorbar>"
+    "section": "Compare",
+    "text": "Compare\nHere we compare 1-look interferogram, multilook interferogram and adaptive multilook interferogram\n\nref_image = 15\nsec_image = 16\n\n1 look interferogram:\n\ndiff = rslc[:,:,ref_image]*rslc[:,:,sec_image].conj()\n\nMultilook interferogram:\n\nml_diff = median_filter(diff,size=(az_win,r_win))\n\nAdaptive multilook interferogram:\n\nad_ml_diff = coh[:,:,ref_image,sec_image]\n\nThe plot background:\n\nplot_bg = rmli[:,:,0]\nplot_bg = cp.asnumpy(plot_bg)\nalpha = bg_alpha(plot_bg)\n\nPlot:\n\nfig,axes = plt.subplots(1,3,figsize=(23,7))\nxlabel = 'Range Index'\nylabel = 'Azimuth Index'\npcm0 = axes[0].imshow(cp.asnumpy(cp.angle(diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\npcm1 = axes[1].imshow(cp.asnumpy(cp.angle(ml_diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\npcm2 = axes[2].imshow(cp.asnumpy(cp.angle(ad_ml_diff)),alpha=alpha,interpolation='nearest',cmap='hsv')\nfor ax in axes:\n    ax.set(facecolor = \"black\")\naxes[0].set(title='Orignal Interferogram',xlabel=xlabel,ylabel=ylabel)\naxes[1].set(title=f'Multilook {az_win} by {r_win} Interferogram',xlabel=xlabel,ylabel=ylabel)\naxes[2].set(title=f'Adaptive multilook {az_win} by {r_win} Interferogram',xlabel=xlabel,ylabel=ylabel)\nfig.colorbar(pcm0,ax=axes[0])\nfig.colorbar(pcm1,ax=axes[1])\nfig.colorbar(pcm1,ax=axes[2])\n\n<matplotlib.colorbar.Colorbar>"
   },
   {
-    "objectID": "API/plot.html",
-    "href": "API/plot.html",
-    "title": "Plot",
-    "section": "",
-    "text": "source\n\nbg_alpha\n\n bg_alpha (pwr)"
-  },
-  {
-    "objectID": "API/pl.html",
-    "href": "API/pl.html",
-    "title": "pl",
-    "section": "",
-    "text": "Phase linking for PTA requires cupy.optimize to be implented which is tracked at https://github.com/rapidsai/raft/pull/923 and https://github.com/cupy/cupy/issues/6112"
-  },
-  {
-    "objectID": "API/co.html",
-    "href": "API/co.html",
-    "title": "co",
-    "section": "",
-    "text": "import numpy as np\nimport cupy as cp\nimport itertools\nfrom decorrelation.shp import ks_test\nimport math\nimport h5py"
-  },
-  {
-    "objectID": "API/co.html#covariance-and-coherence-matrix-estimator",
-    "href": "API/co.html#covariance-and-coherence-matrix-estimator",
-    "title": "co",
-    "section": "Covariance and Coherence Matrix Estimator",
-    "text": "Covariance and Coherence Matrix Estimator\n\nsource\n\nemperical_co\n\n emperical_co (rslc:cupy.ndarray, is_shp:cupy.ndarray, block_size:int=128)\n\nMaximum likelihood covariance estimator.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrslc\nndarray\n\nrslc stack, dtype: cupy.complexfloating\n\n\nis_shp\nndarray\n\nshp bool, dtype: cupy.bool\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe covariance and coherence matrix cov and coh\n\n\n\nThe cov and coh is defined as:\n\\[\ncov = E(z_1z_2^*) \\quad coh=\\frac{E(z_1z_2^*)}{\\sqrt{E(|z_1|^2)E(|z_2|^2)}}\n\\]\nand estimated as:\n\\[\ncov = \\frac{\\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \\quad coh = \\frac{\\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{\\sqrt(\\sum_{i=1}^{L}|z_1^{i}|^2)(\\sum_{i=1}^{L}|z_2^{i}|^2)}\n\\]\nThe rslc is a three dimentional cupy ndarray. The dtype should be cupy.complex64. From outerest to innerest, the three dimentions are azimuth, range and image. is_shp is a four dimentional cupy ndarray. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range.\nHere is an example:\n\ndecorrelation_dataset = h5py.File('../../data/decorrelation.h5','r')\nrslc = cp.asarray(decorrelation_dataset['rslc'][:5,:10,:5])\ndecorrelation_dataset.close()\nrslc.shape\n\n(5, 10, 5)\n\n\nrslc is a stack of 5 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. Apply ks test on it:\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\ndist, p = ks_test(sorted_rmli,az_half_win=1,r_half_win=1)\n\nSeclect SHP based on p value:\n\nis_shp = (p < 0.005) & (p >= 0.0)\n\nEstimate the covarience and coherence matrix:\n\ncov,coh = emperical_co(rslc,is_shp)\ncov.shape, coh.shape\n\n((5, 10, 5, 5), (5, 10, 5, 5))\n\n\nBoth cov and coh are complex data. The shape shows each covarience or coherence matrix is 5 by 5 since there are 5 images. And cov and coh are matrix for all 5*10 pixels."
-  },
-  {
-    "objectID": "API/co.html#covariance-and-coherence-matrix-regularizer",
-    "href": "API/co.html#covariance-and-coherence-matrix-regularizer",
-    "title": "co",
-    "section": "Covariance and Coherence Matrix Regularizer",
-    "text": "Covariance and Coherence Matrix Regularizer\n\nsource\n\nnearestPD\n\n nearestPD (co:cupy.ndarray)\n\nFind the nearest positive-definite matrix to input matrix.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nco\nndarray\nstack of matrix with shape […,N,N]\n\n\nReturns\nndarray\nnearest positive definite matrix of input, shape […,N,N]\n\n\n\nnearest means the Frobenius norm of the difference is minimized.\nExample:\n\ndecorrelation_dataset = h5py.File('../../data/decorrelation.h5','r')\ncoh = cp.asarray(decorrelation_dataset['coherence'][:500,:500])\ndecorrelation_dataset.close()\ncoh = abs(coh)\ncoh.shape\n\n(500, 500, 17, 17)\n\n\n\nnearest_coh = nearestPD(coh)\n\n\nsource\n\n\nregularize_spectral\n\n regularize_spectral (coh:cupy.ndarray, beta:Union[float,cupy.ndarray])\n\nSpectral regularizer for coherence matrix.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ncoh\nndarray\nstack of matrix with shape […,N,N]\n\n\nbeta\ntyping.Union[float, cupy.ndarray]\nthe regularization parameter, a float number or cupy ndarray with shape […]\n\n\nReturns\nndarray\nregularized matrix, shape […,N,N]\n\n\n\nregularize_spectral can regularize the absolute value of coherence matrix for better phase linking. It is first presented in (Zwieback 2022).\nExamples:\n\ndecorrelation_dataset = h5py.File('../../data/decorrelation.h5','r')\ncoh = cp.asarray(decorrelation_dataset['coherence'][:500,:500])\ndecorrelation_dataset.close()\ncoh = abs(coh)\ncoh.shape\n\n(500, 500, 17, 17)\n\n\n\nregularized_coh1 = regularize_spectral(coh,0.1)\n\nMore general, bata can be a cp.ndarray:\n\nbeta = cp.ones(coh.shape[:-2])/10\nregularized_coh2 = regularize_spectral(coh,beta)"
-  },
-  {
-    "objectID": "API/shp.html",
-    "href": "API/shp.html",
-    "title": "shp",
-    "section": "",
-    "text": "from scipy import stats\nimport numpy as np\nimport itertools"
-  },
-  {
-    "objectID": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
-    "href": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
-    "title": "shp",
-    "section": "Kolmogorov-Smirnov (KS) two-sample test",
-    "text": "Kolmogorov-Smirnov (KS) two-sample test\n\nsource\n\nks_test\n\n ks_test (rmli_stack:cupy.ndarray, az_half_win:int, r_half_win:int,\n          block_size:int=128)\n\nSHP identification based on Two-Sample Kolmogorov-Smirnov Test\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrmli_stack\nndarray\n\nthe rmli stack, dtype: cupy.floating\n\n\naz_half_win\nint\n\nSHP identification half search window size in azimuth direction\n\n\nr_half_win\nint\n\nSHP identification half search window size in range direction\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe KS test statistics dist and p value p\n\n\n\nThe ks_test function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in (Ferretti et al. 2011). This function is designed to run on GPU for high speed.\nThe rmli_stack is a three dimentional cupy ndarray. The dtype should be float32. From outerest to innerest, the three dimentions are azimuth, range and image. Note that, the innerest dimention of rmli_stack should be sorted from smallest value to largest value ahead. For each pixel P, a search window centered at P is defined by az_half_win and r_half_win. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*az_half_win+1)*(2*r_half_win+1).\nThe returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is -1.\nHere is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:\n\nsample_size = 20\nrng = np.random.default_rng()\nsample1 = stats.uniform.rvs(size=sample_size, random_state=rng).astype(cp.float32)\nsample2 = stats.norm.rvs(size=sample_size, random_state=rng).astype(cp.float32)\n\nConvert the data to cupy ndarray and make sure the dtype is cp.float32 and the data are sorted:\n\nrmli_stack = cp.stack((cp.asarray(sample1), cp.asarray(sample2))).reshape(1,2,sample_size)\nrmli_stack = rmli_stack.astype(cp.float32)\nrmli_stack = cp.sort(rmli_stack,axis=-1)\nrmli_stack.shape\n\n(1, 2, 20)\n\n\nThe shape of rmli_stack shows it contains 20 images. Each of the image has 1 pixel in azimuth dimention and 2 pixels in range dimention. Set the az_half_win and r_half_win to 1 and apply the ks_test function:\n\ndist,p = ks_test(rmli_stack,1,1)\nprint(dist.shape)\nprint(dist)\n\n(1, 2, 3, 3)\n[[[[-1.   -1.   -1.  ]\n   [-1.    0.    0.55]\n   [-1.   -1.   -1.  ]]\n\n  [[-1.   -1.   -1.  ]\n   [ 0.55  0.   -1.  ]\n   [-1.   -1.   -1.  ]]]]\n\n\ndist is the ks test statistic. The shape of it shows for each pixel P in this 1*2 image, a 3*3 search window is defined and all pixels in this search window is test with P. The value 0 in dist is the ks test result of pixel P and pixel P itself. The value -1 means the secondary pixel is out of the image and no ks test is applied.\n\nprint(p.shape)\nprint(p)\n\n(1, 2, 3, 3)\n[[[[-1.         -1.         -1.        ]\n   [-1.          0.          0.00257061]\n   [-1.         -1.         -1.        ]]\n\n  [[-1.         -1.         -1.        ]\n   [ 0.00257061  0.         -1.        ]\n   [-1.         -1.         -1.        ]]]]\n\n\np is the ks test p value with same shape of dist.\n\nprint(stats.ks_2samp(sample1, sample2,method='asymp'))\n\nKstestResult(statistic=0.55, pvalue=0.0022805103214843725)\n\n\nBy comparing the result of ks_test and ks_2samp from scipy, the statistics are same which prove the correctness of ks_test. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent."
+    "objectID": "Tutorials/adaptive_multilook.html#conclusion",
+    "href": "Tutorials/adaptive_multilook.html#conclusion",
+    "title": "Adaptive Multilook",
+    "section": "Conclusion",
+    "text": "Conclusion\n\nAdaptive multilooking based on SHPs selection performs better than non-adaptive one;\nks_test and emperical_co implemented in decorrelation package are fast."
   },
   {
     "objectID": "index.html",
@@ -124,5 +131,54 @@
     "title": "decorrelation",
     "section": "Contribution",
     "text": "Contribution\n\nPull requests are welcomed! Before making a pull request, please open an issue to talk about it.\nWe have notice many excellent open-source packages are rarely paid attention to due to lake of documentation. The package is developed with the nbdev, a notebook-driven development platform. Developers only needs to simply write notebooks with lightweight markup and get high-quality documentation, tests, continuous integration, and packaging automatically."
+  },
+  {
+    "objectID": "API/shp.html",
+    "href": "API/shp.html",
+    "title": "shp",
+    "section": "",
+    "text": "from scipy import stats\nimport numpy as np\nimport itertools"
+  },
+  {
+    "objectID": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
+    "href": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
+    "title": "shp",
+    "section": "Kolmogorov-Smirnov (KS) two-sample test",
+    "text": "Kolmogorov-Smirnov (KS) two-sample test\n\nsource\n\nks_test\n\n ks_test (rmli_stack:cupy.ndarray, az_half_win:int, r_half_win:int,\n          block_size:int=128)\n\nSHP identification based on Two-Sample Kolmogorov-Smirnov Test\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrmli_stack\nndarray\n\nthe rmli stack, dtype: cupy.floating\n\n\naz_half_win\nint\n\nSHP identification half search window size in azimuth direction\n\n\nr_half_win\nint\n\nSHP identification half search window size in range direction\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe KS test statistics dist and p value p\n\n\n\nThe ks_test function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in (Ferretti et al. 2011). This function is designed to run on GPU for high speed.\n\nFerretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. “A New Algorithm for Processing Interferometric Data-Stacks: SqueeSAR.” IEEE Transactions on Geoscience and Remote Sensing 49 (9): 3460–70. https://doi.org/10.1109/TGRS.2011.2124465.\nThe rmli_stack is a three dimentional cupy ndarray. The dtype should be float32. From outerest to innerest, the three dimentions are azimuth, range and image. Note that, the innerest dimention of rmli_stack should be sorted from smallest value to largest value ahead. For each pixel P, a search window centered at P is defined by az_half_win and r_half_win. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*az_half_win+1)*(2*r_half_win+1).\nThe returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is -1.\nHere is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:\n\nsample_size = 20\nrng = np.random.default_rng()\nsample1 = stats.uniform.rvs(size=sample_size, random_state=rng).astype(cp.float32)\nsample2 = stats.norm.rvs(size=sample_size, random_state=rng).astype(cp.float32)\n\nConvert the data to cupy ndarray and make sure the dtype is cp.float32 and the data are sorted:\n\nrmli_stack = cp.stack((cp.asarray(sample1), cp.asarray(sample2))).reshape(1,2,sample_size)\nrmli_stack = rmli_stack.astype(cp.float32)\nrmli_stack = cp.sort(rmli_stack,axis=-1)\nrmli_stack.shape\n\n(1, 2, 20)\n\n\nThe shape of rmli_stack shows it contains 20 images. Each of the image has 1 pixel in azimuth dimention and 2 pixels in range dimention. Set the az_half_win and r_half_win to 1 and apply the ks_test function:\n\ndist,p = ks_test(rmli_stack,1,1)\nprint(dist.shape)\nprint(dist)\n\n(1, 2, 3, 3)\n[[[[-1.   -1.   -1.  ]\n   [-1.    0.    0.55]\n   [-1.   -1.   -1.  ]]\n\n  [[-1.   -1.   -1.  ]\n   [ 0.55  0.   -1.  ]\n   [-1.   -1.   -1.  ]]]]\n\n\ndist is the ks test statistic. The shape of it shows for each pixel P in this 1*2 image, a 3*3 search window is defined and all pixels in this search window is test with P. The value 0 in dist is the ks test result of pixel P and pixel P itself. The value -1 means the secondary pixel is out of the image and no ks test is applied.\n\nprint(p.shape)\nprint(p)\n\n(1, 2, 3, 3)\n[[[[-1.         -1.         -1.        ]\n   [-1.          0.          0.00257061]\n   [-1.         -1.         -1.        ]]\n\n  [[-1.         -1.         -1.        ]\n   [ 0.00257061  0.         -1.        ]\n   [-1.         -1.         -1.        ]]]]\n\n\np is the ks test p value with same shape of dist.\n\nprint(stats.ks_2samp(sample1, sample2,method='asymp'))\n\nKstestResult(statistic=0.55, pvalue=0.0022805103214843725)\n\n\nBy comparing the result of ks_test and ks_2samp from scipy, the statistics are same which prove the correctness of ks_test. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent."
+  },
+  {
+    "objectID": "API/plot.html",
+    "href": "API/plot.html",
+    "title": "Plot",
+    "section": "",
+    "text": "source\n\nbg_alpha\n\n bg_alpha (pwr)"
+  },
+  {
+    "objectID": "API/co.html",
+    "href": "API/co.html",
+    "title": "co",
+    "section": "",
+    "text": "import numpy as np\nimport cupy as cp\nimport itertools\nfrom decorrelation.shp import ks_test\nimport math\nimport zarr"
+  },
+  {
+    "objectID": "API/co.html#covariance-and-coherence-matrix-estimator",
+    "href": "API/co.html#covariance-and-coherence-matrix-estimator",
+    "title": "co",
+    "section": "Covariance and Coherence Matrix Estimator",
+    "text": "Covariance and Coherence Matrix Estimator\n\nsource\n\nemperical_co\n\n emperical_co (rslc:cupy.ndarray, is_shp:cupy.ndarray, block_size:int=128)\n\nMaximum likelihood covariance estimator.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrslc\nndarray\n\nrslc stack, dtype: cupy.complexfloating\n\n\nis_shp\nndarray\n\nshp bool, dtype: cupy.bool\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe covariance and coherence matrix cov and coh\n\n\n\nThe cov and coh is defined as:\n\\[\ncov = E(z_1z_2^*) \\quad coh=\\frac{E(z_1z_2^*)}{\\sqrt{E(|z_1|^2)E(|z_2|^2)}}\n\\]\nand estimated as:\n\\[\ncov = \\frac{\\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \\quad coh = \\frac{\\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{\\sqrt(\\sum_{i=1}^{L}|z_1^{i}|^2)(\\sum_{i=1}^{L}|z_2^{i}|^2)}\n\\]\nusing all selected SHPs. Their shapes are [nlines,width,nimages,nimages].\nThe rslc is a three dimentional cupy ndarray. The dtype should be cupy.complex64. From outerest to innerest, the three dimentions are azimuth, range and image. is_shp is a four dimentional cupy ndarray. It describes if pixels in the search window are SHP to the central pixel. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range.\nHere is an example:\n\nrslc = zarr.open('../../data/rslc.zarr/','r')[600:605,600:605]\nrslc = cp.asarray(rslc)\nrslc.shape\n\n(5, 5, 17)\n\n\nrslc is a stack of 5 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. Apply ks test on it:\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\ndist, p = ks_test(sorted_rmli,az_half_win=1,r_half_win=1)\n\nSeclect SHP based on p value:\n\nis_shp = (p < 0.005) & (p >= 0.0)\n\nEstimate the covarience and coherence matrix:\n\ncov,coh = emperical_co(rslc,is_shp)\ncov.shape, coh.shape\n\n((5, 5, 17, 17), (5, 5, 17, 17))\n\n\nBoth cov and coh are complex data. The shape shows each covarience or coherence matrix is 5 by 5 since there are 5 images. And cov and coh are matrix for all 5*10 pixels.\n\nsource\n\n\nemperical_co_sp\n\n emperical_co_sp (rslc:cupy.ndarray, sp_idx:cupy.ndarray,\n                  is_shp_sp:cupy.ndarray, block_size:int=128)\n\nMaximum likelihood covariance estimator for sparse data.\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrslc\nndarray\n\nrslc stack, dtype: cupy.complexfloating\n\n\nsp_idx\nndarray\n\nindex of sparse data, dtype: cupy.int, shape: [n_sp,2]\n\n\nis_shp_sp\nndarray\n\nshp bool, dtype: cupy.bool\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe covariance and coherence matrix cov and coh\n\n\n\nemperical_co_sp is the emperical_co on sparse data, e.g., DSs. rslc is same as emperical_co, sp_idx is the index with shape [number_of_point,2], is_shp_sp is similar to is_shp in emperical_co but it only contains information about the sparse data. It is a 3D array with shape [number_of_point,az_win,r_win].\nCompared with emperical_co, emperical_co_sp only estimate coherence/covariance at specific position so the memory usage is much small.\nExample:\n\nrslc = zarr.open('../../data/rslc.zarr/','r')[600:650,600:650]\nrslc = cp.asarray(rslc)\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\ndist, p = ks_test(sorted_rmli,az_half_win=10,r_half_win=10)\nis_shp = (p < 0.005) & (p >= 0.0)\ncov, coh = emperical_co(rslc,is_shp)\n\n\nshp_num = cp.count_nonzero(is_shp,axis=(-2,-1))\nis_ds = shp_num >= 50\nis_shp_ds = is_shp[is_ds]\nds_idx = cp.vstack(cp.where(is_ds)).T\nds_idx.shape\n\n(297, 2)\n\n\n\ncov_ds, coh_ds = emperical_co_sp(rslc,ds_idx,is_shp_ds)\ncoh_ds.shape\n\n(297, 17, 17)\n\n\n\nassert_array_almost_equal(cov[is_ds],cov_ds)\nassert_array_almost_equal(coh[is_ds],coh_ds)"
+  },
+  {
+    "objectID": "API/co.html#covariance-and-coherence-matrix-regularizer",
+    "href": "API/co.html#covariance-and-coherence-matrix-regularizer",
+    "title": "co",
+    "section": "Covariance and Coherence Matrix Regularizer",
+    "text": "Covariance and Coherence Matrix Regularizer\n\nsource\n\nwherePD\n\n wherePD (co:cupy.ndarray)\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nco\nndarray\nabsolute value of complex coherence/covariance stack\n\n\nReturns\nndarray\nbool array indicating wheather coherence/covariance is positive define\n\n\n\n\nsource\n\n\nnearestPD\n\n nearestPD (co:cupy.ndarray)\n\nFind the nearest positive-definite matrix to input matrix.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nco\nndarray\nstack of matrix with shape […,N,N]\n\n\nReturns\nndarray\nnearest positive definite matrix of input, shape […,N,N]\n\n\n\nnearest means the Frobenius norm of the difference is minimized.\nExample:\n\ncoh = zarr.open('../../data/emperical_coherence.zarr','r')[:500,:500]\ncoh = cp.asarray(coh)\ncoh = abs(coh)\ncoh.shape\n\n(500, 500, 17, 17)\n\n\n\nnearest_coh = nearestPD(coh)\n\n\nsource\n\n\nregularize_spectral\n\n regularize_spectral (coh:cupy.ndarray, beta:Union[float,cupy.ndarray])\n\nSpectral regularizer for coherence matrix.\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ncoh\nndarray\nstack of matrix with shape […,N,N]\n\n\nbeta\ntyping.Union[float, cupy.ndarray]\nthe regularization parameter, a float number or cupy ndarray with shape […]\n\n\nReturns\nndarray\nregularized matrix, shape […,N,N]\n\n\n\nregularize_spectral can regularize the absolute value of coherence matrix for better phase linking. It is first presented in (Zwieback 2022).\n\nZwieback, S. 2022. “Cheap, Valid Regularizers for Improved Interferometric Phase Linking.” IEEE Geoscience and Remote Sensing Letters 19: 1–4. https://doi.org/10.1109/LGRS.2022.3197423.\nExamples:\n\ncoh = zarr.open('../../data/emperical_coherence.zarr','r')[:500,:500]\ncoh = cp.asarray(coh)\ncoh = abs(coh)\ncoh.shape\n\n(500, 500, 17, 17)\n\n\n\nregularized_coh1 = regularize_spectral(coh,0.1)\n\nMore general, bata can be a cp.ndarray:\n\nbeta = cp.ones(coh.shape[:-2])/10\nregularized_coh2 = regularize_spectral(coh,beta)"
+  },
+  {
+    "objectID": "API/pl.html",
+    "href": "API/pl.html",
+    "title": "pl",
+    "section": "",
+    "text": "source\n\nemi\n\n emi (coh:cupy.ndarray)\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ncoh\nndarray\ncoherence ,dtype cupy.complex\n\n\nReturns\nndarray\nestimated phase history ph, dtype complex\n\n\n\nemi is a phase estimator base on EMI (Ansari, De Zan, and Bamler 2018) phase linking method.\n\n\n\nAnsari, Homa, Francesco De Zan, and Richard Bamler. 2018. “Efficient Phase Estimation for Interferogram Stacks.” IEEE Transactions on Geoscience and Remote Sensing 56 (7): 4109–25. https://doi.org/10.1109/TGRS.2018.2826045."
   }
 ]

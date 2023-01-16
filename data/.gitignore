@@ -1,2 +1,6 @@
 *.npy
 *.h5
+dask-work-space
+*.zarr
+*.png
+_*

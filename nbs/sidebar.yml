@@ -10,4 +10,5 @@ website:
           - API/shp.ipynb
       - section: Tutorials
         contents:
-          - Tutorials/Adaptive_multilook.ipynb
+          - Tutorials/Adaptive_Multilook.ipynb
+          - Tutorials/DS_Processing.ipynb

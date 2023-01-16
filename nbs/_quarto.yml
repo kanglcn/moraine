@@ -3,19 +3,43 @@ project:
 
 format:
   html:
-    theme: cosmo
-    css: styles.css
+    theme: light
     toc: true
+    linestretch: 1.6
+    smooth-scroll: true
+    toc-depth: 4
+    code-link: true
+    code-tools:
+      toggle: true
+    code-fold: false
+    highlight-style: github
+    code-block-bg: true
+    page-layout: full
+    code-copy: hover
+    fig-responsive: true
+    filters:
+        - lightbox
+    lightbox:
+      match: auto
+      effect: zoom
+
+jupyter: python3
 
 website:
-  twitter-card: true
+  search: 
+    location: sidebar
+    type: overlay
   open-graph: true
   repo-actions: [issue]
-  navbar:
-    background: primary
-    search: true
   sidebar:
-    style: floating
+    border: true
+  page-footer:
+    border: true
+    center: "Copyright 2022, Kang Liang. All rights reserved."
+    background: light
+
+reference-location: margin
+citation-location: margin
 
 bibliography: references.bib
 metadata-files: [nbdev.yml, sidebar.yml]
