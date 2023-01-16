@@ -4,12 +4,11 @@
 
 ## 0.0.4
 
+Add covariance/coherence matrix estimation for sparse data
 
+Add phase linking method: EMI
 
-
-
-
-
+Add tutorial for DS processing (still under construction)
 
 ## 0.0.3
 

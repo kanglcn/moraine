@@ -1,54 +1,5 @@
 [
   {
-    "objectID": "Tutorials/ds_processing.html",
-    "href": "Tutorials/ds_processing.html",
-    "title": "DS Processing",
-    "section": "",
-    "text": "In this tutorial, we demostrate how to do standard DS processing with the decorrelation package."
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#load-rslc-stack",
-    "href": "Tutorials/ds_processing.html#load-rslc-stack",
-    "title": "DS Processing",
-    "section": "Load rslc stack",
-    "text": "Load rslc stack\n\nrslc = cp.load('../../data/rslc.npy')\nrslc.shape\n\n(2500, 1834, 17)"
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#apply-ks-test",
-    "href": "Tutorials/ds_processing.html#apply-ks-test",
-    "title": "DS Processing",
-    "section": "Apply ks test",
-    "text": "Apply ks test\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\n\n\naz_half_win = 5\nr_half_win = 5\naz_win = 2*az_half_win+1\nr_win = 2*r_half_win+1\n\n\np = ks_test(sorted_rmli,az_half_win=az_half_win,r_half_win=r_half_win)[1]\n\nCPU times: user 1.19 ms, sys: 2.22 ms, total: 3.41 ms\nWall time: 2.54 ms"
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#select-shps",
-    "href": "Tutorials/ds_processing.html#select-shps",
-    "title": "DS Processing",
-    "section": "Select SHPs",
-    "text": "Select SHPs\n\nis_shp = (p < 0.05) & (p >= 0.0)\n\n\nshp_num = cp.count_nonzero(is_shp,axis=(-2,-1))\nshp_num_np = cp.asnumpy(shp_num)\n\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(shp_num_np)\nax.set(title='Number of SHPs',xlabel='Range Index',ylabel='Azimuth Index')\nfig.colorbar(pcm)\nfig.show()"
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#select-dss",
-    "href": "Tutorials/ds_processing.html#select-dss",
-    "title": "DS Processing",
-    "section": "Select DSs",
-    "text": "Select DSs\nHere we select DSs as pixels have more than 50 brothers.\n\nis_ds = shp_num >= 50\n\nThe number of DSs:\n\ncp.count_nonzero(is_ds)\n\narray(740397)\n\n\nThe DSs distribution:\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(cp.asnumpy(is_ds),cmap='bwr')\nax.set(title='DS distribution',xlabel='Range Index',ylabel='Azimuth Index')\nfig.show()"
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#estimate-coherence-matrix",
-    "href": "Tutorials/ds_processing.html#estimate-coherence-matrix",
-    "title": "DS Processing",
-    "section": "Estimate coherence matrix",
-    "text": "Estimate coherence matrix\nIn order to save memory, here we only estimate coherence matrix on selected DSs:\n\nis_shp_ds = is_shp[is_ds]\nds_idx = cp.vstack(cp.where(is_ds)).T\ncov, coh = emperical_co_sp(rslc,ds_idx,is_shp_ds)\n\n\nds_idx.shape\n\n(740397, 2)\n\n\nPlot some coherence matrix:\n\nplot_ds = [8,40,80,444,344,5546,67433,22455,48204]\nfig, axes = plt.subplots(3,3,figsize=(12,10))\nfor i,ax in enumerate(axes.ravel()):\n    pcm = ax.imshow(cp.asnumpy(abs(coh[plot_ds[i]])),cmap='bwr')\n    ax.set(title=f'Coherence matrix for DS[{plot_ds[i]}]',xlabel='Secondary Image Index',ylabel='Reference Image Index')\n    fig.colorbar(pcm,ax=ax)\nfig.tight_layout()\nfig.show()"
-  },
-  {
-    "objectID": "Tutorials/ds_processing.html#phase-linking",
-    "href": "Tutorials/ds_processing.html#phase-linking",
-    "title": "DS Processing",
-    "section": "phase linking",
-    "text": "phase linking\n\nph_new = emi(coh)\n\nCPU times: user 1.38 ms, sys: 157 µs, total: 1.53 ms\nWall time: 1.17 ms\n\n\nStill under construction……"
-  },
-  {
     "objectID": "Tutorials/adaptive_multilook.html",
     "href": "Tutorials/adaptive_multilook.html",
     "title": "Adaptive Multilook",
@@ -98,6 +49,55 @@
     "text": "Conclusion\n\nAdaptive multilooking based on SHPs selection performs better than non-adaptive one;\nks_test and emperical_co implemented in decorrelation package are fast."
   },
   {
+    "objectID": "Tutorials/ds_processing.html",
+    "href": "Tutorials/ds_processing.html",
+    "title": "DS Processing",
+    "section": "",
+    "text": "In this tutorial, we demostrate how to do standard DS processing with the decorrelation package."
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#load-rslc-stack",
+    "href": "Tutorials/ds_processing.html#load-rslc-stack",
+    "title": "DS Processing",
+    "section": "Load rslc stack",
+    "text": "Load rslc stack\n\nrslc = cp.load('../../data/rslc.npy')\nrslc.shape\n\n(2500, 1834, 17)"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#apply-ks-test",
+    "href": "Tutorials/ds_processing.html#apply-ks-test",
+    "title": "DS Processing",
+    "section": "Apply ks test",
+    "text": "Apply ks test\n\nrmli = cp.abs(rslc)**2\nsorted_rmli = cp.sort(rmli,axis=-1)\n\n\naz_half_win = 5\nr_half_win = 5\naz_win = 2*az_half_win+1\nr_win = 2*r_half_win+1\n\n\np = ks_test(sorted_rmli,az_half_win=az_half_win,r_half_win=r_half_win)[1]\n\nCPU times: user 1.19 ms, sys: 2.22 ms, total: 3.41 ms\nWall time: 2.54 ms"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#select-shps",
+    "href": "Tutorials/ds_processing.html#select-shps",
+    "title": "DS Processing",
+    "section": "Select SHPs",
+    "text": "Select SHPs\n\nis_shp = (p < 0.05) & (p >= 0.0)\n\n\nshp_num = cp.count_nonzero(is_shp,axis=(-2,-1))\nshp_num_np = cp.asnumpy(shp_num)\n\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(shp_num_np)\nax.set(title='Number of SHPs',xlabel='Range Index',ylabel='Azimuth Index')\nfig.colorbar(pcm)\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#select-dss",
+    "href": "Tutorials/ds_processing.html#select-dss",
+    "title": "DS Processing",
+    "section": "Select DSs",
+    "text": "Select DSs\nHere we select DSs as pixels have more than 50 brothers.\n\nis_ds = shp_num >= 50\n\nThe number of DSs:\n\ncp.count_nonzero(is_ds)\n\narray(740397)\n\n\nThe DSs distribution:\n\nfig, ax = plt.subplots(1,1,figsize=(10,10))\npcm = ax.imshow(cp.asnumpy(is_ds),cmap='bwr')\nax.set(title='DS distribution',xlabel='Range Index',ylabel='Azimuth Index')\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#estimate-coherence-matrix",
+    "href": "Tutorials/ds_processing.html#estimate-coherence-matrix",
+    "title": "DS Processing",
+    "section": "Estimate coherence matrix",
+    "text": "Estimate coherence matrix\nIn order to save memory, here we only estimate coherence matrix on selected DSs:\n\nis_shp_ds = is_shp[is_ds]\nds_idx = cp.vstack(cp.where(is_ds)).T\ncov, coh = emperical_co_sp(rslc,ds_idx,is_shp_ds)\n\n\nds_idx.shape\n\n(740397, 2)\n\n\nPlot some coherence matrix:\n\nplot_ds = [8,40,80,444,344,5546,67433,22455,48204]\nfig, axes = plt.subplots(3,3,figsize=(12,10))\nfor i,ax in enumerate(axes.ravel()):\n    pcm = ax.imshow(cp.asnumpy(abs(coh[plot_ds[i]])),cmap='bwr')\n    ax.set(title=f'Coherence matrix for DS[{plot_ds[i]}]',xlabel='Secondary Image Index',ylabel='Reference Image Index')\n    fig.colorbar(pcm,ax=ax)\nfig.tight_layout()\nfig.show()"
+  },
+  {
+    "objectID": "Tutorials/ds_processing.html#phase-linking",
+    "href": "Tutorials/ds_processing.html#phase-linking",
+    "title": "DS Processing",
+    "section": "phase linking",
+    "text": "phase linking\n\nph_new = emi(coh)\n\nCPU times: user 1.38 ms, sys: 157 µs, total: 1.53 ms\nWall time: 1.17 ms\n\n\nStill under construction……"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "decorrelation",
@@ -133,27 +133,6 @@
     "text": "Contribution\n\nPull requests are welcomed! Before making a pull request, please open an issue to talk about it.\nWe have notice many excellent open-source packages are rarely paid attention to due to lake of documentation. The package is developed with the nbdev, a notebook-driven development platform. Developers only needs to simply write notebooks with lightweight markup and get high-quality documentation, tests, continuous integration, and packaging automatically."
   },
   {
-    "objectID": "API/shp.html",
-    "href": "API/shp.html",
-    "title": "shp",
-    "section": "",
-    "text": "from scipy import stats\nimport numpy as np\nimport itertools"
-  },
-  {
-    "objectID": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
-    "href": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
-    "title": "shp",
-    "section": "Kolmogorov-Smirnov (KS) two-sample test",
-    "text": "Kolmogorov-Smirnov (KS) two-sample test\n\nsource\n\nks_test\n\n ks_test (rmli_stack:cupy.ndarray, az_half_win:int, r_half_win:int,\n          block_size:int=128)\n\nSHP identification based on Two-Sample Kolmogorov-Smirnov Test\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrmli_stack\nndarray\n\nthe rmli stack, dtype: cupy.floating\n\n\naz_half_win\nint\n\nSHP identification half search window size in azimuth direction\n\n\nr_half_win\nint\n\nSHP identification half search window size in range direction\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe KS test statistics dist and p value p\n\n\n\nThe ks_test function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in (Ferretti et al. 2011). This function is designed to run on GPU for high speed.\n\nFerretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. “A New Algorithm for Processing Interferometric Data-Stacks: SqueeSAR.” IEEE Transactions on Geoscience and Remote Sensing 49 (9): 3460–70. https://doi.org/10.1109/TGRS.2011.2124465.\nThe rmli_stack is a three dimentional cupy ndarray. The dtype should be float32. From outerest to innerest, the three dimentions are azimuth, range and image. Note that, the innerest dimention of rmli_stack should be sorted from smallest value to largest value ahead. For each pixel P, a search window centered at P is defined by az_half_win and r_half_win. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*az_half_win+1)*(2*r_half_win+1).\nThe returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is -1.\nHere is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:\n\nsample_size = 20\nrng = np.random.default_rng()\nsample1 = stats.uniform.rvs(size=sample_size, random_state=rng).astype(cp.float32)\nsample2 = stats.norm.rvs(size=sample_size, random_state=rng).astype(cp.float32)\n\nConvert the data to cupy ndarray and make sure the dtype is cp.float32 and the data are sorted:\n\nrmli_stack = cp.stack((cp.asarray(sample1), cp.asarray(sample2))).reshape(1,2,sample_size)\nrmli_stack = rmli_stack.astype(cp.float32)\nrmli_stack = cp.sort(rmli_stack,axis=-1)\nrmli_stack.shape\n\n(1, 2, 20)\n\n\nThe shape of rmli_stack shows it contains 20 images. Each of the image has 1 pixel in azimuth dimention and 2 pixels in range dimention. Set the az_half_win and r_half_win to 1 and apply the ks_test function:\n\ndist,p = ks_test(rmli_stack,1,1)\nprint(dist.shape)\nprint(dist)\n\n(1, 2, 3, 3)\n[[[[-1.   -1.   -1.  ]\n   [-1.    0.    0.55]\n   [-1.   -1.   -1.  ]]\n\n  [[-1.   -1.   -1.  ]\n   [ 0.55  0.   -1.  ]\n   [-1.   -1.   -1.  ]]]]\n\n\ndist is the ks test statistic. The shape of it shows for each pixel P in this 1*2 image, a 3*3 search window is defined and all pixels in this search window is test with P. The value 0 in dist is the ks test result of pixel P and pixel P itself. The value -1 means the secondary pixel is out of the image and no ks test is applied.\n\nprint(p.shape)\nprint(p)\n\n(1, 2, 3, 3)\n[[[[-1.         -1.         -1.        ]\n   [-1.          0.          0.00257061]\n   [-1.         -1.         -1.        ]]\n\n  [[-1.         -1.         -1.        ]\n   [ 0.00257061  0.         -1.        ]\n   [-1.         -1.         -1.        ]]]]\n\n\np is the ks test p value with same shape of dist.\n\nprint(stats.ks_2samp(sample1, sample2,method='asymp'))\n\nKstestResult(statistic=0.55, pvalue=0.0022805103214843725)\n\n\nBy comparing the result of ks_test and ks_2samp from scipy, the statistics are same which prove the correctness of ks_test. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent."
-  },
-  {
-    "objectID": "API/plot.html",
-    "href": "API/plot.html",
-    "title": "Plot",
-    "section": "",
-    "text": "source\n\nbg_alpha\n\n bg_alpha (pwr)"
-  },
-  {
     "objectID": "API/co.html",
     "href": "API/co.html",
     "title": "co",
@@ -180,5 +159,26 @@
     "title": "pl",
     "section": "",
     "text": "source\n\nemi\n\n emi (coh:cupy.ndarray)\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ncoh\nndarray\ncoherence ,dtype cupy.complex\n\n\nReturns\nndarray\nestimated phase history ph, dtype complex\n\n\n\nemi is a phase estimator base on EMI (Ansari, De Zan, and Bamler 2018) phase linking method.\n\n\n\nAnsari, Homa, Francesco De Zan, and Richard Bamler. 2018. “Efficient Phase Estimation for Interferogram Stacks.” IEEE Transactions on Geoscience and Remote Sensing 56 (7): 4109–25. https://doi.org/10.1109/TGRS.2018.2826045."
+  },
+  {
+    "objectID": "API/shp.html",
+    "href": "API/shp.html",
+    "title": "shp",
+    "section": "",
+    "text": "from scipy import stats\nimport numpy as np\nimport itertools"
+  },
+  {
+    "objectID": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
+    "href": "API/shp.html#kolmogorov-smirnov-ks-two-sample-test",
+    "title": "shp",
+    "section": "Kolmogorov-Smirnov (KS) two-sample test",
+    "text": "Kolmogorov-Smirnov (KS) two-sample test\n\nsource\n\nks_test\n\n ks_test (rmli_stack:cupy.ndarray, az_half_win:int, r_half_win:int,\n          block_size:int=128)\n\nSHP identification based on Two-Sample Kolmogorov-Smirnov Test\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\nrmli_stack\nndarray\n\nthe rmli stack, dtype: cupy.floating\n\n\naz_half_win\nint\n\nSHP identification half search window size in azimuth direction\n\n\nr_half_win\nint\n\nSHP identification half search window size in range direction\n\n\nblock_size\nint\n128\nthe CUDA block size, it only affects the calculation speed\n\n\nReturns\ntuple\n\nthe KS test statistics dist and p value p\n\n\n\nThe ks_test function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in (Ferretti et al. 2011). This function is designed to run on GPU for high speed.\n\nFerretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. “A New Algorithm for Processing Interferometric Data-Stacks: SqueeSAR.” IEEE Transactions on Geoscience and Remote Sensing 49 (9): 3460–70. https://doi.org/10.1109/TGRS.2011.2124465.\nThe rmli_stack is a three dimentional cupy ndarray. The dtype should be float32. From outerest to innerest, the three dimentions are azimuth, range and image. Note that, the innerest dimention of rmli_stack should be sorted from smallest value to largest value ahead. For each pixel P, a search window centered at P is defined by az_half_win and r_half_win. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*az_half_win+1)*(2*r_half_win+1).\nThe returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is -1.\nHere is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:\n\nsample_size = 20\nrng = np.random.default_rng()\nsample1 = stats.uniform.rvs(size=sample_size, random_state=rng).astype(cp.float32)\nsample2 = stats.norm.rvs(size=sample_size, random_state=rng).astype(cp.float32)\n\nConvert the data to cupy ndarray and make sure the dtype is cp.float32 and the data are sorted:\n\nrmli_stack = cp.stack((cp.asarray(sample1), cp.asarray(sample2))).reshape(1,2,sample_size)\nrmli_stack = rmli_stack.astype(cp.float32)\nrmli_stack = cp.sort(rmli_stack,axis=-1)\nrmli_stack.shape\n\n(1, 2, 20)\n\n\nThe shape of rmli_stack shows it contains 20 images. Each of the image has 1 pixel in azimuth dimention and 2 pixels in range dimention. Set the az_half_win and r_half_win to 1 and apply the ks_test function:\n\ndist,p = ks_test(rmli_stack,1,1)\nprint(dist.shape)\nprint(dist)\n\n(1, 2, 3, 3)\n[[[[-1.   -1.   -1.  ]\n   [-1.    0.    0.55]\n   [-1.   -1.   -1.  ]]\n\n  [[-1.   -1.   -1.  ]\n   [ 0.55  0.   -1.  ]\n   [-1.   -1.   -1.  ]]]]\n\n\ndist is the ks test statistic. The shape of it shows for each pixel P in this 1*2 image, a 3*3 search window is defined and all pixels in this search window is test with P. The value 0 in dist is the ks test result of pixel P and pixel P itself. The value -1 means the secondary pixel is out of the image and no ks test is applied.\n\nprint(p.shape)\nprint(p)\n\n(1, 2, 3, 3)\n[[[[-1.         -1.         -1.        ]\n   [-1.          0.          0.00257061]\n   [-1.         -1.         -1.        ]]\n\n  [[-1.         -1.         -1.        ]\n   [ 0.00257061  0.         -1.        ]\n   [-1.         -1.         -1.        ]]]]\n\n\np is the ks test p value with same shape of dist.\n\nprint(stats.ks_2samp(sample1, sample2,method='asymp'))\n\nKstestResult(statistic=0.55, pvalue=0.0022805103214843725)\n\n\nBy comparing the result of ks_test and ks_2samp from scipy, the statistics are same which prove the correctness of ks_test. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent."
+  },
+  {
+    "objectID": "API/plot.html",
+    "href": "API/plot.html",
+    "title": "Plot",
+    "section": "",
+    "text": "source\n\nbg_alpha\n\n bg_alpha (pwr)"
   }
 ]
