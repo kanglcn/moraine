@@ -302,10 +302,10 @@ div.csl-indent {
 <section id="ks_test" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="ks_test">ks_test</h3>
 <blockquote class="blockquote">
-<pre><code> ks_test (rmli_stack:cupy.ndarray, az_half_win:int, r_half_win:int,
+<pre><code> ks_test (rmli:cupy.ndarray, az_half_win:int, r_half_win:int,
           block_size:int=128)</code></pre>
 </blockquote>
-<p>SHP identification based on Two-Sample Kolmogorov-Smirnov Test</p>
+<p>SHP identification based on Two-Sample Kolmogorov-Smirnov Test.</p>
 <table class="table">
 <colgroup>
 <col style="width: 6%">
@@ -323,7 +323,7 @@ div.csl-indent {
 </thead>
 <tbody>
 <tr class="odd">
-<td>rmli_stack</td>
+<td>rmli</td>
 <td>ndarray</td>
 <td></td>
 <td>the rmli stack, dtype: cupy.floating</td>
@@ -357,7 +357,7 @@ div.csl-indent {
 <p>The <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>. This function is designed to run on GPU for high speed.</p>
 <div class="no-row-height column-margin column-container"><div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="doc-biblioentry">
 Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
-</div></div><p>The <code>rmli_stack</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float32</code>. From outerest to innerest, the three dimentions are azimuth, range and image. Note that, the innerest dimention of <code>rmli_stack</code> should be sorted from smallest value to largest value ahead. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
+</div></div><p>The <code>rmli</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float</code>. From outerest to innerest, the three dimentions are azimuth, range and image. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
 <p>The returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is <code>-1</code>.</p>
 <p>Here is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:</p>
 <div class="cell">
@@ -370,8 +370,7 @@ Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Roc
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rmli_stack <span class="op">=</span> cp.stack((cp.asarray(sample1), cp.asarray(sample2))).reshape(<span class="dv">1</span>,<span class="dv">2</span>,sample_size)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>rmli_stack <span class="op">=</span> rmli_stack.astype(cp.float32)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>rmli_stack <span class="op">=</span> cp.sort(rmli_stack,axis<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>rmli_stack.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>rmli_stack.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(1, 2, 20)</code></pre>
 </div>
@@ -383,13 +382,13 @@ Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Roc
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>(1, 2, 3, 3)
-[[[[-1.   -1.   -1.  ]
-   [-1.    0.    0.55]
-   [-1.   -1.   -1.  ]]
+[[[[-1.  -1.  -1. ]
+   [-1.   0.   0.5]
+   [-1.  -1.  -1. ]]
 
-  [[-1.   -1.   -1.  ]
-   [ 0.55  0.   -1.  ]
-   [-1.   -1.   -1.  ]]]]</code></pre>
+  [[-1.  -1.  -1. ]
+   [ 0.5  0.  -1. ]
+   [-1.  -1.  -1. ]]]]</code></pre>
 </div>
 </div>
 <p><code>dist</code> is the ks test statistic. The shape of it shows for each pixel P in this <code>1*2</code> image, a <code>3*3</code> search window is defined and all pixels in this search window is test with P. The value <code>0</code> in <code>dist</code> is the ks test result of pixel P and pixel P itself. The value <code>-1</code> means the secondary pixel is out of the image and no ks test is applied.</p>
@@ -399,11 +398,11 @@ Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Roc
 <div class="cell-output cell-output-stdout">
 <pre><code>(1, 2, 3, 3)
 [[[[-1.         -1.         -1.        ]
-   [-1.          0.          0.00257061]
+   [-1.          0.          0.00816168]
    [-1.         -1.         -1.        ]]
 
   [[-1.         -1.         -1.        ]
-   [ 0.00257061  0.         -1.        ]
+   [ 0.00816168  0.         -1.        ]
    [-1.         -1.         -1.        ]]]]</code></pre>
 </div>
 </div>
@@ -411,7 +410,7 @@ Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Roc
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stats.ks_2samp(sample1, sample2,method<span class="op">=</span><span class="st">'asymp'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>KstestResult(statistic=0.55, pvalue=0.0022805103214843725)</code></pre>
+<pre><code>KstestResult(statistic=0.5, pvalue=0.00777741)</code></pre>
 </div>
 </div>
 <p>By comparing the result of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> and <code>ks_2samp</code> from <code>scipy</code>, the statistics are same which prove the correctness of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a>. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent.</p>

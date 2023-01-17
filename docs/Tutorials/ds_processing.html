@@ -295,8 +295,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="apply-ks-test" class="level2">
 <h2 class="anchored" data-anchor-id="apply-ks-test">Apply ks test</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
@@ -305,10 +304,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.19 ms, sys: 2.22 ms, total: 3.41 ms
-Wall time: 2.54 ms</code></pre>
+<pre><code>CPU times: user 42.1 ms, sys: 30 ms, total: 72.1 ms
+Wall time: 72.4 ms</code></pre>
 </div>
 </div>
 </section>
@@ -402,8 +401,8 @@ Wall time: 2.54 ms</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ph_new <span class="op">=</span> emi(coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.38 ms, sys: 157 µs, total: 1.53 ms
-Wall time: 1.17 ms</code></pre>
+<pre><code>CPU times: user 586 ms, sys: 365 ms, total: 951 ms
+Wall time: 974 ms</code></pre>
 </div>
 </div>
 <p>Still under construction……</p>
@@ -602,7 +601,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       <div class="nav-footer-center">Copyright 2022, Kang Liang. All rights reserved.</div>
   </div>
 </footer>
-<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","selector":".lightbox","loop":true,"descPosition":"bottom","openEffect":"zoom"});</script>
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","loop":true,"selector":".lightbox","descPosition":"bottom","openEffect":"zoom"});</script>
 
 
 

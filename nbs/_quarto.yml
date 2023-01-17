@@ -3,17 +3,13 @@ project:
 
 format:
   html:
-    theme: light
+    theme: material
     toc: true
     linestretch: 1.6
     smooth-scroll: true
     toc-depth: 4
-    code-link: true
     code-tools:
       toggle: true
-    code-fold: false
-    highlight-style: github
-    code-block-bg: true
     page-layout: full
     code-copy: hover
     fig-responsive: true

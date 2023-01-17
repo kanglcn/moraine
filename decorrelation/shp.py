@@ -73,23 +73,24 @@ _ks_test_kernel = cp.ElementwiseKernel(
     ''',)
 
 # %% ../nbs/API/shp.ipynb 7
-def ks_test(rmli_stack:cp.ndarray, # the rmli stack, dtype: cupy.floating
+def ks_test(rmli:cp.ndarray, # the rmli stack, dtype: cupy.floating
             az_half_win:int, # SHP identification half search window size in azimuth direction
             r_half_win:int, # SHP identification half search window size in range direction
             block_size:int=128, # the CUDA block size, it only affects the calculation speed
-           ) -> tuple : # the KS test statistics `dist` and p value `p`
+           ) -> tuple[cp.ndarray,cp.ndarray] : # the KS test statistics `dist` and p value `p`
     '''
-    SHP identification based on Two-Sample Kolmogorov-Smirnov Test
+    SHP identification based on Two-Sample Kolmogorov-Smirnov Test.
     '''
+    sorted_rmli = cp.sort(rmli,axis=-1) # In fact, this step is most time consuming, consider move it out
     az_win = 2*az_half_win+1
     r_win = 2*r_half_win+1
-    nlines = rmli_stack.shape[0]
-    width = rmli_stack.shape[1]
-    nimages = rmli_stack.shape[-1]
-    dist = cp.empty((nlines,width,az_win,r_win),dtype=rmli_stack.dtype)
-    p = cp.empty((nlines,width,az_win,r_win),dtype=rmli_stack.dtype)
+    nlines = rmli.shape[0]
+    width = rmli.shape[1]
+    nimages = rmli.shape[-1]
+    dist = cp.empty((nlines,width,az_win,r_win),dtype=rmli.dtype)
+    p = cp.empty((nlines,width,az_win,r_win),dtype=rmli.dtype)
 
-    _ks_test_kernel(rmli_stack,cp.int32(nlines),cp.int32(width),cp.int32(nimages),
+    _ks_test_kernel(sorted_rmli,cp.int32(nlines),cp.int32(width),cp.int32(nimages),
                     cp.int32(az_half_win),cp.int32(r_half_win),dist,p,
                     size=width*nlines*r_win*az_win,block_size=block_size)
     return dist,p

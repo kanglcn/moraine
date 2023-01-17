@@ -9,6 +9,10 @@ decorrelation
 
 ## Install
 
+Install
+[CuPy](https://docs.cupy.dev/en/stable/install.html#installation) first,
+then:
+
 With conda:
 
 ``` bash
@@ -38,6 +42,9 @@ import decorrelation as dc
 Please refer to the
 [Documentation](https://kanglcn.github.io/decorrelation) for detailed
 usage.
+
+**Warning!!!** This package is under intensive development. API is
+subjected to change without any noticement.
 
 ## Contact us
 

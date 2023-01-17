@@ -296,8 +296,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <section id="apply-ks-test" class="level2">
 <h2 class="anchored" data-anchor-id="apply-ks-test">Apply ks test</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
@@ -306,10 +305,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 2.02 ms, sys: 4.04 ms, total: 6.06 ms
-Wall time: 5.53 ms</code></pre>
+<pre><code>CPU times: user 47.1 ms, sys: 27.9 ms, total: 75 ms
+Wall time: 75.5 ms</code></pre>
 </div>
 </div>
 <p><a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> in decorrelation package is extremely fast!</p>
@@ -343,8 +342,8 @@ Wall time: 5.53 ms</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> emperical_co(rslc,is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 11.9 ms, sys: 8.95 ms, total: 20.8 ms
-Wall time: 20.6 ms</code></pre>
+<pre><code>CPU times: user 11.4 ms, sys: 9.81 ms, total: 21.2 ms
+Wall time: 20.1 ms</code></pre>
 </div>
 </div>
 </section>
@@ -600,7 +599,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       <div class="nav-footer-center">Copyright 2022, Kang Liang. All rights reserved.</div>
   </div>
 </footer>
-<script>var lightboxQuarto = GLightbox({"loop":true,"openEffect":"zoom","descPosition":"bottom","selector":".lightbox","closeEffect":"zoom"});</script>
+<script>var lightboxQuarto = GLightbox({"selector":".lightbox","descPosition":"bottom","closeEffect":"zoom","openEffect":"zoom","loop":true});</script>
 
 
 
