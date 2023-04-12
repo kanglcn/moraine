@@ -12,4 +12,4 @@ website:
         contents:
           - Tutorials/Adaptive_Multilook.ipynb
           - Tutorials/DS_Processing.ipynb
-          - Tutorials/work_with_dask.ipynb
+          - Tutorials/Work_With_Dask.ipynb
