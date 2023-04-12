@@ -154,3 +154,6 @@ checklink/cookies.txt
 # Dask
 dask-work-space
 mydask.png
+
+# Data
+*.zarr

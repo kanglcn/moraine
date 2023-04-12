@@ -84,25 +84,6 @@ code span.st { color: #4070a0; } /* String */
 code span.va { color: #19177c; } /* Variable */
 code span.vs { color: #4070a0; } /* VerbatimString */
 code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-}
-.hanging div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}
 </style>
 
 
@@ -123,10 +104,10 @@ div.csl-indent {
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
+  "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "start",
+  "panel-placement": "end",
   "type": "overlay",
   "limit": 20,
   "language": {
@@ -141,19 +122,44 @@ div.csl-indent {
     "search-submit-button-title": "Submit"
   }
 }</script>
-<style>html{ scroll-behavior: smooth; }</style>
 
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
+<link rel="stylesheet" href="../styles.css">
 <meta property="og:title" content="decorrelation - co">
 <meta property="og:description" content="Covariance and Coherence Matrix Estimation">
 <meta property="og:site-name" content="decorrelation">
+<meta name="twitter:title" content="decorrelation - co">
+<meta name="twitter:description" content="Covariance and Coherence Matrix Estimation">
+<meta name="twitter:card" content="summary">
 </head>
 
-<body class="nav-sidebar floating slimcontent">
+<body class="nav-sidebar floating nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">decorrelation</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
       <h1 class="quarto-secondary-nav-title">co</h1>
@@ -164,19 +170,9 @@ div.csl-indent {
   </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">decorrelation</a> 
-        <div class="sidebar-tools-main">
-    <div id="quarto-search" class="sidebar-tool" title="Search"></div>
-</div>
-    </div>
-      </div>
-      <div class="d-flex mt-2 flex-shrink-0 align-items-center">
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -224,29 +220,19 @@ div.csl-indent {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
+  <a href="../Tutorials/Adaptive_Multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
+  <a href="../Tutorials/DS_Processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">With_Dask</a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/With_Dask/Data_Move.html" class="sidebar-item-text sidebar-link">Read data</a>
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Test</a>
   </div>
 </li>
-      </ul>
-  </li>
       </ul>
   </li>
     </ul>
@@ -265,7 +251,7 @@ div.csl-indent {
   </ul></li>
   <li><a href="#covariance-and-coherence-matrix-regularizer" id="toc-covariance-and-coherence-matrix-regularizer" class="nav-link" data-scroll-target="#covariance-and-coherence-matrix-regularizer">Covariance and Coherence Matrix Regularizer</a>
   <ul>
-  <li><a href="#wherepd" id="toc-wherepd" class="nav-link" data-scroll-target="#wherepd">wherePD</a></li>
+  <li><a href="#ispd" id="toc-ispd" class="nav-link" data-scroll-target="#ispd">isPD</a></li>
   <li><a href="#nearestpd" id="toc-nearestpd" class="nav-link" data-scroll-target="#nearestpd">nearestPD</a></li>
   <li><a href="#regularize_spectral" id="toc-regularize_spectral" class="nav-link" data-scroll-target="#regularize_spectral">regularize_spectral</a></li>
   </ul></li>
@@ -273,7 +259,7 @@ div.csl-indent {
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
-<main class="content page-columns page-full column-body" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -299,12 +285,15 @@ div.csl-indent {
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>For generating data for doc and test</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> cupy.testing <span class="im">import</span> assert_array_almost_equal</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <section id="covariance-and-coherence-matrix-estimator" class="level2">
 <h2 class="anchored" data-anchor-id="covariance-and-coherence-matrix-estimator">Covariance and Coherence Matrix Estimator</h2>
@@ -370,32 +359,43 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <p>The <code>rslc</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>cupy.complex64</code>. From outerest to innerest, the three dimentions are azimuth, range and image. <code>is_shp</code> is a four dimentional cupy <code>ndarray</code>. It describes if pixels in the search window are SHP to the central pixel. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range.</p>
 <p>Here is an example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">605</span>]</span>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>rslc.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># SHP selection</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> r_half_win <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span><span class="op">;</span> r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Select DS candidate</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> cp.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">3</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> is_shp[is_ds_can]</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.where(is_ds_can)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc.shape, is_shp.shape, is_shp[<span class="dv">2</span>,<span class="dv">3</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>(5, 5, 17)</code></pre>
+<pre><code>((5, 10, 17),
+ (5, 10, 3, 5),
+ array([[False, False, False, False,  True],
+        [False, False,  True, False, False],
+        [False, False,  True, False, False]]))</code></pre>
 </div>
 </div>
-<p><code>rslc</code> is a stack of 5 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. Apply ks test on it:</p>
+<p><code>rslc</code> is a stack of 17 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. It shows for pixel (2,3), the (3*5) window around it has 2 SHPs to it (the central one is itself).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>dist, p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span><span class="dv">1</span>,r_half_win<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Seclect SHP based on p value:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.005</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Estimate the covarience and coherence matrix:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> emperical_co(rslc,is_shp)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>cov.shape, coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> emperical_co(rslc,is_shp)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cov.shape, coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>((5, 5, 17, 17), (5, 5, 17, 17))</code></pre>
+<pre><code>((5, 10, 17, 17), (5, 10, 17, 17))</code></pre>
 </div>
 </div>
-<p>Both <code>cov</code> and <code>coh</code> are complex data. The shape shows each covarience or coherence matrix is 5 by 5 since there are 5 images. And <code>cov</code> and <code>coh</code> are matrix for all 5*10 pixels.</p>
+<p>Both <code>cov</code> and <code>coh</code> are complex data. The shape shows each covarience or coherence matrix is 17 by 17 since there are 17 images. And <code>cov</code> and <code>coh</code> are matrix for all 5*10 pixels.</p>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L144" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -432,7 +432,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <td>sp_idx</td>
 <td>ndarray</td>
 <td></td>
-<td>index of sparse data, dtype: <code>cupy.int</code>, shape: [n_sp,2]</td>
+<td>index of sparse data [azimuth_index, range_index], dtype: <code>cupy.int</code>, shape: (n_sp,2)</td>
 </tr>
 <tr class="odd">
 <td>is_shp_sp</td>
@@ -454,49 +454,71 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 </tbody>
 </table>
-<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_sp"><code>emperical_co_sp</code></a> is the <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> on sparse data, e.g., DSs. <code>rslc</code> is same as <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>, <code>sp_idx</code> is the index with shape [number_of_point,2], <code>is_shp_sp</code> is similar to <code>is_shp</code> in <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> but it only contains information about the sparse data. It is a 3D array with shape [number_of_point,az_win,r_win].</p>
+<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_sp"><code>emperical_co_sp</code></a> is the <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> on sparse data, e.g., DSs. <code>rslc</code> is same as <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>. <code>sp_idx</code> is the index, i.e., a tuple of (azimuth_idx, range_idx). Each index is 1D array. <code>is_shp_sp</code> is similar to <code>is_shp</code> in <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> but it only contains information about the sparse data. It is a 3D array with shape [number_of_point,az_win,r_win].</p>
 <p>Compared with <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>, <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_sp"><code>emperical_co_sp</code></a> only estimate coherence/covariance at specific position so the memory usage is much small.</p>
 <p>Example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">650</span>,<span class="dv">600</span>:<span class="dv">650</span>]</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>dist, p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span><span class="dv">10</span>,r_half_win<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.005</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>cov, coh <span class="op">=</span> emperical_co(rslc,is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code for generating data for doc</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># SHP selection</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> r_half_win <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span><span class="op">;</span> r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Select DS candidate</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> cp.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">3</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> is_shp[is_ds_can]</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.where(is_ds_can)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> cp.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>is_ds <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">50</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>is_shp_ds <span class="op">=</span> is_shp[is_ds]</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ds_idx <span class="op">=</span> cp.vstack(cp.where(is_ds)).T</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ds_idx.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>rslc.shape,ds_can_idx,ds_can_is_shp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>(297, 2)</code></pre>
+<pre><code>((5, 10, 17),
+ (array([2, 3, 3, 4, 4]), array([3, 3, 5, 1, 4])),
+ array([[[False, False, False, False,  True],
+         [False, False,  True, False, False],
+         [False, False,  True, False, False]],
+ 
+        [[False, False,  True, False, False],
+         [False, False,  True, False, False],
+         [False, False, False,  True, False]],
+ 
+        [[False, False, False, False, False],
+         [False, False,  True, False, False],
+         [ True,  True, False, False, False]],
+ 
+        [[False, False,  True, False, False],
+         [False,  True,  True, False, False],
+         [False, False, False, False, False]],
+ 
+        [[False,  True,  True,  True, False],
+         [False, False,  True, False,  True],
+         [False, False, False, False, False]]]))</code></pre>
 </div>
 </div>
+<p><code>rslc</code> is a stack of 17 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. <code>ds_can_idx</code> shows the index of the DS candidates and <code>ds_can_is_shp</code> shows the corrosponding SHPs.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>cov_ds, coh_ds <span class="op">=</span> emperical_co_sp(rslc,ds_idx,is_shp_ds)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>coh_ds.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(297, 17, 17)</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>assert_array_almost_equal(cov[is_ds],cov_ds)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>assert_array_almost_equal(coh[is_ds],coh_ds)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds_can_cov, ds_can_coh <span class="op">=</span> emperical_co_sp(rslc,ds_can_idx,ds_can_is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
-<section id="covariance-and-coherence-matrix-regularizer" class="level2 page-columns page-full">
+<section id="covariance-and-coherence-matrix-regularizer" class="level2">
 <h2 class="anchored" data-anchor-id="covariance-and-coherence-matrix-regularizer">Covariance and Coherence Matrix Regularizer</h2>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L166" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="wherepd" class="level3">
-<h3 class="anchored" data-anchor-id="wherepd">wherePD</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L168" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="ispd" class="level3">
+<h3 class="anchored" data-anchor-id="ispd">isPD</h3>
 <blockquote class="blockquote">
-<pre><code> wherePD (co:cupy.ndarray)</code></pre>
+<pre><code> isPD (co:cupy.ndarray)</code></pre>
 </blockquote>
 <table class="table">
 <colgroup>
@@ -524,8 +546,65 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 </tbody>
 </table>
+<p>This function tells if the matrix is positive defined or not.</p>
+<div class="cell">
+<details>
+<summary>Code for generating data for doc</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">650</span>,<span class="dv">600</span>:<span class="dv">650</span>]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># SHP selection</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span><span class="op">;</span> r_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span><span class="op">;</span> r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Select DS candidate</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> cp.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">50</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> is_shp[is_ds_can]</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.where(is_ds_can)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> emperical_co_sp(rslc,ds_can_idx,ds_can_is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(149, 17, 17)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>isPD_ds_can <span class="op">=</span> isPD(ds_can_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>isPD_ds_can</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>array([ True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True])</code></pre>
+</div>
+</div>
+<p>All coherence matrix are positive defined.</p>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L185" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L187" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="nearestpd" class="level3">
 <h3 class="anchored" data-anchor-id="nearestpd">nearestPD</h3>
@@ -560,23 +639,10 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tbody>
 </table>
 <p><code>nearest</code> means the Frobenius norm of the difference is minimized.</p>
-<p>Example:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/emperical_coherence.zarr'</span>,<span class="st">'r'</span>)[:<span class="dv">500</span>,:<span class="dv">500</span>]</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> cp.asarray(coh)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> <span class="bu">abs</span>(coh)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(500, 500, 17, 17)</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>nearest_coh <span class="op">=</span> nearestPD(coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L222" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L224" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="regularize_spectral" class="level3 page-columns page-full">
+<section id="regularize_spectral" class="level3">
 <h3 class="anchored" data-anchor-id="regularize_spectral">regularize_spectral</h3>
 <blockquote class="blockquote">
 <pre><code> regularize_spectral (coh:cupy.ndarray, beta:Union[float,cupy.ndarray])</code></pre>
@@ -603,7 +669,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 <tr class="even">
 <td>beta</td>
-<td>typing.Union[float, cupy.ndarray]</td>
+<td>Union</td>
 <td>the regularization parameter, a float number or cupy ndarray with shape […]</td>
 </tr>
 <tr class="odd">
@@ -613,28 +679,40 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 </tbody>
 </table>
-<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#regularize_spectral"><code>regularize_spectral</code></a> can regularize the absolute value of coherence matrix for better phase linking. It is first presented in <span class="citation" data-cites="zwiebackCheapValidRegularizers2022a">(<a href="#ref-zwiebackCheapValidRegularizers2022a" role="doc-biblioref">Zwieback 2022</a>)</span>.</p>
-<div class="no-row-height column-margin column-container"><div id="ref-zwiebackCheapValidRegularizers2022a" class="csl-entry" role="doc-biblioentry">
-Zwieback, S. 2022. <span>“Cheap, <span>Valid Regularizers</span> for <span>Improved Interferometric Phase Linking</span>.”</span> <em>IEEE Geoscience and Remote Sensing Letters</em> 19: 1–4. <a href="https://doi.org/10.1109/LGRS.2022.3197423">https://doi.org/10.1109/LGRS.2022.3197423</a>.
-</div></div><p>Examples:</p>
+<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#regularize_spectral"><code>regularize_spectral</code></a> can regularize the absolute value of coherence matrix for better phase linking. It is first presented in <span class="citation" data-cites="zwiebackCheapValidRegularizers2022a">[@zwiebackCheapValidRegularizers2022a]</span>.</p>
+<p>Examples:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/emperical_coherence.zarr'</span>,<span class="st">'r'</span>)[:<span class="dv">500</span>,:<span class="dv">500</span>]</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> cp.asarray(coh)</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> <span class="bu">abs</span>(coh)</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code for generating data for doc</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co"># SHP selection</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> r_half_win <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span><span class="op">;</span> r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> emperical_co(rslc,is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>(500, 500, 17, 17)</code></pre>
+<pre><code>(5, 10, 17, 17)</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>regularized_coh1 <span class="op">=</span> regularize_spectral(coh,<span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>regularized_coh1 <span class="op">=</span> regularize_spectral(coh,<span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>More general, <code>bata</code> can be a <code>cp.ndarray</code>:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>beta <span class="op">=</span> cp.ones(coh.shape[:<span class="op">-</span><span class="dv">2</span>])<span class="op">/</span><span class="dv">10</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>regularized_coh2 <span class="op">=</span> regularize_spectral(coh,beta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>beta <span class="op">=</span> cp.ones(coh.shape[:<span class="op">-</span><span class="dv">2</span>])<span class="op">/</span><span class="dv">10</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>regularized_coh2 <span class="op">=</span> regularize_spectral(coh,beta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-
 
 
 </section>
@@ -706,57 +784,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  const viewSource = window.document.getElementById('quarto-view-source') ||
-                     window.document.getElementById('quarto-code-tools-source');
-  if (viewSource) {
-    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
-    viewSource.addEventListener("click", function(e) {
-      if (sourceUrl) {
-        // rstudio viewer pane
-        if (/\bcapabilities=\b/.test(window.location)) {
-          window.open(sourceUrl);
-        } else {
-          window.location.href = sourceUrl;
-        }
-      } else {
-        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
-        modal.show();
-      }
-      return false;
-    });
-  }
-  function toggleCodeHandler(show) {
-    return function(e) {
-      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
-      for (let i=0; i<detailsSrc.length; i++) {
-        const details = detailsSrc[i].parentElement;
-        if (show) {
-          details.open = true;
-        } else {
-          details.removeAttribute("open");
-        }
-      }
-      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
-      const fromCls = show ? "hidden" : "unhidden";
-      const toCls = show ? "unhidden" : "hidden";
-      for (let i=0; i<cellCodeDivs.length; i++) {
-        const codeDiv = cellCodeDivs[i];
-        if (codeDiv.classList.contains(fromCls)) {
-          codeDiv.classList.remove(fromCls);
-          codeDiv.classList.add(toCls);
-        } 
-      }
-      return false;
-    }
-  }
-  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
-  if (hideAllCode) {
-    hideAllCode.addEventListener("click", toggleCodeHandler(false));
-  }
-  const showAllCode = window.document.getElementById("quarto-show-all-code");
-  if (showAllCode) {
-    showAllCode.addEventListener("click", toggleCodeHandler(true));
-  }
   function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
@@ -826,13 +853,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<footer class="footer">
-  <div class="nav-footer">
-      <div class="nav-footer-center">Copyright 2022, Kang Liang. All rights reserved.</div>
-  </div>
-</footer>
 
 
 
-<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

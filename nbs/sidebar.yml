@@ -12,6 +12,4 @@ website:
         contents:
           - Tutorials/Adaptive_Multilook.ipynb
           - Tutorials/DS_Processing.ipynb
-          - section: With_Dask
-            contents:
-              - Tutorials/With_Dask/Data_Move.ipynb
+          - Tutorials/work_with_dask.ipynb

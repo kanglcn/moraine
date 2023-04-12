@@ -1,41 +1,37 @@
+ipynb-filters: [nbdev_filter]
+
 project:
   type: website
+  output-dir: docs
+  preview:
+    port: 3000
+    browser: false
 
 format:
   html:
-    theme: material
+    theme: cosmo
+    css: styles.css
     toc: true
-    linestretch: 1.6
-    smooth-scroll: true
     toc-depth: 4
-    code-tools:
-      toggle: true
-    page-layout: full
-    code-copy: hover
-    fig-responsive: true
-    filters:
-        - lightbox
-    lightbox:
-      match: auto
-      effect: zoom
-
-jupyter: python3
 
 website:
-  search: 
-    location: sidebar
-    type: overlay
+  title: "decorrelation"
+  site-url: "https://kanglcn.github.io/decorrelation"
+  description: "An InSAR postprocessing tool"
+  twitter-card: true
   open-graph: true
+  repo-branch: main
+  repo-url: "https://github.com/kanglcn/decorrelation"
   repo-actions: [issue]
+  navbar:
+    background: primary
+    search: true
+    right:
+      - icon: github
+        href: "https://github.com/kanglcn/decorrelation"
   sidebar:
-    border: true
-  page-footer:
-    border: true
-    center: "Copyright 2022, Kang Liang. All rights reserved."
-    background: light
+    style: "floating"
 
-reference-location: margin
-citation-location: margin
-
-bibliography: references.bib
-metadata-files: [nbdev.yml, sidebar.yml]
+metadata-files: 
+  - sidebar.yml
+  - custom.yml

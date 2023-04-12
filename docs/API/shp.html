@@ -84,25 +84,6 @@ code span.st { color: #4070a0; } /* String */
 code span.va { color: #19177c; } /* Variable */
 code span.vs { color: #4070a0; } /* VerbatimString */
 code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-}
-.hanging div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}
 </style>
 
 
@@ -123,10 +104,10 @@ div.csl-indent {
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
+  "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "start",
+  "panel-placement": "end",
   "type": "overlay",
   "limit": 20,
   "language": {
@@ -141,18 +122,43 @@ div.csl-indent {
     "search-submit-button-title": "Submit"
   }
 }</script>
-<style>html{ scroll-behavior: smooth; }</style>
 
 
+<link rel="stylesheet" href="../styles.css">
 <meta property="og:title" content="decorrelation - shp">
 <meta property="og:description" content="Spatially Homogenious Pixels Identification">
 <meta property="og:site-name" content="decorrelation">
+<meta name="twitter:title" content="decorrelation - shp">
+<meta name="twitter:description" content="Spatially Homogenious Pixels Identification">
+<meta name="twitter:card" content="summary">
 </head>
 
-<body class="nav-sidebar floating slimcontent">
+<body class="nav-sidebar floating nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">decorrelation</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
       <h1 class="quarto-secondary-nav-title">shp</h1>
@@ -163,19 +169,9 @@ div.csl-indent {
   </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header">
-    <div class="sidebar-title mb-0 py-0">
-      <a href="../">decorrelation</a> 
-        <div class="sidebar-tools-main">
-    <div id="quarto-search" class="sidebar-tool" title="Search"></div>
-</div>
-    </div>
-      </div>
-      <div class="d-flex mt-2 flex-shrink-0 align-items-center">
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -223,29 +219,19 @@ div.csl-indent {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
+  <a href="../Tutorials/Adaptive_Multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
+  <a href="../Tutorials/DS_Processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">With_Dask</a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/With_Dask/Data_Move.html" class="sidebar-item-text sidebar-link">Read data</a>
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Test</a>
   </div>
 </li>
-      </ul>
-  </li>
       </ul>
   </li>
     </ul>
@@ -265,7 +251,7 @@ div.csl-indent {
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
-<main class="content page-columns page-full column-body" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -295,11 +281,11 @@ div.csl-indent {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="kolmogorov-smirnov-ks-two-sample-test" class="level2 page-columns page-full">
+<section id="kolmogorov-smirnov-ks-two-sample-test" class="level2">
 <h2 class="anchored" data-anchor-id="kolmogorov-smirnov-ks-two-sample-test">Kolmogorov-Smirnov (KS) two-sample test</h2>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L76" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="ks_test" class="level3 page-columns page-full">
+<section id="ks_test" class="level3">
 <h3 class="anchored" data-anchor-id="ks_test">ks_test</h3>
 <blockquote class="blockquote">
 <pre><code> ks_test (rmli:cupy.ndarray, az_half_win:int, r_half_win:int,
@@ -354,10 +340,8 @@ div.csl-indent {
 </tr>
 </tbody>
 </table>
-<p>The <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>. This function is designed to run on GPU for high speed.</p>
-<div class="no-row-height column-margin column-container"><div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="doc-biblioentry">
-Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
-</div></div><p>The <code>rmli</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float</code>. From outerest to innerest, the three dimentions are azimuth, range and image. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
+<p>The <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">[@ferrettiNewAlgorithmProcessing2011]</span>. This function is designed to run on GPU for high speed.</p>
+<p>The <code>rmli</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float</code>. From outerest to innerest, the three dimentions are azimuth, range and image. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
 <p>The returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is <code>-1</code>.</p>
 <p>Here is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:</p>
 <div class="cell">
@@ -414,7 +398,6 @@ Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Roc
 </div>
 </div>
 <p>By comparing the result of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> and <code>ks_2samp</code> from <code>scipy</code>, the statistics are same which prove the correctness of <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a>. The difference in p value is because the approcimation method used are different but the orders of magnitudes are consistent.</p>
-
 
 
 </section>
@@ -486,57 +469,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  const viewSource = window.document.getElementById('quarto-view-source') ||
-                     window.document.getElementById('quarto-code-tools-source');
-  if (viewSource) {
-    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
-    viewSource.addEventListener("click", function(e) {
-      if (sourceUrl) {
-        // rstudio viewer pane
-        if (/\bcapabilities=\b/.test(window.location)) {
-          window.open(sourceUrl);
-        } else {
-          window.location.href = sourceUrl;
-        }
-      } else {
-        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
-        modal.show();
-      }
-      return false;
-    });
-  }
-  function toggleCodeHandler(show) {
-    return function(e) {
-      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
-      for (let i=0; i<detailsSrc.length; i++) {
-        const details = detailsSrc[i].parentElement;
-        if (show) {
-          details.open = true;
-        } else {
-          details.removeAttribute("open");
-        }
-      }
-      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
-      const fromCls = show ? "hidden" : "unhidden";
-      const toCls = show ? "unhidden" : "hidden";
-      for (let i=0; i<cellCodeDivs.length; i++) {
-        const codeDiv = cellCodeDivs[i];
-        if (codeDiv.classList.contains(fromCls)) {
-          codeDiv.classList.remove(fromCls);
-          codeDiv.classList.add(toCls);
-        } 
-      }
-      return false;
-    }
-  }
-  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
-  if (hideAllCode) {
-    hideAllCode.addEventListener("click", toggleCodeHandler(false));
-  }
-  const showAllCode = window.document.getElementById("quarto-show-all-code");
-  if (showAllCode) {
-    showAllCode.addEventListener("click", toggleCodeHandler(true));
-  }
   function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
@@ -606,13 +538,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<footer class="footer">
-  <div class="nav-footer">
-      <div class="nav-footer-center">Copyright 2022, Kang Liang. All rights reserved.</div>
-  </div>
-</footer>
 
 
 
-<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>
