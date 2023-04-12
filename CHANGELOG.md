@@ -2,6 +2,16 @@
 
 <!-- do not remove -->
 
+## 0.1.0
+
+Refine phase linking EMI
+
+Add function to estimate temporal coherence
+
+Add tutorial for dask processing
+
+Update the test in API notebooks
+
 ## 0.0.4
 
 Add covariance/coherence matrix estimation for sparse data
