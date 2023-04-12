@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>decorrelation - Test</title>
+<title>decorrelation - Work With Dask</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -127,10 +127,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 <link rel="stylesheet" href="../styles.css">
-<meta property="og:title" content="decorrelation - Test">
+<meta property="og:title" content="decorrelation - Work With Dask">
 <meta property="og:description" content="In this tutorial, we demostrate how to use Dask for distributed computing.">
 <meta property="og:site-name" content="decorrelation">
-<meta name="twitter:title" content="decorrelation - Test">
+<meta name="twitter:title" content="decorrelation - Work With Dask">
 <meta name="twitter:description" content="In this tutorial, we demostrate how to use Dask for distributed computing.">
 <meta name="twitter:card" content="summary">
 </head>
@@ -163,7 +163,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">Test</h1>
+      <h1 class="quarto-secondary-nav-title">Work With Dask</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -231,7 +231,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/Work_With_Dask.html" class="sidebar-item-text sidebar-link active">Test</a>
+  <a href="../Tutorials/Work_With_Dask.html" class="sidebar-item-text sidebar-link active">Work With Dask</a>
   </div>
 </li>
       </ul>
@@ -246,6 +246,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
    
   <ul>
   <li><a href="#processing" id="toc-processing" class="nav-link active" data-scroll-target="#processing">Processing</a></li>
+  <li><a href="#test" id="toc-test" class="nav-link" data-scroll-target="#test">Test</a></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
@@ -255,7 +256,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">Test</h1>
+<h1 class="title d-none d-lg-block">Work With Dask</h1>
 </div>
 
 
@@ -1284,6 +1285,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 Wall time: 39.1 s</code></pre>
 </div>
 </div>
+</section>
+<section id="test" class="level1">
+<h1>Test</h1>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>dask_dist <span class="op">=</span> zarr.load(<span class="st">'dist.zarr'</span>)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>dask_p <span class="op">=</span> zarr.load(<span class="st">'p.zarr'</span>)</span>
