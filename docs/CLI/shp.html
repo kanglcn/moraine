@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Spatially Homogenious Pixels Identification">
+
+<title>decorrelation - shp</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">decorrelation</span>
+    </a>
+  </div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation"><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">shp</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">decorrelation</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">API</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/co.html" class="sidebar-item-text sidebar-link">co</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/pl.html" class="sidebar-item-text sidebar-link">pl</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/plot.html" class="sidebar-item-text sidebar-link">Plot</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/shp.html" class="sidebar-item-text sidebar-link">shp</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">CLI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/shp.html" class="sidebar-item-text sidebar-link active">shp</a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">utils</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">logging</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">Tutorials</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Work With Dask</a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  docs/index.html
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">API</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/API/co.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false">API</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/API/pl.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="false">API</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/API/plot.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-11" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-11" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">API</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-12" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-12" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/API/shp.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-13" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-13" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" aria-expanded="false">Tutorials</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-14" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-14" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/Tutorials/Adaptive_Multilook.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-15" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-15" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" aria-expanded="false">Tutorials</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-16" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-16" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/Tutorials/DS_Processing.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" aria-expanded="true">docs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-17" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-17" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-18" aria-expanded="false">Tutorials</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-18" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-18" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  docs/Tutorials/Work_With_Dask.html
+  </li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#de_shp_test" id="toc-de_shp_test" class="nav-link active" data-scroll-target="#de_shp_test">de_shp_test</a></li>
+  <li><a href="#de_select_ds_can" id="toc-de_select_ds_can" class="nav-link" data-scroll-target="#de_select_ds_can">de_select_ds_can</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">shp</h1>
+</div>
+
+<div>
+  <div class="description">
+    Spatially Homogenious Pixels Identification
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/shp.py#L27" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="de_shp_test" class="level3">
+<h3 class="anchored" data-anchor-id="de_shp_test">de_shp_test</h3>
+<blockquote class="blockquote">
+<pre><code> de_shp_test (rslc:str, pvalue:str, az_half_win:int, r_half_win:int,
+              method:str=None, r_chunk_size:int=None,
+              az_chunk_size:int=None, log:str=None)</code></pre>
+</blockquote>
+<p>SHP identification through hypothetic test.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>rslc</td>
+<td>str</td>
+<td></td>
+<td>input: rslc stack</td>
+</tr>
+<tr class="even">
+<td>pvalue</td>
+<td>str</td>
+<td></td>
+<td>output: the p value of the test</td>
+</tr>
+<tr class="odd">
+<td>az_half_win</td>
+<td>int</td>
+<td></td>
+<td>azimuth half window size</td>
+</tr>
+<tr class="even">
+<td>r_half_win</td>
+<td>int</td>
+<td></td>
+<td>range half window size</td>
+</tr>
+<tr class="odd">
+<td>method</td>
+<td>str</td>
+<td>None</td>
+<td>SHP identification method,optional. Default: ks</td>
+</tr>
+<tr class="even">
+<td>r_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>range chunk size, Optional. Default: the range chunk size in rslc stack</td>
+</tr>
+<tr class="odd">
+<td>az_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file, optional. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<p>This function is a wrapper of functions in <code>decorrelation.shp</code> that provides file interface. Please refer it for the usage. It utilizes dask for parallel and distributed computation. Compared with the functions in <code>decorrelation.shp</code>, this function splits the dataset into several chunks and the computation in these chunks can run in parallel on multi-GPUs.</p>
+<p>The <code>r_chunk_size</code> and <code>az_chunk_size</code> is used to determine how many pixels in range and azimuth in one chunk. The chunk size of the output pvalue is also setted according to them.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>rslcs <span class="op">=</span> <span class="st">'../../data/rslc.zarr'</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./pvalue.zarr'</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>method <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>r_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslcs,pvalue,az_half_win<span class="op">=</span><span class="dv">5</span>,r_half_win<span class="op">=</span><span class="dv">5</span>, method<span class="op">=</span><span class="va">None</span>, r_chunk_size<span class="op">=</span><span class="dv">1000</span>,az_chunk_size<span class="op">=</span><span class="dv">1000</span>,log<span class="op">=</span><span class="st">'de_shp_test.log'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-05-01 03:40:26 - de_shp_test - INFO - hypothetic test method: ks
+2023-05-01 03:40:26 - de_shp_test - INFO - rslc dateset shape: (2500, 1834, 17)
+2023-05-01 03:40:26 - de_shp_test - INFO - rslc dataset chunks: (1000, 1000, 17)
+2023-05-01 03:40:26 - de_shp_test - INFO - parallel processing azimuth chunk size: 1000
+2023-05-01 03:40:26 - de_shp_test - INFO - parallel processing range chunk size: 1000
+2023-05-01 03:40:26 - de_shp_test - INFO - starting dask CUDA local cluster.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-05-01 03:40:31,716 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,716 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,748 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,748 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,800 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,800 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,807 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,807 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,817 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,817 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,821 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,821 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,838 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,838 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-01 03:40:31,840 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-01 03:40:31,840 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-05-01 03:40:36 - de_shp_test - INFO - dask local CUDA cluster started.
+2023-05-01 03:40:36 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-05-01 03:40:36 - de_shp_test - INFO - rslc dask array chunks: ((1000, 1000, 500), (1000, 834), (17,))
+2023-05-01 03:40:36 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
+2023-05-01 03:40:36 - de_shp_test - INFO - range half window size: 5; range window size: 11
+2023-05-01 03:40:36 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
+2023-05-01 03:40:36 - de_shp_test - INFO - rslc dask array with overlap shape: (2520, 1844, 17)
+2023-05-01 03:40:36 - de_shp_test - INFO - rslc dask array with overlap chunks: ((1005, 1010, 505), (1005, 839), (17,))
+2023-05-01 03:40:37 - de_shp_test - INFO - rmli dask array with overlap shape: (2520, 1844, 17)
+2023-05-01 03:40:37 - de_shp_test - INFO - rmli dask array with overlap chunks: ((1005, 1010, 505), (1005, 839), (17,))
+2023-05-01 03:40:37 - de_shp_test - INFO - applying test on sorted rmli stack.
+2023-05-01 03:40:37 - de_shp_test - INFO - p value generated
+2023-05-01 03:40:37 - de_shp_test - INFO - p value shape: (2520, 1844, 11, 11)
+2023-05-01 03:40:37 - de_shp_test - INFO - p value chunks: ((1005, 1010, 505), (1005, 839), (11,), (11,))
+2023-05-01 03:40:37 - de_shp_test - INFO - trim shared boundaries between p value chunks
+2023-05-01 03:40:37 - de_shp_test - INFO - trimmed p value shape: (2500, 1834, 11, 11)
+2023-05-01 03:40:37 - de_shp_test - INFO - trimmed p value chunks: ((1000, 1000, 500), (1000, 834), (11,), (11,))
+2023-05-01 03:40:37 - de_shp_test - INFO - saving p value.
+2023-05-01 03:40:37 - de_shp_test - INFO - computing graph setted. doing all the computing.
+2023-05-01 03:40:41 - de_shp_test - INFO - computing finished.
+2023-05-01 03:40:43 - de_shp_test - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<p>This function can also be called from command line directly:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_shp_test <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>usage: de_shp_test [-h] [--method METHOD] [--r_chunk_size R_CHUNK_SIZE]
+                   [--az_chunk_size AZ_CHUNK_SIZE] [--log LOG]
+                   rslc pvalue az_half_win r_half_win
+
+SHP identification through hypothetic test.
+
+positional arguments:
+  rslc                           input: rslc stack
+  pvalue                         output: the p value of the test
+  az_half_win                    azimuth half window size
+  r_half_win                     range half window size
+
+options:
+  -h, --help                     show this help message and exit
+  --method METHOD                SHP identification method,optional. Default: ks
+  --r_chunk_size R_CHUNK_SIZE    range chunk size, Optional. Default: the range
+                                 chunk size in rslc stack
+  --az_chunk_size AZ_CHUNK_SIZE  azimuth chunk size, optional. Default: the
+                                 azimuth chunk size in rslc stack
+  --log LOG                      log file, optional. Default: no log file</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/shp.py#L135" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_select_ds_can" class="level3">
+<h3 class="anchored" data-anchor-id="de_select_ds_can">de_select_ds_can</h3>
+<blockquote class="blockquote">
+<pre><code> de_select_ds_can (pvalue:str, is_shp:str, is_ds_can:str,
+                   ds_can_is_shp:str, p_max:float=0.05,
+                   shp_num_min:int=50, r_chunk_size=None,
+                   az_chunk_size=None, ds_can_chunk_size=None,
+                   shp_num_fig=None, is_ds_can_fig=None, log=None)</code></pre>
+</blockquote>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>pvalue</td>
+<td>str</td>
+<td></td>
+<td>input: pvalue of hypothetic test</td>
+</tr>
+<tr class="even">
+<td>is_shp</td>
+<td>str</td>
+<td></td>
+<td>output: bool array indicating the SHPs of every pixel</td>
+</tr>
+<tr class="odd">
+<td>is_ds_can</td>
+<td>str</td>
+<td></td>
+<td>output: bool array indicating DS candidate</td>
+</tr>
+<tr class="even">
+<td>ds_can_is_shp</td>
+<td>str</td>
+<td></td>
+<td>output: bool array indicating the SHPs of DS candidate</td>
+</tr>
+<tr class="odd">
+<td>p_max</td>
+<td>float</td>
+<td>0.05</td>
+<td>threshold of p value to select SHP,optional. Default: 0.05</td>
+</tr>
+<tr class="even">
+<td>shp_num_min</td>
+<td>int</td>
+<td>50</td>
+<td>threshold of number of SHPs to select DS candidate,optional. Default: 50</td>
+</tr>
+<tr class="odd">
+<td>r_chunk_size</td>
+<td>NoneType</td>
+<td>None</td>
+<td>range chunk size, optional. Default: the range chunk size in pvalue</td>
+</tr>
+<tr class="even">
+<td>az_chunk_size</td>
+<td>NoneType</td>
+<td>None</td>
+<td>azimuth chunk size, optional. Default: the azimuth chunk size in pvalue</td>
+</tr>
+<tr class="odd">
+<td>ds_can_chunk_size</td>
+<td>NoneType</td>
+<td>None</td>
+<td>DS candidate chunk size, optional.</td>
+</tr>
+<tr class="even">
+<td>shp_num_fig</td>
+<td>NoneType</td>
+<td>None</td>
+<td>path to the plot of number of SHPs, optional. Default: no plot</td>
+</tr>
+<tr class="odd">
+<td>is_ds_can_fig</td>
+<td>NoneType</td>
+<td>None</td>
+<td>path to the plot of DSs candidate distribution, optional. Default: no plot</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>NoneType</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./pvalue.zarr'</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./is_shp.zarr'</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> <span class="st">'./is_ds_can.zarr'</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> <span class="st">'./ds_can_is_shp.zarr'</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>shp_num_fig <span class="op">=</span> <span class="st">'./shp_num_fig.png'</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>is_ds_can_fig <span class="op">=</span> <span class="st">'./is_ds_can.png'</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>r_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>ds_can_chunk_size <span class="op">=</span> <span class="dv">100000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#de_select_ds_can(pvalue,is_shp,is_ds_can,ds_can_is_shp,p_max=p_max)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>de_select_ds_can(pvalue,is_shp,is_ds_can,ds_can_is_shp,p_max<span class="op">=</span>p_max,r_chunk_size<span class="op">=</span>r_chunk_size,az_chunk_size<span class="op">=</span>az_chunk_size,ds_can_chunk_size<span class="op">=</span>ds_can_chunk_size,shp_num_fig<span class="op">=</span>shp_num_fig,is_ds_can_fig<span class="op">=</span>is_ds_can_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-05-01 03:40:46 - de_select_ds_can - INFO - pvalue dateset shape: (2500, 1834, 11, 11)
+2023-05-01 03:40:46 - de_select_ds_can - INFO - pvalue dataset chunks: (1000, 1000, 11, 11)
+2023-05-01 03:40:46 - de_select_ds_can - INFO - parallel processing azimuth chunk size: 1000
+2023-05-01 03:40:46 - de_select_ds_can - INFO - parallel processing range chunk size: 1000
+2023-05-01 03:40:46 - de_select_ds_can - INFO - starting dask local cluster.
+2023-05-01 03:40:48 - de_select_ds_can - INFO - dask local cluster started.
+2023-05-01 03:40:48 - de_select_ds_can - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
+2023-05-01 03:40:48 - de_select_ds_can - INFO - pvalue dask array chunks: ((1000, 1000, 500), (1000, 834), (11,), (11,))
+2023-05-01 03:40:48 - de_select_ds_can - INFO - selecting SHPs based on pvalue threshold: 0.05
+2023-05-01 03:40:48 - de_select_ds_can - INFO - is_shp shape: (2500, 1834, 11, 11)
+2023-05-01 03:40:48 - de_select_ds_can - INFO - is_shp chunks: ((1000, 1000, 500), (1000, 834), (11,), (11,))
+2023-05-01 03:40:48 - de_select_ds_can - INFO - selecting DS candidates based on minimum of number of SHPs: 50
+2023-05-01 03:40:48 - de_select_ds_can - INFO - is_ds_can shape: (2500, 1834)
+2023-05-01 03:40:48 - de_select_ds_can - INFO - is_ds_can chunks: ((1000, 1000, 500), (1000, 834))
+2023-05-01 03:40:48 - de_select_ds_can - INFO - slicing is_shp on DS candidate.
+2023-05-01 03:40:51 - de_select_ds_can - INFO - is_ds_can shape: (740397, 11, 11)
+2023-05-01 03:40:51 - de_select_ds_can - INFO - is_ds_can chunks: ((168899, 177430, 146914, 128007, 62892, 56255), (11,), (11,))
+2023-05-01 03:40:51 - de_select_ds_can - INFO - rechunking ds_can_is_shp to chunk size: ((100000, 100000, 100000, 100000, 100000, 100000, 100000, 40397), (11,), (11,))
+2023-05-01 03:40:51 - de_select_ds_can - INFO - saving is_shp.
+2023-05-01 03:40:51 - de_select_ds_can - INFO - saving is_ds_can.
+2023-05-01 03:40:51 - de_select_ds_can - INFO - saving ds_can_is_shp.
+2023-05-01 03:40:51 - de_select_ds_can - INFO - computing graph setted. doing all the computing.
+2023-05-01 03:40:55 - de_select_ds_can - INFO - computing finished.
+2023-05-01 03:40:55 - de_select_ds_can - INFO - dask cluster closed.
+2023-05-01 03:40:55 - de_select_ds_can - INFO - plotting number of SHPs.
+2023-05-01 03:40:56 - de_select_ds_can - INFO - plotting DS candidate distribution.
+CPU times: user 2.93 s, sys: 2.21 s, total: 5.14 s
+Wall time: 9.76 s</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="shp_files/figure-html/cell-8-output-2.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="shp_files/figure-html/cell-8-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

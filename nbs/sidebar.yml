@@ -8,8 +8,50 @@ website:
           - API/pl.ipynb
           - API/plot.ipynb
           - API/shp.ipynb
+      - section: CLI
+        contents:
+          - CLI/shp.ipynb
+          - section: utils
+            contents:
+              - CLI/utils/logging.ipynb
       - section: Tutorials
         contents:
           - Tutorials/Adaptive_Multilook.ipynb
           - Tutorials/DS_Processing.ipynb
           - Tutorials/Work_With_Dask.ipynb
+      - section: docs
+        contents:
+          - docs/index.html
+          - section: API
+            contents:
+              - docs/API/co.html
+      - section: docs
+        contents:
+          - section: API
+            contents:
+              - docs/API/pl.html
+      - section: docs
+        contents:
+          - section: API
+            contents:
+              - docs/API/plot.html
+      - section: docs
+        contents:
+          - section: API
+            contents:
+              - docs/API/shp.html
+      - section: docs
+        contents:
+          - section: Tutorials
+            contents:
+              - docs/Tutorials/Adaptive_Multilook.html
+      - section: docs
+        contents:
+          - section: Tutorials
+            contents:
+              - docs/Tutorials/DS_Processing.html
+      - section: docs
+        contents:
+          - section: Tutorials
+            contents:
+              - docs/Tutorials/Work_With_Dask.html

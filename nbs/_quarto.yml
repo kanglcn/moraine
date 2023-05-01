@@ -1,8 +1,6 @@
-ipynb-filters: [nbdev_filter]
 
 project:
   type: website
-  output-dir: docs
   preview:
     port: 3000
     browser: false
@@ -15,13 +13,6 @@ format:
     toc-depth: 4
 
 website:
-  title: "decorrelation"
-  site-url: "https://kanglcn.github.io/decorrelation"
-  description: "An InSAR postprocessing tool"
-  twitter-card: true
-  open-graph: true
-  repo-branch: main
-  repo-url: "https://github.com/kanglcn/decorrelation"
   repo-actions: [issue]
   navbar:
     background: primary
@@ -31,7 +22,25 @@ website:
         href: "https://github.com/kanglcn/decorrelation"
   sidebar:
     style: "floating"
-
+    contents:
+      - index.ipynb
+      - section: API
+        contents:
+          - API/co.ipynb
+          - API/pl.ipynb
+          - API/plot.ipynb
+          - API/shp.ipynb
+      - section: CLI
+        contents:
+          - CLI/shp.ipynb
+          - section: utils
+            contents:
+              - CLI/utils/logging.ipynb
+      - section: Tutorials
+        contents:
+          - Tutorials/Adaptive_Multilook.ipynb
+          - Tutorials/DS_Processing.ipynb
+          - Tutorials/Work_With_Dask.ipynb
 metadata-files: 
   - sidebar.yml
-  - custom.yml
+  - nbdev.yml

@@ -157,3 +157,5 @@ mydask.png
 
 # Data
 *.zarr
+
+nbs/CLI/*.png
