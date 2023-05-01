@@ -22,25 +22,6 @@ website:
         href: "https://github.com/kanglcn/decorrelation"
   sidebar:
     style: "floating"
-    contents:
-      - index.ipynb
-      - section: API
-        contents:
-          - API/co.ipynb
-          - API/pl.ipynb
-          - API/plot.ipynb
-          - API/shp.ipynb
-      - section: CLI
-        contents:
-          - CLI/shp.ipynb
-          - section: utils
-            contents:
-              - CLI/utils/logging.ipynb
-      - section: Tutorials
-        contents:
-          - Tutorials/Adaptive_Multilook.ipynb
-          - Tutorials/DS_Processing.ipynb
-          - Tutorials/Work_With_Dask.ipynb
 metadata-files: 
   - sidebar.yml
   - nbdev.yml
