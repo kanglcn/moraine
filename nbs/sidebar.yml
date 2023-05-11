@@ -4,22 +4,18 @@ website:
       - index.ipynb
       - section: API
         contents:
+          - API/shp.ipynb
           - API/co.ipynb
           - API/pl.ipynb
           - API/plot.ipynb
-          - API/shp.ipynb
       - section: CLI
         contents:
           - CLI/co.ipynb
           - CLI/shp.ipynb
           - section: utils
             contents:
-              - CLI/utils/dask.ipynb
-      - section: CLI
-        contents:
-          - section: utils
-            contents:
               - CLI/utils/logging.ipynb
+              - CLI/utils/dask.ipynb
       - section: Tutorials
         contents:
           - Tutorials/Adaptive_Multilook.ipynb
