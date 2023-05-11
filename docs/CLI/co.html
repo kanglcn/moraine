@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="basic logging functions for the CLI">
+<meta name="description" content="Covariance and Coherence Matrix Estimation">
 
-<title>decorrelation - logging</title>
+<title>decorrelation - co</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -87,22 +87,22 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../../">
-<script src="../../site_libs/quarto-html/quarto.js"></script>
-<script src="../../site_libs/quarto-html/popper.min.js"></script>
-<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -124,7 +124,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 }</script>
 
 
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../styles.css">
 </head>
 
 <body class="nav-sidebar floating nav-fixed">
@@ -134,7 +134,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container">
-    <a class="navbar-brand" href="../../index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">decorrelation</span>
     </a>
   </div>
@@ -155,7 +155,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">logging</h1>
+      <h1 class="quarto-secondary-nav-title">co</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -170,7 +170,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../index.html" class="sidebar-item-text sidebar-link">decorrelation</a>
+  <a href="../index.html" class="sidebar-item-text sidebar-link">decorrelation</a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -183,22 +183,22 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/co.html" class="sidebar-item-text sidebar-link">co</a>
+  <a href="../API/co.html" class="sidebar-item-text sidebar-link">co</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/pl.html" class="sidebar-item-text sidebar-link">pl</a>
+  <a href="../API/pl.html" class="sidebar-item-text sidebar-link">pl</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/plot.html" class="sidebar-item-text sidebar-link">Plot</a>
+  <a href="../API/plot.html" class="sidebar-item-text sidebar-link">Plot</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/shp.html" class="sidebar-item-text sidebar-link">shp</a>
+  <a href="../API/shp.html" class="sidebar-item-text sidebar-link">shp</a>
   </div>
 </li>
       </ul>
@@ -213,12 +213,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/co.html" class="sidebar-item-text sidebar-link">co</a>
+  <a href="../CLI/co.html" class="sidebar-item-text sidebar-link active">co</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/shp.html" class="sidebar-item-text sidebar-link">shp</a>
+  <a href="../CLI/shp.html" class="sidebar-item-text sidebar-link">shp</a>
   </div>
 </li>
           <li class="sidebar-item sidebar-item-section">
@@ -231,7 +231,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">dask</a>
+  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">dask</a>
   </div>
 </li>
       </ul>
@@ -248,15 +248,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">utils</a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">utils</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 show">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/logging.html" class="sidebar-item-text sidebar-link active">logging</a>
+  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">logging</a>
   </div>
 </li>
       </ul>
@@ -273,17 +273,17 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
+  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
+  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Work With Dask</a>
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Work With Dask</a>
   </div>
 </li>
       </ul>
@@ -297,7 +297,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#get_logger" id="toc-get_logger" class="nav-link active" data-scroll-target="#get_logger">get_logger</a></li>
+  <li><a href="#de_emperical_co_sp" id="toc-de_emperical_co_sp" class="nav-link active" data-scroll-target="#de_emperical_co_sp">de_emperical_co_sp</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -306,12 +306,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">logging</h1>
+<h1 class="title d-none d-lg-block">co</h1>
 </div>
 
 <div>
   <div class="description">
-    basic logging functions for the CLI
+    Covariance and Coherence Matrix Estimation
   </div>
 </div>
 
@@ -328,13 +328,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/logging.py#L21" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="get_logger" class="level3">
-<h3 class="anchored" data-anchor-id="get_logger">get_logger</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/co.py#L30" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="de_emperical_co_sp" class="level3">
+<h3 class="anchored" data-anchor-id="de_emperical_co_sp">de_emperical_co_sp</h3>
 <blockquote class="blockquote">
-<pre><code> get_logger (name:str=None, logfile:str=None, level:str=None)</code></pre>
+<pre><code> de_emperical_co_sp (rslc:str, is_shp:str, is_ds_can:str, ds_can_coh:str,
+                     az_chunk_size:int=None,
+                     ds_can_coh_chunk_size:int=None,
+                     ds_can_coh_ave_fig:str=None, log=None)</code></pre>
 </blockquote>
-<p>get logger for decorrelation cli application</p>
 <table class="table">
 <colgroup>
 <col style="width: 6%">
@@ -352,41 +354,161 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </thead>
 <tbody>
 <tr class="odd">
-<td>name</td>
+<td>rslc</td>
 <td>str</td>
-<td>None</td>
-<td>name of the application, optional. default: the function name that call this function</td>
+<td></td>
+<td>input: rslc stack</td>
 </tr>
 <tr class="even">
-<td>logfile</td>
+<td>is_shp</td>
 <td>str</td>
-<td>None</td>
-<td>logfile, optional. default: no logfile</td>
+<td></td>
+<td>input: bool array indicating the SHPs of every pixel</td>
 </tr>
 <tr class="odd">
-<td>level</td>
+<td>is_ds_can</td>
+<td>str</td>
+<td></td>
+<td>input: bool array indicating DS candidate</td>
+</tr>
+<tr class="even">
+<td>ds_can_coh</td>
+<td>str</td>
+<td></td>
+<td>output: complex coherence matrix for DS candidate</td>
+</tr>
+<tr class="odd">
+<td>az_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack</td>
+</tr>
+<tr class="even">
+<td>ds_can_coh_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>chunk size of output zarr dataset, optional. Default: automatically determined</td>
+</tr>
+<tr class="odd">
+<td>ds_can_coh_ave_fig</td>
 <td>str</td>
 <td>None</td>
-<td>log level, debug or info, optional. default: info</td>
+<td>path to the plot of average coherence matrix of DS candidate, optional. Default: no plot</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>NoneType</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
 </tr>
 </tbody>
 </table>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> log_test():</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    logger <span class="op">=</span> get_logger(logfile<span class="op">=</span><span class="st">'test.log'</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    logger.debug(<span class="st">"This is a debug log."</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    logger.info(<span class="st">"This is a info log."</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    logger.warning(<span class="st">"This is a warning log."</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    logger.error(<span class="st">"This is a error log."</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    logger.critical(<span class="st">"This is a critical log."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> <span class="st">'../../data/rslc.zarr'</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./is_shp.zarr'</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> <span class="st">'./is_ds_can.zarr'</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./ds_can_coh.zarr'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>ds_can_coh_chunk_size <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>log <span class="op">=</span> <span class="st">'co.log'</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_fig <span class="op">=</span> <span class="st">'./ds_can_coh_ave.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>log_test()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_sp(rslc,is_shp,is_ds_can,ds_can_coh,az_chunk_size<span class="op">=</span>az_chunk_size,ds_can_coh_ave_fig<span class="op">=</span>ds_can_coh_ave_fig,log<span class="op">=</span>log)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-05-09 23:18:14 - log_test - INFO - This is a info log.
-2023-05-09 23:18:14 - log_test - WARNING - This is a warning log.
-2023-05-09 23:18:14 - log_test - ERROR - This is a error log.
-2023-05-09 23:18:14 - log_test - CRITICAL - This is a critical log.</code></pre>
+<pre><code>2023-05-11 11:18:58 - de_emperical_co_sp - INFO - rslc dataset shape: (2500, 1834, 17)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - rslc dataset chunks: (1000, 1000, 17)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - is_shp dataset shape: (2500, 1834, 11, 11)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - is_shp dataset chunks: (1000, 1834, 11, 11)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - is_ds_can dataset shape: (2500, 1834)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - is_ds_can dataset chunks: (1000, 1834)
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - got azimuth window size and half azimuth window size from is_shp shape: 11, 5
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - got range window size and half range window size from is_shp shape: 11, 5
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - parallel processing azimuth chunk size: 1000
+2023-05-11 11:18:58 - de_emperical_co_sp - INFO - starting dask CUDA local cluster.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-05-11 11:19:03,022 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,022 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,059 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,059 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,094 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,094 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,099 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,099 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,176 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,176 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,177 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,177 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,199 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,199 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-11 11:19:03,203 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-11 11:19:03,203 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-05-11 11:19:07 - de_emperical_co_sp - INFO - dask local CUDA cluster started.
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - rslc dask array chunks: ((1000, 1000, 500), (1834,), (17,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_shp dask array chunks: ((1000, 1000, 500), (1834,), (11,), (11,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_ds_can dask array shape: (2500, 1834)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_ds_can dask array chunks: ((1000, 1000, 500), (1834,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - setting shared boundaries between rlsc chunks.
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - rslc dask array with overlap shape: (2520, 1834, 17)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - rslc dask array with overlap chunks: ((1005, 1010, 505), (1834,), (17,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - padding zero between is_ds_can chunks.
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_ds_can dask array with padding shape: (2520, 1834)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - is_ds_can dask array with padding chunks: ((1005, 1010, 505), (1834,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - slicing is_shp on ds candidate.
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - ds_can_is_shp dask array shape: (740397, 11, 11)
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - ds_can_is_shp dask array chunks: ((346329, 274921, 119147), (11,), (11,))
+2023-05-11 11:19:07 - de_emperical_co_sp - INFO - estimating coherence matrix.
+2023-05-11 11:19:08 - de_emperical_co_sp - INFO - got coherence matrix.
+2023-05-11 11:19:08 - de_emperical_co_sp - INFO - rechunking ds_can_coh to chunk size (for saving with zarr): ((246799, 246799, 246799), (17,), (17,))
+2023-05-11 11:19:08 - de_emperical_co_sp - INFO - saving ds_can_coh.
+2023-05-11 11:19:08 - de_emperical_co_sp - INFO - computing graph setted. doing all the computing.
+2023-05-11 11:19:21 - de_emperical_co_sp - INFO - computing finished.
+2023-05-11 11:19:23 - de_emperical_co_sp - INFO - dask cluster closed.
+2023-05-11 11:19:23 - de_emperical_co_sp - INFO - plotting average coherence matrix.
+CPU times: user 2.25 s, sys: 1.11 s, total: 3.35 s
+Wall time: 25 s</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="co_files/figure-html/cell-4-output-4.png" class="img-fluid"></p>
+</div>
+</div>
+<p>After finishing it, remove computing the ds_can_is_shp from de_select_ds_can</p>
+<p>This function is a wrapper of <code>decorrelation.shp.emperical_co_sp</code> that provides file interface.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_emperical_co_sp <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>usage: de_emperical_co_sp [-h] [--az_chunk_size AZ_CHUNK_SIZE]
+                          [--ds_can_coh_chunk_size DS_CAN_COH_CHUNK_SIZE]
+                          [--ds_can_coh_ave_fig DS_CAN_COH_AVE_FIG] [--log LOG]
+                          rslc is_shp is_ds_can ds_can_coh
+
+positional arguments:
+  rslc                                  input: rslc stack
+  is_shp                                input: bool array indicating the SHPs of
+                                        every pixel
+  is_ds_can                             input: bool array indicating DS
+                                        candidate
+  ds_can_coh                            output: complex coherence matrix for DS
+                                        candidate
+
+options:
+  -h, --help                            show this help message and exit
+  --az_chunk_size AZ_CHUNK_SIZE         azimuth chunk size, optional. Default:
+                                        the azimuth chunk size in rslc stack
+  --ds_can_coh_chunk_size DS_CAN_COH_CHUNK_SIZE
+                                        chunk size of output zarr dataset,
+                                        optional. Default: automatically
+                                        determined
+  --ds_can_coh_ave_fig DS_CAN_COH_AVE_FIG
+                                        path to the plot of average coherence
+                                        matrix of DS candidate, optional.
+                                        Default: no plot
+  --log LOG                             log file. Default: no log file</code></pre>
 </div>
 </div>
 

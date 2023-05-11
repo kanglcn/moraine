@@ -212,6 +212,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../CLI/co.html" class="sidebar-item-text sidebar-link">co</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../CLI/shp.html" class="sidebar-item-text sidebar-link">shp</a>
   </div>
 </li>
@@ -225,6 +230,31 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">dask</a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">CLI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">utils</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">logging</a>
   </div>
 </li>
@@ -234,12 +264,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">Tutorials</a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">Tutorials</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="true">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
@@ -317,26 +347,26 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>cluster <span class="op">=</span> LocalCUDACluster()</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>client <span class="op">=</span> Client(cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>2023-05-01 03:13:29,243 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,243 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,328 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,328 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,353 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,353 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,417 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,417 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,442 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,442 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,444 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,444 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,447 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,447 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-05-01 03:13:29,472 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-05-01 03:13:29,472 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+<pre><code>2023-05-10 01:06:28,957 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:28,957 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,071 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,071 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,106 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,106 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,119 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,119 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,154 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,155 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,157 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,157 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,189 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,189 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-05-10 01:06:29,201 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-05-10 01:06:29,201 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 677 ms, sys: 150 ms, total: 827 ms
-Wall time: 9.49 s</code></pre>
+<pre><code>CPU times: user 681 ms, sys: 161 ms, total: 842 ms
+Wall time: 9.05 s</code></pre>
 </div>
 </div>
 <p>In this tutorial, we demostrate how to use <code>Dask</code> for distributed computing.</p>
@@ -390,129 +420,117 @@ Wall time: 9.49 s</code></pre>
 </div>
 <p><code>Dask</code> provide a convenient function <code>map_blocks</code> to apply function on every chunk. However, it only support function that have only one output. Here we manually do the mapping:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># the array of delayed object will lost some shape information so perserve them here</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>chunks_size <span class="op">=</span> sorted_rmli_overlap.chunks </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>nchunks <span class="op">=</span> <span class="bu">tuple</span>(<span class="bu">len</span>(nchunks_in_each_dim) <span class="cf">for</span> nchunks_in_each_dim <span class="kw">in</span> chunks_size)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>chunks_shape <span class="op">=</span> <span class="bu">list</span>(product(<span class="op">*</span>chunks_size))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>delayed_ks_test <span class="op">=</span> delayed(ks_test,pure<span class="op">=</span><span class="va">True</span>,nout<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rmli_delayed <span class="op">=</span> sorted_rmli_overlap.to_delayed()</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>p_delayed <span class="op">=</span> np.empty_like(rmli_delayed,dtype<span class="op">=</span><span class="bu">object</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>dist_delayed <span class="op">=</span> np.empty_like(rmli_delayed,dtype<span class="op">=</span><span class="bu">object</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>rmli_chunks <span class="op">=</span> sorted_rmli_overlap.to_delayed()</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>rmli_chunks</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>array([[[Delayed(('sort-d8fa317bd477a77978ac39f6f309381a', 0, 0, 0))],
-        [Delayed(('sort-d8fa317bd477a77978ac39f6f309381a', 0, 1, 0))]]],
-      dtype=object)</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>delayed_ks_test <span class="op">=</span> delayed(ks_test,pure<span class="op">=</span><span class="va">True</span>,nout<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> [delayed_ks_test(rmli_chunk,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win) <span class="cf">for</span> rmli_chunk <span class="kw">in</span> rmli_chunks.ravel()]</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>dist_chunks, p_chunks <span class="op">=</span> <span class="bu">zip</span>(<span class="op">*</span>results)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>dist_chunks, p_chunks <span class="op">=</span> np.array(dist_chunks), np.array(p_chunks)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> np.nditer(p_delayed,flags<span class="op">=</span>[<span class="st">'multi_index'</span>,<span class="st">'refs_ok'</span>], op_flags<span class="op">=</span>[<span class="st">'readwrite'</span>]) <span class="im">as</span> p_it:</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> p_block <span class="kw">in</span> p_it:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        idx <span class="op">=</span> p_it.multi_index</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        dist_delayed[idx],p_delayed[idx] <span class="op">=</span> delayed_ks_test(rmli_delayed[idx],az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        chunk_shape <span class="op">=</span> (<span class="op">*</span>sorted_rmli_overlap.blocks[idx].shape[:<span class="op">-</span><span class="dv">1</span>],az_win,r_win)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        dtype <span class="op">=</span> sorted_rmli_overlap.dtype</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        dist_delayed[idx] <span class="op">=</span> da.from_delayed(dist_delayed[idx],shape<span class="op">=</span>chunk_shape,meta<span class="op">=</span>cp.array((),dtype<span class="op">=</span>dtype))</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        p_delayed[idx] <span class="op">=</span> da.from_delayed(p_delayed[idx],shape<span class="op">=</span>chunk_shape,meta<span class="op">=</span>cp.array((),dtype<span class="op">=</span>dtype))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(chunks_shape)):</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    dist_chunks[i] <span class="op">=</span> da.from_delayed(dist_chunks[i],shape<span class="op">=</span>(<span class="op">*</span>chunks_shape[i][:<span class="op">-</span><span class="dv">1</span>],az_win,r_win),meta<span class="op">=</span>cp.array((),dtype<span class="op">=</span>rmli_overlap.dtype))</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    p_chunks[i] <span class="op">=</span> da.from_delayed(p_chunks[i],shape<span class="op">=</span>(<span class="op">*</span>chunks_shape[i][:<span class="op">-</span><span class="dv">1</span>],az_win,r_win),meta<span class="op">=</span>cp.array((),dtype<span class="op">=</span>rmli_overlap.dtype))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>dist_chunks, p_chunks <span class="op">=</span> dist_chunks.reshape((<span class="op">*</span>nchunks,<span class="dv">1</span>)).tolist(), p_chunks.reshape((<span class="op">*</span>nchunks,<span class="dv">1</span>)).tolist()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> da.block(dist_chunks)</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> da.block(p_chunks)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> da.block(p_delayed.reshape(<span class="op">*</span>p_delayed.shape,<span class="dv">1</span>).tolist())</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> da.block(dist_delayed.reshape(<span class="op">*</span>dist_delayed.shape,<span class="dv">1</span>).tolist())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>After we get the result, the overlapping region need to be trimed:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>depth <span class="op">=</span> {<span class="dv">0</span>:az_half_win, <span class="dv">1</span>:r_half_win, <span class="dv">2</span>:<span class="dv">0</span>, <span class="dv">3</span>:<span class="dv">0</span>}<span class="op">;</span> boundary <span class="op">=</span> {<span class="dv">0</span>:<span class="st">'none'</span>,<span class="dv">1</span>:<span class="st">'none'</span>,<span class="dv">2</span>:<span class="st">'none'</span>,<span class="dv">3</span>:<span class="st">'none'</span>}</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> da.overlap.trim_overlap(dist,depth<span class="op">=</span>depth,boundary<span class="op">=</span>boundary)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> da.overlap.trim_overlap(p,depth<span class="op">=</span>depth,boundary<span class="op">=</span>boundary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>depth <span class="op">=</span> {<span class="dv">0</span>:az_half_win, <span class="dv">1</span>:r_half_win, <span class="dv">2</span>:<span class="dv">0</span>, <span class="dv">3</span>:<span class="dv">0</span>}<span class="op">;</span> boundary <span class="op">=</span> {<span class="dv">0</span>:<span class="st">'none'</span>,<span class="dv">1</span>:<span class="st">'none'</span>,<span class="dv">2</span>:<span class="st">'none'</span>,<span class="dv">3</span>:<span class="st">'none'</span>}</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> da.overlap.trim_overlap(dist,depth<span class="op">=</span>depth,boundary<span class="op">=</span>boundary)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> da.overlap.trim_overlap(p,depth<span class="op">=</span>depth,boundary<span class="op">=</span>boundary)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Select SHPs based on p-value threshold:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> da.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">50</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> da.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> shp_num <span class="op">&gt;=</span> <span class="dv">50</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>cpu_dist <span class="op">=</span> da.map_blocks(cp.asnumpy,dist)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>cpu_p <span class="op">=</span> da.map_blocks(cp.asnumpy,p)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>cpu_is_shp <span class="op">=</span> da.map_blocks(cp.asnumpy,is_shp)</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>cpu_shp_num <span class="op">=</span> da.map_blocks(cp.asnumpy,shp_num)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>cpu_is_ds_can <span class="op">=</span> da.map_blocks(cp.asnumpy,is_ds_can)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>cpu_dist <span class="op">=</span> da.map_blocks(cp.asnumpy,dist)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>cpu_p <span class="op">=</span> da.map_blocks(cp.asnumpy,p)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cpu_is_shp <span class="op">=</span> da.map_blocks(cp.asnumpy,is_shp)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>cpu_shp_num <span class="op">=</span> da.map_blocks(cp.asnumpy,shp_num)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>cpu_is_ds_can <span class="op">=</span> da.map_blocks(cp.asnumpy,is_ds_can)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Save the data to disk:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>_cpu_dist <span class="op">=</span> cpu_dist.to_zarr(<span class="st">'dist.zarr'</span>,overwrite<span class="op">=</span><span class="va">True</span>,compute<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>_cpu_p <span class="op">=</span> cpu_p.to_zarr(<span class="st">'p.zarr'</span>,overwrite<span class="op">=</span><span class="va">True</span>,compute<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>_cpu_dist <span class="op">=</span> cpu_dist.to_zarr(<span class="st">'dist.zarr'</span>,overwrite<span class="op">=</span><span class="va">True</span>,compute<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>_cpu_p <span class="op">=</span> cpu_p.to_zarr(<span class="st">'p.zarr'</span>,overwrite<span class="op">=</span><span class="va">True</span>,compute<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Do the computation:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>shp_num_result, is_ds_can_result <span class="op">=</span> da.compute(_cpu_dist,_cpu_p,cpu_shp_num,cpu_is_ds_can)[<span class="dv">2</span>:]</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>cluster.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>shp_num_result, is_ds_can_result <span class="op">=</span> da.compute(_cpu_dist,_cpu_p,cpu_shp_num,cpu_is_ds_can)[<span class="dv">2</span>:]</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>cluster.close()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 748 ms, sys: 353 ms, total: 1.1 s
-Wall time: 10.4 s</code></pre>
+<pre><code>CPU times: user 795 ms, sys: 326 ms, total: 1.12 s
+Wall time: 10.6 s</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_result,cmap<span class="op">=</span>colorcet.cm.fire)</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Number of SHPs'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_result,cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Number of SHPs'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="Work_With_Dask_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+<p><img src="Work_With_Dask_files/figure-html/cell-20-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(is_ds_can_result,cmap<span class="op">=</span>colorcet.cm.fire)</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS Candidate distribution'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(is_ds_can_result,cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS Candidate distribution'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="Work_With_Dask_files/figure-html/cell-24-output-1.png" class="img-fluid"></p>
+<p><img src="Work_With_Dask_files/figure-html/cell-21-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr'</span>,mode<span class="op">=</span><span class="st">'r'</span>)</span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>rslc_cpu <span class="op">=</span> rslc_zarr[:]</span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc_cpu)</span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>dist_cpu <span class="op">=</span> cp.asnumpy(dist)</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>p_cpu <span class="op">=</span> cp.asnumpy(p)</span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'dist_ks.zarr'</span>, dist_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span>
-<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'p_ks.zarr'</span>, p_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr'</span>,mode<span class="op">=</span><span class="st">'r'</span>)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>rslc_cpu <span class="op">=</span> rslc_zarr[:]</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc_cpu)</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>sorted_rmli <span class="op">=</span> cp.sort(rmli,axis<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>dist,p <span class="op">=</span> ks_test(sorted_rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>dist_cpu <span class="op">=</span> cp.asnumpy(dist)</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>p_cpu <span class="op">=</span> cp.asnumpy(p)</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'dist_ks.zarr'</span>, dist_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'p_ks.zarr'</span>, p_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 2.27 s, sys: 8.69 s, total: 11 s
-Wall time: 12.3 s</code></pre>
+<pre><code>CPU times: user 2.32 s, sys: 7.71 s, total: 10 s
+Wall time: 11.1 s</code></pre>
 </div>
 </div>
 </section>
 <section id="test" class="level1">
 <h1>Test</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>dask_dist <span class="op">=</span> zarr.load(<span class="st">'dist.zarr'</span>)</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>dask_p <span class="op">=</span> zarr.load(<span class="st">'p.zarr'</span>)</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> zarr.load(<span class="st">'dist_ks.zarr/'</span>)</span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> zarr.load(<span class="st">'p_ks.zarr/'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>dask_dist <span class="op">=</span> zarr.load(<span class="st">'dist.zarr'</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>dask_p <span class="op">=</span> zarr.load(<span class="st">'p.zarr'</span>)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> zarr.load(<span class="st">'dist_ks.zarr/'</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> zarr.load(<span class="st">'p_ks.zarr/'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(dask_dist,dist)</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(dask_p,p)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(dask_dist,dist)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(dask_p,p)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="conclusion" class="level1">

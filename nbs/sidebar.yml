@@ -10,7 +10,13 @@ website:
           - API/shp.ipynb
       - section: CLI
         contents:
+          - CLI/co.ipynb
           - CLI/shp.ipynb
+          - section: utils
+            contents:
+              - CLI/utils/dask.ipynb
+      - section: CLI
+        contents:
           - section: utils
             contents:
               - CLI/utils/logging.ipynb

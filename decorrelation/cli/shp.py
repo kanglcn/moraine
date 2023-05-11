@@ -5,6 +5,7 @@ __all__ = ['de_shp_test', 'de_select_ds_can']
 
 # %% ../../nbs/CLI/shp.ipynb 3
 from itertools import product
+import math
 
 import zarr
 import cupy as cp
@@ -29,7 +30,6 @@ def de_shp_test(rslc:str, # input: rslc stack
                 az_half_win:int, # azimuth half window size
                 r_half_win:int, # range half window size
                 method:str=None, # SHP identification method,optional. Default: ks
-                r_chunk_size:int=None, # range chunk size, Optional. Default: the range chunk size in rslc stack
                 az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack
                 log:str=None, # log file, optional. Default: no log file
                ):
@@ -37,7 +37,7 @@ def de_shp_test(rslc:str, # input: rslc stack
     rslc_path = rslc
     pvalue_path = pvalue
 
-    logger = get_logger(logfile=log)
+    logger = get_logger(logfile=log,level='debug')
     if not method: method = 'ks'
     logger.info(f'hypothetic test method: {method}')
     if method != 'ks':
@@ -54,19 +54,15 @@ def de_shp_test(rslc:str, # input: rslc stack
         az_chunk_size = rslc_zarr.chunks[0]
         logger.info('using default parallel processing azimuth chunk size.')
     logger.info('parallel processing azimuth chunk size: '+str(az_chunk_size))
-    if not r_chunk_size:
-        r_chunk_size = rslc_zarr.chunks[1]
-        logger.info('using default parallel processing range chunk size.')
-    logger.info('parallel processing range chunk size: '+str(r_chunk_size))
 
-    chunks=(az_chunk_size,r_chunk_size,rslc_zarr.shape[2])
+    chunks=(az_chunk_size,*rslc_zarr.shape[1:])
     
     logger.info('starting dask CUDA local cluster.')
     cluster = LocalCUDACluster()
     client = Client(cluster)
     logger.info('dask local CUDA cluster started.')
 
-    cpu_rslc = da.from_zarr(rslcs,chunks=chunks)
+    cpu_rslc = da.from_zarr(rslc_path,chunks=chunks)
     logger.info('rslc dask array shape: ' + str(cpu_rslc.shape))
     logger.info('rslc dask array chunks: '+ str(cpu_rslc.chunks))
 
@@ -88,25 +84,24 @@ def de_shp_test(rslc:str, # input: rslc stack
 
     sorted_rmli_overlap = rmli_overlap.map_blocks(cp.sort,axis=-1)
 
-    chunks_size = rmli_overlap.chunks 
-    nchunks = tuple(len(nchunks_in_each_dim) for nchunks_in_each_dim in chunks_size)
-    chunks_shape = list(product(*chunks_size))
-    rmli_chunks = sorted_rmli_overlap.to_delayed()
-
     delayed_ks_test = delayed(ks_test,pure=True,nout=2)
-    results = [delayed_ks_test(rmli_chunk,az_half_win=az_half_win,r_half_win=r_half_win) for rmli_chunk in rmli_chunks.ravel()]
-    dist_chunks, p_chunks = zip(*results)
-    dist_chunks, p_chunks = np.array(dist_chunks), np.array(p_chunks)
+    rmli_delayed = sorted_rmli_overlap.to_delayed()
+    p_delayed = np.empty_like(rmli_delayed,dtype=object)
+    dist_delayed = np.empty_like(rmli_delayed,dtype=object)
+
     logger.info('applying test on sorted rmli stack.')
+    with np.nditer(p_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as p_it:
+        for p_block in p_it:
+            idx = p_it.multi_index
+            dist_delayed[idx],p_delayed[idx] = delayed_ks_test(rmli_delayed[idx],az_half_win=az_half_win,r_half_win=r_half_win)
 
-    for i in range(len(chunks_shape)):
-        # dist_chunks[i] = da.from_delayed(dist_chunks[i],shape=(*chunks_shape[i][:-1],az_win,r_win),meta=cp.array((),dtype=rmli_overlap.dtype))
-        p_chunks[i] = da.from_delayed(p_chunks[i],shape=(*chunks_shape[i][:-1],az_win,r_win),meta=cp.array((),dtype=rmli_overlap.dtype))
-
-    # dist_chunks = dist_chunks.reshape((*nchunks,1)).tolist()
-    p_chunks = p_chunks.reshape((*nchunks,1)).tolist()
-    # dist = da.block(dist_chunks)
-    p = da.block(p_chunks)
+            chunk_shape = (*sorted_rmli_overlap.blocks[idx].shape[:-1],az_win,r_win)
+            dtype = sorted_rmli_overlap.dtype
+            # dist_delayed[idx] = da.from_delayed(dist_delayed[idx],shape=chunk_shape,meta=cp.array((),dtype=dtype))
+            p_delayed[idx] = da.from_delayed(p_delayed[idx],shape=chunk_shape,meta=cp.array((),dtype=dtype))
+    
+    p = da.block(p_delayed.reshape(*p_delayed.shape,1).tolist())
+    # dist = da.block(dist_delayed.reshape(*dist_delayed.shape,1).tolist())
     logger.info('p value generated')
     logger.info(f'p value shape: {p.shape}')
     logger.info(f'p value chunks: {p.chunks}')
@@ -135,14 +130,11 @@ def de_shp_test(rslc:str, # input: rslc stack
 def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
                      is_shp:str, # output: bool array indicating the SHPs of every pixel
                      is_ds_can:str, # output: bool array indicating DS candidate
-                     ds_can_is_shp:str, # output: bool array indicating the SHPs of DS candidate
                      p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
                      shp_num_min:int=50, # threshold of number of SHPs to select DS candidate,optional. Default: 50
-                     r_chunk_size=None, # range chunk size, optional. Default: the range chunk size in pvalue
-                     az_chunk_size=None, # azimuth chunk size, optional. Default: the azimuth chunk size in pvalue
-                     ds_can_chunk_size=None, # DS candidate chunk size, optional.
-                     shp_num_fig=None, # path to the plot of number of SHPs, optional. Default: no plot
-                     is_ds_can_fig=None, # path to the plot of DSs candidate distribution, optional. Default: no plot
+                     az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in pvalue
+                     shp_num_fig:str=None, # path to the plot of number of SHPs, optional. Default: no plot
+                     is_ds_can_fig:str=None, # path to the plot of DSs candidate distribution, optional. Default: no plot
                      log=None, # log file. Default: no log file
                      ):
     logger = get_logger(logfile=log)
@@ -157,12 +149,8 @@ def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
         az_chunk_size = p_zarr.chunks[0]
         logger.info('using default parallel processing azimuth chunk size.')
     logger.info('parallel processing azimuth chunk size: '+str(az_chunk_size))
-    if not r_chunk_size:
-        r_chunk_size = p_zarr.chunks[1]
-        logger.info('using default parallel processing range chunk size.')
-    logger.info('parallel processing range chunk size: '+str(r_chunk_size))
 
-    chunks=(az_chunk_size,r_chunk_size,*p_zarr.shape[2:])
+    chunks=(az_chunk_size,*p_zarr.shape[1:])
 
     logger.info('starting dask local cluster.')
     cluster = LocalCluster()
@@ -175,7 +163,6 @@ def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
 
     is_shp_path= is_shp
     is_ds_can_path = is_ds_can
-    ds_can_is_shp_path = ds_can_is_shp
 
     is_shp = (p < p_max) & (p >= 0)
     logger.info('selecting SHPs based on pvalue threshold: '+str(p_max))
@@ -188,34 +175,18 @@ def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
     logger.info(f'is_ds_can shape: {is_ds_can.shape}')
     logger.info(f'is_ds_can chunks: {is_ds_can.chunks}')
     
-    # ds_can_is_shp = is_shp[is_ds_can]
-    # Slicing with dask.array only permitted when the indexer has only one dimension or when it has the same dimension as the sliced array
-    az_win, r_win = is_shp.shape[2:]
-    ds_can_is_shp = is_shp.reshape(-1,az_win,r_win)[is_ds_can.reshape(-1)]
-    logger.info('slicing is_shp on DS candidate.')
-
-    # dask to_zarr does not support save data with nan-chunksize, using compute_chunk_sizes() means doing computing twice.
-    # but currently there is no good choice
-    ds_can_is_shp.compute_chunk_sizes()
-    logger.info(f'is_ds_can shape: {ds_can_is_shp.shape}')
-    logger.info(f'is_ds_can chunks: {ds_can_is_shp.chunks}')
-
-    # zarr do not support irregular chunk size
-    if not ds_can_chunk_size:
-        ds_can_chunk_size = int(ds_can_is_shp.shape[0]/ds_can_is_shp.numblocks[0])
-    ds_can_is_shp = ds_can_is_shp.rechunk(ds_can_chunk_size,az_win,r_win)
-    logger.info('rechunking ds_can_is_shp to chunk size: '+str(ds_can_is_shp.chunks))
+    ds_can_num = is_ds_can.map_blocks(np.count_nonzero,keepdims=True,dtype=int,chunks=(1,1))
 
     _is_shp = is_shp.to_zarr(is_shp_path,overwrite=True,compute=False)
     logger.info('saving is_shp.')
     _is_ds_can = is_ds_can.to_zarr(is_ds_can_path,overwrite=True,compute=False)
     logger.info('saving is_ds_can.')
-    _ds_can_is_shp = ds_can_is_shp.to_zarr(ds_can_is_shp_path,overwrite=True,compute=False)
-    logger.info('saving ds_can_is_shp.')
 
     logger.info('computing graph setted. doing all the computing.')
-    shp_num_result, is_ds_can_result = da.compute(_is_shp,_is_ds_can,_ds_can_is_shp,shp_num,is_ds_can)[3:]
+    shp_num_result, is_ds_can_result, ds_can_num_result = da.compute(_is_shp,_is_ds_can,shp_num,is_ds_can,ds_can_num)[2:]
     logger.info('computing finished.')
+    logger.info(f'number of ds can in each chunk: {tuple(ds_can_num_result.reshape(-1))}')
+
     cluster.close()
     logger.info('dask cluster closed.')
 
