@@ -19,12 +19,13 @@ from dask.distributed import Client, LocalCluster
 from dask_cuda import LocalCUDACluster
 
 from ..shp import ks_test
-from .utils.logging import get_logger
+from .utils.logging import get_logger, log_args
 
 from fastcore.script import call_parse
 
 # %% ../../nbs/CLI/shp.ipynb 4
 @call_parse
+@log_args
 def de_shp_test(rslc:str, # input: rslc stack
                 pvalue:str, # output: the p value of the test
                 az_half_win:int, # azimuth half window size
@@ -127,6 +128,7 @@ def de_shp_test(rslc:str, # input: rslc stack
 
 # %% ../../nbs/CLI/shp.ipynb 10
 @call_parse
+@log_args
 def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
                      is_shp:str, # output: bool array indicating the SHPs of every pixel
                      is_ds_can:str, # output: bool array indicating DS candidate

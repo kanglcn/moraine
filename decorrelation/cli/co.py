@@ -4,7 +4,6 @@
 __all__ = ['de_emperical_co_sp']
 
 # %% ../../nbs/CLI/co.ipynb 3
-from itertools import product
 import math
 
 import zarr
@@ -20,13 +19,14 @@ from dask.distributed import Client, LocalCluster
 from dask_cuda import LocalCUDACluster
 
 from ..co import emperical_co_sp
-from .utils.logging import get_logger
+from .utils.logging import get_logger, log_args
 from .utils.dask import pad_internal
 
 from fastcore.script import call_parse
 
 # %% ../../nbs/CLI/co.ipynb 4
 @call_parse
+@log_args
 def de_emperical_co_sp(rslc:str, # input: rslc stack
                        is_shp:str, # input: bool array indicating the SHPs of every pixel
                        is_ds_can:str, # input: bool array indicating DS candidate

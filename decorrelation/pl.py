@@ -8,16 +8,18 @@ import cupy as cp
 
 # %% ../nbs/API/pl.ipynb 8
 def emi(coh:cp.ndarray, #complex coherence metrix,dtype cupy.complex
+        ref:int=0, #index of reference image in the phase history output, optional. Default: 0
        )-> tuple[cp.ndarray,cp.ndarray]: # estimated phase history `ph`, dtype complex; quality (minimum eigvalue, dtype float)
     coh_mag = abs(coh)
     coh_mag_inv = cp.linalg.inv(coh_mag)
     min_eigval, min_eig = cp.linalg.eigh(coh_mag_inv*coh)
     min_eigval = min_eigval[...,0]
-    min_eig = min_eig[...,0]
+    # min_eig = min_eig[...,0]
+    min_eig = min_eig[...,0]*min_eig[...,[ref],0].conj()
 
     return min_eig/abs(min_eig), min_eigval
 
-# %% ../nbs/API/pl.ipynb 16
+# %% ../nbs/API/pl.ipynb 17
 def temp_coh(coh:cp.ndarray,# complex coherence metrix, dtype cupy.complex
              ds_ph = cp.ndarray, # complex phase history, dtype cupy.complex
             ):

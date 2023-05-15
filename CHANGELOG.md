@@ -2,6 +2,14 @@
 
 <!-- do not remove -->
 
+## 0.2.0
+
+Add ks_test, select_ds_can, emperical_co_sp, emi CLI
+
+Add log and sparse utils
+
+Add test script
+
 ## 0.1.0
 
 Refine phase linking EMI

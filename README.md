@@ -47,11 +47,14 @@ etc.
 Most of the python functions in this package provide 2 kind of API, the
 array-based API and the file-based API. The inputs of array-based
 functions generally are numpy or cupy arrays. The inputs of file-based
-functions are path to the array stored in disk. The file-based functions
-make use of `dask` package to decrease the memory usage and parallelize
-the job. However, their is performance cost for using `dask`, if no
-parallelization is needed and the memory fits the data, the array-based
-API is recommended.
+functions are string of path to the array stored in disk. The file-based
+functions make use of `dask` package to decrease the memory usage and
+parallelize the job. However, their is performance cost for using
+`dask`, if no parallelization is needed and the memory fits the data,
+the array-based API is recommended.
+
+CLI is also provided and is almost the same as the file-based API. The
+only difference between them is the CLI can not directly show the plot.
 
 Please refer to the
 [Documentation](https://kanglcn.github.io/decorrelation) for detailed

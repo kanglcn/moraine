@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="basic logging functions for the CLI">
+<meta name="description" content="Utilities for sparse data manipulation">
 
-<title>decorrelation - logging</title>
+<title>decorrelation - sparse</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -21,88 +21,25 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1.6em;
   vertical-align: middle;
 }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { color: #008000; } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { color: #008000; font-weight: bold; } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../../">
-<script src="../../site_libs/quarto-html/quarto.js"></script>
-<script src="../../site_libs/quarto-html/popper.min.js"></script>
-<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -124,7 +61,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 }</script>
 
 
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../styles.css">
 </head>
 
 <body class="nav-sidebar floating nav-fixed">
@@ -134,7 +71,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container">
-    <a class="navbar-brand" href="../../index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">decorrelation</span>
     </a>
   </div>
@@ -155,7 +92,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     </nav>
   <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
     <div class="container-fluid d-flex justify-content-between">
-      <h1 class="quarto-secondary-nav-title">logging</h1>
+      <h1 class="quarto-secondary-nav-title">sparse</h1>
       <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
         <i class="bi bi-chevron-right"></i>
       </button>
@@ -170,7 +107,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../index.html" class="sidebar-item-text sidebar-link">decorrelation</a>
+  <a href="../index.html" class="sidebar-item-text sidebar-link">decorrelation</a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -183,22 +120,22 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/shp.html" class="sidebar-item-text sidebar-link">shp</a>
+  <a href="../API/shp.html" class="sidebar-item-text sidebar-link">shp</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/co.html" class="sidebar-item-text sidebar-link">co</a>
+  <a href="../API/co.html" class="sidebar-item-text sidebar-link">co</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/pl.html" class="sidebar-item-text sidebar-link">pl</a>
+  <a href="../API/pl.html" class="sidebar-item-text sidebar-link">pl</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../API/plot.html" class="sidebar-item-text sidebar-link">Plot</a>
+  <a href="../API/plot.html" class="sidebar-item-text sidebar-link">Plot</a>
   </div>
 </li>
       </ul>
@@ -213,30 +150,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/co.html" class="sidebar-item-text sidebar-link">co</a>
+  <a href="../CLI/co.html" class="sidebar-item-text sidebar-link">co</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/shp.html" class="sidebar-item-text sidebar-link">shp</a>
+  <a href="../CLI/shp.html" class="sidebar-item-text sidebar-link">shp</a>
   </div>
 </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">utils</a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">utils</a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/logging.html" class="sidebar-item-text sidebar-link active">logging</a>
+  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">logging</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">dask</a>
+  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">dask</a>
   </div>
 </li>
       </ul>
@@ -253,17 +190,17 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
+  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">Adaptive Multilook</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
+  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">DS Processing</a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Work With Dask</a>
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">Work With Dask</a>
   </div>
 </li>
       </ul>
@@ -277,8 +214,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#get_logger" id="toc-get_logger" class="nav-link active" data-scroll-target="#get_logger">get_logger</a></li>
-  <li><a href="#log_args" id="toc-log_args" class="nav-link" data-scroll-target="#log_args">log_args</a></li>
+  <li><a href="#points2raster" id="toc-points2raster" class="nav-link active" data-scroll-target="#points2raster">points2raster</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -287,12 +223,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title d-none d-lg-block">logging</h1>
+<h1 class="title d-none d-lg-block">sparse</h1>
 </div>
 
 <div>
   <div class="description">
-    basic logging functions for the CLI
+    Utilities for sparse data manipulation
   </div>
 </div>
 
@@ -308,76 +244,47 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<!-- Phase linking for PTA requires `cupy.optimize` to be implented which is tracked at
+https://github.com/rapidsai/raft/pull/923
+and https://github.com/cupy/cupy/issues/6112 -->
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/logging.py#L22" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="get_logger" class="level3">
-<h3 class="anchored" data-anchor-id="get_logger">get_logger</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/sparse.py#L12" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="points2raster" class="level3">
+<h3 class="anchored" data-anchor-id="points2raster">points2raster</h3>
 <blockquote class="blockquote">
-<pre><code> get_logger (name:str=None, logfile:str=None, level:str=None)</code></pre>
+<pre><code> points2raster (is_pt:Union[numpy._typing._array_like._SupportsArray[numpy
+                .dtype],numpy._typing._nested_sequence._NestedSequence[num
+                py._typing._array_like._SupportsArray[numpy.dtype]],bool,i
+                nt,float,complex,str,bytes,numpy._typing._nested_sequence.
+                _NestedSequence[Union[bool,int,float,complex,str,bytes]]],
+                point:Union[numpy._typing._array_like._SupportsArray[numpy
+                .dtype],numpy._typing._nested_sequence._NestedSequence[num
+                py._typing._array_like._SupportsArray[numpy.dtype]],bool,i
+                nt,float,complex,str,bytes,numpy._typing._nested_sequence.
+                _NestedSequence[Union[bool,int,float,complex,str,bytes]]])</code></pre>
 </blockquote>
-<p>get logger for decorrelation cli application</p>
+<p>convert sparse data to raster, filled with nan</p>
 <table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
 <thead>
 <tr class="header">
 <th></th>
 <th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
 <th><strong>Details</strong></th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>name</td>
-<td>str</td>
-<td>None</td>
-<td>name of the application, optional. default: the function name that call this function</td>
+<td>is_pt</td>
+<td>Union</td>
+<td>bool array index</td>
 </tr>
 <tr class="even">
-<td>logfile</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, optional. default: no logfile</td>
-</tr>
-<tr class="odd">
-<td>level</td>
-<td>str</td>
-<td>None</td>
-<td>log level, debug or info, optional. default: info</td>
+<td>point</td>
+<td>Union</td>
+<td>data</td>
 </tr>
 </tbody>
 </table>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/logging.py#L62" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="log_args" class="level3">
-<h3 class="anchored" data-anchor-id="log_args">log_args</h3>
-<blockquote class="blockquote">
-<pre><code> log_args (func)</code></pre>
-</blockquote>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> log_test():</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    logger <span class="op">=</span> get_logger(logfile<span class="op">=</span><span class="st">'test.log'</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    logger.debug(<span class="st">"This is a debug log."</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    logger.info(<span class="st">"This is a info log."</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    logger.warning(<span class="st">"This is a warning log."</span>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    logger.error(<span class="st">"This is a error log."</span>)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    logger.critical(<span class="st">"This is a critical log."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>log_test()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-05-14 21:10:49 - log_test - INFO - This is a info log.
-2023-05-14 21:10:49 - log_test - WARNING - This is a warning log.
-2023-05-14 21:10:49 - log_test - ERROR - This is a error log.
-2023-05-14 21:10:49 - log_test - CRITICAL - This is a critical log.</code></pre>
-</div>
-</div>
 
 
 </section>
