@@ -108,7 +108,7 @@ def read_gamma_image(imag:str, # gamma raster data
 def de_load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
                                reference:str, # reference date, eg: '20200202'
                                hgt:str, # the DEM in radar coordinate
-                               rslcs_zarr:str, # output, the flattened rslcs stack in zarr format
+                               rslc_zarr:str, # output, the flattened rslcs stack in zarr format
                                az_chunk_size:int=-1, # rslcs stack azimuth chunk size, azimuth number of lines by default (one chunk)
                                log:str=None, # logfile, no log by default
                               ):

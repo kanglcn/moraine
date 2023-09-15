@@ -2,62 +2,66 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/pl.html</loc>
-    <lastmod>2023-09-15T00:44:01.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:52.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/load.html</loc>
-    <lastmod>2023-09-15T00:44:02.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:52.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/co.html</loc>
-    <lastmod>2023-09-15T00:44:02.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:53.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/utils/dask.html</loc>
-    <lastmod>2023-09-15T00:44:03.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:53.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/utils/logging.html</loc>
-    <lastmod>2023-09-15T00:44:03.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:53.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/CLI/shp.html</loc>
-    <lastmod>2023-09-15T00:44:04.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:54.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/Tutorials/adaptive_multilook.html</loc>
-    <lastmod>2023-09-15T00:44:04.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:54.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/Tutorials/ds_processing.html</loc>
-    <lastmod>2023-09-15T00:44:05.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:55.000Z</lastmod>
+  </url>
+  <url>
+    <loc>https://kanglcn.github.io/decorrelation/Tutorials/ds_processing_with_cli.html</loc>
+    <lastmod>2023-09-15T23:20:55.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/Tutorials/work_with_dask.html</loc>
-    <lastmod>2023-09-15T00:44:05.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:56.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/API/plot.html</loc>
-    <lastmod>2023-09-15T00:44:05.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:56.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/API/sparse.html</loc>
-    <lastmod>2023-09-15T00:44:06.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:56.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/API/pl.html</loc>
-    <lastmod>2023-09-15T00:44:06.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:57.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/API/co.html</loc>
-    <lastmod>2023-09-15T00:44:07.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:58.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/API/shp.html</loc>
-    <lastmod>2023-09-15T00:44:07.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:58.000Z</lastmod>
   </url>
   <url>
     <loc>https://kanglcn.github.io/decorrelation/index.html</loc>
-    <lastmod>2023-09-15T00:44:08.000Z</lastmod>
+    <lastmod>2023-09-15T23:20:58.000Z</lastmod>
   </url>
 </urlset>

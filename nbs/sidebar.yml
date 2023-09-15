@@ -22,3 +22,4 @@ website:
           - Tutorials/Adaptive_Multilook.ipynb
           - Tutorials/DS_Processing.ipynb
           - Tutorials/Work_With_Dask.ipynb
+          - Tutorials/DS_Processing_with_CLI.ipynb

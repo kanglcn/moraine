@@ -6,9 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="Module for loading result from other software">
 
-<title>decorrelation - load</title>
+<title>decorrelation - DS processing with CLI</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -94,8 +93,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   }
 }</script>
 
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <link rel="stylesheet" href="../styles.css">
 </head>
@@ -133,7 +130,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../CLI/load.html">CLI</a></li><li class="breadcrumb-item"><a href="../CLI/load.html">load</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../Tutorials/adaptive_multilook.html">Tutorials</a></li><li class="breadcrumb-item"><a href="../Tutorials/ds_processing_with_cli.html">DS processing with CLI</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -197,7 +194,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../CLI/load.html" class="sidebar-item-text sidebar-link active">
+  <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">load</span></a>
   </div>
 </li>
@@ -267,7 +264,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
+  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">DS processing with CLI</span></a>
   </div>
 </li>
@@ -283,12 +280,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#de_load_gamma_flatten_rslc" id="toc-de_load_gamma_flatten_rslc" class="nav-link active" data-scroll-target="#de_load_gamma_flatten_rslc">de_load_gamma_flatten_rslc</a></li>
-  <li><a href="#de_load_gamma_lat_lon" id="toc-de_load_gamma_lat_lon" class="nav-link" data-scroll-target="#de_load_gamma_lat_lon">de_load_gamma_lat_lon</a></li>
-  <li><a href="#de_load_gamma_incidence_angle" id="toc-de_load_gamma_incidence_angle" class="nav-link" data-scroll-target="#de_load_gamma_incidence_angle">de_load_gamma_incidence_angle</a></li>
-  <li><a href="#de_load_gamma_hgt" id="toc-de_load_gamma_hgt" class="nav-link" data-scroll-target="#de_load_gamma_hgt">de_load_gamma_hgt</a></li>
-  <li><a href="#de_load_gamma_range" id="toc-de_load_gamma_range" class="nav-link" data-scroll-target="#de_load_gamma_range">de_load_gamma_range</a></li>
-  <li><a href="#de_load_gamma_metadata" id="toc-de_load_gamma_metadata" class="nav-link" data-scroll-target="#de_load_gamma_metadata">de_load_gamma_metadata</a></li>
+  <li><a href="#load-gamma-result" id="toc-load-gamma-result" class="nav-link active" data-scroll-target="#load-gamma-result">Load GAMMA result</a></li>
+  <li><a href="#ds-candidates-selection" id="toc-ds-candidates-selection" class="nav-link" data-scroll-target="#ds-candidates-selection">DS candidates selection</a></li>
+  <li><a href="#coherence-matrix-estimation" id="toc-coherence-matrix-estimation" class="nav-link" data-scroll-target="#coherence-matrix-estimation">Coherence matrix estimation</a></li>
+  <li><a href="#phase-linking" id="toc-phase-linking" class="nav-link" data-scroll-target="#phase-linking">Phase linking</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -297,14 +292,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">load</h1>
+<h1 class="title">DS processing with CLI</h1>
 </div>
 
-<div>
-  <div class="description">
-    Module for loading result from other software
-  </div>
-</div>
 
 
 <div class="quarto-title-meta">
@@ -318,93 +308,91 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L108" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="de_load_gamma_flatten_rslc" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_flatten_rslc">de_load_gamma_flatten_rslc</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_flatten_rslc (rslc_dir:str, reference:str, hgt:str,
-                             rslc_zarr:str, az_chunk_size:int=-1,
-                             log:str=None)</code></pre>
-</blockquote>
-<p>Generate flatten rslc data from gamma command and convert them into zarr format. The shape of hgt should be same as one rslc image, i.e.&nbsp;the hgt file is generated with 1 by 1 look geocoding.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>rslc_dir</td>
-<td>str</td>
-<td></td>
-<td>gamma rslc directory, the name of the rslc and their par files should be ‘????????.rslc’ and ‘????????.rslc.par’</td>
-</tr>
-<tr class="even">
-<td>reference</td>
-<td>str</td>
-<td></td>
-<td>reference date, eg: ‘20200202’</td>
-</tr>
-<tr class="odd">
-<td>hgt</td>
-<td>str</td>
-<td></td>
-<td>the DEM in radar coordinate</td>
-</tr>
-<tr class="even">
-<td>rslc_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, the flattened rslcs stack in zarr format</td>
-</tr>
-<tr class="odd">
-<td>az_chunk_size</td>
-<td>int</td>
-<td>-1</td>
-<td>rslcs stack azimuth chunk size, azimuth number of lines by default (one chunk)</td>
-</tr>
-<tr class="even">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<p>The method behind the flattened RSLC:</p>
-<p>Let the value of i-th rslc be <span class="math inline">\(s_i\)</span>, the simulated phase due to DEM and position difference be <span class="math inline">\(u_{ij}\)</span>. D-InSAR basically is: <span class="math display">\[d_{ij}=s_i \times s_j^* \times e^{-ju_{ij}}.\]</span> Let the distance between satellite and ground target for th i-th observation be <span class="math inline">\(l_i\)</span>. Then, the simulated phase for DInSAR <span class="math display">\[u_{ij} = l_i-l_j.\]</span> So, a simple conclusion is <span class="math display">\[u_{ij}-u_{ik}=-u_{jk}.\]</span> If we define <span class="math display">\[s_i^{\prime} = s_i \times e^{ju_{xi}},\]</span> where <span class="math inline">\(X\)</span> can be any arbitrary interger less than <span class="math inline">\(N\)</span>- the total number of the RSLCs. Then we can find that <span class="math display">\[int_{ij}^{\prime} =  s_i^{\prime} \times s_j^{\prime*} = s_i \times s_j^* \times e^{j(u_{xi}-u_{xj})} = s_i \times s_j^* \times e^{j(u_{xi}-u_{xj})} = s_i \times s_j^* \times e^{-ju_{ij}} = d_{ij}.\]</span></p>
-<p>We call <span class="math inline">\(s_i^{\prime}\)</span> as flattened RSLC. The advantage of flattened RSLC is DInSAR can be easily calculated by simple conjugate multiplication.</p>
-<p>An example:</p>
+<p>In this tutorial, we demostrate how to do standard DS processing with the decorrelation CLI interface.</p>
+<section id="load-gamma-result" class="level2">
+<h2 class="anchored" data-anchor-id="load-gamma-result">Load GAMMA result</h2>
+<p>The data from gamma software needed for this tutorial:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>rslc_dir <span class="op">=</span> <span class="st">'../../data/gamma/rslc'</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> <span class="st">'20220620'</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>hgt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.hgt'</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> <span class="st">'./raw/rslc.zarr'</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>ls <span class="op">-</span>R ..<span class="op">/</span>..<span class="op">/</span>data<span class="op">/</span>gamma<span class="op">/</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>/bin/zsh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by /bin/zsh)
+../../data/gamma/:
+DEM  geocoding  rslc
+
+../../data/gamma/DEM:
+dem_seg  dem_seg_par
+
+../../data/gamma/geocoding:
+20210802.ccp          20210802.look_angle      20210802.pix_gamma0_filled
+20210802.coffs        20210802.ls_map          20210802.pix_gamma0_filled.bmp
+20210802.coffsets     20210802.ls_map_rdc      20210802.pix_sigma0
+20210802.diff_par     20210802.ls_map_rdc.bmp  20210802.psi
+20210802.geo.mli      20210802.lt          20210802.rdc2geo
+20210802.geo.mli.bmp  20210802.lt_fine         20210802.rdc2geo_lat
+20210802.geo.mli.kml  20210802.offnadir        20210802.rdc2geo_lon
+20210802.geo.mli.png  20210802.offs        20210802.res
+20210802.geo.mli.tif  20210802.offsets         20210802.sim_sar
+20210802.hgt          20210802.pix         20210802.u
+20210802.hgt.bmp      20210802.pix_gamma0      20210802.v
+20210802.inc          20210802.pix_gamma0.bmp
+
+../../data/gamma/rslc:
+20210802.rslc      20211011.rslc.par  20220718.rslc  20220912.rslc.par
+20210802.rslc.par  20211025.rslc      20220718.rslc.par  20220926.rslc
+20210816.rslc      20211025.rslc.par  20220801.rslc  20220926.rslc.par
+20210816.rslc.par  20220606.rslc      20220801.rslc.par  20221010.rslc
+20210830.rslc      20220606.rslc.par  20220815.rslc  20221010.rslc.par
+20210830.rslc.par  20220620.rslc      20220815.rslc.par  20221024.rslc
+20210913.rslc      20220620.rslc.par  20220829.rslc  20221024.rslc.par
+20210913.rslc.par  20220704.rslc      20220829.rslc.par
+20211011.rslc      20220704.rslc.par  20220912.rslc</code></pre>
+</div>
+</div>
+<p>And we load them with functions in the <code>load</code> module:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.load <span class="im">import</span> (de_load_gamma_flatten_rslc,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                                    de_load_gamma_lat_lon,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                                    de_load_gamma_hgt,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                                    de_load_gamma_incidence_angle,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                                    de_load_gamma_range,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>                                    de_load_gamma_metadata)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The detailed usage of these functions is explained <a href="../CLI/load.html">here</a></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc_dir <span class="op">=</span> <span class="st">'../../data/gamma/rslc'</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> <span class="st">'20220620'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>hgt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.hgt'</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>lt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lt_fine'</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>dem_par <span class="op">=</span> <span class="st">'../../data/gamma/DEM/dem_seg_par'</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>inc <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.inc'</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/rslc.zarr'</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>lat_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/lat.zarr'</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>lon_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/lon.zarr'</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>inc_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/inc.zarr'</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>hgt_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/hgt.zarr'</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>range_zarr <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/range.zarr'</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>meta_file <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/meta.toml'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_flatten_rslc(rslc_dir,reference,hgt,rslc_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_flatten_rslc(rslc_dir,reference,hgt,rslc_zarr,az_chunk_size)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>de_load_gamma_lat_lon(lt,rslc_par,dem_par,lat_zarr,lon_zarr,az_chunk_size)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>de_load_gamma_incidence_angle(inc,lt,rslc_par,dem_par,inc_zarr,az_chunk_size)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>de_load_gamma_hgt(hgt,rslc_par,hgt_zarr,az_chunk_size)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>de_load_gamma_range(rslc_par,range_zarr,az_chunk_size)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>de_load_gamma_metadata(rslc_dir,reference,meta_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - fetching args:
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - rslcs_zarr = './raw/rslc.zarr'
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - log = None
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - fetching args done.
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - rslc found: 
+<pre><code>2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - fetching args:
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - rslc_zarr = './DS_Processing_with_CLI/rslc.zarr'
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - log = None
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - fetching args done.
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - rslc found: 
         date                                 rslc  \
 0   20210802  ../../data/gamma/rslc/20210802.rslc   
 1   20210816  ../../data/gamma/rslc/20210816.rslc   
@@ -442,11 +430,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 14  ../../data/gamma/rslc/20220926.rslc.par  
 15  ../../data/gamma/rslc/20221010.rslc.par  
 16  ../../data/gamma/rslc/20221024.rslc.par  
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate flatten rslcs:
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2ghqoy38/20220620_20210802.off 1 1 1 0
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate flatten rslcs:
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2dh4b78j/20220620_20210802.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -477,13 +465,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20210802.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20210802.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:34 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2ghqoy38/20220620_20210802.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:20 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2dh4b78j/20220620_20210802.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -495,9 +483,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20210802.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20210802.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20210802.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20210802.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20210802.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -522,14 +510,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20210802.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20210802.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        56.170
-system time (s):       2.840
-elapsed time (s):      1.870
+user time (s):        35.700
+system time (s):       0.660
+elapsed time (s):      1.170
 
-2023-09-15 15:30:36 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2ghqoy38/20220620_20210816.off 1 1 1 0
+2023-09-15 18:05:21 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2dh4b78j/20220620_20210816.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -560,13 +548,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20210816.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20210816.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:36 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2ghqoy38/20220620_20210816.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:21 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2dh4b78j/20220620_20210816.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -578,9 +566,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20210816.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20210816.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20210816.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20210816.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20210816.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -605,14 +593,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20210816.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20210816.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        31.090
-system time (s):       0.420
-elapsed time (s):      0.920
+user time (s):        29.990
+system time (s):       0.470
+elapsed time (s):      0.900
 
-2023-09-15 15:30:37 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2ghqoy38/20220620_20210830.off 1 1 1 0
+2023-09-15 18:05:22 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2dh4b78j/20220620_20210830.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -643,13 +631,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20210830.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20210830.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:37 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2ghqoy38/20220620_20210830.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:22 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2dh4b78j/20220620_20210830.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -661,9 +649,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20210830.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20210830.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20210830.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20210830.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20210830.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -688,14 +676,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20210830.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20210830.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        35.900
-system time (s):       0.790
-elapsed time (s):      1.170
+user time (s):        32.700
+system time (s):       0.470
+elapsed time (s):      1.040
 
-2023-09-15 15:30:38 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2ghqoy38/20220620_20210913.off 1 1 1 0
+2023-09-15 18:05:24 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2dh4b78j/20220620_20210913.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -726,13 +714,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20210913.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20210913.off
 
 user time (s):         0.000
 system time (s):       0.000
-elapsed time (s):      0.000
+elapsed time (s):      0.010
 
-2023-09-15 15:30:38 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2ghqoy38/20220620_20210913.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:24 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2dh4b78j/20220620_20210913.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -744,9 +732,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20210913.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20210913.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20210913.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20210913.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20210913.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -771,14 +759,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20210913.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20210913.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        32.490
-system time (s):       0.520
-elapsed time (s):      0.980
+user time (s):        36.970
+system time (s):       0.880
+elapsed time (s):      1.200
 
-2023-09-15 15:30:39 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2ghqoy38/20220620_20211011.off 1 1 1 0
+2023-09-15 18:05:25 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2dh4b78j/20220620_20211011.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -809,13 +797,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20211011.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20211011.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:39 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2ghqoy38/20220620_20211011.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:25 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2dh4b78j/20220620_20211011.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -827,9 +815,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20211011.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20211011.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20211011.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20211011.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20211011.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -854,14 +842,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20211011.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20211011.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        34.030
-system time (s):       0.650
-elapsed time (s):      1.060
+user time (s):        31.070
+system time (s):       0.410
+elapsed time (s):      0.920
 
-2023-09-15 15:30:40 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2ghqoy38/20220620_20211025.off 1 1 1 0
+2023-09-15 18:05:26 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2dh4b78j/20220620_20211025.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -892,13 +880,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20211025.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20211025.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:40 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2ghqoy38/20220620_20211025.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:26 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2dh4b78j/20220620_20211025.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -910,9 +898,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20211025.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20211025.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20211025.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20211025.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20211025.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -937,14 +925,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20211025.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20211025.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        30.320
-system time (s):       0.320
-elapsed time (s):      0.910
+user time (s):        36.180
+system time (s):       0.810
+elapsed time (s):      1.250
 
-2023-09-15 15:30:41 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2ghqoy38/20220620_20220606.off 1 1 1 0
+2023-09-15 18:05:27 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2dh4b78j/20220620_20220606.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -975,13 +963,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220606.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220606.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:41 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2ghqoy38/20220620_20220606.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:27 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2dh4b78j/20220620_20220606.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -993,9 +981,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220606.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220606.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220606.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220606.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220606.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1020,14 +1008,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220606.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220606.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        34.040
-system time (s):       0.590
-elapsed time (s):      1.070
+user time (s):        33.740
+system time (s):       0.650
+elapsed time (s):      1.060
 
-2023-09-15 15:30:43 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2ghqoy38/20220620_20220620.off 1 1 1 0
+2023-09-15 18:05:29 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2dh4b78j/20220620_20220620.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1058,13 +1046,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220620.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220620.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:43 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2ghqoy38/20220620_20220620.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:29 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2dh4b78j/20220620_20220620.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1076,9 +1064,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220620.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220620.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220620.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220620.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220620.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1103,14 +1091,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220620.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220620.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        36.760
-system time (s):       0.900
-elapsed time (s):      1.300
+user time (s):        32.950
+system time (s):       0.620
+elapsed time (s):      1.010
 
-2023-09-15 15:30:44 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2ghqoy38/20220620_20220704.off 1 1 1 0
+2023-09-15 18:05:30 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2dh4b78j/20220620_20220704.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1141,13 +1129,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220704.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220704.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.010
 
-2023-09-15 15:30:44 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2ghqoy38/20220620_20220704.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:30 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2dh4b78j/20220620_20220704.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1159,9 +1147,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220704.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220704.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220704.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220704.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220704.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1186,14 +1174,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220704.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220704.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        32.690
-system time (s):       0.450
-elapsed time (s):      0.990
+user time (s):        36.370
+system time (s):       0.810
+elapsed time (s):      1.180
 
-2023-09-15 15:30:45 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2ghqoy38/20220620_20220718.off 1 1 1 0
+2023-09-15 18:05:31 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2dh4b78j/20220620_20220718.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1224,13 +1212,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220718.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220718.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:45 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2ghqoy38/20220620_20220718.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:31 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2dh4b78j/20220620_20220718.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1242,9 +1230,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220718.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220718.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220718.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220718.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220718.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1269,14 +1257,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220718.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220718.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        36.320
-system time (s):       0.660
-elapsed time (s):      1.190
+user time (s):        29.620
+system time (s):       0.330
+elapsed time (s):      0.880
 
-2023-09-15 15:30:46 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2ghqoy38/20220620_20220801.off 1 1 1 0
+2023-09-15 18:05:32 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2dh4b78j/20220620_20220801.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1307,13 +1295,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220801.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220801.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:46 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2ghqoy38/20220620_20220801.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:32 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2dh4b78j/20220620_20220801.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1325,9 +1313,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220801.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220801.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220801.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220801.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220801.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1352,14 +1340,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220801.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220801.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        36.560
-system time (s):       0.710
-elapsed time (s):      1.170
+user time (s):        34.380
+system time (s):       0.590
+elapsed time (s):      1.100
 
-2023-09-15 15:30:47 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2ghqoy38/20220620_20220815.off 1 1 1 0
+2023-09-15 18:05:33 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2dh4b78j/20220620_20220815.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1390,13 +1378,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220815.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220815.off
 
 user time (s):         0.000
 system time (s):       0.000
-elapsed time (s):      0.010
+elapsed time (s):      0.000
 
-2023-09-15 15:30:48 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2ghqoy38/20220620_20220815.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:33 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2dh4b78j/20220620_20220815.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1408,9 +1396,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220815.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220815.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220815.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220815.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220815.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1435,14 +1423,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220815.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220815.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        28.380
-system time (s):       0.260
-elapsed time (s):      0.830
+user time (s):        33.540
+system time (s):       0.500
+elapsed time (s):      1.010
 
-2023-09-15 15:30:48 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2ghqoy38/20220620_20220829.off 1 1 1 0
+2023-09-15 18:05:34 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2dh4b78j/20220620_20220829.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1473,13 +1461,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220829.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220829.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:48 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2ghqoy38/20220620_20220829.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:34 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2dh4b78j/20220620_20220829.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1491,9 +1479,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220829.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220829.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220829.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220829.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220829.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1518,14 +1506,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220829.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220829.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        29.580
-system time (s):       0.410
-elapsed time (s):      0.860
+user time (s):        36.570
+system time (s):       1.000
+elapsed time (s):      1.230
 
-2023-09-15 15:30:49 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2ghqoy38/20220620_20220912.off 1 1 1 0
+2023-09-15 18:05:36 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2dh4b78j/20220620_20220912.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1556,13 +1544,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220912.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220912.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:49 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2ghqoy38/20220620_20220912.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:36 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2dh4b78j/20220620_20220912.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1574,9 +1562,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220912.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220912.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220912.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220912.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220912.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1601,14 +1589,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220912.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220912.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        30.060
-system time (s):       0.370
-elapsed time (s):      0.890
+user time (s):        39.240
+system time (s):       0.850
+elapsed time (s):      1.370
 
-2023-09-15 15:30:50 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2ghqoy38/20220620_20220926.off 1 1 1 0
+2023-09-15 18:05:37 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2dh4b78j/20220620_20220926.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1639,13 +1627,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20220926.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20220926.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:50 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2ghqoy38/20220620_20220926.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:37 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2dh4b78j/20220620_20220926.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1657,9 +1645,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20220926.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20220926.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20220926.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20220926.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20220926.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1684,14 +1672,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20220926.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20220926.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        38.600
-system time (s):       1.120
-elapsed time (s):      1.430
+user time (s):        33.270
+system time (s):       0.600
+elapsed time (s):      1.070
 
-2023-09-15 15:30:52 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2ghqoy38/20220620_20221010.off 1 1 1 0
+2023-09-15 18:05:38 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2dh4b78j/20220620_20221010.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1722,13 +1710,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20221010.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20221010.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:52 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2ghqoy38/20220620_20221010.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:38 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2dh4b78j/20220620_20221010.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1740,9 +1728,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20221010.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20221010.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20221010.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20221010.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20221010.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1767,14 +1755,14 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20221010.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20221010.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        35.850
-system time (s):       0.640
-elapsed time (s):      1.170
+user time (s):        33.550
+system time (s):       0.650
+elapsed time (s):      1.080
 
-2023-09-15 15:30:53 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2ghqoy38/20220620_20221024.off 1 1 1 0
+2023-09-15 18:05:39 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2dh4b78j/20220620_20221024.off 1 1 1 0
 *** Create and update ISP offset and interferogram parameter files ***
 *** Copyright 2020 Gamma Remote Sensing v5.5 clw/uw/cm 21-Sep-2020 ***
 SLC-1 title: ALOS2436071220-220620
@@ -1805,13 +1793,13 @@ azimuth lines:        2500
 range pixel spacing (m):   4.29054
 azimuth line spacing (m):  3.74010
 
-output OFF_par file: /tmp/tmp2ghqoy38/20220620_20221024.off
+output OFF_par file: /tmp/tmp2dh4b78j/20220620_20221024.off
 
 user time (s):         0.000
 system time (s):       0.000
 elapsed time (s):      0.000
 
-2023-09-15 15:30:53 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2ghqoy38/20220620_20221024.off /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2ghqoy38/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
+2023-09-15 18:05:39 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2dh4b78j/20220620_20221024.off /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt /tmp/tmp2dh4b78j/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1
 *** Simulate unwrapped interferometric phase using DEM height and deformation rate using orbit state vectors ***
 *** Copyright 2022, Gamma Remote Sensing, v2.9, 4-May-2022 clw/cm ***
 OPENMP: number of physical processors:                     128
@@ -1823,9 +1811,9 @@ SLC-1 image parameter file:  ../../data/gamma/rslc/20220620.rslc.par
 SLC-2R image parameter file: ../../data/gamma/rslc/20221024.rslc.par
 int_mode = 1: repeat-pass interferometric mode (default)
 
-ISP interferogram/offset parameter file: /tmp/tmp2ghqoy38/20220620_20221024.off
-height map file: /work/users/kangl/decorrelation/nbs/CLI/../../data/gamma/geocoding/20210802.hgt
-output simulated interferometric phase: /tmp/tmp2ghqoy38/20220620_20221024.sim_orb
+ISP interferogram/offset parameter file: /tmp/tmp2dh4b78j/20220620_20221024.off
+height map file: /work/users/kangl/decorrelation/nbs/Tutorials/../../data/gamma/geocoding/20210802.hgt
+output simulated interferometric phase: /tmp/tmp2dh4b78j/20220620_20221024.sim_orb
 geometric reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
 NOTE: no deformation rate file entered: deformation rate set to 0.0
 
@@ -1850,163 +1838,34 @@ output line:      0  SLC-1 azimuth line: 0.5
 output line:   1000  SLC-1 azimuth line: 1000.5
 output line:   2000  SLC-1 azimuth line: 2000.5
 
-simulated unwrapped phase: /tmp/tmp2ghqoy38/20220620_20221024.sim_orb
+simulated unwrapped phase: /tmp/tmp2dh4b78j/20220620_20221024.sim_orb
 width: 1834 lines: 2500
 
-user time (s):        36.940
-system time (s):       0.800
-elapsed time (s):      1.220
+user time (s):        35.740
+system time (s):       0.810
+elapsed time (s):      1.180
 
-2023-09-15 15:30:54 - de_load_gamma_flatten_rslc - INFO - flatten rslcs generated.
-2023-09-15 15:30:54 - de_load_gamma_flatten_rslc - INFO - using dask to load the flatten rslcs from gamma binary format to zarr.
-2023-09-15 15:30:54 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
-2023-09-15 15:30:59 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
-2023-09-15 15:30:59 - de_load_gamma_flatten_rslc - INFO - flattened rslcs shape: (2500, 1834, 17)
-2023-09-15 15:30:59 - de_load_gamma_flatten_rslc - INFO - flattened rslcs chunks: ((1000, 1000, 500), (1834,), (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
-2023-09-15 15:30:59 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
-2023-09-15 15:31:00 - de_load_gamma_flatten_rslc - INFO - computing finished.
-2023-09-15 15:31:03 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
-sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_load_gamma_flatten_rslc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>/bin/zsh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by /bin/zsh)
-usage: de_load_gamma_flatten_rslc [-h] [--az_chunk_size AZ_CHUNK_SIZE]
-                                  [--log LOG]
-                                  rslc_dir reference hgt rslcs_zarr
-de_load_gamma_flatten_rslc: error: the following arguments are required: rslc_dir, reference, hgt, rslcs_zarr</code></pre>
-</div>
-</div>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L181" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="de_load_gamma_lat_lon" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_lat_lon">de_load_gamma_lat_lon</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_lat_lon (lt:str, rslc_par:str, dem_par:str, lat_zarr:str,
-                        lon_zarr:str, az_chunk_size:int=-1, log:str=None)</code></pre>
-</blockquote>
-<p>Function to load longitude and latitude from gamma binary format to zarr. Only DEM on EQA projection is supported now.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>lt</td>
-<td>str</td>
-<td></td>
-<td>geocoding lookup table</td>
-</tr>
-<tr class="even">
-<td>rslc_par</td>
-<td>str</td>
-<td></td>
-<td>par file of the reference rslc</td>
-</tr>
-<tr class="odd">
-<td>dem_par</td>
-<td>str</td>
-<td></td>
-<td>dem par</td>
-</tr>
-<tr class="even">
-<td>lat_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, latitude zarr</td>
-</tr>
-<tr class="odd">
-<td>lon_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, longitude zarr</td>
-</tr>
-<tr class="even">
-<td>az_chunk_size</td>
-<td>int</td>
-<td>-1</td>
-<td>azimuth chunk size of lat and lon zarr, azimuth number of lines by default (one chunk)</td>
-</tr>
-<tr class="odd">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>lt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lt_fine'</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>dem_par <span class="op">=</span> <span class="st">'../../data/gamma/DEM/dem_seg_par'</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>lat_zarr <span class="op">=</span> <span class="st">'./raw/lat.zarr'</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>lon_zarr <span class="op">=</span> <span class="st">'./raw/lon.zarr'</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_lat_lon(lt,rslc_par,dem_par,lat_zarr,lon_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - fetching args:
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - lat_zarr = './raw/lat.zarr'
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - lon_zarr = './raw/lon.zarr'
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - az_chunk_size = 1000
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - log = None
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - fetching args done.
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - image shape: (2500,1834)
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - run gamma command to generate longitude and latitude:
-2023-09-15 15:40:05 - de_load_gamma_lat_lon - INFO - run command: gc_map_inversion ../../data/gamma/geocoding/20210802.lt_fine 5741 /tmp/tmp2wrkcgc6/rdc2geo 1834 2500 2 2 16 16
+2023-09-15 18:05:40 - de_load_gamma_flatten_rslc - INFO - flatten rslcs generated.
+2023-09-15 18:05:40 - de_load_gamma_flatten_rslc - INFO - using dask to load the flatten rslcs from gamma binary format to zarr.
+2023-09-15 18:05:40 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
+2023-09-15 18:05:43 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
+2023-09-15 18:05:43 - de_load_gamma_flatten_rslc - INFO - flattened rslcs shape: (2500, 1834, 17)
+2023-09-15 18:05:43 - de_load_gamma_flatten_rslc - INFO - flattened rslcs chunks: ((1000, 1000, 500), (1834,), (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
+2023-09-15 18:05:43 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
+2023-09-15 18:05:44 - de_load_gamma_flatten_rslc - INFO - computing finished.
+2023-09-15 18:05:45 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - fetching args:
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - lat_zarr = './DS_Processing_with_CLI/lat.zarr'
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - lon_zarr = './DS_Processing_with_CLI/lon.zarr'
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - az_chunk_size = 1000
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - log = None
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - fetching args done.
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - image shape: (2500,1834)
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - run gamma command to generate longitude and latitude:
+2023-09-15 18:05:45 - de_load_gamma_lat_lon - INFO - run command: gc_map_inversion ../../data/gamma/geocoding/20210802.lt_fine 5741 /tmp/tmpwxmy_bk4/rdc2geo 1834 2500 2 2 16 16
 *** Invert geocoding lookup table ***
 *** Copyright 2019, Gamma Remote Sensing, v3.4 23-May-2019 uw/clw/cm ***
 
@@ -2028,7 +1887,7 @@ number of output lines/block: 2253
 number of output blocks: 2
 
 output block:    1   starting line:      0
-input data line:   2000
+input data line:      0input data line:   2000
 resampling lookup table
 output line:   2000
 
@@ -2037,113 +1896,26 @@ input data line:   2000
 resampling lookup table
 output line:      0
 
-resampled output data file: /tmp/tmp2wrkcgc6/rdc2geo
+resampled output data file: /tmp/tmpwxmy_bk4/rdc2geo
 
-user time (s):        43.470
-system time (s):       1.550
-elapsed time (s):      1.570
+user time (s):        41.590
+system time (s):       1.800
+elapsed time (s):      1.550
 
-2023-09-15 15:40:07 - de_load_gamma_lat_lon - INFO - writing data.
-2023-09-15 15:40:07 - de_load_gamma_lat_lon - INFO - Done.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)</code></pre>
-</div>
-</div>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L222" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="de_load_gamma_incidence_angle" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_incidence_angle">de_load_gamma_incidence_angle</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_incidence_angle (inc:str, lt:str, rslc_par:str,
-                                dem_par:str, inc_zarr:str,
-                                az_chunk_size:int=-1, log:str=None)</code></pre>
-</blockquote>
-<p>Load incidence angle from gamma binary format to zarr. The input incidence angle should be in EQA coordinate and generated by gc_map2 with inc_flg=1.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>inc</td>
-<td>str</td>
-<td></td>
-<td>incidence angle</td>
-</tr>
-<tr class="even">
-<td>lt</td>
-<td>str</td>
-<td></td>
-<td>lookup table</td>
-</tr>
-<tr class="odd">
-<td>rslc_par</td>
-<td>str</td>
-<td></td>
-<td>par file of the reference rslc</td>
-</tr>
-<tr class="even">
-<td>dem_par</td>
-<td>str</td>
-<td></td>
-<td>dem par</td>
-</tr>
-<tr class="odd">
-<td>inc_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, latitude zarr</td>
-</tr>
-<tr class="even">
-<td>az_chunk_size</td>
-<td>int</td>
-<td>-1</td>
-<td>azimuth chunk size of lat and lon zarr, azimuth number of lines by default (one chunk)</td>
-</tr>
-<tr class="odd">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>lt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lt_fine'</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>dem_par <span class="op">=</span> <span class="st">'../../data/gamma/DEM/dem_seg_par'</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>inc <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.inc'</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>inc_zarr <span class="op">=</span> <span class="st">'./raw/inc.zarr'</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_incidence_angle(inc,lt,rslc_par,dem_par,inc_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - fetching args:
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - inc = '../../data/gamma/geocoding/20210802.inc'
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - inc_zarr = './raw/inc.zarr'
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - az_chunk_size = 1000
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - log = None
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - fetching args done.
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - image shape: (2500,1834)
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - run gamma command to generate inc angle in range doppler coordinate:
-2023-09-15 15:40:16 - de_load_gamma_incidence_angle - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.inc 5741 /tmp/tmprjcmb6vf/inc_rdc 1834 2500
+2023-09-15 18:05:46 - de_load_gamma_lat_lon - INFO - writing data.
+2023-09-15 18:05:46 - de_load_gamma_lat_lon - INFO - Done.
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - fetching args:
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - inc = '../../data/gamma/geocoding/20210802.inc'
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - inc_zarr = './DS_Processing_with_CLI/inc.zarr'
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - az_chunk_size = 1000
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - log = None
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - fetching args done.
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - image shape: (2500,1834)
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - run gamma command to generate inc angle in range doppler coordinate:
+2023-09-15 18:05:46 - de_load_gamma_incidence_angle - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.inc 5741 /tmp/tmpohnxcad4/inc_rdc 1834 2500
 *** Forward geocoding transformation using a lookup table ***
 *** Copyright 2019, Gamma Remote Sensing, v4.3 12-Mar-2019 uw/clw/of/cm ***
 data format: float
@@ -2160,241 +1932,45 @@ number of output lines/block: 18219
 number of output blocks: 1
 output block:  1   starting line:      0
 
-output data file: /tmp/tmprjcmb6vf/inc_rdc
+output data file: /tmp/tmpohnxcad4/inc_rdc
 output file width: 1834   lines: 2500
 
-user time (s):         0.810
-system time (s):       0.380
-elapsed time (s):      1.200
+user time (s):         0.820
+system time (s):       0.440
+elapsed time (s):      1.260
 
-2023-09-15 15:40:17 - de_load_gamma_incidence_angle - INFO - writing data.
-2023-09-15 15:40:17 - de_load_gamma_incidence_angle - INFO - Done.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)</code></pre>
-</div>
-</div>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L255" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="de_load_gamma_hgt" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_hgt">de_load_gamma_hgt</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_hgt (hgt:str, rslc_par:str, hgt_zarr:str,
-                    az_chunk_size:int=-1, log:str=None)</code></pre>
-</blockquote>
-<p>Load DEM in radar coordinate from gamma binary format to zarr.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>hgt</td>
-<td>str</td>
-<td></td>
-<td>DEM in radar coordinate</td>
-</tr>
-<tr class="even">
-<td>rslc_par</td>
-<td>str</td>
-<td></td>
-<td>par file of the reference rslc</td>
-</tr>
-<tr class="odd">
-<td>hgt_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, latitude zarr</td>
-</tr>
-<tr class="even">
-<td>az_chunk_size</td>
-<td>int</td>
-<td>-1</td>
-<td>azimuth chunk size of lat and lon zarr, azimuth number of lines by default (one chunk)</td>
-</tr>
-<tr class="odd">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>hgt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.hgt'</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>hgt_zarr <span class="op">=</span> <span class="st">'./raw/hgt.zarr'</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_hgt(hgt,rslc_par,hgt_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - fetching args:
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - hgt_zarr = './raw/hgt.zarr'
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - az_chunk_size = 1000
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - log = None
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - fetching args done.
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - image shape: (2500,1834)
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - writing data.
-2023-09-15 15:40:24 - de_load_gamma_hgt - INFO - Done.</code></pre>
-</div>
-</div>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L279" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="de_load_gamma_range" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_range">de_load_gamma_range</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_range (rslc_par:str, range_zarr:str, az_chunk_size:int=-1,
-                      log:str=None)</code></pre>
-</blockquote>
-<p>Generate slant range distance and save to zarr.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>rslc_par</td>
-<td>str</td>
-<td></td>
-<td>par file of one rslc</td>
-</tr>
-<tr class="even">
-<td>range_zarr</td>
-<td>str</td>
-<td></td>
-<td>output, range distance zarr</td>
-</tr>
-<tr class="odd">
-<td>az_chunk_size</td>
-<td>int</td>
-<td>-1</td>
-<td>azimuth chunk size of lat and lon zarr, azimuth number of lines by default (one chunk)</td>
-</tr>
-<tr class="even">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>range_zarr <span class="op">=</span> <span class="st">'./raw/range.zarr'</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_range(rslc_par,range_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:40:30 - de_load_gamma_range - INFO - fetching args:
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - range_zarr = './raw/range.zarr'
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - az_chunk_size = 1000
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - log = None
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - fetching args done.
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - image shape: (2500,1834)
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - writing data.
-2023-09-15 15:40:30 - de_load_gamma_range - INFO - Done.</code></pre>
-</div>
-</div>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L307" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="de_load_gamma_metadata" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_metadata">de_load_gamma_metadata</h3>
-<blockquote class="blockquote">
-<pre><code> de_load_gamma_metadata (rslc_dir:str, reference:str, meta_file:str,
-                         log:str=None)</code></pre>
-</blockquote>
-<p>Load necessary metadata into a toml file.</p>
-<table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
-<th><strong>Details</strong></th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>rslc_dir</td>
-<td>str</td>
-<td></td>
-<td># gamma rslc directory, the name of the rslc and their par files should be ‘????????.rslc’ and ‘????????.rslc.par’</td>
-</tr>
-<tr class="even">
-<td>reference</td>
-<td>str</td>
-<td></td>
-<td>reference date, eg: ‘20200202’</td>
-</tr>
-<tr class="odd">
-<td>meta_file</td>
-<td>str</td>
-<td></td>
-<td>text toml file for meta data</td>
-</tr>
-<tr class="even">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>logfile, no log by default</td>
-</tr>
-</tbody>
-</table>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rslc_dir <span class="op">=</span> <span class="st">'../../data/gamma//rslc'</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> <span class="st">'20220620'</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>meta_file <span class="op">=</span> <span class="st">'./raw/meta.toml'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_metadata(rslc_dir,reference,meta_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - fetching args:
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma//rslc'
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - reference = '20220620'
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - meta_file = './raw/meta.toml'
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - log = None
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - fetching args done.
-/work/users/jinwook/sw/GAMMA_20221129/scripts/base_calc processing started: Fri Sep 15 15:40:35 2023 
-SLC_tab table SLC images and parameter files: /tmp/tmphwo236rh/slc_tab
+2023-09-15 18:05:48 - de_load_gamma_incidence_angle - INFO - writing data.
+2023-09-15 18:05:48 - de_load_gamma_incidence_angle - INFO - Done.
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - fetching args:
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - hgt_zarr = './DS_Processing_with_CLI/hgt.zarr'
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - az_chunk_size = 1000
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - log = None
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - fetching args done.
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - image shape: (2500,1834)
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - writing data.
+2023-09-15 18:05:48 - de_load_gamma_hgt - INFO - Done.
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - fetching args:
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - range_zarr = './DS_Processing_with_CLI/range.zarr'
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - az_chunk_size = 1000
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - log = None
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - fetching args done.
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - image shape: (2500,1834)
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - writing data.
+2023-09-15 18:05:48 - de_load_gamma_range - INFO - Done.
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - fetching args:
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - reference = '20220620'
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - meta_file = './DS_Processing_with_CLI/meta.toml'
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - log = None
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - fetching args done.
+/work/users/jinwook/sw/GAMMA_20221129/scripts/base_calc processing started: Fri Sep 15 18:05:48 2023 
+SLC_tab table SLC images and parameter files: /tmp/tmp5ua8v033/slc_tab
 reference SLC parameter file: ../../data/gamma/rslc/20220620.rslc.par
-bperp textfile:    /tmp/tmphwo236rh/bperp
-output ITAB file:  /tmp/tmphwo236rh/itab
+bperp textfile:    /tmp/tmp5ua8v033/bperp
+output ITAB file:  /tmp/tmp5ua8v033/itab
 reference frame date: 2022 6 20
 reference sensor: PALSAR2
 
@@ -2447,10 +2023,10 @@ average bperp magnitude (m):   84.203
 average bperp (m):  -73.875 
 
 number of SLC pairs that meet the bperp_max and delta_T_max criteria: 17
-output bperp_file: /tmp/tmphwo236rh/bperp
+output bperp_file: /tmp/tmp5ua8v033/bperp
 
-/work/users/jinwook/sw/GAMMA_20221129/scripts/base_calc processing completed: Fri Sep 15 15:40:35 2023 
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - All meta data: 
+/work/users/jinwook/sw/GAMMA_20221129/scripts/base_calc processing completed: Fri Sep 15 18:05:48 2023 
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - All meta data: 
 dates = [ "20210802", "20210816", "20210830", "20210913", "20211011", "20211025", "20220606", "20220620", "20220704", "20220718", "20220801", "20220815", "20220829", "20220912", "20220926", "20221010", "20221024",]
 radar_wavelength = 0.24245249210715603
 heading = -17.8792397
@@ -2458,60 +2034,368 @@ range_pixel_spacing = 4.29054
 azimuth_pixel_spacing = 3.740105
 perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.86680030822754, -26.258899688720703, -63.72420120239258, -56.363399505615234, 64.75759887695312, 0.0, -9.043999671936035, -13.02869987487793, -112.94960021972656, -86.09490203857422, -129.9635009765625, -127.6594009399414, -182.29519653320312, -129.735107421875, -184.31100463867188,]
 
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - writing data in toml file.
-2023-09-15 15:40:35 - de_load_gamma_metadata - INFO - Done.</code></pre>
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - writing data in toml file.
+2023-09-15 18:05:48 - de_load_gamma_metadata - INFO - Done.</code></pre>
 </div>
 <div class="cell-output cell-output-stderr">
-<pre><code>sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)</code></pre>
+<pre><code>sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)
+sh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by sh)</code></pre>
 </div>
+</div>
+<p>Then we get all needed data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>ls .<span class="op">/</span>DS_Processing_with_CLI<span class="op">/</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>/bin/zsh: /users/kangl/miniconda3/lib/libtinfo.so.6: no version information available (required by /bin/zsh)
+ds_can_coh_ave.png   hgt.zarr    lat.zarr     rslc.zarr
+ds_can_coh.zarr      inc.zarr    lon.zarr     shp_num_fig.png
+ds_can_emi_quality.zarr  is_ds_can.png   meta.toml
+ds_can_ph.zarr       is_ds_can.zarr  pvalue.zarr
+emi_quality.png      is_shp.zarr     range.zarr</code></pre>
+</div>
+</div>
+<p>The DEM in radar coordinate, incidence angle, latitude, lontitude, metadata, slant range distance, and flattened rslc stack.</p>
+</section>
+<section id="ds-candidates-selection" class="level2">
+<h2 class="anchored" data-anchor-id="ds-candidates-selection">DS candidates selection</h2>
+<p>First, we select spatial homogenious pixels:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_shp_test</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(meta_file,<span class="st">'r'</span>) <span class="im">as</span> f:</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    meta_read <span class="op">=</span> toml.load(f)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/rslc.zarr'</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/pvalue.zarr'</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>method <span class="op">=</span> <span class="st">'ks'</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>meta_read</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslc,pvalue,</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>            az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>            method<span class="op">=</span>method,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-09-15 18:06:36 - de_shp_test - INFO - fetching args:
+2023-09-15 18:06:36 - de_shp_test - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
+2023-09-15 18:06:36 - de_shp_test - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
+2023-09-15 18:06:36 - de_shp_test - INFO - az_half_win = 5
+2023-09-15 18:06:36 - de_shp_test - INFO - r_half_win = 5
+2023-09-15 18:06:36 - de_shp_test - INFO - method = 'ks'
+2023-09-15 18:06:36 - de_shp_test - INFO - az_chunk_size = 1000
+2023-09-15 18:06:36 - de_shp_test - INFO - log = None
+2023-09-15 18:06:36 - de_shp_test - INFO - fetching args done.
+2023-09-15 18:06:36 - de_shp_test - INFO - hypothetic test method: ks
+2023-09-15 18:06:36 - de_shp_test - INFO - rslc dateset shape: (2500, 1834, 17)
+2023-09-15 18:06:36 - de_shp_test - INFO - rslc dataset chunks: (1000, 1834, 1)
+2023-09-15 18:06:36 - de_shp_test - INFO - parallel processing azimuth chunk size: 1000
+2023-09-15 18:06:36 - de_shp_test - INFO - starting dask CUDA local cluster.
+2023-09-15 18:06:44 - de_shp_test - INFO - dask local CUDA cluster started.
+2023-09-15 18:06:44 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-09-15 18:06:44 - de_shp_test - INFO - rslc dask array chunks: ((1000, 1000, 500), (1834,), (17,))
+2023-09-15 18:06:44 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
+2023-09-15 18:06:44 - de_shp_test - INFO - range half window size: 5; range window size: 11
+2023-09-15 18:06:44 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
+2023-09-15 18:06:44 - de_shp_test - INFO - rslc dask array with overlap shape: (2520, 1834, 17)
+2023-09-15 18:06:44 - de_shp_test - INFO - rslc dask array with overlap chunks: ((1005, 1010, 505), (1834,), (17,))
+2023-09-15 18:06:46 - de_shp_test - INFO - rmli dask array with overlap shape: (2520, 1834, 17)
+2023-09-15 18:06:46 - de_shp_test - INFO - rmli dask array with overlap chunks: ((1005, 1010, 505), (1834,), (17,))
+2023-09-15 18:06:47 - de_shp_test - INFO - applying test on sorted rmli stack.
+2023-09-15 18:06:47 - de_shp_test - INFO - p value generated
+2023-09-15 18:06:47 - de_shp_test - INFO - p value shape: (2520, 1834, 11, 11)
+2023-09-15 18:06:47 - de_shp_test - INFO - p value chunks: ((1005, 1010, 505), (1834,), (11,), (11,))
+2023-09-15 18:06:47 - de_shp_test - INFO - trim shared boundaries between p value chunks
+2023-09-15 18:06:47 - de_shp_test - INFO - trimmed p value shape: (2500, 1834, 11, 11)
+2023-09-15 18:06:47 - de_shp_test - INFO - trimmed p value chunks: ((1000, 1000, 500), (1834,), (11,), (11,))
+2023-09-15 18:06:47 - de_shp_test - INFO - saving p value.
+2023-09-15 18:06:47 - de_shp_test - INFO - computing graph setted. doing all the computing.
+2023-09-15 18:06:51 - de_shp_test - INFO - computing finished.
+2023-09-15 18:06:53 - de_shp_test - INFO - dask cluster closed.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-09-15 18:06:38,669 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,669 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,669 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,669 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,675 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,675 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,676 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,676 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,676 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,676 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,677 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,677 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,684 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,684 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 18:06:38,694 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 18:06:38,694 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+</div>
+<p>Here we use two sample Kolmogorov-Smirnov (KS) test for SHP identification. The output <code>pvalue</code> is the P-value for this test. The smaller the p-value, the more likely the two sample are from same distribution, i.e., the more likely the two pixels are SHP to each other.</p>
+<p>Then we select SHP by setting a threshold on this Pvalue, and select DS by seeting a threshold on the number of SHP pixels have. They are done with one single function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_select_ds_can</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_shp.zarr'</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>is_ds_can <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_ds_can.zarr'</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>shp_num_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/shp_num_fig.png'</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>is_ds_can_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_ds_can.png'</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>shp_num_min<span class="op">=</span><span class="dv">50</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>ds_can_chunk_size <span class="op">=</span> <span class="dv">100000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>de_select_ds_can(pvalue,is_shp,is_ds_can,</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>                 p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>                 shp_num_fig<span class="op">=</span>shp_num_fig,is_ds_can_fig<span class="op">=</span>is_ds_can_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-09-15 18:11:07 - de_select_ds_can - INFO - fetching args:
+2023-09-15 18:11:07 - de_select_ds_can - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
+2023-09-15 18:11:07 - de_select_ds_can - INFO - is_shp = './DS_Processing_with_CLI/is_shp.zarr'
+2023-09-15 18:11:07 - de_select_ds_can - INFO - is_ds_can = './DS_Processing_with_CLI/is_ds_can.zarr'
+2023-09-15 18:11:07 - de_select_ds_can - INFO - p_max = 0.05
+2023-09-15 18:11:07 - de_select_ds_can - INFO - shp_num_min = 50
+2023-09-15 18:11:07 - de_select_ds_can - INFO - az_chunk_size = 1000
+2023-09-15 18:11:07 - de_select_ds_can - INFO - shp_num_fig = './DS_Processing_with_CLI/shp_num_fig.png'
+2023-09-15 18:11:07 - de_select_ds_can - INFO - is_ds_can_fig = './DS_Processing_with_CLI/is_ds_can.png'
+2023-09-15 18:11:07 - de_select_ds_can - INFO - log = None
+2023-09-15 18:11:07 - de_select_ds_can - INFO - fetching args done.
+2023-09-15 18:11:07 - de_select_ds_can - INFO - pvalue dateset shape: (2500, 1834, 11, 11)
+2023-09-15 18:11:07 - de_select_ds_can - INFO - pvalue dataset chunks: (1000, 1834, 11, 11)
+2023-09-15 18:11:07 - de_select_ds_can - INFO - parallel processing azimuth chunk size: 1000
+2023-09-15 18:11:07 - de_select_ds_can - INFO - starting dask local cluster.
+2023-09-15 18:11:09 - de_select_ds_can - INFO - dask local cluster started.
+2023-09-15 18:11:09 - de_select_ds_can - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
+2023-09-15 18:11:09 - de_select_ds_can - INFO - pvalue dask array chunks: ((1000, 1000, 500), (1834,), (11,), (11,))
+2023-09-15 18:11:09 - de_select_ds_can - INFO - selecting SHPs based on pvalue threshold: 0.05
+2023-09-15 18:11:09 - de_select_ds_can - INFO - is_shp shape: (2500, 1834, 11, 11)
+2023-09-15 18:11:09 - de_select_ds_can - INFO - is_shp chunks: ((1000, 1000, 500), (1834,), (11,), (11,))
+2023-09-15 18:11:09 - de_select_ds_can - INFO - selecting DS candidates based on minimum of number of SHPs: 50
+2023-09-15 18:11:09 - de_select_ds_can - INFO - is_ds_can shape: (2500, 1834)
+2023-09-15 18:11:09 - de_select_ds_can - INFO - is_ds_can chunks: ((1000, 1000, 500), (1834,))
+2023-09-15 18:11:09 - de_select_ds_can - INFO - saving is_shp.
+2023-09-15 18:11:09 - de_select_ds_can - INFO - saving is_ds_can.
+2023-09-15 18:11:09 - de_select_ds_can - INFO - computing graph setted. doing all the computing.
+2023-09-15 18:11:13 - de_select_ds_can - INFO - computing finished.
+2023-09-15 18:11:13 - de_select_ds_can - INFO - number of ds can in each chunk: (346329, 274921, 119147)
+2023-09-15 18:11:13 - de_select_ds_can - INFO - dask cluster closed.
+2023-09-15 18:11:13 - de_select_ds_can - INFO - plotting number of SHPs.
+2023-09-15 18:11:13 - de_select_ds_can - INFO - plotting DS candidate distribution.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-09-15 18:11:10,806 - distributed.worker.memory - WARNING - Unmanaged memory use is high. This may indicate a memory leak or the memory may not be released to the OS; see https://distributed.dask.org/en/latest/worker-memory.html#memory-not-released-back-to-the-os for more information. -- Unmanaged memory: 9.02 GiB -- Worker memory limit: 12.50 GiB
+2023-09-15 18:11:11,012 - distributed.worker.memory - WARNING - Worker is at 82% memory usage. Pausing worker.  Process memory: 10.30 GiB -- Worker memory limit: 12.50 GiB
+2023-09-15 18:11:11,552 - distributed.worker.memory - WARNING - Worker is at 69% memory usage. Resuming worker. Process memory: 8.63 GiB -- Worker memory limit: 12.50 GiB</code></pre>
+</div>
 <div class="cell-output cell-output-display">
-<pre><code>{'dates': ['20210802',
-  '20210816',
-  '20210830',
-  '20210913',
-  '20211011',
-  '20211025',
-  '20220606',
-  '20220620',
-  '20220704',
-  '20220718',
-  '20220801',
-  '20220815',
-  '20220829',
-  '20220912',
-  '20220926',
-  '20221010',
-  '20221024'],
- 'radar_wavelength': 0.24245249210715603,
- 'heading': -17.8792397,
- 'range_pixel_spacing': 4.29054,
- 'azimuth_pixel_spacing': 3.740105,
- 'perpendicular_baseline': [-97.61360168457031,
-  -45.58580017089844,
-  17.86680030822754,
-  -26.258899688720703,
-  -63.72420120239258,
-  -56.363399505615234,
-  64.75759887695312,
-  0.0,
-  -9.043999671936035,
-  -13.02869987487793,
-  -112.94960021972656,
-  -86.09490203857422,
-  -129.9635009765625,
-  -127.6594009399414,
-  -182.29519653320312,
-  -129.735107421875,
-  -184.31100463867188]}</code></pre>
+<p><img src="DS_Processing_with_CLI_files/figure-html/cell-12-output-3.png" class="img-fluid"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="DS_Processing_with_CLI_files/figure-html/cell-12-output-4.png" class="img-fluid"></p>
 </div>
 </div>
+<p>The output <code>is_shp</code> indicate wheather a pixel in the window is a SHP to its center pixel. <code>is_ds_can</code> is a Bool array with same size of one rslc. It indicate if one pixel is DS or not.</p>
+</section>
+<section id="coherence-matrix-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="coherence-matrix-estimation">Coherence matrix estimation</h2>
+<p>Then we estimate the coherence matrix of ds candidate:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.co <span class="im">import</span> de_emperical_co_sp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh.zarr'</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh_ave.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_sp(rslc,is_shp,is_ds_can,ds_can_coh,</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                   az_chunk_size<span class="op">=</span>az_chunk_size,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                   ds_can_coh_ave_fig<span class="op">=</span>ds_can_coh_ave_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-09-15 17:55:28 - de_emperical_co_sp - INFO - fetching args:
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_shp = './DS_Processing_with_CLI/is_shp.zarr'
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_ds_can = './DS_Processing_with_CLI/is_ds_can.zarr'
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - ds_can_coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - az_chunk_size = 1000
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - ds_can_coh_chunk_size = None
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - ds_can_coh_ave_fig = './DS_Processing_with_CLI/ds_can_coh_ave.png'
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - log = None
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - fetching args done.
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - rslc dataset shape: (2500, 1834, 17)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - rslc dataset chunks: (1000, 1834, 1)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_shp dataset shape: (2500, 1834, 11, 11)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_shp dataset chunks: (1000, 1834, 11, 11)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_ds_can dataset shape: (2500, 1834)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - is_ds_can dataset chunks: (1000, 1834)
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - got azimuth window size and half azimuth window size from is_shp shape: 11, 5
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - got range window size and half range window size from is_shp shape: 11, 5
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - parallel processing azimuth chunk size: 1000
+2023-09-15 17:55:28 - de_emperical_co_sp - INFO - starting dask CUDA local cluster.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - dask local CUDA cluster started.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - rslc dask array chunks: ((1000, 1000, 500), (1834,), (17,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_shp dask array chunks: ((1000, 1000, 500), (1834,), (11,), (11,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_ds_can dask array shape: (2500, 1834)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_ds_can dask array chunks: ((1000, 1000, 500), (1834,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - setting shared boundaries between rlsc chunks.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - rslc dask array with overlap shape: (2520, 1834, 17)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - rslc dask array with overlap chunks: ((1005, 1010, 505), (1834,), (17,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - padding zero between is_ds_can chunks.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_ds_can dask array with padding shape: (2520, 1834)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - is_ds_can dask array with padding chunks: ((1005, 1010, 505), (1834,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - slicing is_shp on ds candidate.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - ds_can_is_shp dask array shape: (740397, 11, 11)
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - ds_can_is_shp dask array chunks: ((346329, 274921, 119147), (11,), (11,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - estimating coherence matrix.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - got coherence matrix.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - rechunking ds_can_coh to chunk size (for saving with zarr): ((246799, 246799, 246799), (17,), (17,))
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - saving ds_can_coh.
+2023-09-15 17:55:34 - de_emperical_co_sp - INFO - computing graph setted. doing all the computing.
+2023-09-15 17:55:45 - de_emperical_co_sp - INFO - computing finished.
+2023-09-15 17:55:47 - de_emperical_co_sp - INFO - dask cluster closed.
+2023-09-15 17:55:47 - de_emperical_co_sp - INFO - plotting average coherence matrix.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-09-15 17:55:30,476 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,476 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,476 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,476 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,480 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,480 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,482 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,487 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,487 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:30,498 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:30,498 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="DS_Processing_with_CLI_files/figure-html/cell-15-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+<section id="phase-linking" class="level2">
+<h2 class="anchored" data-anchor-id="phase-linking">Phase linking</h2>
+<p>To get rid of the closure phase, phase linking is applied here:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_ph.zarr'</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_emi_quality.zarr'</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>vmin<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>vmax<span class="op">=</span><span class="fl">1.3</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>emi_quality_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/emi_quality.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality,</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>       ref<span class="op">=</span>ref,point_chunk_size<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>       plot_emi_quality<span class="op">=</span><span class="va">True</span>,vmin<span class="op">=</span>vmin,vmax<span class="op">=</span>vmax,</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>       is_ds<span class="op">=</span>is_ds_can,emi_quality_fig<span class="op">=</span>emi_quality_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-09-15 17:55:48 - de_emi - INFO - fetching args:
+2023-09-15 17:55:48 - de_emi - INFO - coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
+2023-09-15 17:55:48 - de_emi - INFO - ph = './DS_Processing_with_CLI/ds_can_ph.zarr'
+2023-09-15 17:55:48 - de_emi - INFO - emi_quality = './DS_Processing_with_CLI/ds_can_emi_quality.zarr'
+2023-09-15 17:55:48 - de_emi - INFO - ref = 0
+2023-09-15 17:55:48 - de_emi - INFO - point_chunk_size = None
+2023-09-15 17:55:48 - de_emi - INFO - log = None
+2023-09-15 17:55:48 - de_emi - INFO - plot_emi_quality = True
+2023-09-15 17:55:48 - de_emi - INFO - vmin = 1.0
+2023-09-15 17:55:48 - de_emi - INFO - vmax = 1.3
+2023-09-15 17:55:48 - de_emi - INFO - is_ds = './DS_Processing_with_CLI/is_ds_can.zarr'
+2023-09-15 17:55:48 - de_emi - INFO - emi_quality_fig = './DS_Processing_with_CLI/emi_quality.png'
+2023-09-15 17:55:48 - de_emi - INFO - fetching args done.
+2023-09-15 17:55:48 - de_emi - INFO - coh dataset shape: (740397, 17, 17)
+2023-09-15 17:55:48 - de_emi - INFO - coh dataset chunks: (246799, 17, 17)
+2023-09-15 17:55:48 - de_emi - INFO - using default parallel processing azimuth chunk size from coh dataset.
+2023-09-15 17:55:48 - de_emi - INFO - parallel processing point chunk size: 246799
+2023-09-15 17:55:48 - de_emi - INFO - starting dask CUDA local cluster.
+2023-09-15 17:55:53 - de_emi - INFO - dask local CUDA cluster started.
+2023-09-15 17:55:53 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-09-15 17:55:53 - de_emi - INFO - coh dask array chunks: ((246799, 246799, 246799), (17,), (17,))
+2023-09-15 17:55:53 - de_emi - INFO - phase linking with EMI.
+2023-09-15 17:55:53 - de_emi - INFO - got ph and emi_quality.
+2023-09-15 17:55:53 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-09-15 17:55:53 - de_emi - INFO - ph dask array chunks: ((246799, 246799, 246799), (17,))
+2023-09-15 17:55:53 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-09-15 17:55:53 - de_emi - INFO - emi_quality dask array chunks: ((246799, 246799, 246799),)
+2023-09-15 17:55:53 - de_emi - INFO - saving ph and emi_quality.
+2023-09-15 17:55:53 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-09-15 17:55:56 - de_emi - INFO - computing finished.
+2023-09-15 17:55:58 - de_emi - INFO - dask cluster closed.
+2023-09-15 17:55:58 - de_emi - INFO - plotting emi_quality.
+2023-09-15 17:55:58 - de_emi - INFO - reading is_ds bool array
+2023-09-15 17:55:58 - de_emi - INFO - converting emi_quality from point cloud to raster.
+2023-09-15 17:55:58 - de_emi - INFO - saving figure
+2023-09-15 17:55:58 - de_emi - INFO - showing</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-09-15 17:55:49,841 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,841 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,841 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,841 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,845 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,845 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,846 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,846 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,847 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,847 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,847 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,848 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,866 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,866 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-09-15 17:55:49,885 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-09-15 17:55:49,885 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="DS_Processing_with_CLI_files/figure-html/cell-18-output-3.png" class="img-fluid"></p>
+</div>
+</div>
+<p>Unfinished…</p>
 
 
 </section>

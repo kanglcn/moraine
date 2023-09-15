@@ -22,6 +22,9 @@ website:
         href: "https://github.com/kanglcn/decorrelation"
   sidebar:
     style: "floating"
+
+bibliography: references.bib
+
 metadata-files: 
   - sidebar.yml
   - nbdev.yml

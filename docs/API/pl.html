@@ -55,7 +55,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -198,7 +217,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Load</span></a>
+ <span class="menu-text">load</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -263,6 +282,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work With Dask</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS processing with CLI</span></a>
   </div>
 </li>
       </ul>
@@ -375,7 +400,7 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </tr>
 </tbody>
 </table>
-<p><a href="https://kanglcn.github.io/decorrelation/API/pl.html#emi"><code>emi</code></a> is a phase estimator base on Eigendecomposition-based Maximum-likelihood-estimator of Interferometric phase (EMI) <span class="citation" data-cites="ansariEfficientPhaseEstimation2018">[@ansariEfficientPhaseEstimation2018]</span> phase linking method.</p>
+<p><a href="https://kanglcn.github.io/decorrelation/API/pl.html#emi"><code>emi</code></a> is a phase estimator base on Eigendecomposition-based Maximum-likelihood-estimator of Interferometric phase (EMI) <span class="citation" data-cites="ansariEfficientPhaseEstimation2018">(<a href="#ref-ansariEfficientPhaseEstimation2018" role="doc-biblioref">Ansari, De Zan, and Bamler 2018</a>)</span> phase linking method.</p>
 <p>The amplitude of <code>coh</code> should range between 0 and 1 and the phase of <code>coh</code> should be the interferometric phase. The returned phase is also complex but the amplitude is setted to 1. The quality factor is a measure for the inadequacy of EMI’s model that adding real-valued dyadic for calibration of real coherence matrix which is generally poorly estimated. It is supposed to larger than 1 and smaller means better.</p>
 <p>Example: Complex coherence matrix from a stack of 17 SLC images:</p>
 <div class="cell">
@@ -474,7 +499,7 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </tr>
 </tbody>
 </table>
-<p>This function estimate the temporal coherence of DSs which is defined as <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">[@ferrettiNewAlgorithmProcessing2011]</span>:</p>
+<p>This function estimate the temporal coherence of DSs which is defined as <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>:</p>
 <p><span class="math display">\[\gamma = \frac{1}{N^2-N} \sum_{n=1}^{N} \sum_{k \neq n}^{N} e^{i\phi_{nk}} e^{-i(\theta_n-\theta_k)}\]</span></p>
 <p>Where <span class="math inline">\(\phi_{nk}\)</span> is the phase of complex coherence matrix and <span class="math inline">\(\theta_{n}\)</span> is the phase after phase linking.</p>
 <div class="cell">
@@ -533,10 +558,18 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </div>
 
 
+
 </section>
 </section>
 
-</main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-ansariEfficientPhaseEstimation2018" class="csl-entry" role="listitem">
+Ansari, Homa, Francesco De Zan, and Richard Bamler. 2018. <span>“Efficient <span>Phase Estimation</span> for <span>Interferogram Stacks</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 56 (7): 4109–25. <a href="https://doi.org/10.1109/TGRS.2018.2826045">https://doi.org/10.1109/TGRS.2018.2826045</a>.
+</div>
+<div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
+Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
+</div>
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {

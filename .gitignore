@@ -1,6 +1,7 @@
 _docs/
 token
 _proc/
+data/
 
 *.bak
 .gitattributes

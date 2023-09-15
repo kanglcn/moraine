@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.3.1
+
+Add DS processing from CLI tutorial and fix bugs
+
 ## 0.3.0
 
 Add interface to load gamma result

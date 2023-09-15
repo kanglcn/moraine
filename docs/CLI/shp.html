@@ -196,7 +196,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Load</span></a>
+ <span class="menu-text">load</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -261,6 +261,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work With Dask</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS processing with CLI</span></a>
   </div>
 </li>
       </ul>
@@ -380,13 +386,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rslc = '../../data/rslc.zarr'</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> <span class="st">'./rslc.zarr'</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./pvalue.zarr'</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>method <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>r_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>log<span class="op">=</span><span class="st">'de_shp_test.log'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./pvalue.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslc,pvalue,az_half_win<span class="op">=</span><span class="dv">5</span>,r_half_win<span class="op">=</span><span class="dv">5</span>, method<span class="op">=</span><span class="va">None</span>,az_chunk_size<span class="op">=</span><span class="dv">1000</span>,log<span class="op">=</span><span class="st">'de_shp_test.log'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -563,8 +563,7 @@ options:
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>is_ds_can_fig <span class="op">=</span> <span class="st">'./is_ds_can.png'</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>shp_num_min<span class="op">=</span><span class="dv">50</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>ds_can_chunk_size <span class="op">=</span> <span class="dv">100000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>shp_num_min<span class="op">=</span><span class="dv">50</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#de_select_ds_can(pvalue,is_shp,is_ds_can,ds_can_is_shp,p_max=p_max)</span></span>

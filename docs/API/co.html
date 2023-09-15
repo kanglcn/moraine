@@ -55,7 +55,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -198,7 +217,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Load</span></a>
+ <span class="menu-text">load</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -263,6 +282,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work With Dask</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS processing with CLI</span></a>
   </div>
 </li>
       </ul>
@@ -716,7 +741,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 </tbody>
 </table>
-<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#regularize_spectral"><code>regularize_spectral</code></a> can regularize the absolute value of coherence matrix for better phase linking. It is first presented in <span class="citation" data-cites="zwiebackCheapValidRegularizers2022a">[@zwiebackCheapValidRegularizers2022a]</span>.</p>
+<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#regularize_spectral"><code>regularize_spectral</code></a> can regularize the absolute value of coherence matrix for better phase linking. It is first presented in <span class="citation" data-cites="zwiebackCheapValidRegularizers2022a">(<a href="#ref-zwiebackCheapValidRegularizers2022a" role="doc-biblioref">Zwieback 2022</a>)</span>.</p>
 <p>Examples:</p>
 <div class="cell">
 <details>
@@ -752,10 +777,15 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 
 
+
 </section>
 </section>
 
-</main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-zwiebackCheapValidRegularizers2022a" class="csl-entry" role="listitem">
+Zwieback, S. 2022. <span>“Cheap, <span>Valid Regularizers</span> for <span>Improved Interferometric Phase Linking</span>.”</span> <em>IEEE Geoscience and Remote Sensing Letters</em> 19: 1–4. <a href="https://doi.org/10.1109/LGRS.2022.3197423">https://doi.org/10.1109/LGRS.2022.3197423</a>.
+</div>
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
