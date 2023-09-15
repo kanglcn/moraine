@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.3.0
+
+Add interface to load gamma result
+
 ## 0.2.0
 
 Add ks_test, select_ds_can, emperical_co_sp, emi CLI

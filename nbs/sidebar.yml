@@ -10,8 +10,9 @@ website:
           - API/plot.ipynb
       - section: CLI
         contents:
-          - CLI/co.ipynb
+          - CLI/load.ipynb
           - CLI/shp.ipynb
+          - CLI/co.ipynb
           - section: utils
             contents:
               - CLI/utils/logging.ipynb
