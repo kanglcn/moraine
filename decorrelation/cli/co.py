@@ -28,17 +28,17 @@ from fastcore.script import call_parse
 @call_parse
 @log_args
 def de_emperical_co_sp(rslc:str, # input: rslc stack
-                       is_shp:str, # input: bool array indicating the SHPs of every pixel
-                       is_ds_can:str, # input: bool array indicating DS candidate
+                       ds_can_is_shp:str, # input: bool array indicating the SHPs of every pixel
+                       ds_can_idx:str, # input: bool array indicating DS candidate
                        ds_can_coh:str, # output: complex coherence matrix for DS candidate
                        az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack
-                       ds_can_coh_chunk_size:int=None, # chunk size of output zarr dataset, optional. Default: automatically determined
+                       pt_chunk_size:int=None, # chunk size of output zarr dataset, optional. Default: same as ds_can_is_shp
                        ds_can_coh_ave_fig:str=None, # path to the plot of average coherence matrix of DS candidate, optional. Default: no plot
                        log=None, # log file. Default: no log file
                        ):
     rslc_path = rslc
-    is_ds_can_path = is_ds_can
-    is_shp_path = is_shp
+    ds_can_is_shp_path = ds_can_is_shp
+    ds_can_idx_path = ds_can_idx
     ds_can_coh_path = ds_can_coh
     logger = get_logger(logfile=log)
 
@@ -47,17 +47,19 @@ def de_emperical_co_sp(rslc:str, # input: rslc stack
     logger.info('rslc dataset chunks: '+str(rslc_zarr.chunks))
     assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
 
-    is_shp_zarr = zarr.open(is_shp_path,mode='r')
-    logger.info('is_shp dataset shape: '+str(is_shp_zarr.shape))
-    logger.info('is_shp dataset chunks: '+str(is_shp_zarr.chunks))
-    assert is_shp_zarr.ndim == 4, "is_shp dimentation is not 4."
+    ds_can_is_shp_zarr = zarr.open(ds_can_is_shp_path,mode='r')
+    logger.info('ds_can_is_shp dataset shape: '+str(ds_can_is_shp_zarr.shape))
+    logger.info('ds_can_is_shp dataset chunks: '+str(ds_can_is_shp_zarr.chunks))
+    assert ds_can_is_shp_zarr.ndim == 3, "ds_can_is_shp dimentation is not 3."
 
-    is_ds_can_zarr = zarr.open(is_ds_can_path,mode='r')
-    logger.info('is_ds_can dataset shape: '+str(is_ds_can_zarr.shape))
-    logger.info('is_ds_can dataset chunks: '+str(is_ds_can_zarr.chunks))
-    assert is_ds_can_zarr.ndim == 2, "is_ds_can dimentation is not 2."
+    ds_can_idx_zarr = zarr.open(ds_can_idx_path,mode='r')
+    logger.info('ds_can_idx dataset shape: '+str(ds_can_idx_zarr.shape))
+    logger.info('ds_can_idx dataset chunks: '+str(ds_can_idx_zarr.chunks))
+    assert ds_can_idx_zarr.ndim == 2, "ds_can_idx dimentation is not 2."
+    logger.info('loading ds_can_idx into memory.')
+    ds_can_idx = zarr.open(ds_can_idx_path,mode='r')[:]
 
-    az_win, r_win = is_shp_zarr.shape[2:]
+    az_win, r_win = ds_can_is_shp_zarr.shape[1:]
     az_half_win = int((az_win-1)/2)
     r_half_win = int((r_win-1)/2)
     logger.info(f'got azimuth window size and half azimuth window size from is_shp shape: {az_win}, {az_half_win}')
@@ -73,19 +75,28 @@ def de_emperical_co_sp(rslc:str, # input: rslc stack
     client = Client(cluster)
     logger.info('dask local CUDA cluster started.')
 
+    logger.info('create raster bool array is_ds_can from ds_can_idx')
+    np_is_ds_can = np.zeros(rslc_zarr.shape[:2],dtype=bool)
+    np_is_ds_can[(ds_can_idx[0],ds_can_idx[1])] = True
+    logger.info('create dask bool array is_ds_can')
+    cpu_is_ds_can = da.from_array(np_is_ds_can,chunks=(az_chunk_size,-1))
+    logger.info('is_ds_can dask array shape: ' + str(cpu_is_ds_can.shape))
+    logger.info('is_ds_can dask array chunks: '+ str(cpu_is_ds_can.chunks))
+    
+    logger.info('Using azimuth chunk size as the processing chunk size.')
+    logger.info('Calculate point chunk size')
+    cpu_ds_can_idx = da.nonzero(cpu_is_ds_can)
+    idx_0 = cpu_ds_can_idx[0]
+    process_pt_chunk_size = idx_0.compute_chunk_sizes().chunks[0]
+    logger.info(f'Point chunk size: {process_pt_chunk_size}')
+
     cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunk_size,*rslc_zarr.shape[1:]))
     logger.info('rslc dask array shape: ' + str(cpu_rslc.shape))
     logger.info('rslc dask array chunks: '+ str(cpu_rslc.chunks))
 
-    cpu_is_shp = da.from_zarr(is_shp_path,chunks=(az_chunk_size,*is_shp_zarr.shape[1:]))
-    logger.info('is_shp dask array shape: ' + str(cpu_is_shp.shape))
-    logger.info('is_shp dask array chunks: '+ str(cpu_is_shp.chunks))
-
-    cpu_is_ds_can = da.from_zarr(is_ds_can_path,chunks=(az_chunk_size,is_ds_can_zarr.shape[1]))
-    cpu_is_ds_can = cpu_is_ds_can.persist()
-    is_ds_can_result = cpu_is_ds_can.compute()
-    logger.info('is_ds_can dask array shape: ' + str(cpu_is_ds_can.shape))
-    logger.info('is_ds_can dask array chunks: '+ str(cpu_is_ds_can.chunks))
+    cpu_ds_can_is_shp = da.from_zarr(ds_can_is_shp_path,chunks=(process_pt_chunk_size,*ds_can_is_shp_zarr.shape[1:]))
+    logger.info('ds_can_is_shp dask array shape: ' + str(cpu_ds_can_is_shp.shape))
+    logger.info('ds_can_is_shp dask array chunks: '+ str(cpu_ds_can_is_shp.chunks))
 
     depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
     cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
@@ -99,11 +110,11 @@ def de_emperical_co_sp(rslc:str, # input: rslc stack
     logger.info(f'is_ds_can dask array with padding shape: {cpu_is_ds_can_padded.shape}')
     logger.info(f'is_ds_can dask array with padding chunks: {cpu_is_ds_can_padded.chunks}')
 
-    logger.info('slicing is_shp on ds candidate.')
-    with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-        cpu_ds_can_is_shp = cpu_is_shp.reshape(-1,az_win,r_win)[is_ds_can_result.reshape(-1)]
-    logger.info(f'ds_can_is_shp dask array shape: {cpu_ds_can_is_shp.shape}')
-    logger.info(f'ds_can_is_shp dask array chunks: {cpu_ds_can_is_shp.chunks}')
+    # logger.info('slicing is_shp on ds candidate.')
+    # with dask.config.set(**{'array.slicing.split_large_chunks': False}):
+    #     cpu_ds_can_is_shp = cpu_is_shp.reshape(-1,az_win,r_win)[is_ds_can_result.reshape(-1)]
+    # logger.info(f'ds_can_is_shp dask array shape: {cpu_ds_can_is_shp.shape}')
+    # logger.info(f'ds_can_is_shp dask array chunks: {cpu_ds_can_is_shp.chunks}')
 
     logger.info(f'estimating coherence matrix.')
     rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
@@ -137,9 +148,9 @@ def de_emperical_co_sp(rslc:str, # input: rslc stack
     logger.info(f'got coherence matrix.')
 
     # zarr do not support irregular chunk size
-    if not ds_can_coh_chunk_size:
-        ds_can_coh_chunk_size = math.ceil(ds_can_coh.shape[0]/ds_can_coh.numblocks[0])
-    cpu_ds_can_coh = cpu_ds_can_coh.rechunk(ds_can_coh_chunk_size,nimage,nimage)
+    if not pt_chunk_size:
+        pt_chunk_size = math.ceil(ds_can_coh.shape[0]/ds_can_coh.numblocks[0])
+    cpu_ds_can_coh = cpu_ds_can_coh.rechunk((pt_chunk_size,nimage,nimage))
     logger.info('rechunking ds_can_coh to chunk size (for saving with zarr): '+str(cpu_ds_can_coh.chunks))
 
     logger.info('saving ds_can_coh.')

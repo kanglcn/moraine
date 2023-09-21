@@ -142,7 +142,7 @@ _emperical_co_sp_kernel = cp.ElementwiseKernel(
 
 # %% ../nbs/API/co.ipynb 17
 def emperical_co_sp(rslc:cp.ndarray, # rslc stack, dtype: `cupy.complexfloating`
-                    sp_idx:tuple[cp.ndarray,cp.ndarray], # index of sparse data (azimuth_index, range_index), dtype: `cupy.int`, shape: (n_sp,)
+                    sp_idx:cp.ndarray, # index of point target (azimuth_index, range_index), dtype: `cupy.int`, shape: (2,n_sp)
                     is_shp_sp:cp.ndarray, # shp bool, dtype: `cupy.bool`
                     block_size:int=128, # the CUDA block size, it only affects the calculation speed
                    )-> tuple[cp.ndarray,cp.ndarray]: # the covariance and coherence matrix `cov` and `coh`

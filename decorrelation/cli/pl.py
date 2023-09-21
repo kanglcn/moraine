@@ -19,7 +19,7 @@ from dask.distributed import Client, LocalCluster
 from dask_cuda import LocalCUDACluster
 
 from ..pl import emi
-from ..sparse import points2raster
+from ..pt import pt2raster
 from .utils.logging import get_logger, log_args
 # from decorrelation.cli.utils.dask import pad_internal
 
@@ -37,13 +37,14 @@ def de_emi(coh:str, # coherence matrix
            plot_emi_quality:bool=False, # if plot the emi quality
            vmin:int=1.0, # min value of emi quality to plot
            vmax:int=1.3, # max value of emi quality to plot
-           is_ds:str=None, # bool array indicating the location of points
+           ds_idx:str=None, # index of ds
+           shape:tuple=None, # shape of one image
            emi_quality_fig:str=None, # path to save the emi quality plot, optional. Default, no saving
           ):
     coh_path = coh
     ph_path = ph
     emi_quality_path = emi_quality
-    is_ds_path = is_ds
+    ds_idx_path = ds_idx
 
     logger = get_logger(logfile=log)
     coh_zarr = zarr.open(coh_path,mode='r')
@@ -109,9 +110,9 @@ def de_emi(coh:str, # coherence matrix
 
         logger.info('plotting emi_quality.')
         logger.info('reading is_ds bool array')
-        is_ds_result = zarr.open(is_ds_path,mode='r')[:]
+        ds_idx_result = zarr.open(ds_idx_path,mode='r')[:]
 
-        emi_quality_raster = points2raster(is_ds_result,emi_quality_result)
+        emi_quality_raster = pt2raster(emi_quality_result,shape=shape,idx=ds_idx_result)
         logger.info('converting emi_quality from point cloud to raster.')
         fig, ax = plt.subplots(1,1)
         pcm = ax.imshow(emi_quality_raster,interpolation='nearest',vmin=vmin,vmax=vmax)

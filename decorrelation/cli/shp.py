@@ -13,6 +13,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import colorcet
 
+import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster
@@ -130,15 +131,23 @@ def de_shp_test(rslc:str, # input: rslc stack
 @call_parse
 @log_args
 def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
-                     is_shp:str, # output: bool array indicating the SHPs of every pixel
-                     is_ds_can:str, # output: bool array indicating DS candidate
+                     ds_can_idx:str, # output: index array of DS candidate
+                     ds_can_is_shp:str, # output: bool array indicating the SHPs of DS candidate
                      p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
                      shp_num_min:int=50, # threshold of number of SHPs to select DS candidate,optional. Default: 50
                      az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in pvalue
+                     pt_n_chunk:int=None, # number of point target chunks, optional.
+                     pt_chunk_size:int=None, # point target chunk size, optional. 
                      shp_num_fig:str=None, # path to the plot of number of SHPs, optional. Default: no plot
                      is_ds_can_fig:str=None, # path to the plot of DSs candidate distribution, optional. Default: no plot
                      log=None, # log file. Default: no log file
                      ):
+    '''
+    Select DS candidate based on pvalue of SHP test.
+    Only one of `pt_n_chunk_size` and `pt_chunk_size` needs to be setted. The other one is automatically determined.
+    If all of them are not setted, the `pt_n_chunk` will be setted as the number of azimuth chunks.
+    '''
+
     logger = get_logger(logfile=log)
 
     p_zarr = zarr.open(pvalue,mode='r')
@@ -163,32 +172,66 @@ def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
     logger.info('pvalue dask array shape: ' + str(p.shape))
     logger.info('pvalue dask array chunks: '+ str(p.chunks))
 
-    is_shp_path= is_shp
-    is_ds_can_path = is_ds_can
+    ds_can_is_shp_path= ds_can_is_shp
+    ds_can_idx_path = ds_can_idx
 
     is_shp = (p < p_max) & (p >= 0)
     logger.info('selecting SHPs based on pvalue threshold: '+str(p_max))
-    logger.info(f'is_shp shape: {is_shp.shape}')
-    logger.info(f'is_shp chunks: {is_shp.chunks}')
+    logger.info(f'is_shp dask bool array shape: {is_shp.shape}')
+    logger.info(f'is_shp dask bool chunks: {is_shp.chunks}')
 
     shp_num = da.count_nonzero(is_shp,axis=(-2,-1))
     is_ds_can = shp_num >= shp_num_min
     logger.info('selecting DS candidates based on minimum of number of SHPs: '+str(shp_num_min))
-    logger.info(f'is_ds_can shape: {is_ds_can.shape}')
-    logger.info(f'is_ds_can chunks: {is_ds_can.chunks}')
+    logger.info(f'is_ds_can dask bool array shape: {is_ds_can.shape}')
+    logger.info(f'is_ds_can dask bool array chunks: {is_ds_can.chunks}')
     
-    ds_can_num = is_ds_can.map_blocks(np.count_nonzero,keepdims=True,dtype=int,chunks=(1,1))
+    logger.info('calculate ds_can index:')
+    ds_can_idx = da.nonzero(is_ds_can)
+    ds_can_idx = da.stack(ds_can_idx,allow_unknown_chunksizes=True)
+    logger.info('slice is_shp on ds_can index:')
+    with dask.config.set(**{'array.slicing.split_large_chunks': False}):
+        ds_can_is_shp = is_shp.reshape(-1,11,11)[is_ds_can.reshape(-1)]
+    ds_can_is_shp, ds_can_idx, is_ds_can, shp_num = client.persist((ds_can_is_shp,ds_can_idx,is_ds_can,shp_num))
 
-    _is_shp = is_shp.to_zarr(is_shp_path,overwrite=True,compute=False)
-    logger.info('saving is_shp.')
-    _is_ds_can = is_ds_can.to_zarr(is_ds_can_path,overwrite=True,compute=False)
-    logger.info('saving is_ds_can.')
+    ds_can_is_shp.compute_chunk_sizes()
+    ds_can_idx.compute_chunk_sizes()
+
+    logger.info(f'ds_can_idx shape: {ds_can_idx.shape}')
+    logger.info(f'ds_can_idx chunks: {ds_can_idx.chunks}')
+
+    logger.info(f'ds_can_is_shp shape: {ds_can_is_shp.shape}')
+    logger.info(f'ds_can_is_shp chunks: {ds_can_is_shp.chunks}')
+
+    if pt_chunk_size is None:
+        if pt_n_chunk is None:
+            pt_n_chunk = p.numblocks[0]
+            logger.info(f'set pt_n_chunk as az_chunk_size: {pt_n_chunk}')
+        else:
+            logger.info(f'got pt_n_chunk: {pt_n_chunk}')
+        pt_chunk_size = math.ceil(ds_can_is_shp.shape[0]/pt_n_chunk)
+        logger.info(f'set pt_chunk_size: {pt_chunk_size}')
+    else:
+        logger.info(f'got pt_chunk_size: {pt_chunk_size}')
+
+    logger.info(f'rechunk ds_can_idx and ds_can_is_shp:')
+    ds_can_is_shp = ds_can_is_shp.rechunk((pt_chunk_size,*ds_can_is_shp.shape[1:]))
+    ds_can_idx = ds_can_idx.rechunk((2,pt_chunk_size))
+
+    logger.info(f'ds_can_idx shape: {ds_can_idx.shape}')
+    logger.info(f'ds_can_idx chunks: {ds_can_idx.chunks}')
+
+    logger.info(f'ds_can_is_shp shape: {ds_can_is_shp.shape}')
+    logger.info(f'ds_can_is_shp chunks: {ds_can_is_shp.chunks}')
+
+    _ds_can_is_shp = ds_can_is_shp.to_zarr(ds_can_is_shp_path,overwrite=True,compute=False)
+    logger.info('saving ds_can_is_shp.')
+    _ds_can_idx = ds_can_idx.to_zarr(ds_can_idx_path,overwrite=True,compute=False)
+    logger.info('saving ds_can_idx.')
 
     logger.info('computing graph setted. doing all the computing.')
-    shp_num_result, is_ds_can_result, ds_can_num_result = da.compute(_is_shp,_is_ds_can,shp_num,is_ds_can,ds_can_num)[2:]
+    shp_num_result, is_ds_can_result = da.compute(_ds_can_is_shp,_ds_can_idx,shp_num,is_ds_can)[2:]
     logger.info('computing finished.')
-    logger.info(f'number of ds can in each chunk: {tuple(ds_can_num_result.reshape(-1))}')
-
     cluster.close()
     logger.info('dask cluster closed.')
 

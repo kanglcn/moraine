@@ -2,8 +2,12 @@ website:
   sidebar:
     contents:
       - index.ipynb
+      - section: Introduction
+        contents:
+          - Introduction/software_architecture.ipynb
       - section: API
         contents:
+          - API/pt.ipynb
           - API/shp.ipynb
           - API/co.ipynb
           - API/pl.ipynb
@@ -13,6 +17,7 @@ website:
           - CLI/load.ipynb
           - CLI/shp.ipynb
           - CLI/co.ipynb
+          - CLI/pl.ipynb
           - section: utils
             contents:
               - CLI/utils/logging.ipynb
