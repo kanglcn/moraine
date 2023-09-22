@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="Utilities for sparse data manipulation">
+<meta name="description" content="Point target manipulation">
 
-<title>decorrelation - sparse</title>
+<title>decorrelation - pt</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -97,7 +131,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">sparse</li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/pt.html">API</a></li><li class="breadcrumb-item"><a href="../API/pt.html">pt</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -118,12 +152,35 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
- <span class="menu-text">API</span></a>
+ <span class="menu-text">Introduction</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Introduction/software_architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Software Architecture</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/pt.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">pt</span></a>
+  </div>
+</li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -152,13 +209,13 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
  <span class="menu-text">CLI</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
@@ -177,15 +234,21 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">co</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/pl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pl</span></a>
+  </div>
+</li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
  <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
@@ -204,13 +267,13 @@ ul.task-list li input[type="checkbox"] {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -247,7 +310,11 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#points2raster" id="toc-points2raster" class="nav-link active" data-scroll-target="#points2raster">points2raster</a></li>
+  <li><a href="#pt2raster" id="toc-pt2raster" class="nav-link active" data-scroll-target="#pt2raster">pt2raster</a></li>
+  <li><a href="#diff" id="toc-diff" class="nav-link" data-scroll-target="#diff">diff</a></li>
+  <li><a href="#diff-1" id="toc-diff-1" class="nav-link" data-scroll-target="#diff-1">diff</a></li>
+  <li><a href="#diff-2" id="toc-diff-2" class="nav-link" data-scroll-target="#diff-2">diff</a></li>
+  <li><a href="#diff-3" id="toc-diff-3" class="nav-link" data-scroll-target="#diff-3">diff</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -256,12 +323,12 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">sparse</h1>
+<h1 class="title">pt</h1>
 </div>
 
 <div>
   <div class="description">
-    Utilities for sparse data manipulation
+    Point target manipulation
   </div>
 </div>
 
@@ -277,24 +344,30 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<!-- Phase linking for PTA requires `cupy.optimize` to be implented which is tracked at
-https://github.com/rapidsai/raft/pull/923
-and https://github.com/cupy/cupy/issues/6112 -->
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> raster2pt():</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/sparse.py#L12" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="points2raster" class="level3">
-<h3 class="anchored" data-anchor-id="points2raster">points2raster</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pt.py#L12" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pt2raster" class="level3">
+<h3 class="anchored" data-anchor-id="pt2raster">pt2raster</h3>
 <blockquote class="blockquote">
-<pre><code> points2raster (is_pt:Union[numpy._typing._array_like._SupportsArray[numpy
-                .dtype],numpy._typing._nested_sequence._NestedSequence[num
-                py._typing._array_like._SupportsArray[numpy.dtype]],bool,i
-                nt,float,complex,str,bytes,numpy._typing._nested_sequence.
-                _NestedSequence[Union[bool,int,float,complex,str,bytes]]],
-                point:Union[numpy._typing._array_like._SupportsArray[numpy
-                .dtype],numpy._typing._nested_sequence._NestedSequence[num
-                py._typing._array_like._SupportsArray[numpy.dtype]],bool,i
-                nt,float,complex,str,bytes,numpy._typing._nested_sequence.
-                _NestedSequence[Union[bool,int,float,complex,str,bytes]]])</code></pre>
+<pre><code> pt2raster (point_data:Union[numpy._typing._array_like._SupportsArray[nump
+            y.dtype],numpy._typing._nested_sequence._NestedSequence[numpy.
+            _typing._array_like._SupportsArray[numpy.dtype]],bool,int,floa
+            t,complex,str,bytes,numpy._typing._nested_sequence._NestedSequ
+            ence[Union[bool,int,float,complex,str,bytes]]], is_pt:Union[nu
+            mpy._typing._array_like._SupportsArray[numpy.dtype],numpy._typ
+            ing._nested_sequence._NestedSequence[numpy._typing._array_like
+            ._SupportsArray[numpy.dtype]],bool,int,float,complex,str,bytes
+            ,numpy._typing._nested_sequence._NestedSequence[Union[bool,int
+            ,float,complex,str,bytes]]]=None, shape:tuple=None, idx:Union[
+            numpy._typing._array_like._SupportsArray[numpy.dtype],numpy._t
+            yping._nested_sequence._NestedSequence[numpy._typing._array_li
+            ke._SupportsArray[numpy.dtype]],bool,int,float,complex,str,byt
+            es,numpy._typing._nested_sequence._NestedSequence[Union[bool,i
+            nt,float,complex,str,bytes]]]=None)</code></pre>
 </blockquote>
 <p>convert sparse data to raster, filled with nan</p>
 <table class="table">
@@ -302,22 +375,53 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <tr class="header">
 <th></th>
 <th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
 <th><strong>Details</strong></th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>is_pt</td>
+<td>point_data</td>
 <td>Union</td>
-<td>bool array index</td>
+<td></td>
+<td>data, 1D or more</td>
 </tr>
 <tr class="even">
-<td>point</td>
+<td>is_pt</td>
 <td>Union</td>
-<td>data</td>
+<td>None</td>
+<td>bool array index</td>
+</tr>
+<tr class="odd">
+<td>shape</td>
+<td>tuple</td>
+<td>None</td>
+<td>image shape</td>
+</tr>
+<tr class="even">
+<td>idx</td>
+<td>Union</td>
+<td>None</td>
+<td>idx array</td>
 </tr>
 </tbody>
 </table>
+</section>
+<section id="diff" class="level2">
+<h2 class="anchored" data-anchor-id="diff">diff</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> diff():</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="diff-1" class="level2">
+<h2 class="anchored" data-anchor-id="diff-1">diff</h2>
+</section>
+<section id="diff-2" class="level2">
+<h2 class="anchored" data-anchor-id="diff-2">diff</h2>
+</section>
+<section id="diff-3" class="level2">
+<h2 class="anchored" data-anchor-id="diff-3">diff</h2>
 
 
 </section>

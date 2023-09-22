@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.3.2
+
+Modify the gamma load funtion to make it faster
+
 ## 0.3.1
 
 Add DS processing from CLI tutorial and fix bugs

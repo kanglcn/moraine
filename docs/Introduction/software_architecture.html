@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>decorrelation - Adaptive Multilook</title>
+<title>decorrelation - Software Architecture</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,40 +19,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -130,7 +96,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../Tutorials/adaptive_multilook.html">Tutorials</a></li><li class="breadcrumb-item"><a href="../Tutorials/adaptive_multilook.html">Adaptive Multilook</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../Introduction/software_architecture.html">Introduction</a></li><li class="breadcrumb-item"><a href="../Introduction/software_architecture.html">Software Architecture</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -159,7 +125,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Introduction/software_architecture.html" class="sidebar-item-text sidebar-link">
+  <a href="../Introduction/software_architecture.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Software Architecture</span></a>
   </div>
 </li>
@@ -275,7 +241,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link active">
+  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Adaptive Multilook</span></a>
   </div>
 </li>
@@ -305,25 +271,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">On this page</h2>
-   
-  <ul>
-  <li><a href="#load-rslc-stack" id="toc-load-rslc-stack" class="nav-link active" data-scroll-target="#load-rslc-stack">Load rslc stack</a></li>
-  <li><a href="#apply-ks-test" id="toc-apply-ks-test" class="nav-link" data-scroll-target="#apply-ks-test">Apply ks test</a></li>
-  <li><a href="#select-shps" id="toc-select-shps" class="nav-link" data-scroll-target="#select-shps">Select SHPs</a></li>
-  <li><a href="#estimate-coherence-matrix" id="toc-estimate-coherence-matrix" class="nav-link" data-scroll-target="#estimate-coherence-matrix">Estimate coherence matrix</a></li>
-  <li><a href="#compare" id="toc-compare" class="nav-link" data-scroll-target="#compare">Compare</a></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
-  </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Adaptive Multilook</h1>
+<h1 class="title">Software Architecture</h1>
 </div>
 
 
@@ -339,141 +294,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<p>In this tutorial, we demostrate how to use decorrelation package to identify spatially homogeneous pixels, extimate the coherence matrix and compare the original interferogram, multilook intergerogram and the adaptive multilook interferogram.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> cupyx.scipy.ndimage <span class="im">import</span> uniform_filter</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.plot <span class="im">import</span> bg_alpha</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.co <span class="im">import</span> emperical_co</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<section id="load-rslc-stack" class="level2">
-<h2 class="anchored" data-anchor-id="load-rslc-stack">Load rslc stack</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>cp.cuda.Device(<span class="dv">1</span>).use()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>&lt;CUDA Device 1&gt;</code></pre>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr'</span>,<span class="st">'r'</span>)[:])</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>rslc.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(2500, 1834, 17)</code></pre>
-</div>
-</div>
-</section>
-<section id="apply-ks-test" class="level2">
-<h2 class="anchored" data-anchor-id="apply-ks-test">Apply ks test</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>rmli <span class="op">=</span> cp.<span class="bu">abs</span>(rslc)<span class="op">**</span><span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>az_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>az_half_win<span class="op">+</span><span class="dv">1</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>r_win <span class="op">=</span> <span class="dv">2</span><span class="op">*</span>r_half_win<span class="op">+</span><span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 48.8 ms, sys: 10.5 ms, total: 59.3 ms
-Wall time: 65 ms</code></pre>
-</div>
-</div>
-<p><a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> in decorrelation package is extremely fast!</p>
-</section>
-<section id="select-shps" class="level2">
-<h2 class="anchored" data-anchor-id="select-shps">Select SHPs</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> (p <span class="op">&lt;</span> <span class="fl">0.05</span>) <span class="op">&amp;</span> (p <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> cp.count_nonzero(is_shp,axis<span class="op">=</span>(<span class="op">-</span><span class="dv">2</span>,<span class="op">-</span><span class="dv">1</span>))</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>shp_num_np <span class="op">=</span> cp.asnumpy(shp_num)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_np)</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Number of SHPs'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<p><img src="Adaptive_Multilook_files/figure-html/cell-10-output-1.png" class="img-fluid"></p>
-</div>
-</div>
-</section>
-<section id="estimate-coherence-matrix" class="level2">
-<h2 class="anchored" data-anchor-id="estimate-coherence-matrix">Estimate coherence matrix</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> emperical_co(rslc,is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 259 ms, sys: 17.3 ms, total: 276 ms
-Wall time: 285 ms</code></pre>
-</div>
-</div>
-</section>
-<section id="compare" class="level2">
-<h2 class="anchored" data-anchor-id="compare">Compare</h2>
-<p>Here we compare 1-look interferogram, multilook interferogram and adaptive multilook interferogram</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ref_image <span class="op">=</span> <span class="dv">15</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>sec_image <span class="op">=</span> <span class="dv">16</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>1 look interferogram:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>diff <span class="op">=</span> rslc[:,:,ref_image]<span class="op">*</span>rslc[:,:,sec_image].conj()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Multilook interferogram:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ml_diff <span class="op">=</span> uniform_filter(diff,size<span class="op">=</span>(az_win,r_win))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Adaptive multilook interferogram:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>ad_ml_diff <span class="op">=</span> coh[:,:,ref_image,sec_image]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>The plot background:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>plot_bg <span class="op">=</span> rmli[:,:,<span class="dv">0</span>]</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>plot_bg <span class="op">=</span> cp.asnumpy(plot_bg)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> bg_alpha(plot_bg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>Plot:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fig,axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">24</span><span class="op">/</span><span class="dv">2</span>,<span class="dv">7</span><span class="op">/</span><span class="dv">2</span>))</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>xlabel <span class="op">=</span> <span class="st">'Range Index'</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>ylabel <span class="op">=</span> <span class="st">'Azimuth Index'</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>pcm0 <span class="op">=</span> axes[<span class="dv">0</span>].imshow(cp.asnumpy(cp.angle(diff)),alpha<span class="op">=</span>alpha,interpolation<span class="op">=</span><span class="st">'nearest'</span>,cmap<span class="op">=</span><span class="st">'hsv'</span>)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>pcm1 <span class="op">=</span> axes[<span class="dv">1</span>].imshow(cp.asnumpy(cp.angle(ml_diff)),alpha<span class="op">=</span>alpha,interpolation<span class="op">=</span><span class="st">'nearest'</span>,cmap<span class="op">=</span><span class="st">'hsv'</span>)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>pcm2 <span class="op">=</span> axes[<span class="dv">2</span>].imshow(cp.asnumpy(cp.angle(ad_ml_diff)),alpha<span class="op">=</span>alpha,interpolation<span class="op">=</span><span class="st">'nearest'</span>,cmap<span class="op">=</span><span class="st">'hsv'</span>)</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    ax.<span class="bu">set</span>(facecolor <span class="op">=</span> <span class="st">"black"</span>)</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Orignal Interferogram'</span>,xlabel<span class="op">=</span>xlabel,ylabel<span class="op">=</span>ylabel)</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].<span class="bu">set</span>(title<span class="op">=</span><span class="ss">f'Multilook </span><span class="sc">{</span>az_win<span class="sc">}</span><span class="ss"> by </span><span class="sc">{</span>r_win<span class="sc">}</span><span class="ss">'</span>,xlabel<span class="op">=</span>xlabel,ylabel<span class="op">=</span>ylabel)</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].<span class="bu">set</span>(title<span class="op">=</span><span class="ss">f'Adaptively multilook </span><span class="sc">{</span>az_win<span class="sc">}</span><span class="ss"> by </span><span class="sc">{</span>r_win<span class="sc">}</span><span class="ss">'</span>,xlabel<span class="op">=</span>xlabel,ylabel<span class="op">=</span>ylabel)</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm0,ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm1,ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm1,ax<span class="op">=</span>axes[<span class="dv">2</span>])</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<p><img src="Adaptive_Multilook_files/figure-html/cell-17-output-1.png" class="img-fluid"></p>
-</div>
-</div>
-</section>
-<section id="conclusion" class="level2">
-<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
-<ul>
-<li>Adaptive multilooking based on SHPs selection performs better than non-adaptive one;</li>
-<li><a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> and <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> implemented in <code>decorrelation</code> package are fast.</li>
-</ul>
+<p>To be updated…</p>
+<p>You will find many function that have <code>az_chunk_size</code> and <code>pt_chunk_size</code>, you should save it properly.</p>
 
 
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -713,4 +537,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-</body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></div></div></footer></body></html>
