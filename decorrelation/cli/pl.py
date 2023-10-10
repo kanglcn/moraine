@@ -19,7 +19,7 @@ from dask.distributed import Client, LocalCluster
 from dask_cuda import LocalCUDACluster
 
 from ..pl import emi
-from ..pt import pt2raster
+from ..pc import pc2ras
 from .utils.logging import get_logger, log_args
 # from decorrelation.cli.utils.dask import pad_internal
 
@@ -112,7 +112,7 @@ def de_emi(coh:str, # coherence matrix
         logger.info('reading is_ds bool array')
         ds_idx_result = zarr.open(ds_idx_path,mode='r')[:]
 
-        emi_quality_raster = pt2raster(emi_quality_result,shape=shape,idx=ds_idx_result)
+        emi_quality_raster = pc2ras(ds_idx_result,emi_quality_result,shape)
         logger.info('converting emi_quality from point cloud to raster.')
         fig, ax = plt.subplots(1,1)
         pcm = ax.imshow(emi_quality_raster,interpolation='nearest',vmin=vmin,vmax=vmax)
