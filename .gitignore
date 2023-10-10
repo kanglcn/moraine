@@ -15,6 +15,9 @@ _tmp*
 tmp*
 tags
 *.pkg
+*.png
+*.jpg
+*.bmp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
