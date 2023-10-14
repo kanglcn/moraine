@@ -19,13 +19,11 @@ import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster
-from dask_cuda import LocalCUDACluster
 
 from ..pc import pc2ras
-from .utils.logging import get_logger, log_args, zarr_info
+from .utils.logging import get_logger, log_args
 
 from fastcore.script import call_parse, Param
-from nbdev.showdoc import show_doc # this is just a function to show the document
 
 # %% ../../nbs/CLI/pc.ipynb 4
 @log_args
@@ -41,7 +39,7 @@ def de_ras2pc(idx:str, # point cloud index
     logger = get_logger(logfile=log)
 
     idx_zarr = zarr.open(idx,mode='r')
-    zarr_info(idx,idx_zarr,logger)
+    logger.zarr_info(idx,idx_zarr)
     assert idx_zarr.ndim == 2, "idx dimentation is not 2."
     if not pc_chunk_size:
         pc_chunk_size = idx_zarr.chunks[1]
@@ -51,7 +49,7 @@ def de_ras2pc(idx:str, # point cloud index
     logger.info('loading idx into memory.')
     idx = zarr.open(idx,mode='r')[:]
     n_pc = idx.shape[1]
-    
+
     if isinstance(ras,str):
         assert isinstance(pc,str)
         ras_list = [ras]
@@ -73,27 +71,43 @@ def de_ras2pc(idx:str, # point cloud index
         else:
             hd_chunk_size_list = [None]*n_data
 
+    logger.info('starting dask local cluster.')
+    cluster = LocalCluster()
+    client = Client(cluster)
+    logger.info('dask local cluster started.')
+
+    _pc_list = ()
     for ras_path, pc_path, hd_chunk_size in zip(ras_list,pc_list,hd_chunk_size_list):
+        logger.info(f'start to slice on {ras_path}')
         ras_zarr = zarr.open(ras_path,'r')
-        logger.info(f'{ras_path} dataset shape: '+str(ras_zarr.shape))
-        logger.info(f'{ras_path} dataset chunks: '+str(ras_zarr.chunks))
+        logger.zarr_info(ras_path, ras_zarr)
         if hd_chunk_size is None:
             logger.info(f'hd_chunk_size not setted. Use the one from {ras_path}.')
             hd_chunk_size = ras_zarr.chunks[2:]
         logger.info(f'hd_chunk_size: {hd_chunk_size}.')
 
-        logger.info(f'loading {ras_path} into memory.')
-        ras_data = ras_zarr[:]
+        ras = da.from_zarr(ras_path,chunks=(*ras_zarr.chunks[:2],*hd_chunk_size))
+        logger.darr_info('ras',ras)
 
-        logger.info(f'open {pc_path} zarr in write mode.')
-        pc_zarr = zarr.open(pc_path,'w',shape=(n_pc,*ras_data.shape[2:]),dtype=ras_data.dtype,chunks=(pc_chunk_size,*hd_chunk_size))
-        logger.info(f'{pc_path} dataset shape: '+str(pc_zarr.shape))
-        logger.info(f'{pc_path} dataset chunks: '+str(pc_zarr.chunks))
-        logger.info(f'slice raster data and write to {pc_path}.')
-        pc_zarr[:] = ras_data[idx[0],idx[1]]
-        logger.info(f'write data to {pc_path} done.')
+        with dask.config.set(**{'array.slicing.split_large_chunks': False}):
+            pc = ras.reshape(-1,*ras.shape[2:])[np.ravel_multi_index((idx[0],idx[1]),dims=ras.shape[:2])]
+        
+        logger.darr_info('pc', pc)
+        logger.info('rechunk pc data:')
+        pc = pc.rechunk((pc_chunk_size,*pc.chunksize[1:]))
+        logger.darr_info('pc', pc)
+        _pc = pc.to_zarr(pc_path,overwrite=True,compute=False)
+        logger.info(f'saving to {pc_path}.')
+        _pc_list += (_pc,)
+    
+    logger.info('computing graph setted. doing all the computing.')
+    da.compute(*_pc_list)
 
-# %% ../../nbs/CLI/pc.ipynb 6
+    logger.info('computing finished.')
+    cluster.close()
+    logger.info('dask cluster closed.')
+
+# %% ../../nbs/CLI/pc.ipynb 5
 @call_parse
 def console_de_ras2pc(idx:str, # point cloud index
                       ras:Param(type=str,required=True,nargs='+',help='one or more path for raster data')=None,
@@ -125,7 +139,7 @@ def console_de_ras2pc(idx:str, # point cloud index
 
     de_ras2pc(idx,ras,pc,pc_chunk_size,hd_chunk_size_,log)
 
-# %% ../../nbs/CLI/pc.ipynb 11
+# %% ../../nbs/CLI/pc.ipynb 10
 @log_args
 def de_pc2ras(idx:str, # point cloud index
               pc:str|list, # path (in string) or list of path for point cloud data
@@ -162,23 +176,37 @@ def de_pc2ras(idx:str, # point cloud index
         ras_list = ras
         n_data = len(pc_list)
 
+    logger.info('starting dask local cluster.')
+    cluster = LocalCluster()
+    client = Client(cluster)
+    logger.info('dask local cluster started.')
+
+    _ras_list = ()
+
     for ras_path, pc_path in zip(ras_list,pc_list):
+        logger.info(f'start to work on {pc_path}')
         pc_zarr = zarr.open(pc_path,'r')
-        logger.info(f'{pc_path} dataset shape: '+str(pc_zarr.shape))
-        logger.info(f'{pc_path} dataset chunks: '+str(pc_zarr.chunks))
+        logger.zarr_info(pc_path,pc_zarr)
+        
+        pc = da.from_zarr(pc_path)
+        logger.darr_info('pc', pc)
+        ras = da.empty((shape[0]*shape[1],*pc.shape[1:]),chunks = (az_chunk_size*shape[1],*pc_zarr.chunks[1:]), dtype=pc.dtype)
+        ras[:] = np.nan
+        ras[np.ravel_multi_index((idx[0],idx[1]),dims=shape)] = pc
+        ras = ras.reshape(*shape,*pc.shape[1:])
+        logger.info('create ras dask array')
+        logger.darr_info('ras', ras)
+        _ras = ras.to_zarr(ras_path,overwrite=True,compute=False)
+        _ras_list += (_ras,)
 
-        logger.info(f'loading {pc_path} into memory.')
-        pc_data = pc_zarr[:]
+    logger.info('computing graph setted. doing all the computing.')
+    da.compute(*_ras_list)
 
-        logger.info(f'open {ras_path} zarr in write mode.')
-        ras_zarr = zarr.open(ras_path,'w',shape=(*shape,*pc_data.shape[1:]),dtype=pc_data.dtype,chunks=(az_chunk_size,shape[1],*pc_zarr.chunks[1:]))
-        logger.info(f'{ras_path} dataset shape: '+str(ras_zarr.shape))
-        logger.info(f'{ras_path} dataset chunks: '+str(ras_zarr.chunks))
-        logger.info(f'write to {ras_path}.')
-        ras_zarr[:] = pc2ras(idx,pc_data,shape)
-        logger.info(f'write data to {ras_path} done.')
+    logger.info('computing finished.')
+    cluster.close()
+    logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 12
+# %% ../../nbs/CLI/pc.ipynb 11
 @call_parse
 def console_de_pc2ras(idx:str, # point cloud index
                       pc:Param(type=str,required=True,nargs='+',help='one or more path for point cloud data')=None,

@@ -21,7 +21,7 @@ from dask_cuda import LocalCUDACluster
 from ..pl import emi
 from ..pc import pc2ras
 from .utils.logging import get_logger, log_args
-# from decorrelation.cli.utils.dask import pad_internal
+from .utils.dask import get_cuda_cluster
 
 from fastcore.script import call_parse
 
@@ -48,8 +48,7 @@ def de_emi(coh:str, # coherence matrix
 
     logger = get_logger(logfile=log)
     coh_zarr = zarr.open(coh_path,mode='r')
-    logger.info('coh dataset shape: '+str(coh_zarr.shape))
-    logger.info('coh dataset chunks: '+str(coh_zarr.chunks))
+    logger.zarr_info(coh_path,coh_zarr)
 
     if not point_chunk_size:
         point_chunk_size = coh_zarr.chunks[0]
@@ -59,11 +58,11 @@ def de_emi(coh:str, # coherence matrix
     logger.info('starting dask CUDA local cluster.')
     cluster = LocalCUDACluster()
     client = Client(cluster)
+    # for no reason, here when threads_per_worker is not 1, there will be some error.
     logger.info('dask local CUDA cluster started.')
 
     cpu_coh = da.from_zarr(coh_path, chunks=(point_chunk_size,*coh_zarr.shape[1:]))
-    logger.info('coh dask array shape: ' + str(cpu_coh.shape))
-    logger.info('coh dask array chunks: '+ str(cpu_coh.chunks))
+    logger.darr_info('coh', cpu_coh)
 
     logger.info(f'phase linking with EMI.')
     coh = cpu_coh.map_blocks(cp.asarray)
@@ -86,10 +85,8 @@ def de_emi(coh:str, # coherence matrix
     cpu_ph = ph.map_blocks(cp.asnumpy)
     cpu_emi_quality = emi_quality.map_blocks(cp.asnumpy)
     logger.info(f'got ph and emi_quality.')
-    logger.info('ph dask array shape: ' + str(cpu_ph.shape))
-    logger.info('ph dask array chunks: '+ str(cpu_ph.chunks))
-    logger.info('emi_quality dask array shape: ' + str(cpu_emi_quality.shape))
-    logger.info('emi_quality dask array chunks: '+ str(cpu_emi_quality.chunks))
+    logger.darr_info('ph', cpu_ph)
+    logger.darr_info('emi_quality', cpu_emi_quality)
 
     logger.info('saving ph and emi_quality.')
     _cpu_ph = cpu_ph.to_zarr(ph_path,compute=False,overwrite=True)

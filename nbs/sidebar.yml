@@ -18,10 +18,6 @@ website:
           - CLI/shp.ipynb
           - CLI/co.ipynb
           - CLI/pl.ipynb
-          - section: utils
-            contents:
-              - CLI/utils/logging.ipynb
-              - CLI/utils/dask.ipynb
       - section: Tutorials
         contents:
           - Tutorials/Adaptive_Multilook.ipynb
