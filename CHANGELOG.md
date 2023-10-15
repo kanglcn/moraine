@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.4.1
+
+Fix a small deploy issue
+
 ## 0.4.0
 
 Modify gamma load function for more precise look vector
