@@ -4,23 +4,17 @@
 __all__ = ['de_ras2pc', 'console_de_ras2pc', 'de_pc2ras', 'console_de_pc2ras', 'de_pc_union', 'de_pc_intersect', 'de_pc_diff']
 
 # %% ../../nbs/CLI/pc.ipynb 3
-from itertools import product
 import math
-from typing import Union
-import re
-
 import zarr
 import cupy as cp
 import numpy as np
 from matplotlib import pyplot as plt
-import colorcet
 
 import dask
 from dask import array as da
-from dask import delayed
 from dask.distributed import Client, LocalCluster
 
-from ..pc import pc2ras
+from ..pc import pc2ras, pc_union, pc_intersect, pc_diff
 from .utils.logging import get_logger, log_args
 
 from fastcore.script import call_parse, Param
@@ -35,13 +29,12 @@ def de_ras2pc(idx:str, # point cloud index
               log:str=None, # log file. Default: no log file
 ):
     '''Convert raster data to point cloud data'''
-    # I find there is no need to set this hd_chunk_size, generally we do not need it
     logger = get_logger(logfile=log)
 
     idx_zarr = zarr.open(idx,mode='r')
     logger.zarr_info(idx,idx_zarr)
     assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    if not pc_chunk_size:
+    if pc_chunk_size is None:
         pc_chunk_size = idx_zarr.chunks[1]
         logger.info('no input pc_chunk_size, use pc_chunk_size as input idx')
     logger.info(f'pc_chunk_size: {pc_chunk_size}')
@@ -52,18 +45,15 @@ def de_ras2pc(idx:str, # point cloud index
 
     if isinstance(ras,str):
         assert isinstance(pc,str)
-        ras_list = [ras]
-        pc_list = [pc]
+        ras_list = [ras]; pc_list = [pc]
         if hd_chunk_size is not None:
             assert isinstance(hd_chunk_size,tuple)
             hd_chunk_size_list = [hd_chunk_size]
         else:
             hd_chunk_size_list = [None]
     else:
-        assert isinstance(ras,list)
-        assert isinstance(pc,list)
-        ras_list = ras
-        pc_list = pc
+        assert isinstance(ras,list); assert isinstance(pc,list)
+        ras_list = ras; pc_list = pc
         n_data = len(ras_list)
         if hd_chunk_size is not None:
             assert isinstance(hd_chunk_size,list)
@@ -145,20 +135,22 @@ def de_pc2ras(idx:str, # point cloud index
               pc:str|list, # path (in string) or list of path for point cloud data
               ras:str|list, # output, path (in string) or list of path for raster data
               shape:tuple, # shape of one image (nlines,width)
-              az_chunk_size:int=None, # output azimuth chunk size, only one chunk by default
+              # output azimuth chunk size, 
+              # automatically set az_chunk_size to make n_az_chunk equals to n_pc_chunk by default
+              az_chunk_size:int=None,
               log:str=None, # log file. Default: no log file
 ):
     '''Convert point cloud data to raster data, filled with nan'''
-    # I find there is no need to set this hd_chunk_size, generally we do not need it
     logger = get_logger(logfile=log)
 
     idx_zarr = zarr.open(idx,mode='r')
     logger.info('idx dataset shape: '+str(idx_zarr.shape))
     logger.info('idx dataset chunks: '+str(idx_zarr.chunks))
     assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    if not az_chunk_size:
-        az_chunk_size = shape[0]
-        logger.info('no input az_chunk_size, use only one chunk.')
+    if az_chunk_size is None:
+        n_pc_chunk = math.ceil(idx_zarr.shape[1]/idx_zarr.chunks[1])
+        az_chunk_size = math.ceil(shape[0]/n_pc_chunk)
+        logger.info('no input az_chunk_size, automatically set az_chunk_size to make n_az_chunk equals to n_pc_chunk.')
     logger.info(f'az_chunk_size: {az_chunk_size}')
 
     logger.info('loading idx into memory.')
@@ -167,14 +159,10 @@ def de_pc2ras(idx:str, # point cloud index
     
     if isinstance(pc,str):
         assert isinstance(ras,str)
-        pc_list = [pc]
-        ras_list = [ras]
+        pc_list = [pc]; ras_list = [ras]
     else:
-        assert isinstance(pc,list)
-        assert isinstance(ras,list)
-        pc_list = pc
-        ras_list = ras
-        n_data = len(pc_list)
+        assert isinstance(pc,list); assert isinstance(ras,list)
+        pc_list = pc; ras_list = ras
 
     logger.info('starting dask local cluster.')
     cluster = LocalCluster()
@@ -227,6 +215,21 @@ def console_de_pc2ras(idx:str, # point cloud index
     de_pc2ras(idx,pc,ras,shape,az_chunk_size,log)
 
 # %% ../../nbs/CLI/pc.ipynb 16
+def _pc_chunk_size(idx1_zarr,n_pc,logger,pc_chunk_size=None,n_pc_chunk=None):
+    if pc_chunk_size is not None:
+        logger.info(f'got pc_chunk_size: {pc_chunk_size}')
+        return pc_chunk_size
+    else:
+        if n_pc_chunk is None:
+            logger.info(f'use n_pc_chunk from the idx1')
+            n_pc_chunk = math.ceil(idx1_zarr.shape[1]/idx1_zarr.chunks[1])
+        logger.info(f'got n_pc_chunk: {n_pc_chunk}')
+        logger.info(f'automatically determine pc_chunk_size from n_pc and n_pc_chunk')
+        pc_chunk_size = math.ceil(n_pc/n_pc_chunk)
+        logger.info(f'pc_chunk_size: {pc_chunk_size}')
+        return pc_chunk_size
+
+# %% ../../nbs/CLI/pc.ipynb 17
 @log_args
 def de_pc_union(idx1:str, # index of the first point cloud
                 idx2:str, # index of the second point cloud
@@ -238,152 +241,206 @@ def de_pc_union(idx1:str, # index of the first point cloud
                 n_pc_chunk:int=None, # number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.
                 log:str=None, # log file. Default: no log file
 ):
-    '''Get the union of two point cloud dataset. For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.'''
-    # I find there is no need to set this hd_chunk_size, generally we do not need it
+    '''Get the union of two point cloud dataset.
+    For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.
+    `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
+    If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
+    '''
     logger = get_logger(logfile=log)
 
-    idx_zarr = zarr.open(idx,mode='r')
-    logger.info('idx dataset shape: '+str(idx_zarr.shape))
-    logger.info('idx dataset chunks: '+str(idx_zarr.chunks))
-    assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    if not az_chunk_size:
-        az_chunk_size = shape[0]
-        logger.info('no input az_chunk_size, use only one chunk.')
-    logger.info(f'az_chunk_size: {az_chunk_size}')
+    idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info('idx1',idx1_zarr)
+    idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info('idx2',idx2_zarr)
+    logger.info('loading idx1 and idx2 into memory.')
+    idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
 
-    logger.info('loading idx into memory.')
-    idx = idx_zarr[:]
+    logger.info('calculate the union')
+    idx_path = idx
+    idx, inv_iidx1, inv_iidx2, iidx2 = pc_union(idx1,idx2)
     n_pc = idx.shape[1]
+    logger.info(f'number of points in the union: {idx.shape[1]}')
+    pc_chunk_size = _pc_chunk_size(idx1_zarr, n_pc, logger, pc_chunk_size=pc_chunk_size, n_pc_chunk=n_pc_chunk)
     
-    if isinstance(pc,str):
-        assert isinstance(ras,str)
-        pc_list = [pc]
-        ras_list = [ras]
+    idx_zarr = zarr.open(idx_path,'w',shape=idx.shape,dtype=idx.dtype,chunks=(2,pc_chunk_size))
+    logger.info('write union idx')
+    idx_zarr[:] = idx
+    logger.info('write done')
+    logger.zarr_info(idx_path, idx_zarr)
+
+    if isinstance(pc1,str):
+        assert isinstance(pc2,str); assert isinstance(pc,str)
+        pc1_list = [pc1]; pc2_list = [pc2]; pc_list = [pc]
     else:
-        assert isinstance(pc,list)
-        assert isinstance(ras,list)
-        pc_list = pc
-        ras_list = ras
-        n_data = len(pc_list)
+        assert isinstance(pc1,list); assert isinstance(pc2,list); assert isinstance(pc,list)
+        pc1_list = pc1; pc2_list = pc2; pc_list = pc
 
-    for ras_path, pc_path in zip(ras_list,pc_list):
-        pc_zarr = zarr.open(pc_path,'r')
-        logger.info(f'{pc_path} dataset shape: '+str(pc_zarr.shape))
-        logger.info(f'{pc_path} dataset chunks: '+str(pc_zarr.chunks))
+    logger.info('starting dask local cluster.')
+    cluster = LocalCluster()
+    client = Client(cluster)
+    logger.info('dask local cluster started.')
+    
+    _pc_list = ()
+    for pc1_path, pc2_path, pc_path in zip(pc1_list,pc2_list,pc_list):
+        pc1_zarr = zarr.open(pc1_path,'r'); pc2_zarr = zarr.open(pc2_path,'r')
+        logger.zarr_info(pc1_path, pc1_zarr); logger.zarr_info(pc2_path, pc2_zarr);
+        pc1 = da.from_zarr(pc1_path); pc2 = da.from_zarr(pc2_path)
+        logger.darr_info('pc1', pc1); logger.darr_info('pc2',pc2)
+        logger.info('set up union pc data dask array.')
+        pc = da.empty((n_pc,*pc1.shape[1:]),chunks = (pc_chunk_size,*pc1.chunks[1:]), dtype=pc1.dtype)
+        logger.darr_info('pc',pc)
+        pc[inv_iidx1] = pc1
+        pc[inv_iidx2] = pc2[iidx2]
+        _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+        _pc_list += (_pc,)
 
-        logger.info(f'loading {pc_path} into memory.')
-        pc_data = pc_zarr[:]
+    logger.info('computing graph setted. doing all the computing.')
+    da.compute(*_pc_list)
 
-        logger.info(f'open {ras_path} zarr in write mode.')
-        ras_zarr = zarr.open(ras_path,'w',shape=(*shape,*pc_data.shape[1:]),dtype=pc_data.dtype,chunks=(az_chunk_size,shape[1],*pc_zarr.chunks[1:]))
-        logger.info(f'{ras_path} dataset shape: '+str(ras_zarr.shape))
-        logger.info(f'{ras_path} dataset chunks: '+str(ras_zarr.chunks))
-        logger.info(f'write to {ras_path}.')
-        ras_zarr[:] = pc2ras(idx,pc_data,shape)
-        logger.info(f'write data to {ras_path} done.')
+    logger.info('computing finished.')
+    cluster.close()
+    logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 17
+# %% ../../nbs/CLI/pc.ipynb 21
 @log_args
-def de_pc_intersect(idx:str, # point cloud index
-              pc:str|list, # path (in string) or list of path for point cloud data
-              ras:str|list, # output, path (in string) or list of path for raster data
-              shape:tuple, # shape of one image (nlines,width)
-              az_chunk_size:int=None, # output azimuth chunk size, only one chunk by default
-              log:str=None, # log file. Default: no log file
+def de_pc_intersect(idx1:str, # index of the first point cloud
+                    idx2:str, # index of the second point cloud
+                    idx:str, # output, index of the union point cloud
+                    pc1:str|list=None, # path (in string) or list of path for the first point cloud data
+                    pc2:str|list=None, # path (in string) or list of path for the second point cloud data
+                    pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+                    pc_chunk_size:int=None, # chunk size in output data,optional
+                    n_pc_chunk:int=None, # number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.
+                    prefer_1=True, # save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
+                    log:str=None, # log file. Default: no log file
 ):
-    '''Convert point cloud data to raster data, filled with nan'''
-    # I find there is no need to set this hd_chunk_size, generally we do not need it
+    '''Get the intersection of two point cloud dataset.
+    `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
+    If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
+    '''
     logger = get_logger(logfile=log)
 
-    idx_zarr = zarr.open(idx,mode='r')
-    logger.info('idx dataset shape: '+str(idx_zarr.shape))
-    logger.info('idx dataset chunks: '+str(idx_zarr.chunks))
-    assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    if not az_chunk_size:
-        az_chunk_size = shape[0]
-        logger.info('no input az_chunk_size, use only one chunk.')
-    logger.info(f'az_chunk_size: {az_chunk_size}')
+    idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info('idx1',idx1_zarr)
+    idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info('idx2',idx2_zarr)
+    logger.info('loading idx1 and idx2 into memory.')
+    idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
 
-    logger.info('loading idx into memory.')
-    idx = zarr.open(idx,mode='r')[:]
+    logger.info('calculate the intersection')
+    idx_path = idx
+    idx, iidx1, iidx2 = pc_intersect(idx1,idx2)
     n_pc = idx.shape[1]
+    logger.info(f'number of points in the intersection: {idx.shape[1]}')
+    pc_chunk_size = _pc_chunk_size(idx1_zarr, n_pc, logger, pc_chunk_size=pc_chunk_size, n_pc_chunk=n_pc_chunk)
     
-    if isinstance(pc,str):
-        assert isinstance(ras,str)
-        pc_list = [pc]
-        ras_list = [ras]
+    idx_zarr = zarr.open(idx_path,'w',shape=idx.shape,dtype=idx.dtype,chunks=(2,pc_chunk_size))
+    logger.info('write intersect idx')
+    idx_zarr[:] = idx
+    logger.info('write done')
+    logger.zarr_info(idx_path, idx_zarr)
+
+    if prefer_1:
+        logger.info('select pc1 as pc_input.')
+        iidx = iidx1
+        pc_input = pc1
     else:
-        assert isinstance(pc,list)
-        assert isinstance(ras,list)
-        pc_list = pc
-        ras_list = ras
-        n_data = len(pc_list)
+        logger.info('select pc2 as pc_input.')
+        iidx = iidx2
+        pc_input = pc2
 
-    for ras_path, pc_path in zip(ras_list,pc_list):
-        pc_zarr = zarr.open(pc_path,'r')
-        logger.info(f'{pc_path} dataset shape: '+str(pc_zarr.shape))
-        logger.info(f'{pc_path} dataset chunks: '+str(pc_zarr.chunks))
+    if isinstance(pc_input,str):
+        assert isinstance(pc,str)
+        pc_input_list = [pc_input]; pc_list = [pc]
+    else:
+        assert isinstance(pc_input,list); assert isinstance(pc,list)
+        pc_input_list = pc_input; pc_list = pc
 
-        logger.info(f'loading {pc_path} into memory.')
-        pc_data = pc_zarr[:]
+    logger.info('starting dask local cluster.')
+    cluster = LocalCluster()
+    client = Client(cluster)
+    logger.info('dask local cluster started.')
+    
+    _pc_list = ()
+    for pc_input_path, pc_path in zip(pc_input_list,pc_list):
+        pc_input_zarr = zarr.open(pc_input_path,'r')
+        logger.zarr_info(pc_input_path,pc_input_zarr)
+        pc_input = da.from_zarr(pc_input_path)
+        logger.darr_info('pc_input', pc_input)
 
-        logger.info(f'open {ras_path} zarr in write mode.')
-        ras_zarr = zarr.open(ras_path,'w',shape=(*shape,*pc_data.shape[1:]),dtype=pc_data.dtype,chunks=(az_chunk_size,shape[1],*pc_zarr.chunks[1:]))
-        logger.info(f'{ras_path} dataset shape: '+str(ras_zarr.shape))
-        logger.info(f'{ras_path} dataset chunks: '+str(ras_zarr.chunks))
-        logger.info(f'write to {ras_path}.')
-        ras_zarr[:] = pc2ras(idx,pc_data,shape)
-        logger.info(f'write data to {ras_path} done.')
+        logger.info('set up intersect pc data dask array.')
+        pc = da.empty((n_pc,*pc_input.shape[1:]),chunks = (pc_chunk_size,*pc_input.chunks[1:]), dtype=pc_input.dtype)
+        logger.darr_info('pc',pc)
+        pc[:] = pc_input[iidx]
+        _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+        _pc_list += (_pc,)
 
-# %% ../../nbs/CLI/pc.ipynb 18
+    logger.info('computing graph setted. doing all the computing.')
+    da.compute(*_pc_list)
+
+    logger.info('computing finished.')
+    cluster.close()
+    logger.info('dask cluster closed.')
+
+# %% ../../nbs/CLI/pc.ipynb 25
 @log_args
-def de_pc_diff(idx:str, # point cloud index
-              pc:str|list, # path (in string) or list of path for point cloud data
-              ras:str|list, # output, path (in string) or list of path for raster data
-              shape:tuple, # shape of one image (nlines,width)
-              az_chunk_size:int=None, # output azimuth chunk size, only one chunk by default
-              log:str=None, # log file. Default: no log file
-):
-    '''Convert point cloud data to raster data, filled with nan'''
-    # I find there is no need to set this hd_chunk_size, generally we do not need it
+def de_pc_diff(idx1:str, # index of the first point cloud
+               idx2:str, # index of the second point cloud
+               idx:str, # output, index of the union point cloud
+               pc1:str|list=None, # path (in string) or list of path for the first point cloud data
+               pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+               pc_chunk_size:int=None, # chunk size in output data,optional
+               n_pc_chunk:int=None, # number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.
+               log:str=None, # log file. Default: no log file
+              ):
+    '''Get the point cloud in `idx1` that are not in `idx2`.
+    `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
+    If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
+    '''
     logger = get_logger(logfile=log)
 
-    idx_zarr = zarr.open(idx,mode='r')
-    logger.info('idx dataset shape: '+str(idx_zarr.shape))
-    logger.info('idx dataset chunks: '+str(idx_zarr.chunks))
-    assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    if not az_chunk_size:
-        az_chunk_size = shape[0]
-        logger.info('no input az_chunk_size, use only one chunk.')
-    logger.info(f'az_chunk_size: {az_chunk_size}')
+    idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info('idx1',idx1_zarr)
+    idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info('idx2',idx2_zarr)
+    logger.info('loading idx1 and idx2 into memory.')
+    idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
 
-    logger.info('loading idx into memory.')
-    idx = zarr.open(idx,mode='r')[:]
+    logger.info('calculate the diff.')
+    idx_path = idx
+    idx, iidx1 = pc_diff(idx1,idx2)
     n_pc = idx.shape[1]
+    logger.info(f'number of points in the diff: {idx.shape[1]}')
+    pc_chunk_size = _pc_chunk_size(idx1_zarr, n_pc, logger, pc_chunk_size=pc_chunk_size, n_pc_chunk=n_pc_chunk)
     
-    if isinstance(pc,str):
-        assert isinstance(ras,str)
-        pc_list = [pc]
-        ras_list = [ras]
+    idx_zarr = zarr.open(idx_path,'w',shape=idx.shape,dtype=idx.dtype,chunks=(2,pc_chunk_size))
+    logger.info('write intersect idx')
+    idx_zarr[:] = idx
+    logger.info('write done')
+    logger.zarr_info(idx_path, idx_zarr)
+
+    if isinstance(pc1,str):
+        assert isinstance(pc,str)
+        pc1_list = [pc1]; pc_list = [pc]
     else:
-        assert isinstance(pc,list)
-        assert isinstance(ras,list)
-        pc_list = pc
-        ras_list = ras
-        n_data = len(pc_list)
+        assert isinstance(pc1,list); assert isinstance(pc,list)
+        pc1_list = pc1; pc_list = pc
 
-    for ras_path, pc_path in zip(ras_list,pc_list):
-        pc_zarr = zarr.open(pc_path,'r')
-        logger.info(f'{pc_path} dataset shape: '+str(pc_zarr.shape))
-        logger.info(f'{pc_path} dataset chunks: '+str(pc_zarr.chunks))
+    logger.info('starting dask local cluster.')
+    cluster = LocalCluster()
+    client = Client(cluster)
+    logger.info('dask local cluster started.')
+    
+    _pc_list = ()
+    for pc1_path, pc_path in zip(pc1_list,pc_list):
+        pc1_zarr = zarr.open(pc1_path,'r')
+        logger.zarr_info(pc1_path, pc1_zarr)
+        pc1 = da.from_zarr(pc1_path)
+        logger.darr_info('pc1', pc1)
+        logger.info('set up diff pc data dask array.')
+        pc = da.empty((n_pc,*pc1.shape[1:]),chunks = (pc_chunk_size,*pc1.chunks[1:]), dtype=pc1.dtype)
+        logger.darr_info('pc',pc)
+        pc[:] = pc1[iidx1]
+        _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+        _pc_list += (_pc,)
 
-        logger.info(f'loading {pc_path} into memory.')
-        pc_data = pc_zarr[:]
+    logger.info('computing graph setted. doing all the computing.')
+    da.compute(*_pc_list)
 
-        logger.info(f'open {ras_path} zarr in write mode.')
-        ras_zarr = zarr.open(ras_path,'w',shape=(*shape,*pc_data.shape[1:]),dtype=pc_data.dtype,chunks=(az_chunk_size,shape[1],*pc_zarr.chunks[1:]))
-        logger.info(f'{ras_path} dataset shape: '+str(ras_zarr.shape))
-        logger.info(f'{ras_path} dataset chunks: '+str(ras_zarr.chunks))
-        logger.info(f'write to {ras_path}.')
-        ras_zarr[:] = pc2ras(idx,pc_data,shape)
-        logger.info(f'write data to {ras_path} done.')
+    logger.info('computing finished.')
+    cluster.close()
+    logger.info('dask cluster closed.')
