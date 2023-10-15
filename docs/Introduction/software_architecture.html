@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -59,6 +93,8 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <link rel="stylesheet" href="../styles.css">
 </head>
@@ -111,7 +147,7 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">decorrelation</span></a>
+ <span class="menu-text">Decorrelation</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -141,11 +177,8 @@ ul.task-list li input[type="checkbox"] {
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../API/pt.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">pt</span></a>
-  </div>
-</li>
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -205,40 +238,17 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">pl</span></a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
- <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">dask</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -271,7 +281,20 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#software-design" id="toc-software-design" class="nav-link active" data-scroll-target="#software-design">Software Design</a></li>
+  <li><a href="#software-structure" id="toc-software-structure" class="nav-link" data-scroll-target="#software-structure">Software Structure</a></li>
+  <li><a href="#data-format" id="toc-data-format" class="nav-link" data-scroll-target="#data-format">Data format</a></li>
+  <li><a href="#an-example" id="toc-an-example" class="nav-link" data-scroll-target="#an-example">An example</a>
+  <ul>
+  <li><a href="#emi" id="toc-emi" class="nav-link" data-scroll-target="#emi">emi</a></li>
+  <li><a href="#de_emi" id="toc-de_emi" class="nav-link" data-scroll-target="#de_emi">de_emi</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -294,10 +317,331 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<p>To be updated…</p>
-<p>You will find many function that have <code>az_chunk_size</code> and <code>pt_chunk_size</code>, you should save it properly.</p>
+<section id="software-design" class="level2">
+<h2 class="anchored" data-anchor-id="software-design">Software Design</h2>
+<p>Unlike most InSAR processing software (e.g., StamPS, MintPy) that have designated processing workflow, Decorrelation only provides a collection of Python functions or commands. The reason is, in real application, there is no perfect workflow that always generate satisfactory deformation result. Especially when the coherence is not good and atmospheric artifact is strong. One needs to try a lot of different methods but they are generally implented in different packages. Even worse, the workflow-based software are encapsulated too much and generally no detailed documentation is provided. It is really frustrating when users need to save intermediate data from one software and prepared them in a designated format and structure required by another software. Sometimes it is necessarry to read a lot of source code to understand what are the output, what are their data structure and what kind of inputs are needed as their typical workflows is not followed. So, instead of providing a standard workflow, Decorrelation is designed as a collection of functions that implement specific InSAR processing techniques (e.g.&nbsp;calculate the dispersion index, do phase linking) and users are encouraged to make their own workflow that are suitable for their case. We provide the necessary infrastructure and your role is to be innovative! To make it easier, Decorrelation provides detailed documentation for each function that explain the usage. We also provide the tutorials section that provide some typical workflow for your reference. In case users want to try methods that are not implemented in Decorrelation, the input and output are well explained in the documentation of every Decorrelation functions.</p>
+<p>Although we provide detailed documentation and reference workflow, we still admit this software is not that easy that users only need to run from the first step to the last step. It doesn’t mean we don’t value user-friendliness, but it shouldn’t come at the expense of flexibility and creativity.</p>
+</section>
+<section id="software-structure" class="level2">
+<h2 class="anchored" data-anchor-id="software-structure">Software Structure</h2>
+<p>Most of the functions in this package provide 2 kind of API, the array-based API and the file-based API. The inputs and output of array-based functions generally are numpy or cupy arrays (Simply, cupy is a package that provides same functions as numpy but runs on GPU), while inputs and outputs of file-based functions are string of path to the array stored in disk. InSAR techniques that can be greatly accelerated with parallel processing are implented in cupy for better performance while all other functions are implented with numpy arrays. The file-based functions are not simple wrapper of the array-based functions. Due to the limitation of numpy and cupy, most array-based functions can only be runned on a single CPU core or on a single GPU. However, the file-based functions support parallel processing on multi-CPU-cores and multi-GPUs with the help of <a href="https://www.dask.org/">dask</a>. But their is performance cost for using <code>dask</code>, sometimes the array-based functions is faster. Another benefit of <code>dask</code> is the memory usage is smaller as the processing on each chunks can be in sequence.</p>
+<p>All functions in the file-based API starts with a prefix <code>de</code> to make them more distinguishable. Terminal commands of same name as the file-based functions is also provided. To make it simpler, we call the file-based functions and commands CLI (command line interface), the array-based API API. The API and CLI functions are arranged in different namespace. In this documentation website, if document of one API function <code>xxx</code> is in section <code>API</code> and subsection <code>pl</code>, then it is in the namespace <code>decorrelation.pl</code>, the correct way to import it is <code>from decorrelation.pl import xxx</code>. For CLI funtion <code>de_xxx</code>, it the document page is in section <code>CLI</code> and subsection <code>pl</code>, then it is in the namespace <code>decorrelation.cli.pl</code> and the correct way to import it is <code>from decorrelation.cli.pl import de_xxx</code>.</p>
+</section>
+<section id="data-format" class="level2">
+<h2 class="anchored" data-anchor-id="data-format">Data format</h2>
+<p>Most of the stored data in this package is in the <a href="https://zarr.readthedocs.io/en/stable/">zarr</a> format, which is a file storage format for chunked, compressed, N-dimensional arrays. The figure below shows how the structure of zarr data. The reading and writing speed is fast since the data volume is compressed. Before compressing, the data are divided into chunks to be more flexiable for <code>dask</code> parallel operation. Generally, the file name is <code>xxxxxx.zarr</code>. You will find it is indeed a directory in the file system. But just treat it as a single file in use.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./software_architecture/array.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">imga</figcaption>
+</figure>
+</div>
+<p>Note that the sturcture of dask array is similar. Each chunk of a big dask array is just a numpy or cupy array. Independent operations on every chunks are automatically parallelized.</p>
+<p>In this software, there are mainly two kind of dataset. One is stack of raster data, another is stack of point cloud data. The raster dataset are divided into chunks along azimuth dimension, not range dimension. The point cloud dataset are divided into chunks along the spatial dimension. These two chunksize needs to be determined by the user. The chunksize in high dims are automatically determined. Users don’t need to care about it. Unproper chunksize slows down the processing speed or even crash the program. The rule of thumb is to maximize it while processing of one chunk fits the memory of one GPU.</p>
+</section>
+<section id="an-example" class="level2">
+<h2 class="anchored" data-anchor-id="an-example">An example</h2>
+<p>Here we provide an simple example. The API function <a href="https://kanglcn.github.io/decorrelation/API/pl.html#emi"><code>decorrelation.pl.emi</code></a> implemented the <code>EMI</code> phase linking method and <code>decorrelation.cli.de_emi</code> is the file-based API of it.</p>
+<p>Import them first:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.pl <span class="im">import</span> emi</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> nbdev.showdoc <span class="im">import</span> show_doc <span class="co"># this is just a function to show the document</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pl.py#LNone" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="emi" class="level3">
+<h3 class="anchored" data-anchor-id="emi">emi</h3>
+<blockquote class="blockquote">
+<pre><code> emi (coh:cupy.ndarray, ref:int=0)</code></pre>
+</blockquote>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>coh</td>
+<td>ndarray</td>
+<td></td>
+<td>complex coherence metrix,dtype cupy.complex</td>
+</tr>
+<tr class="even">
+<td>ref</td>
+<td>int</td>
+<td>0</td>
+<td>index of reference image in the phase history output, optional. Default: 0</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td></td>
+<td><strong>estimated phase history <code>ph</code>, dtype complex; quality (minimum eigvalue, dtype float)</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pl.py#LNone" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_emi" class="level3">
+<h3 class="anchored" data-anchor-id="de_emi">de_emi</h3>
+<blockquote class="blockquote">
+<pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0,
+         point_chunk_size:int=None, log:str=None,
+         plot_emi_quality:bool=False, vmin:int=1.0, vmax:int=1.3,
+         ds_idx:str=None, shape:tuple=None, emi_quality_fig:str=None)</code></pre>
+</blockquote>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>coh</td>
+<td>str</td>
+<td></td>
+<td>coherence matrix</td>
+</tr>
+<tr class="even">
+<td>ph</td>
+<td>str</td>
+<td></td>
+<td>output, wrapped phase</td>
+</tr>
+<tr class="odd">
+<td>emi_quality</td>
+<td>str</td>
+<td></td>
+<td>output, pixel quality</td>
+</tr>
+<tr class="even">
+<td>ref</td>
+<td>int</td>
+<td>0</td>
+<td>reference image for phase</td>
+</tr>
+<tr class="odd">
+<td>point_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>parallel processing point chunk size</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log</td>
+</tr>
+<tr class="odd">
+<td>plot_emi_quality</td>
+<td>bool</td>
+<td>False</td>
+<td>if plot the emi quality</td>
+</tr>
+<tr class="even">
+<td>vmin</td>
+<td>int</td>
+<td>1.0</td>
+<td>min value of emi quality to plot</td>
+</tr>
+<tr class="odd">
+<td>vmax</td>
+<td>int</td>
+<td>1.3</td>
+<td>max value of emi quality to plot</td>
+</tr>
+<tr class="even">
+<td>ds_idx</td>
+<td>str</td>
+<td>None</td>
+<td>index of ds</td>
+</tr>
+<tr class="odd">
+<td>shape</td>
+<td>tuple</td>
+<td>None</td>
+<td>shape of one image</td>
+</tr>
+<tr class="even">
+<td>emi_quality_fig</td>
+<td>str</td>
+<td>None</td>
+<td>path to save the emi quality plot, optional. Default, no saving</td>
+</tr>
+</tbody>
+</table>
+<p>To apply the <a href="https://kanglcn.github.io/decorrelation/API/pl.html#emi"><code>emi</code></a> API funtion:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./software_architecture/ds_can_coh.zarr/'</span>,<span class="st">'r'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>coh_zarr,coh_zarr.shape,coh_zarr.chunks,coh_zarr.dtype</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(&lt;zarr.core.Array (740397, 17, 17) complex64 read-only&gt;,
+ (740397, 17, 17),
+ (200000, 17, 17),
+ dtype('complex64'))</code></pre>
+</div>
+</div>
+<p>It is coherence matrix for 740397 selected DS candidate and there are 17 SAR images. So the coherence matrix for one pixel is 17 <span class="math inline">\(\times\)</span> 17. The coherence matrix is stored in 4 chunks and each chunks stores data for 200000 DS candidate. (The last chunk only have 140397 DS candidate).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>ls <span class="op">-</span>al .<span class="op">/</span>software_architecture<span class="op">/</span>ds_can_coh.zarr<span class="op">/</span> <span class="co">#It is a directory indeed!</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>total 1570400
+drwxrwxr-x 2 kangl kangl      4096 Sep 28 12:30 .
+drwxrwxr-x 5 kangl kangl      4096 Oct  4 12:15 ..
+-rw-rw-r-- 1 kangl kangl 434775676 Sep 28 12:30 0.0.0
+-rw-rw-r-- 1 kangl kangl 432578417 Sep 28 12:30 1.0.0
+-rw-rw-r-- 1 kangl kangl 434846911 Sep 28 12:30 2.0.0
+-rw-rw-r-- 1 kangl kangl 305857416 Sep 28 12:30 3.0.0
+-rw-rw-r-- 1 kangl kangl       398 Sep 28 12:30 .zarray</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> coh_zarr[:] <span class="co"># read as numpy array</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> cp.asarray(coh) <span class="co"># convert to cupy array</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>(740397, 17, 17)</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The processing is really fast!</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ph,emi_quality <span class="op">=</span> emi(coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>CPU times: user 1.18 s, sys: 447 ms, total: 1.62 s
+Wall time: 1.69 s</code></pre>
+</div>
+</div>
+<p>Now we apply the CLI function:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>de_emi(<span class="st">'./software_architecture/ds_can_coh.zarr/'</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>       <span class="st">'./software_architecture/ds_can_ph.zarr'</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>       <span class="st">'./software_architecture/ds_can_emi_quality.zarr'</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>       point_chunk_size <span class="op">=</span> <span class="dv">200000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-08 23:30:17 - de_emi - INFO - fetching args:
+2023-10-08 23:30:17 - de_emi - INFO - coh = './software_architecture/ds_can_coh.zarr/'
+2023-10-08 23:30:17 - de_emi - INFO - ph = './software_architecture/ds_can_ph.zarr'
+2023-10-08 23:30:17 - de_emi - INFO - emi_quality = './software_architecture/ds_can_emi_quality.zarr'
+2023-10-08 23:30:17 - de_emi - INFO - ref = 0
+2023-10-08 23:30:17 - de_emi - INFO - point_chunk_size = 200000
+2023-10-08 23:30:17 - de_emi - INFO - log = None
+2023-10-08 23:30:17 - de_emi - INFO - plot_emi_quality = False
+2023-10-08 23:30:17 - de_emi - INFO - vmin = 1.0
+2023-10-08 23:30:17 - de_emi - INFO - vmax = 1.3
+2023-10-08 23:30:17 - de_emi - INFO - ds_idx = None
+2023-10-08 23:30:17 - de_emi - INFO - shape = None
+2023-10-08 23:30:17 - de_emi - INFO - emi_quality_fig = None
+2023-10-08 23:30:17 - de_emi - INFO - fetching args done.
+2023-10-08 23:30:17 - de_emi - INFO - coh dataset shape: (740397, 17, 17)
+2023-10-08 23:30:17 - de_emi - INFO - coh dataset chunks: (200000, 17, 17)
+2023-10-08 23:30:17 - de_emi - INFO - parallel processing point chunk size: 200000
+2023-10-08 23:30:17 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-08 23:30:23 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-08 23:30:23 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-08 23:30:23 - de_emi - INFO - coh dask array chunks: ((200000, 200000, 200000, 140397), (17,), (17,))
+2023-10-08 23:30:23 - de_emi - INFO - phase linking with EMI.
+2023-10-08 23:30:23 - de_emi - INFO - got ph and emi_quality.
+2023-10-08 23:30:23 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-08 23:30:23 - de_emi - INFO - ph dask array chunks: ((200000, 200000, 200000, 140397), (17,))
+2023-10-08 23:30:23 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-08 23:30:23 - de_emi - INFO - emi_quality dask array chunks: ((200000, 200000, 200000, 140397),)
+2023-10-08 23:30:23 - de_emi - INFO - saving ph and emi_quality.
+2023-10-08 23:30:23 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-08 23:30:26 - de_emi - INFO - computing finished.
+2023-10-08 23:30:28 - de_emi - INFO - dask cluster closed.
+CPU times: user 637 ms, sys: 723 ms, total: 1.36 s
+Wall time: 11.6 s</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-10-08 23:30:19,866 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,866 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,869 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,869 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,872 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,872 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,873 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,873 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,880 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,880 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,886 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,886 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,893 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,893 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+2023-10-08 23:30:19,898 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
+2023-10-08 23:30:19,898 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+</div>
+<p>The CLI function is slower than the API function since it needs to read and write the data and set up the dask CUDA cluster.</p>
+<p>Notice that there is a <code>point_chunk_size</code> option in the CLI function, it means the data is processed in chunks seperately and each chunk have <code>point_chunk_size</code> pixels. By default, this number is set as the chunk size in the input zarr data.</p>
+<p>There are more options in the CLI function, e.g., to save the printed information to the log file, to plot some result.</p>
+<p>As mentioned, the CLI funtion also provide command line interface, but it won’t generate any plot on screen since it is not supported in terminal.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_emi <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>usage: de_emi [-h] [--ref REF] [--point_chunk_size POINT_CHUNK_SIZE] [--log LOG]
+              [--plot_emi_quality] [--vmin VMIN] [--vmax VMAX] [--ds_idx DS_IDX]
+              [--shape SHAPE] [--emi_quality_fig EMI_QUALITY_FIG]
+              coh ph emi_quality
+
+positional arguments:
+  coh                                  coherence matrix
+  ph                                   output, wrapped phase
+  emi_quality                          output, pixel quality
+
+options:
+  -h, --help                           show this help message and exit
+  --ref REF                            reference image for phase (default: 0)
+  --point_chunk_size POINT_CHUNK_SIZE  parallel processing point chunk size
+  --log LOG                            log
+  --plot_emi_quality                   if plot the emi quality (default: False)
+  --vmin VMIN                          min value of emi quality to plot
+                                       (default: 1.0)
+  --vmax VMAX                          max value of emi quality to plot
+                                       (default: 1.3)
+  --ds_idx DS_IDX                      index of ds
+  --shape SHAPE                        shape of one image
+  --emi_quality_fig EMI_QUALITY_FIG    path to save the emi quality plot,
+                                       optional. Default, no saving</code></pre>
+</div>
+</div>
+<p>The CLI also include functions for simple data manipulation (e.g.&nbsp;array slicing and point clouds merging). As it is very easy to do them for numpy/cupy arrays, these CLI do not have corresponding API.</p>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -537,4 +881,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></div></div></footer></body></html>
+</body></html>

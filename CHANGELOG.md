@@ -2,6 +2,18 @@
 
 <!-- do not remove -->
 
+## 0.4.0
+
+Modify gamma load function for more precise look vector
+
+Add point cloud manipulation
+
+Add Introduction section and add more detail on readme
+
+Add utils, logger.zarr_info logger.darr_info
+
+Rename emperical_co_sp to emperical_co_pc
+
 ## 0.3.2
 
 Modify the gamma load funtion to make it faster

@@ -148,7 +148,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">decorrelation</span></a>
+ <span class="menu-text">Decorrelation</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -178,11 +178,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../API/pt.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">pt</span></a>
-  </div>
-</li>
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -242,40 +239,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">pl</span></a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
- <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">dask</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -314,7 +288,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#de_load_gamma_flatten_rslc" id="toc-de_load_gamma_flatten_rslc" class="nav-link active" data-scroll-target="#de_load_gamma_flatten_rslc">de_load_gamma_flatten_rslc</a></li>
   <li><a href="#de_load_gamma_lat_lon_hgt" id="toc-de_load_gamma_lat_lon_hgt" class="nav-link" data-scroll-target="#de_load_gamma_lat_lon_hgt">de_load_gamma_lat_lon_hgt</a></li>
-  <li><a href="#de_load_gamma_incidence_angle" id="toc-de_load_gamma_incidence_angle" class="nav-link" data-scroll-target="#de_load_gamma_incidence_angle">de_load_gamma_incidence_angle</a></li>
+  <li><a href="#de_load_gamma_look_vector" id="toc-de_load_gamma_look_vector" class="nav-link" data-scroll-target="#de_load_gamma_look_vector">de_load_gamma_look_vector</a></li>
   <li><a href="#de_load_gamma_range" id="toc-de_load_gamma_range" class="nav-link" data-scroll-target="#de_load_gamma_range">de_load_gamma_range</a></li>
   <li><a href="#de_load_gamma_metadata" id="toc-de_load_gamma_metadata" class="nav-link" data-scroll-target="#de_load_gamma_metadata">de_load_gamma_metadata</a></li>
   </ul>
@@ -424,15 +398,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_flatten_rslc(rslc_dir,reference,hgt,rslc_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - fetching args:
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - rslc_zarr = './raw/rslc.zarr'
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - log = None
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - fetching args done.
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - rslc found: 
+<pre><code>2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - fetching args:
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - rslc_zarr = './raw/rslc.zarr'
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - log = None
+2023-10-12 23:16:13 - de_load_gamma_flatten_rslc - INFO - fetching args done.
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - rslc found: 
         date                                 rslc  \
 0   20210802  ../../data/gamma/rslc/20210802.rslc   
 1   20210816  ../../data/gamma/rslc/20210816.rslc   
@@ -470,53 +444,54 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 14  ../../data/gamma/rslc/20220926.rslc.par  
 15  ../../data/gamma/rslc/20221010.rslc.par  
 16  ../../data/gamma/rslc/20221024.rslc.par  
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate required data for flattened rslcs:
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp7obfrq8z/20220620_20210802.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:37 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp7obfrq8z/20220620_20210802.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:40 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp7obfrq8z/20220620_20210816.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:40 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp7obfrq8z/20220620_20210816.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:41 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp7obfrq8z/20220620_20210830.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:42 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp7obfrq8z/20220620_20210830.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:43 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp7obfrq8z/20220620_20210913.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:43 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp7obfrq8z/20220620_20210913.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:45 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp7obfrq8z/20220620_20211011.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:45 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp7obfrq8z/20220620_20211011.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:46 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp7obfrq8z/20220620_20211025.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:46 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp7obfrq8z/20220620_20211025.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:47 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp7obfrq8z/20220620_20220606.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:47 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp7obfrq8z/20220620_20220606.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:49 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp7obfrq8z/20220620_20220620.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:49 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp7obfrq8z/20220620_20220620.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:51 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp7obfrq8z/20220620_20220704.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:51 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp7obfrq8z/20220620_20220704.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:53 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp7obfrq8z/20220620_20220718.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:53 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp7obfrq8z/20220620_20220718.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:55 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp7obfrq8z/20220620_20220801.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:55 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp7obfrq8z/20220620_20220801.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:57 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp7obfrq8z/20220620_20220815.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:57 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp7obfrq8z/20220620_20220815.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:58 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp7obfrq8z/20220620_20220829.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:58 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp7obfrq8z/20220620_20220829.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:59 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp7obfrq8z/20220620_20220912.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:47:59 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp7obfrq8z/20220620_20220912.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:01 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp7obfrq8z/20220620_20220926.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:01 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp7obfrq8z/20220620_20220926.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:03 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp7obfrq8z/20220620_20221010.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:03 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp7obfrq8z/20220620_20221010.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:04 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp7obfrq8z/20220620_20221024.off 1 1 1 0 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:04 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp7obfrq8z/20220620_20221024.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp7obfrq8z/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp7obfrq8z/log
-2023-09-20 19:48:06 - de_load_gamma_flatten_rslc - INFO - gamma command finished.
-2023-09-20 19:48:06 - de_load_gamma_flatten_rslc - INFO - using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.
-2023-09-20 19:48:06 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
-2023-09-20 19:48:08 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
-2023-09-20 19:48:08 - de_load_gamma_flatten_rslc - INFO - flattened rslcs shape: (2500, 1834, 17)
-2023-09-20 19:48:08 - de_load_gamma_flatten_rslc - INFO - flattened rslcs chunks: ((1000, 1000, 500), (1834,), (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1))
-2023-09-20 19:48:08 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
-2023-09-20 19:48:09 - de_load_gamma_flatten_rslc - INFO - computing finished.
-2023-09-20 19:48:10 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.</code></pre>
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate required data for flattened rslcs:
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp0h9aq99y/20220620_20210802.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:14 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp0h9aq99y/20220620_20210802.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:15 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp0h9aq99y/20220620_20210816.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:15 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp0h9aq99y/20220620_20210816.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:16 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp0h9aq99y/20220620_20210830.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:16 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp0h9aq99y/20220620_20210830.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:17 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp0h9aq99y/20220620_20210913.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:17 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp0h9aq99y/20220620_20210913.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:19 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp0h9aq99y/20220620_20211011.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:19 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp0h9aq99y/20220620_20211011.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:20 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp0h9aq99y/20220620_20211025.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:20 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp0h9aq99y/20220620_20211025.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:21 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp0h9aq99y/20220620_20220606.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:21 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp0h9aq99y/20220620_20220606.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:22 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp0h9aq99y/20220620_20220620.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:22 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp0h9aq99y/20220620_20220620.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:23 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp0h9aq99y/20220620_20220704.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:23 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp0h9aq99y/20220620_20220704.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:25 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp0h9aq99y/20220620_20220718.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:25 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp0h9aq99y/20220620_20220718.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:26 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp0h9aq99y/20220620_20220801.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:26 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp0h9aq99y/20220620_20220801.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:27 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp0h9aq99y/20220620_20220815.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:27 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp0h9aq99y/20220620_20220815.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:29 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp0h9aq99y/20220620_20220829.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:29 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp0h9aq99y/20220620_20220829.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:30 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp0h9aq99y/20220620_20220912.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:30 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp0h9aq99y/20220620_20220912.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:31 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp0h9aq99y/20220620_20220926.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:31 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp0h9aq99y/20220620_20220926.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:33 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp0h9aq99y/20220620_20221010.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:33 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp0h9aq99y/20220620_20221010.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:34 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp0h9aq99y/20220620_20221024.off 1 1 1 0 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:34 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp0h9aq99y/20220620_20221024.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp0h9aq99y/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp0h9aq99y/log
+2023-10-12 23:16:35 - de_load_gamma_flatten_rslc - INFO - gamma command finished.
+2023-10-12 23:16:35 - de_load_gamma_flatten_rslc - INFO - using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.
+2023-10-12 23:16:35 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
+2023-10-12 23:16:37 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
+2023-10-12 23:16:37 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array shape: (2500, 1834, 17)
+2023-10-12 23:16:37 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array chunksize: (1000, 1834, 1)
+2023-10-12 23:16:37 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array dtype: complex64
+2023-10-12 23:16:38 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
+2023-10-12 23:16:39 - de_load_gamma_flatten_rslc - INFO - computing finished.
+2023-10-12 23:16:39 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -547,7 +522,7 @@ options:
 </div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L199" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L198" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="de_load_gamma_lat_lon_hgt" class="level3">
 <h3 class="anchored" data-anchor-id="de_load_gamma_lat_lon_hgt">de_load_gamma_lat_lon_hgt</h3>
@@ -644,22 +619,22 @@ options:
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_lat_lon_hgt(diff_par,rslc_par,dem_par,hgt,lat_zarr,lon_zarr,hgt_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - fetching args:
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - diff_par = '../../data/gamma/geocoding/20210802.diff_par'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - lat_zarr = './raw/lat.zarr'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - lon_zarr = './raw/lon.zarr'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - hgt_zarr = './raw/hgt.zarr'
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - az_chunk_size = 1000
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - log = None
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - fetching args done.
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - image shape: (2500,1834)
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - run gamma command to generate longitude, latitude and height:
-2023-09-20 19:48:12 - de_load_gamma_lat_lon_hgt - INFO - run command: pt2geo /tmp/tmpqi_endv1/plist - ../../data/gamma/rslc/20220620.rslc.par - ../../data/gamma/geocoding/20210802.hgt ../../data/gamma/DEM/dem_seg_par ../../data/gamma/geocoding/20210802.diff_par 1 1 - - /tmp/tmpqi_endv1/plat_lon /tmp/tmpqi_endv1/phgt_wgs84 &gt; /tmp/tmpqi_endv1/log
-2023-09-20 19:48:24 - de_load_gamma_lat_lon_hgt - INFO - gamma command finished.
-2023-09-20 19:48:25 - de_load_gamma_lat_lon_hgt - INFO - Done.</code></pre>
+<pre><code>2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - fetching args:
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - diff_par = '../../data/gamma/geocoding/20210802.diff_par'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - lat_zarr = './raw/lat.zarr'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - lon_zarr = './raw/lon.zarr'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - hgt_zarr = './raw/hgt.zarr'
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - az_chunk_size = 1000
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - log = None
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - fetching args done.
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - image shape: (2500,1834)
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - run gamma command to generate longitude, latitude and height:
+2023-10-12 23:13:14 - de_load_gamma_lat_lon_hgt - INFO - run command: pt2geo /tmp/tmpl3gnphh9/plist - ../../data/gamma/rslc/20220620.rslc.par - ../../data/gamma/geocoding/20210802.hgt ../../data/gamma/DEM/dem_seg_par ../../data/gamma/geocoding/20210802.diff_par 1 1 - - /tmp/tmpl3gnphh9/plat_lon /tmp/tmpl3gnphh9/phgt_wgs84 &gt; /tmp/tmpl3gnphh9/log
+2023-10-12 23:13:26 - de_load_gamma_lat_lon_hgt - INFO - gamma command finished.
+2023-10-12 23:13:26 - de_load_gamma_lat_lon_hgt - INFO - Done.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -672,26 +647,23 @@ options:
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>hgt_data[hgt_data<span class="op">==</span><span class="dv">0</span>] <span class="op">=</span> np.nan</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig,axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">5</span>))</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>im0 <span class="op">=</span> axes[<span class="dv">0</span>].imshow(lon_data)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Longitude'</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im0, ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>im1 <span class="op">=</span> axes[<span class="dv">1</span>].imshow(lat_data)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Latitude'</span>)</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im1, ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>im2 <span class="op">=</span> axes[<span class="dv">2</span>].imshow(hgt_data)</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Height'</span>)</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im2, ax<span class="op">=</span>axes[<span class="dv">2</span>])</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fig,axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">5</span>))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>im0 <span class="op">=</span> axes[<span class="dv">0</span>].imshow(lon_data)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Longitude'</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im0, ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>im1 <span class="op">=</span> axes[<span class="dv">1</span>].imshow(lat_data)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Latitude'</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im1, ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>im2 <span class="op">=</span> axes[<span class="dv">2</span>].imshow(hgt_data)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">2</span>].set_title(<span class="st">'Height'</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im2, ax<span class="op">=</span>axes[<span class="dv">2</span>])</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="load_files/figure-html/cell-11-output-1.png" class="img-fluid"></p>
+<p><img src="load_files/figure-html/cell-10-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_load_gamma_lat_lon_hgt <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_load_gamma_lat_lon_hgt <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>usage: de_load_gamma_lat_lon_hgt [-h] [--az_chunk_size AZ_CHUNK_SIZE]
                                  [--log LOG]
@@ -719,16 +691,16 @@ options:
 </div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L247" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L246" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="de_load_gamma_incidence_angle" class="level3">
-<h3 class="anchored" data-anchor-id="de_load_gamma_incidence_angle">de_load_gamma_incidence_angle</h3>
+<section id="de_load_gamma_look_vector" class="level3">
+<h3 class="anchored" data-anchor-id="de_load_gamma_look_vector">de_load_gamma_look_vector</h3>
 <blockquote class="blockquote">
-<pre><code> de_load_gamma_incidence_angle (inc:str, lt:str, rslc_par:str,
-                                dem_par:str, inc_zarr:str,
-                                az_chunk_size:int=-1, log:str=None)</code></pre>
+<pre><code> de_load_gamma_look_vector (theta:str, phi:str, lt:str, rslc_par:str,
+                            dem_par:str, theta_zarr:str, phi_zarr:str,
+                            az_chunk_size:int=-1, log:str=None)</code></pre>
 </blockquote>
-<p>Load incidence angle from gamma binary format to zarr. The input incidence angle should be in EQA coordinate and generated by gc_map2 with inc_flg=1.</p>
+<p>Load look vector (elevation angle and orientation angle) in map geometry from gamma binary format to look vector in radar geometry zarr file. The two input data should be generated with the <code>look_vector</code> gamma command.</p>
 <table class="table">
 <colgroup>
 <col style="width: 6%">
@@ -746,34 +718,46 @@ options:
 </thead>
 <tbody>
 <tr class="odd">
-<td>inc</td>
+<td>theta</td>
 <td>str</td>
 <td></td>
-<td>incidence angle</td>
+<td>elevation angle</td>
 </tr>
 <tr class="even">
+<td>phi</td>
+<td>str</td>
+<td></td>
+<td>orientation angle</td>
+</tr>
+<tr class="odd">
 <td>lt</td>
 <td>str</td>
 <td></td>
 <td>lookup table</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>rslc_par</td>
 <td>str</td>
 <td></td>
 <td>par file of the reference rslc</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>dem_par</td>
 <td>str</td>
 <td></td>
 <td>dem par</td>
 </tr>
-<tr class="odd">
-<td>inc_zarr</td>
+<tr class="even">
+<td>theta_zarr</td>
 <td>str</td>
 <td></td>
-<td>output, latitude zarr</td>
+<td>output, elevation angle zarr</td>
+</tr>
+<tr class="odd">
+<td>phi_zarr</td>
+<td>str</td>
+<td></td>
+<td>output, orientation angle zarr</td>
 </tr>
 <tr class="even">
 <td>az_chunk_size</td>
@@ -791,46 +775,62 @@ options:
 </table>
 <p>An example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>lt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lt_fine'</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>dem_par <span class="op">=</span> <span class="st">'../../data/gamma/DEM/dem_seg_par'</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>inc <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.inc_e'</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>inc_zarr <span class="op">=</span> <span class="st">'./raw/inc.zarr'</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>lt <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lt_fine'</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>rslc_par <span class="op">=</span> <span class="st">'../../data/gamma/rslc/20220620.rslc.par'</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>dem_par <span class="op">=</span> <span class="st">'../../data/gamma/DEM/dem_seg_par'</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lv_theta'</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>phi <span class="op">=</span> <span class="st">'../../data/gamma/geocoding/20210802.lv_phi'</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>theta_zarr <span class="op">=</span> <span class="st">'./raw/theta.zarr'</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>phi_zarr <span class="op">=</span> <span class="st">'./raw/phi.zarr'</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_incidence_angle(inc,lt,rslc_par,dem_par,inc_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_look_vector(theta,phi,lt,rslc_par,dem_par,theta_zarr,phi_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - fetching args:
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - inc = '../../data/gamma/geocoding/20210802.inc_e'
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - inc_zarr = './raw/inc.zarr'
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - az_chunk_size = 1000
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - log = None
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - fetching args done.
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - image shape: (2500,1834)
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - run gamma command to generate inc angle in range doppler coordinate:
-2023-09-20 19:48:29 - de_load_gamma_incidence_angle - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.inc_e 5741 /tmp/tmpqemzydbn/inc_rdc 1834 2500 &gt; /tmp/tmpqemzydbn/log
-2023-09-20 19:48:30 - de_load_gamma_incidence_angle - INFO - gamma command finished.
-2023-09-20 19:48:30 - de_load_gamma_incidence_angle - INFO - writing data.
-2023-09-20 19:48:30 - de_load_gamma_incidence_angle - INFO - Done.</code></pre>
+<pre><code>2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - fetching args:
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - theta = '../../data/gamma/geocoding/20210802.lv_theta'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - phi = '../../data/gamma/geocoding/20210802.lv_phi'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - theta_zarr = './raw/theta.zarr'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - phi_zarr = './raw/phi.zarr'
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - az_chunk_size = 1000
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - log = None
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - fetching args done.
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - image shape: (2500,1834)
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - run gamma command to generate elevation angle in range doppler coordinate:
+2023-10-12 23:13:30 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_theta 5741 /tmp/tmp9b97n2gp/theta_rdc 1834 2500 &gt; /tmp/tmp9b97n2gp/log
+2023-10-12 23:13:32 - de_load_gamma_look_vector - INFO - gamma command finished.
+2023-10-12 23:13:32 - de_load_gamma_look_vector - INFO - writing data.
+2023-10-12 23:13:32 - de_load_gamma_look_vector - INFO - run gamma command to generate orientation angle in range doppler coordinate:
+2023-10-12 23:13:32 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_phi 5741 /tmp/tmp9b97n2gp/phi_rdc 1834 2500 &gt; /tmp/tmp9b97n2gp/log
+2023-10-12 23:13:33 - de_load_gamma_look_vector - INFO - gamma command finished.
+2023-10-12 23:13:33 - de_load_gamma_look_vector - INFO - writing data.
+2023-10-12 23:13:33 - de_load_gamma_look_vector - INFO - Done.</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>inc_data <span class="op">=</span> zarr.<span class="bu">open</span>(inc_zarr,mode<span class="op">=</span><span class="st">'r'</span>)[:]</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>inc_data[inc_data<span class="op">==</span><span class="dv">0</span>] <span class="op">=</span> np.nan</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>plt.imshow(inc_data)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Incidence angle"</span>)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>theta_data <span class="op">=</span> zarr.<span class="bu">open</span>(theta_zarr,mode<span class="op">=</span><span class="st">'r'</span>)[:]</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>phi_data <span class="op">=</span> zarr.<span class="bu">open</span>(phi_zarr,mode<span class="op">=</span><span class="st">'r'</span>)[:]</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>theta_data[theta_data<span class="op">==</span><span class="dv">0</span>] <span class="op">=</span> np.nan</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>phi_data[phi_data<span class="op">==</span><span class="dv">0</span>] <span class="op">=</span> np.nan</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>fig,axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">2</span>,figsize<span class="op">=</span>(<span class="dv">11</span>,<span class="dv">5</span>))</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>im0 <span class="op">=</span> axes[<span class="dv">0</span>].imshow(np.rad2deg(theta_data))</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'Elevation angle'</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im0, ax<span class="op">=</span>axes[<span class="dv">0</span>])</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>im1 <span class="op">=</span> axes[<span class="dv">1</span>].imshow(np.rad2deg(phi_data))</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'Orientation anlge'</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>fig.colorbar(im1, ax<span class="op">=</span>axes[<span class="dv">1</span>])</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <p><img src="load_files/figure-html/cell-16-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L281" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L292" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="de_load_gamma_range" class="level3">
 <h3 class="anchored" data-anchor-id="de_load_gamma_range">de_load_gamma_range</h3>
@@ -890,16 +890,16 @@ options:
 <div class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_range(rslc_par,range_zarr,az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-20 19:48:31 - de_load_gamma_range - INFO - fetching args:
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - range_zarr = './raw/range.zarr'
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - az_chunk_size = 1000
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - log = None
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - fetching args done.
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - image shape: (2500,1834)
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - Calculating slant range distance.
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - writing data.
-2023-09-20 19:48:31 - de_load_gamma_range - INFO - Done.</code></pre>
+<pre><code>2023-10-12 23:13:34 - de_load_gamma_range - INFO - fetching args:
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - range_zarr = './raw/range.zarr'
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - az_chunk_size = 1000
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - log = None
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - fetching args done.
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - image shape: (2500,1834)
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - Calculating slant range distance.
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - writing data.
+2023-10-12 23:13:34 - de_load_gamma_range - INFO - Done.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -914,7 +914,7 @@ options:
 </div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L310" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/load.py#L321" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="de_load_gamma_metadata" class="level3">
 <h3 class="anchored" data-anchor-id="de_load_gamma_metadata">de_load_gamma_metadata</h3>
@@ -967,36 +967,35 @@ options:
 </table>
 <p>An example:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rslc_dir <span class="op">=</span> <span class="st">'../../data/gamma//rslc'</span></span>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>rslc_dir <span class="op">=</span> <span class="st">'../../data/gamma/rslc'</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> <span class="st">'20220620'</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>meta_file <span class="op">=</span> <span class="st">'./raw/meta.toml'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>de_load_gamma_metadata(rslc_dir,reference,meta_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - fetching args:
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma//rslc'
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - reference = '20220620'
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - meta_file = './raw/meta.toml'
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - log = None
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - fetching args done.
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - Fetching heading angle
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - Fetching range pixel spacing
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - fetching azimuth pixel spacing
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - Fetching randar wavelength
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - Run gamma command to calculate baseline:
-2023-09-20 19:48:31 - de_load_gamma_metadata - INFO - run command: base_calc /tmp/tmpowhirhou/slc_tab ../../data/gamma/rslc/20220620.rslc.par /tmp/tmpowhirhou/bperp /tmp/tmpowhirhou/itab - &gt; /tmp/tmpowhirhou/log
-2023-09-20 19:48:32 - de_load_gamma_metadata - INFO - gamma command finished.
-2023-09-20 19:48:32 - de_load_gamma_metadata - INFO - All meta data: 
+<pre><code>2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - fetching args:
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - reference = '20220620'
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - meta_file = './raw/meta.toml'
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - log = None
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - fetching args done.
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - Fetching heading angle
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - Fetching range pixel spacing
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - fetching azimuth pixel spacing
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - Fetching randar wavelength
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - Run gamma command to calculate baseline:
+2023-10-12 23:13:34 - de_load_gamma_metadata - INFO - run command: base_calc /tmp/tmpqme0aptb/slc_tab ../../data/gamma/rslc/20220620.rslc.par /tmp/tmpqme0aptb/bperp /tmp/tmpqme0aptb/itab - &gt; /tmp/tmpqme0aptb/log
+2023-10-12 23:13:35 - de_load_gamma_metadata - INFO - gamma command finished.
+2023-10-12 23:13:35 - de_load_gamma_metadata - INFO - All meta data: 
 dates = [ "20210802", "20210816", "20210830", "20210913", "20211011", "20211025", "20220606", "20220620", "20220704", "20220718", "20220801", "20220815", "20220829", "20220912", "20220926", "20221010", "20221024",]
 radar_wavelength = 0.24245249210715603
-heading = -17.8792397
 range_pixel_spacing = 4.29054
 azimuth_pixel_spacing = 3.740105
 perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.86680030822754, -26.258899688720703, -63.72420120239258, -56.363399505615234, 64.75759887695312, 0.0, -9.043999671936035, -13.02869987487793, -112.94960021972656, -86.09490203857422, -129.9635009765625, -127.6594009399414, -182.29519653320312, -129.735107421875, -184.31100463867188,]
 
-2023-09-20 19:48:32 - de_load_gamma_metadata - INFO - writing data in toml file.
-2023-09-20 19:48:32 - de_load_gamma_metadata - INFO - Done.</code></pre>
+2023-10-12 23:13:35 - de_load_gamma_metadata - INFO - writing data in toml file.
+2023-10-12 23:13:35 - de_load_gamma_metadata - INFO - Done.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -1024,7 +1023,6 @@ perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.8668003082
   '20221010',
   '20221024'],
  'radar_wavelength': 0.24245249210715603,
- 'heading': -17.8792397,
  'range_pixel_spacing': 4.29054,
  'azimuth_pixel_spacing': 3.740105,
  'perpendicular_baseline': [-97.61360168457031,

@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.353">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Point Cloud data manipulation">
+
+<title>decorrelation - pc</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">decorrelation</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">pc</li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Decorrelation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Introduction/software_architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Software Architecture</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shp</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/co.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">co</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/pl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pl</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Plot</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">CLI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/load.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">load</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/shp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shp</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/co.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">co</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../CLI/pl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pl</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adaptive Multilook</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS Processing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Work With Dask</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS processing with CLI</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#de_ras2pc" id="toc-de_ras2pc" class="nav-link active" data-scroll-target="#de_ras2pc">de_ras2pc</a></li>
+  <li><a href="#de_pc2ras" id="toc-de_pc2ras" class="nav-link" data-scroll-target="#de_pc2ras">de_pc2ras</a></li>
+  <li><a href="#de_pc_union" id="toc-de_pc_union" class="nav-link" data-scroll-target="#de_pc_union">de_pc_union</a></li>
+  <li><a href="#de_pc_intersect" id="toc-de_pc_intersect" class="nav-link" data-scroll-target="#de_pc_intersect">de_pc_intersect</a></li>
+  <li><a href="#de_pc_diff" id="toc-de_pc_diff" class="nav-link" data-scroll-target="#de_pc_diff">de_pc_diff</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">pc</h1>
+</div>
+
+<div>
+  <div class="description">
+    Point Cloud data manipulation
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pc.py#L24" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="de_ras2pc" class="level3">
+<h3 class="anchored" data-anchor-id="de_ras2pc">de_ras2pc</h3>
+<blockquote class="blockquote">
+<pre><code> de_ras2pc (idx:str, ras:str|list, pc:str|list, pc_chunk_size:int=None,
+            hd_chunk_size:tuple|list=None, log:str=None)</code></pre>
+</blockquote>
+<p>Convert raster data to point cloud data</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx</td>
+<td>str</td>
+<td></td>
+<td>point cloud index</td>
+</tr>
+<tr class="even">
+<td>ras</td>
+<td>str | list</td>
+<td></td>
+<td>path (in string) or list of path for raster data</td>
+</tr>
+<tr class="odd">
+<td>pc</td>
+<td>str | list</td>
+<td></td>
+<td>output, path (in string) or list of path for point cloud data</td>
+</tr>
+<tr class="even">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>output point chunk size, same as input idx by default</td>
+</tr>
+<tr class="odd">
+<td>hd_chunk_size</td>
+<td>tuple | list</td>
+<td>None</td>
+<td>output high dimension chunk size, tuple or list of tuple, same as input raster data by default</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_ras2pc <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>usage: de_ras2pc [-h] --ras RAS [RAS ...] --pc PC [PC ...]
+                 [--pc_chunk_size PC_CHUNK_SIZE]
+                 [--hd_chunk_size HD_CHUNK_SIZE [HD_CHUNK_SIZE ...]] [--log LOG]
+                 idx
+
+Convert raster data to point cloud data
+
+positional arguments:
+  idx                                   point cloud index
+
+options:
+  -h, --help                            show this help message and exit
+  --ras RAS [RAS ...]                   one or more path for raster data
+  --pc PC [PC ...]                      output, one or more path for point cloud
+                                        data
+  --pc_chunk_size PC_CHUNK_SIZE         output point chunk size, same as input
+                                        idx by default
+  --hd_chunk_size HD_CHUNK_SIZE [HD_CHUNK_SIZE ...]
+                                        output high dimension chunk size, each
+                                        size should be wrapped in quotation
+                                        marks and size in each dimension are
+                                        seperated with ",", same as input raster
+                                        data by default
+  --log LOG                             log file. Default: no log file</code></pre>
+</div>
+</div>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ras_data1 <span class="op">=</span> np.random.rand(<span class="dv">100</span>,<span class="dv">100</span>).astype(np.float32)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ras_data2 <span class="op">=</span> np.random.rand(<span class="dv">100</span>,<span class="dv">100</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">100</span>,<span class="dv">100</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>idx <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">1000</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>idx.sort()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>idx <span class="op">=</span> np.stack(np.unravel_index(idx,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> ras_data1[idx[<span class="dv">0</span>],idx[<span class="dv">1</span>]]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> ras_data2[idx[<span class="dv">0</span>],idx[<span class="dv">1</span>]]</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>idx_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx.shape,dtype<span class="op">=</span>idx.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>ras_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>ras_data1.shape,dtype<span class="op">=</span>ras_data1.dtype,chunks<span class="op">=</span>(<span class="dv">20</span>,<span class="dv">100</span>))</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>ras_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>ras_data2.shape,dtype<span class="op">=</span>ras_data2.dtype,chunks<span class="op">=</span>(<span class="dv">20</span>,<span class="dv">100</span>,<span class="dv">1</span>))</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>idx_zarr[:] <span class="op">=</span> idx</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>ras_zarr1[:] <span class="op">=</span> ras_data1</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>ras_zarr2[:] <span class="op">=</span> ras_data2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>de_ras2pc(<span class="st">'pc/idx.zarr'</span>,<span class="st">'pc/ras1.zarr'</span>,<span class="st">'pc/pc1.zarr'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pc_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data1,pc_zarr1[:])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_ras2pc pc<span class="op">/</span>idx.zarr <span class="op">--</span>ras pc<span class="op">/</span>ras2.zarr <span class="op">--</span>pc pc<span class="op">/</span>pc2.zarr <span class="op">--</span>hd_chunk_size <span class="st">'1'</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>pc_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data2,pc_zarr2[:])</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>de_ras2pc(<span class="st">'pc/idx.zarr'</span>,ras<span class="op">=</span>[<span class="st">'pc/ras1.zarr'</span>,<span class="st">'pc/ras2.zarr'</span>],pc<span class="op">=</span>[<span class="st">'pc/pc1.zarr'</span>,<span class="st">'pc/pc2.zarr'</span>],hd_chunk_size<span class="op">=</span>[(),(<span class="dv">1</span>,)])</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>pc_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>pc_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data1,pc_zarr1[:])</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data2,pc_zarr2[:])</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_ras2pc pc<span class="op">/</span>idx.zarr <span class="op">--</span>ras pc<span class="op">/</span>ras1.zarr pc<span class="op">/</span>ras2.zarr <span class="op">--</span>pc pc<span class="op">/</span>pc1.zarr pc<span class="op">/</span>pc2.zarr <span class="op">--</span>hd_chunk_size <span class="st">''</span> <span class="st">'1'</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>pc_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>pc_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data1,pc_zarr1[:])</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_data2,pc_zarr2[:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-14 22:42:27 - de_ras2pc - INFO - fetching args:
+2023-10-14 22:42:27 - de_ras2pc - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:27 - de_ras2pc - INFO - ras = 'pc/ras1.zarr'
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc = 'pc/pc1.zarr'
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-14 22:42:27 - de_ras2pc - INFO - hd_chunk_size = None
+2023-10-14 22:42:27 - de_ras2pc - INFO - log = None
+2023-10-14 22:42:27 - de_ras2pc - INFO - fetching args done.
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc/idx.zarr zarray shape: (2, 1000)
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc/idx.zarr zarray chunks: (2, 200)
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:42:27 - de_ras2pc - INFO - no input pc_chunk_size, use pc_chunk_size as input idx
+2023-10-14 22:42:27 - de_ras2pc - INFO - pc_chunk_size: 200
+2023-10-14 22:42:27 - de_ras2pc - INFO - loading idx into memory.
+2023-10-14 22:42:27 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-14 22:42:29 - de_ras2pc - INFO - dask local cluster started.
+2023-10-14 22:42:29 - de_ras2pc - INFO - start to slice on pc/ras1.zarr
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc/ras1.zarr zarray shape: (100, 100)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc/ras1.zarr zarray chunks: (20, 100)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc/ras1.zarr zarray dtype: float32
+2023-10-14 22:42:29 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from pc/ras1.zarr.
+2023-10-14 22:42:29 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-14 22:42:29 - de_ras2pc - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:42:29 - de_ras2pc - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:42:29 - de_ras2pc - INFO - ras dask array dtype: float32
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array chunksize: (213,)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:29 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:42:29 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:29 - de_ras2pc - INFO - saving to pc/pc1.zarr.
+2023-10-14 22:42:29 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:29 - de_ras2pc - INFO - computing finished.
+2023-10-14 22:42:30 - de_ras2pc - INFO - dask cluster closed.
+2023-10-14 22:42:31 - de_ras2pc - INFO - fetching args:
+2023-10-14 22:42:31 - de_ras2pc - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:31 - de_ras2pc - INFO - ras = 'pc/ras2.zarr'
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc = 'pc/pc2.zarr'
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-14 22:42:31 - de_ras2pc - INFO - hd_chunk_size = (1,)
+2023-10-14 22:42:31 - de_ras2pc - INFO - log = None
+2023-10-14 22:42:31 - de_ras2pc - INFO - fetching args done.
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc/idx.zarr zarray shape: (2, 1000)
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc/idx.zarr zarray chunks: (2, 200)
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:42:31 - de_ras2pc - INFO - no input pc_chunk_size, use pc_chunk_size as input idx
+2023-10-14 22:42:31 - de_ras2pc - INFO - pc_chunk_size: 200
+2023-10-14 22:42:31 - de_ras2pc - INFO - loading idx into memory.
+2023-10-14 22:42:31 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-14 22:42:34 - de_ras2pc - INFO - dask local cluster started.
+2023-10-14 22:42:34 - de_ras2pc - INFO - start to slice on pc/ras2.zarr
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc/ras2.zarr zarray shape: (100, 100, 3)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc/ras2.zarr zarray chunks: (20, 100, 1)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc/ras2.zarr zarray dtype: complex64
+2023-10-14 22:42:34 - de_ras2pc - INFO - hd_chunk_size: (1,).
+2023-10-14 22:42:34 - de_ras2pc - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:42:34 - de_ras2pc - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:42:34 - de_ras2pc - INFO - ras dask array dtype: complex64
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array chunksize: (213, 1)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:34 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:42:34 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:34 - de_ras2pc - INFO - saving to pc/pc2.zarr.
+2023-10-14 22:42:34 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:35 - de_ras2pc - INFO - computing finished.
+2023-10-14 22:42:35 - de_ras2pc - INFO - dask cluster closed.
+2023-10-14 22:42:36 - de_ras2pc - INFO - fetching args:
+2023-10-14 22:42:36 - de_ras2pc - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:36 - de_ras2pc - INFO - ras = ['pc/ras1.zarr', 'pc/ras2.zarr']
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc = ['pc/pc1.zarr', 'pc/pc2.zarr']
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-14 22:42:36 - de_ras2pc - INFO - hd_chunk_size = [(), (1,)]
+2023-10-14 22:42:36 - de_ras2pc - INFO - log = None
+2023-10-14 22:42:36 - de_ras2pc - INFO - fetching args done.
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc/idx.zarr zarray shape: (2, 1000)
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc/idx.zarr zarray chunks: (2, 200)
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:42:36 - de_ras2pc - INFO - no input pc_chunk_size, use pc_chunk_size as input idx
+2023-10-14 22:42:36 - de_ras2pc - INFO - pc_chunk_size: 200
+2023-10-14 22:42:36 - de_ras2pc - INFO - loading idx into memory.
+2023-10-14 22:42:36 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-14 22:42:38 - de_ras2pc - INFO - dask local cluster started.
+2023-10-14 22:42:38 - de_ras2pc - INFO - start to slice on pc/ras1.zarr
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras1.zarr zarray shape: (100, 100)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras1.zarr zarray chunks: (20, 100)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras1.zarr zarray dtype: float32
+2023-10-14 22:42:38 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array dtype: float32
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array chunksize: (213,)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:38 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:38 - de_ras2pc - INFO - saving to pc/pc1.zarr.
+2023-10-14 22:42:38 - de_ras2pc - INFO - start to slice on pc/ras2.zarr
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras2.zarr zarray shape: (100, 100, 3)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras2.zarr zarray chunks: (20, 100, 1)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc/ras2.zarr zarray dtype: complex64
+2023-10-14 22:42:38 - de_ras2pc - INFO - hd_chunk_size: (1,).
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:42:38 - de_ras2pc - INFO - ras dask array dtype: complex64
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array chunksize: (213, 1)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:38 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:42:38 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:38 - de_ras2pc - INFO - saving to pc/pc2.zarr.
+2023-10-14 22:42:38 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:39 - de_ras2pc - INFO - computing finished.
+2023-10-14 22:42:39 - de_ras2pc - INFO - dask cluster closed.
+2023-10-14 22:42:40 - de_ras2pc - INFO - fetching args:
+2023-10-14 22:42:40 - de_ras2pc - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:40 - de_ras2pc - INFO - ras = ['pc/ras1.zarr', 'pc/ras2.zarr']
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc = ['pc/pc1.zarr', 'pc/pc2.zarr']
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-14 22:42:40 - de_ras2pc - INFO - hd_chunk_size = [(), (1,)]
+2023-10-14 22:42:40 - de_ras2pc - INFO - log = None
+2023-10-14 22:42:40 - de_ras2pc - INFO - fetching args done.
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc/idx.zarr zarray shape: (2, 1000)
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc/idx.zarr zarray chunks: (2, 200)
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:42:40 - de_ras2pc - INFO - no input pc_chunk_size, use pc_chunk_size as input idx
+2023-10-14 22:42:40 - de_ras2pc - INFO - pc_chunk_size: 200
+2023-10-14 22:42:40 - de_ras2pc - INFO - loading idx into memory.
+2023-10-14 22:42:40 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-14 22:42:43 - de_ras2pc - INFO - dask local cluster started.
+2023-10-14 22:42:43 - de_ras2pc - INFO - start to slice on pc/ras1.zarr
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras1.zarr zarray shape: (100, 100)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras1.zarr zarray chunks: (20, 100)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras1.zarr zarray dtype: float32
+2023-10-14 22:42:43 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array dtype: float32
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array chunksize: (213,)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:43 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array dtype: float32
+2023-10-14 22:42:43 - de_ras2pc - INFO - saving to pc/pc1.zarr.
+2023-10-14 22:42:43 - de_ras2pc - INFO - start to slice on pc/ras2.zarr
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras2.zarr zarray shape: (100, 100, 3)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras2.zarr zarray chunks: (20, 100, 1)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc/ras2.zarr zarray dtype: complex64
+2023-10-14 22:42:43 - de_ras2pc - INFO - hd_chunk_size: (1,).
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:42:43 - de_ras2pc - INFO - ras dask array dtype: complex64
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array chunksize: (213, 1)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:43 - de_ras2pc - INFO - rechunk pc data:
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:42:43 - de_ras2pc - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:43 - de_ras2pc - INFO - saving to pc/pc2.zarr.
+2023-10-14 22:42:43 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:45 - de_ras2pc - INFO - computing finished.
+2023-10-14 22:42:45 - de_ras2pc - INFO - dask cluster closed.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-10-14 22:42:39,280 - distributed.worker - ERROR - Failed to communicate with scheduler during heartbeat.
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1427, in _connect
+    comm = await connect(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/core.py", line 329, in connect
+    handshake = await wait_for(comm.read(), time_left())
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils.py", line 1849, in wait_for
+    return await asyncio.wait_for(fut, timeout)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/asyncio/tasks.py", line 432, in wait_for
+    await waiter
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/worker.py", line 1244, in heartbeat
+    response = await retry_operation(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 434, in retry_operation
+    return await retry(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 413, in retry
+    return await coro()
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1262, in send_recv_from_rpc
+    comm = await self.pool.connect(self.addr)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1506, in connect
+    return await connect_attempt
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1450, in _connect
+    raise CommClosedError(reason)
+distributed.comm.core.CommClosedError: ConnectionPool closing.
+2023-10-14 22:42:39,286 - distributed.worker - ERROR - Failed to communicate with scheduler during heartbeat.
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1427, in _connect
+    comm = await connect(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/core.py", line 329, in connect
+    handshake = await wait_for(comm.read(), time_left())
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils.py", line 1849, in wait_for
+    return await asyncio.wait_for(fut, timeout)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/asyncio/tasks.py", line 432, in wait_for
+    await waiter
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/worker.py", line 1244, in heartbeat
+    response = await retry_operation(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 434, in retry_operation
+    return await retry(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 413, in retry
+    return await coro()
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1262, in send_recv_from_rpc
+    comm = await self.pool.connect(self.addr)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1506, in connect
+    return await connect_attempt
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1450, in _connect
+    raise CommClosedError(reason)
+distributed.comm.core.CommClosedError: ConnectionPool closing.</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pc.py#L134" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_pc2ras" class="level3">
+<h3 class="anchored" data-anchor-id="de_pc2ras">de_pc2ras</h3>
+<blockquote class="blockquote">
+<pre><code> de_pc2ras (idx:str, pc:str|list, ras:str|list, shape:tuple,
+            az_chunk_size:int=None, log:str=None)</code></pre>
+</blockquote>
+<p>Convert point cloud data to raster data, filled with nan</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx</td>
+<td>str</td>
+<td></td>
+<td>point cloud index</td>
+</tr>
+<tr class="even">
+<td>pc</td>
+<td>str | list</td>
+<td></td>
+<td>path (in string) or list of path for point cloud data</td>
+</tr>
+<tr class="odd">
+<td>ras</td>
+<td>str | list</td>
+<td></td>
+<td>output, path (in string) or list of path for raster data</td>
+</tr>
+<tr class="even">
+<td>shape</td>
+<td>tuple</td>
+<td></td>
+<td>shape of one image (nlines,width)</td>
+</tr>
+<tr class="odd">
+<td>az_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>output azimuth chunk size, <br>automatically set az_chunk_size to make n_az_chunk equals to n_pc_chunk by default</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_pc2ras <span class="op">-</span>h</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>usage: de_pc2ras [-h] --pc PC [PC ...] --ras RAS [RAS ...] --shape SHAPE
+                 [--az_chunk_size AZ_CHUNK_SIZE] [--log LOG]
+                 idx
+
+Convert point cloud data to raster data
+
+positional arguments:
+  idx                            point cloud index
+
+options:
+  -h, --help                     show this help message and exit
+  --pc PC [PC ...]               one or more path for point cloud data
+  --ras RAS [RAS ...]            output, one or more path for raster data
+  --shape SHAPE                  shape of one image "nlines,width"
+  --az_chunk_size AZ_CHUNK_SIZE  output azimuth chunk size, only one chunk by
+                                 default
+  --log LOG                      log file. Default: no log file</code></pre>
+</div>
+</div>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> np.random.rand(<span class="dv">1000</span>).astype(np.float32)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>idx <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">1000</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>idx.sort()</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>idx <span class="op">=</span> np.stack(np.unravel_index(idx,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>ras_data1 <span class="op">=</span> np.zeros((<span class="dv">100</span>,<span class="dv">100</span>),dtype<span class="op">=</span>np.float32)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>ras_data2 <span class="op">=</span> np.zeros((<span class="dv">100</span>,<span class="dv">100</span>,<span class="dv">3</span>),dtype<span class="op">=</span>np.complex64)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>ras_data1[:] <span class="op">=</span> np.nan</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>ras_data2[:] <span class="op">=</span> np.nan</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>ras_data1[idx[<span class="dv">0</span>],idx[<span class="dv">1</span>]] <span class="op">=</span> pc_data1</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>ras_data2[idx[<span class="dv">0</span>],idx[<span class="dv">1</span>]] <span class="op">=</span> pc_data2</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>idx_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx.shape,dtype<span class="op">=</span>idx.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>pc_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data1.shape,dtype<span class="op">=</span>pc_data1.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,))</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>pc_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data2.shape,dtype<span class="op">=</span>pc_data2.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>idx_zarr[:] <span class="op">=</span> idx</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>pc_zarr1[:] <span class="op">=</span> pc_data1</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>pc_zarr2[:] <span class="op">=</span> pc_data2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>de_pc2ras(<span class="st">'pc/idx.zarr'</span>,<span class="st">'pc/pc1.zarr'</span>,<span class="st">'pc/ras1.zarr'</span>,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>),az_chunk_size<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ras_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data1,ras_zarr1[:])</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_pc2ras pc<span class="op">/</span>idx.zarr<span class="op">/</span> <span class="op">--</span>pc pc<span class="op">/</span>pc2.zarr<span class="op">/</span> <span class="op">--</span>ras pc<span class="op">/</span>ras2.zarr<span class="op">/</span> <span class="op">--</span>shape <span class="st">"100,100"</span> <span class="op">--</span>az_chunk_size <span class="dv">20</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>ras_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data2,ras_zarr2[:])</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>de_pc2ras(<span class="st">'pc/idx.zarr'</span>,[<span class="st">'pc/pc1.zarr'</span>,<span class="st">'pc/pc2.zarr'</span>],[<span class="st">'pc/ras1.zarr'</span>,<span class="st">'pc/ras2.zarr'</span>],shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>),az_chunk_size<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>ras_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>ras_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data1,ras_zarr1[:])</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data2,ras_zarr2[:])</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_pc2ras pc<span class="op">/</span>idx.zarr<span class="op">/</span> <span class="op">--</span>pc pc<span class="op">/</span>pc1.zarr<span class="op">/</span> pc<span class="op">/</span>pc2.zarr<span class="op">/</span> <span class="op">--</span>ras pc<span class="op">/</span>ras1.zarr<span class="op">/</span> pc<span class="op">/</span>ras2.zarr<span class="op">/</span> <span class="op">--</span>shape <span class="st">"100,100"</span> <span class="op">--</span>az_chunk_size <span class="dv">20</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>ras_zarr1 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras1.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>ras_zarr2 <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/ras2.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data1,ras_zarr1[:])</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(ras_data2,ras_zarr2[:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-14 22:42:47 - de_pc2ras - INFO - fetching args:
+2023-10-14 22:42:47 - de_pc2ras - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:47 - de_pc2ras - INFO - pc = 'pc/pc1.zarr'
+2023-10-14 22:42:47 - de_pc2ras - INFO - ras = 'pc/ras1.zarr'
+2023-10-14 22:42:47 - de_pc2ras - INFO - shape = (100, 100)
+2023-10-14 22:42:47 - de_pc2ras - INFO - az_chunk_size = 20
+2023-10-14 22:42:47 - de_pc2ras - INFO - log = None
+2023-10-14 22:42:47 - de_pc2ras - INFO - fetching args done.
+2023-10-14 22:42:47 - de_pc2ras - INFO - idx dataset shape: (2, 1000)
+2023-10-14 22:42:47 - de_pc2ras - INFO - idx dataset chunks: (2, 200)
+2023-10-14 22:42:47 - de_pc2ras - INFO - az_chunk_size: 20
+2023-10-14 22:42:47 - de_pc2ras - INFO - loading idx into memory.
+2023-10-14 22:42:47 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-14 22:42:49 - de_pc2ras - INFO - dask local cluster started.
+2023-10-14 22:42:49 - de_pc2ras - INFO - start to work on pc/pc1.zarr
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc/pc1.zarr zarray shape: (1000,)
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc/pc1.zarr zarray chunks: (200,)
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc/pc1.zarr zarray dtype: float32
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:42:49 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-14 22:42:49 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:42:49 - de_pc2ras - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:42:49 - de_pc2ras - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:42:49 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-14 22:42:49 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:50 - de_pc2ras - INFO - computing finished.
+2023-10-14 22:42:50 - de_pc2ras - INFO - dask cluster closed.
+2023-10-14 22:42:52 - de_pc2ras - INFO - fetching args:
+2023-10-14 22:42:52 - de_pc2ras - INFO - idx = 'pc/idx.zarr/'
+2023-10-14 22:42:52 - de_pc2ras - INFO - pc = 'pc/pc2.zarr/'
+2023-10-14 22:42:52 - de_pc2ras - INFO - ras = 'pc/ras2.zarr/'
+2023-10-14 22:42:52 - de_pc2ras - INFO - shape = (100, 100)
+2023-10-14 22:42:52 - de_pc2ras - INFO - az_chunk_size = 20
+2023-10-14 22:42:52 - de_pc2ras - INFO - log = None
+2023-10-14 22:42:52 - de_pc2ras - INFO - fetching args done.
+2023-10-14 22:42:52 - de_pc2ras - INFO - idx dataset shape: (2, 1000)
+2023-10-14 22:42:52 - de_pc2ras - INFO - idx dataset chunks: (2, 200)
+2023-10-14 22:42:52 - de_pc2ras - INFO - az_chunk_size: 20
+2023-10-14 22:42:52 - de_pc2ras - INFO - loading idx into memory.
+2023-10-14 22:42:52 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-14 22:42:55 - de_pc2ras - INFO - dask local cluster started.
+2023-10-14 22:42:55 - de_pc2ras - INFO - start to work on pc/pc2.zarr/
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc/pc2.zarr/ zarray shape: (1000, 3)
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc/pc2.zarr/ zarray chunks: (200, 1)
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc/pc2.zarr/ zarray dtype: complex64
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:42:55 - de_pc2ras - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:55 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:42:55 - de_pc2ras - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:42:55 - de_pc2ras - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:42:55 - de_pc2ras - INFO - ras dask array dtype: complex64
+2023-10-14 22:42:55 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:56 - de_pc2ras - INFO - computing finished.
+2023-10-14 22:42:56 - de_pc2ras - INFO - dask cluster closed.
+2023-10-14 22:42:57 - de_pc2ras - INFO - fetching args:
+2023-10-14 22:42:57 - de_pc2ras - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:42:57 - de_pc2ras - INFO - pc = ['pc/pc1.zarr', 'pc/pc2.zarr']
+2023-10-14 22:42:57 - de_pc2ras - INFO - ras = ['pc/ras1.zarr', 'pc/ras2.zarr']
+2023-10-14 22:42:57 - de_pc2ras - INFO - shape = (100, 100)
+2023-10-14 22:42:57 - de_pc2ras - INFO - az_chunk_size = 20
+2023-10-14 22:42:57 - de_pc2ras - INFO - log = None
+2023-10-14 22:42:57 - de_pc2ras - INFO - fetching args done.
+2023-10-14 22:42:57 - de_pc2ras - INFO - idx dataset shape: (2, 1000)
+2023-10-14 22:42:57 - de_pc2ras - INFO - idx dataset chunks: (2, 200)
+2023-10-14 22:42:57 - de_pc2ras - INFO - az_chunk_size: 20
+2023-10-14 22:42:57 - de_pc2ras - INFO - loading idx into memory.
+2023-10-14 22:42:57 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-14 22:42:58 - de_pc2ras - INFO - dask local cluster started.
+2023-10-14 22:42:58 - de_pc2ras - INFO - start to work on pc/pc1.zarr
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc1.zarr zarray shape: (1000,)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc1.zarr zarray chunks: (200,)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc1.zarr zarray dtype: float32
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array shape: (1000,)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-14 22:42:58 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-14 22:42:58 - de_pc2ras - INFO - start to work on pc/pc2.zarr
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc2.zarr zarray shape: (1000, 3)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc2.zarr zarray chunks: (200, 1)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc/pc2.zarr zarray dtype: complex64
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:42:58 - de_pc2ras - INFO - pc dask array dtype: complex64
+2023-10-14 22:42:58 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:42:58 - de_pc2ras - INFO - ras dask array dtype: complex64
+2023-10-14 22:42:59 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:42:59 - de_pc2ras - INFO - computing finished.
+2023-10-14 22:43:00 - de_pc2ras - INFO - dask cluster closed.
+2023-10-14 22:43:01 - de_pc2ras - INFO - fetching args:
+2023-10-14 22:43:01 - de_pc2ras - INFO - idx = 'pc/idx.zarr/'
+2023-10-14 22:43:01 - de_pc2ras - INFO - pc = ['pc/pc1.zarr/', 'pc/pc2.zarr/']
+2023-10-14 22:43:01 - de_pc2ras - INFO - ras = ['pc/ras1.zarr/', 'pc/ras2.zarr/']
+2023-10-14 22:43:01 - de_pc2ras - INFO - shape = (100, 100)
+2023-10-14 22:43:01 - de_pc2ras - INFO - az_chunk_size = 20
+2023-10-14 22:43:01 - de_pc2ras - INFO - log = None
+2023-10-14 22:43:01 - de_pc2ras - INFO - fetching args done.
+2023-10-14 22:43:01 - de_pc2ras - INFO - idx dataset shape: (2, 1000)
+2023-10-14 22:43:01 - de_pc2ras - INFO - idx dataset chunks: (2, 200)
+2023-10-14 22:43:01 - de_pc2ras - INFO - az_chunk_size: 20
+2023-10-14 22:43:01 - de_pc2ras - INFO - loading idx into memory.
+2023-10-14 22:43:01 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-14 22:43:04 - de_pc2ras - INFO - dask local cluster started.
+2023-10-14 22:43:04 - de_pc2ras - INFO - start to work on pc/pc1.zarr/
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc1.zarr/ zarray shape: (1000,)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc1.zarr/ zarray chunks: (200,)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc1.zarr/ zarray dtype: float32
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array shape: (1000,)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array chunksize: (200,)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-14 22:43:04 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array shape: (100, 100)
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array chunksize: (20, 100)
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-14 22:43:04 - de_pc2ras - INFO - start to work on pc/pc2.zarr/
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc2.zarr/ zarray shape: (1000, 3)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc2.zarr/ zarray chunks: (200, 1)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc/pc2.zarr/ zarray dtype: complex64
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array shape: (1000, 3)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array chunksize: (200, 1)
+2023-10-14 22:43:04 - de_pc2ras - INFO - pc dask array dtype: complex64
+2023-10-14 22:43:04 - de_pc2ras - INFO - create ras dask array
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array shape: (100, 100, 3)
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array chunksize: (20, 100, 1)
+2023-10-14 22:43:04 - de_pc2ras - INFO - ras dask array dtype: complex64
+2023-10-14 22:43:04 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:43:05 - de_pc2ras - INFO - computing finished.
+2023-10-14 22:43:05,188 - distributed.worker - ERROR - Failed to communicate with scheduler during heartbeat.
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/tcp.py", line 225, in read
+    frames_nbytes = await stream.read_bytes(fmt_size)
+tornado.iostream.StreamClosedError: Stream is closed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/worker.py", line 1244, in heartbeat
+    response = await retry_operation(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 434, in retry_operation
+    return await retry(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 413, in retry
+    return await coro()
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1265, in send_recv_from_rpc
+    return await send_recv(comm=comm, op=key, **kwargs)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1024, in send_recv
+    response = await comm.read(deserializers=deserializers)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/tcp.py", line 241, in read
+    convert_stream_closed_error(self, e)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/tcp.py", line 144, in convert_stream_closed_error
+    raise CommClosedError(f"in {obj}: {exc}") from exc
+distributed.comm.core.CommClosedError: in &lt;TCP (closed) ConnectionPool.heartbeat_worker local=tcp://127.0.0.1:57274 remote=tcp://127.0.0.1:34963&gt;: Stream is closed
+2023-10-14 22:43:05,201 - distributed.scheduler - WARNING - Received heartbeat from unregistered worker 'tcp://127.0.0.1:40669'.
+2023-10-14 22:43:05 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>2023-10-14 22:42:59,764 - distributed.worker - ERROR - Failed to communicate with scheduler during heartbeat.
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1427, in _connect
+    comm = await connect(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/comm/core.py", line 329, in connect
+    handshake = await wait_for(comm.read(), time_left())
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils.py", line 1849, in wait_for
+    return await asyncio.wait_for(fut, timeout)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/asyncio/tasks.py", line 432, in wait_for
+    await waiter
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/worker.py", line 1244, in heartbeat
+    response = await retry_operation(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 434, in retry_operation
+    return await retry(
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/utils_comm.py", line 413, in retry
+    return await coro()
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1262, in send_recv_from_rpc
+    comm = await self.pool.connect(self.addr)
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1506, in connect
+    return await connect_attempt
+  File "/users/kangl/miniconda3/envs/work/lib/python3.10/site-packages/distributed/core.py", line 1450, in _connect
+    raise CommClosedError(reason)
+distributed.comm.core.CommClosedError: ConnectionPool closing.</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pc.py#L234" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_pc_union" class="level3">
+<h3 class="anchored" data-anchor-id="de_pc_union">de_pc_union</h3>
+<blockquote class="blockquote">
+<pre><code> de_pc_union (idx1:str, idx2:str, idx:str, pc1:str|list=None,
+              pc2:str|list=None, pc:str|list=None, pc_chunk_size:int=None,
+              n_pc_chunk:int=None, log:str=None)</code></pre>
+</blockquote>
+<p>Get the union of two point cloud dataset. For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data. <code>pc_chunk_size</code> and <code>n_pc_chunk</code> are used to determine the final pc_chunk_size. If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>str</td>
+<td></td>
+<td>index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>str</td>
+<td></td>
+<td>index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td>idx</td>
+<td>str</td>
+<td></td>
+<td>output, index of the union point cloud</td>
+</tr>
+<tr class="even">
+<td>pc1</td>
+<td>str | list</td>
+<td>None</td>
+<td>path (in string) or list of path for the first point cloud data</td>
+</tr>
+<tr class="odd">
+<td>pc2</td>
+<td>str | list</td>
+<td>None</td>
+<td>path (in string) or list of path for the second point cloud data</td>
+</tr>
+<tr class="even">
+<td>pc</td>
+<td>str | list</td>
+<td>None</td>
+<td>output, path (in string) or list of path for the union point cloud data</td>
+</tr>
+<tr class="odd">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>chunk size in output data,optional</td>
+</tr>
+<tr class="even">
+<td>n_pc_chunk</td>
+<td>int</td>
+<td>None</td>
+<td>number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.</td>
+</tr>
+<tr class="odd">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> np.random.rand(<span class="dv">800</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">800</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">1000</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>idx1.sort()</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.stack(np.unravel_index(idx1,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">800</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>idx2.sort()</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.stack(np.unravel_index(idx2,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>idx, inv_iidx1, inv_iidx2, iidx2 <span class="op">=</span> pc_union(idx1,idx2)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>pc_data <span class="op">=</span> np.empty((idx.shape[<span class="dv">1</span>],<span class="op">*</span>pc_data1.shape[<span class="dv">1</span>:]),dtype<span class="op">=</span>pc_data1.dtype)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>pc_data[inv_iidx1] <span class="op">=</span> pc_data1</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>pc_data[inv_iidx2] <span class="op">=</span> pc_data2[iidx2]</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>idx1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx1.shape,dtype<span class="op">=</span>idx1.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>idx2_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx2.shape,dtype<span class="op">=</span>idx2.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>pc1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data1.shape,dtype<span class="op">=</span>pc_data1.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>pc2_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data2.shape,dtype<span class="op">=</span>pc_data2.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>idx1_zarr[:] <span class="op">=</span> idx1</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>idx2_zarr[:] <span class="op">=</span> idx2</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>pc1_zarr[:] <span class="op">=</span> pc_data1</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>pc2_zarr[:] <span class="op">=</span> pc_data2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>de_pc_union(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'pc/idx2.zarr'</span>,<span class="st">'pc/idx.zarr'</span>,<span class="st">'pc/pc1.zarr'</span>,<span class="st">'pc/pc2.zarr'</span>,<span class="st">'pc/pc.zarr'</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>idx_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>pc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(idx_zarr[:],idx)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_zarr[:],pc_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-14 22:43:06 - de_pc_union - INFO - fetching args:
+2023-10-14 22:43:06 - de_pc_union - INFO - idx1 = 'pc/idx1.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - idx2 = 'pc/idx2.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - pc1 = 'pc/pc1.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - pc2 = 'pc/pc2.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - pc = 'pc/pc.zarr'
+2023-10-14 22:43:06 - de_pc_union - INFO - pc_chunk_size = None
+2023-10-14 22:43:06 - de_pc_union - INFO - n_pc_chunk = None
+2023-10-14 22:43:06 - de_pc_union - INFO - log = None
+2023-10-14 22:43:06 - de_pc_union - INFO - fetching args done.
+2023-10-14 22:43:06 - de_pc_union - INFO - idx1 zarray shape: (2, 1000)
+2023-10-14 22:43:06 - de_pc_union - INFO - idx1 zarray chunks: (2, 200)
+2023-10-14 22:43:06 - de_pc_union - INFO - idx1 zarray dtype: int32
+2023-10-14 22:43:06 - de_pc_union - INFO - idx2 zarray shape: (2, 800)
+2023-10-14 22:43:06 - de_pc_union - INFO - idx2 zarray chunks: (2, 200)
+2023-10-14 22:43:06 - de_pc_union - INFO - idx2 zarray dtype: int32
+2023-10-14 22:43:06 - de_pc_union - INFO - loading idx1 and idx2 into memory.
+2023-10-14 22:43:06 - de_pc_union - INFO - calculate the union
+2023-10-14 22:43:06 - de_pc_union - INFO - number of points in the union: 1727
+2023-10-14 22:43:06 - de_pc_union - INFO - use n_pc_chunk from the idx1
+2023-10-14 22:43:06 - de_pc_union - INFO - got n_pc_chunk: 5
+2023-10-14 22:43:06 - de_pc_union - INFO - automatically determine pc_chunk_size from n_pc and n_pc_chunk
+2023-10-14 22:43:06 - de_pc_union - INFO - pc_chunk_size: 346
+2023-10-14 22:43:06 - de_pc_union - INFO - write union idx
+2023-10-14 22:43:06 - de_pc_union - INFO - write done
+2023-10-14 22:43:06 - de_pc_union - INFO - pc/idx.zarr zarray shape: (2, 1727)
+2023-10-14 22:43:06 - de_pc_union - INFO - pc/idx.zarr zarray chunks: (2, 346)
+2023-10-14 22:43:06 - de_pc_union - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:43:06 - de_pc_union - INFO - starting dask local cluster.
+2023-10-14 22:43:07 - de_pc_union - INFO - dask local cluster started.
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc1.zarr zarray shape: (1000, 3)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc1.zarr zarray chunks: (200, 1)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc1.zarr zarray dtype: complex64
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc2.zarr zarray shape: (800, 3)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc2.zarr zarray chunks: (200, 1)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc/pc2.zarr zarray dtype: complex64
+2023-10-14 22:43:07 - de_pc_union - INFO - pc1 dask array shape: (1000, 3)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc1 dask array chunksize: (200, 1)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc1 dask array dtype: complex64
+2023-10-14 22:43:07 - de_pc_union - INFO - pc2 dask array shape: (800, 3)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc2 dask array chunksize: (200, 1)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc2 dask array dtype: complex64
+2023-10-14 22:43:07 - de_pc_union - INFO - set up union pc data dask array.
+2023-10-14 22:43:07 - de_pc_union - INFO - pc dask array shape: (1727, 3)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc dask array chunksize: (346, 1)
+2023-10-14 22:43:07 - de_pc_union - INFO - pc dask array dtype: complex64
+2023-10-14 22:43:07 - de_pc_union - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:43:08 - de_pc_union - INFO - computing finished.
+2023-10-14 22:43:09 - de_pc_union - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pc.py#L304" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_pc_intersect" class="level3">
+<h3 class="anchored" data-anchor-id="de_pc_intersect">de_pc_intersect</h3>
+<blockquote class="blockquote">
+<pre><code> de_pc_intersect (idx1:str, idx2:str, idx:str, pc1:str|list=None,
+                  pc2:str|list=None, pc:str|list=None,
+                  pc_chunk_size:int=None, n_pc_chunk:int=None,
+                  prefer_1=True, log:str=None)</code></pre>
+</blockquote>
+<p>Get the intersection of two point cloud dataset. <code>pc_chunk_size</code> and <code>n_pc_chunk</code> are used to determine the final pc_chunk_size. If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>str</td>
+<td></td>
+<td>index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>str</td>
+<td></td>
+<td>index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td>idx</td>
+<td>str</td>
+<td></td>
+<td>output, index of the union point cloud</td>
+</tr>
+<tr class="even">
+<td>pc1</td>
+<td>str | list</td>
+<td>None</td>
+<td>path (in string) or list of path for the first point cloud data</td>
+</tr>
+<tr class="odd">
+<td>pc2</td>
+<td>str | list</td>
+<td>None</td>
+<td>path (in string) or list of path for the second point cloud data</td>
+</tr>
+<tr class="even">
+<td>pc</td>
+<td>str | list</td>
+<td>None</td>
+<td>output, path (in string) or list of path for the union point cloud data</td>
+</tr>
+<tr class="odd">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>chunk size in output data,optional</td>
+</tr>
+<tr class="even">
+<td>n_pc_chunk</td>
+<td>int</td>
+<td>None</td>
+<td>number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.</td>
+</tr>
+<tr class="odd">
+<td>prefer_1</td>
+<td>bool</td>
+<td>True</td>
+<td>save pc1 on intersection to output pc dataset by default <code>True</code>. Otherwise, save data from pc2</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> np.random.rand(<span class="dv">800</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">800</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">1000</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>idx1.sort()</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.stack(np.unravel_index(idx1,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">800</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>idx2.sort()</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.stack(np.unravel_index(idx2,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>idx, iidx1, iidx2 <span class="op">=</span> pc_intersect(idx1,idx2)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>pc_data <span class="op">=</span> np.empty((idx.shape[<span class="dv">1</span>],<span class="op">*</span>pc_data1.shape[<span class="dv">1</span>:]),dtype<span class="op">=</span>pc_data1.dtype)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>pc_data[:] <span class="op">=</span> pc_data2[iidx2]</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>idx1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx1.shape,dtype<span class="op">=</span>idx1.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>idx2_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx2.shape,dtype<span class="op">=</span>idx2.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>pc1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data1.shape,dtype<span class="op">=</span>pc_data1.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>pc2_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data2.shape,dtype<span class="op">=</span>pc_data2.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>idx1_zarr[:] <span class="op">=</span> idx1</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>idx2_zarr[:] <span class="op">=</span> idx2</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>pc1_zarr[:] <span class="op">=</span> pc_data1</span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>pc2_zarr[:] <span class="op">=</span> pc_data2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'pc/idx2.zarr'</span>,<span class="st">'pc/idx.zarr'</span>,pc2<span class="op">=</span><span class="st">'pc/pc2.zarr'</span>, pc<span class="op">=</span><span class="st">'pc/pc.zarr'</span>,prefer_1<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>idx_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>pc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(idx_zarr[:],idx)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_zarr[:],pc_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-14 22:43:09 - de_pc_intersect - INFO - fetching args:
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx1 = 'pc/idx1.zarr'
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx2 = 'pc/idx2.zarr'
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc1 = None
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc2 = 'pc/pc2.zarr'
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc = 'pc/pc.zarr'
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc_chunk_size = None
+2023-10-14 22:43:09 - de_pc_intersect - INFO - n_pc_chunk = None
+2023-10-14 22:43:09 - de_pc_intersect - INFO - prefer_1 = False
+2023-10-14 22:43:09 - de_pc_intersect - INFO - log = None
+2023-10-14 22:43:09 - de_pc_intersect - INFO - fetching args done.
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx1 zarray shape: (2, 1000)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx1 zarray chunks: (2, 200)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx1 zarray dtype: int32
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx2 zarray shape: (2, 800)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx2 zarray chunks: (2, 200)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - idx2 zarray dtype: int32
+2023-10-14 22:43:09 - de_pc_intersect - INFO - loading idx1 and idx2 into memory.
+2023-10-14 22:43:09 - de_pc_intersect - INFO - calculate the intersection
+2023-10-14 22:43:09 - de_pc_intersect - INFO - number of points in the intersection: 71
+2023-10-14 22:43:09 - de_pc_intersect - INFO - use n_pc_chunk from the idx1
+2023-10-14 22:43:09 - de_pc_intersect - INFO - got n_pc_chunk: 5
+2023-10-14 22:43:09 - de_pc_intersect - INFO - automatically determine pc_chunk_size from n_pc and n_pc_chunk
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc_chunk_size: 15
+2023-10-14 22:43:09 - de_pc_intersect - INFO - write intersect idx
+2023-10-14 22:43:09 - de_pc_intersect - INFO - write done
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc/idx.zarr zarray shape: (2, 71)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc/idx.zarr zarray chunks: (2, 15)
+2023-10-14 22:43:09 - de_pc_intersect - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:43:09 - de_pc_intersect - INFO - select pc2 as pc_input.
+2023-10-14 22:43:09 - de_pc_intersect - INFO - starting dask local cluster.
+2023-10-14 22:43:11 - de_pc_intersect - INFO - dask local cluster started.
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc/pc2.zarr zarray shape: (800, 3)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc/pc2.zarr zarray chunks: (200, 1)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc/pc2.zarr zarray dtype: complex64
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc_input dask array shape: (800, 3)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc_input dask array chunksize: (200, 1)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc_input dask array dtype: complex64
+2023-10-14 22:43:11 - de_pc_intersect - INFO - set up intersect pc data dask array.
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc dask array shape: (71, 3)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc dask array chunksize: (15, 1)
+2023-10-14 22:43:11 - de_pc_intersect - INFO - pc dask array dtype: complex64
+2023-10-14 22:43:11 - de_pc_intersect - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:43:12 - de_pc_intersect - INFO - computing finished.
+2023-10-14 22:43:12 - de_pc_intersect - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pc.py#L383" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_pc_diff" class="level3">
+<h3 class="anchored" data-anchor-id="de_pc_diff">de_pc_diff</h3>
+<blockquote class="blockquote">
+<pre><code> de_pc_diff (idx1:str, idx2:str, idx:str, pc1:str|list=None,
+             pc:str|list=None, pc_chunk_size:int=None,
+             n_pc_chunk:int=None, log:str=None)</code></pre>
+</blockquote>
+<p>Get the point cloud in <code>idx1</code> that are not in <code>idx2</code>. <code>pc_chunk_size</code> and <code>n_pc_chunk</code> are used to determine the final pc_chunk_size. If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>str</td>
+<td></td>
+<td>index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>str</td>
+<td></td>
+<td>index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td>idx</td>
+<td>str</td>
+<td></td>
+<td>output, index of the union point cloud</td>
+</tr>
+<tr class="even">
+<td>pc1</td>
+<td>str | list</td>
+<td>None</td>
+<td>path (in string) or list of path for the first point cloud data</td>
+</tr>
+<tr class="odd">
+<td>pc</td>
+<td>str | list</td>
+<td>None</td>
+<td>output, path (in string) or list of path for the union point cloud data</td>
+</tr>
+<tr class="even">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>chunk size in output data,optional</td>
+</tr>
+<tr class="odd">
+<td>n_pc_chunk</td>
+<td>int</td>
+<td>None</td>
+<td>number of chunk in output data, optional, only one chunk if both pc_chunk_size and n_pc_chunk are not set.</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log file. Default: no log file</td>
+</tr>
+</tbody>
+</table>
+<p>Usage:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)<span class="op">+</span><span class="ot">1j</span><span class="op">*</span>np.random.rand(<span class="dv">1000</span>,<span class="dv">3</span>).astype(np.float32)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">1000</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>idx1.sort()</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> np.stack(np.unravel_index(idx1,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.random.choice(np.arange(<span class="dv">100</span><span class="op">*</span><span class="dv">100</span>,dtype<span class="op">=</span>np.int32),size<span class="op">=</span><span class="dv">800</span>,replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>idx2.sort()</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> np.stack(np.unravel_index(idx2,shape<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">100</span>))).astype(np.int32)</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>idx, iidx1 <span class="op">=</span> pc_diff(idx1,idx2)</span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>pc_data <span class="op">=</span> np.empty((idx.shape[<span class="dv">1</span>],<span class="op">*</span>pc_data1.shape[<span class="dv">1</span>:]),dtype<span class="op">=</span>pc_data1.dtype)</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>pc_data[:] <span class="op">=</span> pc_data1[iidx1]</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>idx1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx1.shape,dtype<span class="op">=</span>idx1.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>idx2_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx2.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>idx2.shape,dtype<span class="op">=</span>idx2.dtype,chunks<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">200</span>))</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>pc1_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc1.zarr'</span>,<span class="st">'w'</span>,shape<span class="op">=</span>pc_data1.shape,dtype<span class="op">=</span>pc_data1.dtype,chunks<span class="op">=</span>(<span class="dv">200</span>,<span class="dv">1</span>))</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>idx1_zarr[:] <span class="op">=</span> idx1</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>idx2_zarr[:] <span class="op">=</span> idx2</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>pc1_zarr[:] <span class="op">=</span> pc_data1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>de_pc_diff(<span class="st">'pc/idx1.zarr'</span>,<span class="st">'pc/idx2.zarr'</span>,<span class="st">'pc/idx.zarr'</span>,pc1<span class="op">=</span><span class="st">'pc/pc1.zarr'</span>, pc<span class="op">=</span><span class="st">'pc/pc.zarr'</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>idx_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/idx.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>pc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'pc/pc.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(idx_zarr[:],idx)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_equal(pc_zarr[:],pc_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-14 22:43:12 - de_pc_diff - INFO - fetching args:
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx1 = 'pc/idx1.zarr'
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx2 = 'pc/idx2.zarr'
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx = 'pc/idx.zarr'
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc1 = 'pc/pc1.zarr'
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc = 'pc/pc.zarr'
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc_chunk_size = None
+2023-10-14 22:43:12 - de_pc_diff - INFO - n_pc_chunk = None
+2023-10-14 22:43:12 - de_pc_diff - INFO - log = None
+2023-10-14 22:43:12 - de_pc_diff - INFO - fetching args done.
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx1 zarray shape: (2, 1000)
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx1 zarray chunks: (2, 200)
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx1 zarray dtype: int32
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx2 zarray shape: (2, 800)
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx2 zarray chunks: (2, 200)
+2023-10-14 22:43:12 - de_pc_diff - INFO - idx2 zarray dtype: int32
+2023-10-14 22:43:12 - de_pc_diff - INFO - loading idx1 and idx2 into memory.
+2023-10-14 22:43:12 - de_pc_diff - INFO - calculate the diff.
+2023-10-14 22:43:12 - de_pc_diff - INFO - number of points in the diff: 914
+2023-10-14 22:43:12 - de_pc_diff - INFO - use n_pc_chunk from the idx1
+2023-10-14 22:43:12 - de_pc_diff - INFO - got n_pc_chunk: 5
+2023-10-14 22:43:12 - de_pc_diff - INFO - automatically determine pc_chunk_size from n_pc and n_pc_chunk
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc_chunk_size: 183
+2023-10-14 22:43:12 - de_pc_diff - INFO - write intersect idx
+2023-10-14 22:43:12 - de_pc_diff - INFO - write done
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc/idx.zarr zarray shape: (2, 914)
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc/idx.zarr zarray chunks: (2, 183)
+2023-10-14 22:43:12 - de_pc_diff - INFO - pc/idx.zarr zarray dtype: int32
+2023-10-14 22:43:12 - de_pc_diff - INFO - starting dask local cluster.
+2023-10-14 22:43:14 - de_pc_diff - INFO - dask local cluster started.
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc/pc1.zarr zarray shape: (1000, 3)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc/pc1.zarr zarray chunks: (200, 1)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc/pc1.zarr zarray dtype: complex64
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc1 dask array shape: (1000, 3)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc1 dask array chunksize: (200, 1)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc1 dask array dtype: complex64
+2023-10-14 22:43:14 - de_pc_diff - INFO - set up diff pc data dask array.
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc dask array shape: (914, 3)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc dask array chunksize: (183, 1)
+2023-10-14 22:43:14 - de_pc_diff - INFO - pc dask array dtype: complex64
+2023-10-14 22:43:14 - de_pc_diff - INFO - computing graph setted. doing all the computing.
+2023-10-14 22:43:15 - de_pc_diff - INFO - computing finished.
+2023-10-14 22:43:15 - de_pc_diff - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

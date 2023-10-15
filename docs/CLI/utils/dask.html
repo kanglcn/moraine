@@ -97,7 +97,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../CLI/load.html">CLI</a></li><li class="breadcrumb-item"><a href="../../CLI/utils/logging.html">utils</a></li><li class="breadcrumb-item"><a href="../../CLI/utils/dask.html">dask</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">dask</li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -112,7 +112,7 @@ ul.task-list li input[type="checkbox"] {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">decorrelation</span></a>
+ <span class="menu-text">Decorrelation</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -142,11 +142,8 @@ ul.task-list li input[type="checkbox"] {
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../API/pt.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">pt</span></a>
-  </div>
-</li>
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -206,40 +203,17 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">pl</span></a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
- <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 show">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../../CLI/utils/dask.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">dask</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -277,6 +251,8 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#pad_internal" id="toc-pad_internal" class="nav-link active" data-scroll-target="#pad_internal">pad_internal</a></li>
+  <li><a href="#get_cuda_cluster" id="toc-get_cuda_cluster" class="nav-link" data-scroll-target="#get_cuda_cluster">get_cuda_cluster</a></li>
+  <li><a href="#get_pc_chunk_size" id="toc-get_pc_chunk_size" class="nav-link" data-scroll-target="#get_pc_chunk_size">get_pc_chunk_size</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -307,13 +283,31 @@ ul.task-list li input[type="checkbox"] {
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L31" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L34" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="pad_internal" class="level3">
 <h3 class="anchored" data-anchor-id="pad_internal">pad_internal</h3>
 <blockquote class="blockquote">
 <pre><code> pad_internal (arr:&lt;function array&gt;, depth:dict=None)</code></pre>
 </blockquote>
 <p>Pad zero between block boundaries, currently one pad zero are supported</p>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L66" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="get_cuda_cluster" class="level3">
+<h3 class="anchored" data-anchor-id="get_cuda_cluster">get_cuda_cluster</h3>
+<blockquote class="blockquote">
+<pre><code> get_cuda_cluster ()</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L83" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="get_pc_chunk_size" class="level3">
+<h3 class="anchored" data-anchor-id="get_pc_chunk_size">get_pc_chunk_size</h3>
+<blockquote class="blockquote">
+<pre><code> get_pc_chunk_size (az_chunk_size, pc_size, pc_chunk_size=None,
+                    n_pc_chunk=None, logger=None)</code></pre>
+</blockquote>
+<p>automatically determine pc_chunk_size, n_pc_chunk.</p>
 
 
 </section>

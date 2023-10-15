@@ -6,9 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="Point target manipulation">
+<meta name="description" content="Point Cloud data manipulation">
 
-<title>decorrelation - pt</title>
+<title>decorrelation - pc</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -131,7 +131,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/pt.html">API</a></li><li class="breadcrumb-item"><a href="../API/pt.html">pt</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">pc</li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -146,7 +146,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">decorrelation</span></a>
+ <span class="menu-text">Decorrelation</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -176,11 +176,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../API/pt.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">pt</span></a>
-  </div>
-</li>
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -240,40 +237,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">pl</span></a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
- <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">dask</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -310,11 +284,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#pt2raster" id="toc-pt2raster" class="nav-link active" data-scroll-target="#pt2raster">pt2raster</a></li>
-  <li><a href="#diff" id="toc-diff" class="nav-link" data-scroll-target="#diff">diff</a></li>
-  <li><a href="#diff-1" id="toc-diff-1" class="nav-link" data-scroll-target="#diff-1">diff</a></li>
-  <li><a href="#diff-2" id="toc-diff-2" class="nav-link" data-scroll-target="#diff-2">diff</a></li>
-  <li><a href="#diff-3" id="toc-diff-3" class="nav-link" data-scroll-target="#diff-3">diff</a></li>
+  <li><a href="#pc2ras" id="toc-pc2ras" class="nav-link active" data-scroll-target="#pc2ras">pc2ras</a></li>
+  <li><a href="#pc_union" id="toc-pc_union" class="nav-link" data-scroll-target="#pc_union">pc_union</a></li>
+  <li><a href="#pc_intersect" id="toc-pc_intersect" class="nav-link" data-scroll-target="#pc_intersect">pc_intersect</a></li>
+  <li><a href="#pc_diff" id="toc-pc_diff" class="nav-link" data-scroll-target="#pc_diff">pc_diff</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -323,12 +296,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">pt</h1>
+<h1 class="title">pc</h1>
 </div>
 
 <div>
   <div class="description">
-    Point target manipulation
+    Point Cloud data manipulation
   </div>
 </div>
 
@@ -344,30 +317,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> raster2pt():</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
+<p>The indices of point cloud data <code>idx</code> is expressed as sorted <code>int32</code> array with shape <code>(2, n_point)</code>.</p>
+<p><code>idx[0,:]</code> is their azimuth indices and <code>idx[1,:]</code> is the range indices.</p>
+<p><code>idx</code> is first sorted in azimuth indices and then sorted in range indices.</p>
+<p>Here is an example:</p>
+<pre><code>array([[0, 0, 1, 1, 2, 3],
+       [2, 3, 0, 3, 1, 2]], dtype=int32)</code></pre>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pt.py#L12" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="pt2raster" class="level3">
-<h3 class="anchored" data-anchor-id="pt2raster">pt2raster</h3>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pc.py#L13" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pc2ras" class="level3">
+<h3 class="anchored" data-anchor-id="pc2ras">pc2ras</h3>
 <blockquote class="blockquote">
-<pre><code> pt2raster (point_data:Union[numpy._typing._array_like._SupportsArray[nump
-            y.dtype],numpy._typing._nested_sequence._NestedSequence[numpy.
-            _typing._array_like._SupportsArray[numpy.dtype]],bool,int,floa
-            t,complex,str,bytes,numpy._typing._nested_sequence._NestedSequ
-            ence[Union[bool,int,float,complex,str,bytes]]], is_pt:Union[nu
-            mpy._typing._array_like._SupportsArray[numpy.dtype],numpy._typ
-            ing._nested_sequence._NestedSequence[numpy._typing._array_like
-            ._SupportsArray[numpy.dtype]],bool,int,float,complex,str,bytes
-            ,numpy._typing._nested_sequence._NestedSequence[Union[bool,int
-            ,float,complex,str,bytes]]]=None, shape:tuple=None, idx:Union[
-            numpy._typing._array_like._SupportsArray[numpy.dtype],numpy._t
-            yping._nested_sequence._NestedSequence[numpy._typing._array_li
-            ke._SupportsArray[numpy.dtype]],bool,int,float,complex,str,byt
-            es,numpy._typing._nested_sequence._NestedSequence[Union[bool,i
-            nt,float,complex,str,bytes]]]=None)</code></pre>
+<pre><code> pc2ras (idx:Union[numpy.ndarray,cupy.ndarray],
+         pc_data:Union[numpy.ndarray,cupy.ndarray], shape:tuple)</code></pre>
 </blockquote>
 <p>convert sparse data to raster, filled with nan</p>
 <table class="table">
@@ -375,53 +337,209 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <tr class="header">
 <th></th>
 <th><strong>Type</strong></th>
-<th><strong>Default</strong></th>
 <th><strong>Details</strong></th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>point_data</td>
+<td>idx</td>
 <td>Union</td>
-<td></td>
-<td>data, 1D or more</td>
+<td>idx array</td>
 </tr>
 <tr class="even">
-<td>is_pt</td>
+<td>pc_data</td>
 <td>Union</td>
-<td>None</td>
-<td>bool array index</td>
+<td>data, 1D or more</td>
 </tr>
 <tr class="odd">
 <td>shape</td>
 <td>tuple</td>
-<td>None</td>
 <td>image shape</td>
-</tr>
-<tr class="even">
-<td>idx</td>
-<td>Union</td>
-<td>None</td>
-<td>idx array</td>
 </tr>
 </tbody>
 </table>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pc.py#L35" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="diff" class="level2">
-<h2 class="anchored" data-anchor-id="diff">diff</h2>
+<section id="pc_union" class="level3">
+<h3 class="anchored" data-anchor-id="pc_union">pc_union</h3>
+<blockquote class="blockquote">
+<pre><code> pc_union (idx1:Union[numpy.ndarray,cupy.ndarray],
+           idx2:Union[numpy.ndarray,cupy.ndarray])</code></pre>
+</blockquote>
+<p>Get the union of two point cloud dataset. For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>Union</td>
+<td>int array, index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>Union</td>
+<td>int array, index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td><strong>the union index <code>idx</code>; index of the point in output union index that originally in the first point cloud <code>inv_iidx</code>; index of the point in output union index that only exist in the second point cloud <code>inv_iidx2</code>; index of the point in the second input index that are not in the first input point cloud</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Usage:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> diff():</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>ras <span class="op">=</span> cp.array([[<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">8</span>,<span class="dv">3</span>],</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">4</span>,<span class="dv">7</span>,<span class="dv">2</span>,<span class="dv">6</span>],</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">9</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">7</span>],</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">2</span>,<span class="dv">6</span>]])</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">2</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">1</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> cp.array([<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">5</span>,<span class="dv">4</span>,<span class="dv">32</span>,<span class="dv">2</span>])</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> cp.array([<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">4</span>])</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>idx, inv_iidx1, inv_iidx2, iidx2 <span class="op">=</span> pc_union(idx1,idx2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>With all the returns in <a href="https://kanglcn.github.io/decorrelation/API/pc.html#pc_union"><code>pc_union</code></a>, it is very easy to construct the union data:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>pc_data <span class="op">=</span> cp.empty((idx.shape[<span class="dv">1</span>],<span class="op">*</span>pc_data1.shape[<span class="dv">1</span>:]),dtype<span class="op">=</span>pc_data1.dtype)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pc_data[inv_iidx1] <span class="op">=</span> pc_data1</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>pc_data[inv_iidx2] <span class="op">=</span> pc_data2[iidx2]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(pc_data),np.array([<span class="dv">3</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">4</span>,<span class="dv">32</span>,<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">2</span>]))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(ras[idx[<span class="dv">0</span>],idx[<span class="dv">1</span>]]),np.array([<span class="dv">4</span>,<span class="dv">8</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">7</span>,<span class="dv">6</span>,<span class="dv">0</span>,<span class="dv">7</span>,<span class="dv">4</span>,<span class="dv">2</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pc.py#L75" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="diff-1" class="level2">
-<h2 class="anchored" data-anchor-id="diff-1">diff</h2>
+<section id="pc_intersect" class="level3">
+<h3 class="anchored" data-anchor-id="pc_intersect">pc_intersect</h3>
+<blockquote class="blockquote">
+<pre><code> pc_intersect (idx1:Union[numpy.ndarray,cupy.ndarray],
+               idx2:Union[numpy.ndarray,cupy.ndarray])</code></pre>
+</blockquote>
+<p>Get the intersection of two point cloud dataset.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>Union</td>
+<td>int array, index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>Union</td>
+<td>int array, index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td><strong>the intersect index <code>idx</code>,<br>index of the point in first point cloud index that also exist in the second point cloud,<br>index of the point in second point cloud index that also exist in the first point cloud</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ras <span class="op">=</span> cp.array([[<span class="dv">4</span>,<span class="dv">3</span>,<span class="dv">8</span>,<span class="dv">3</span>],</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">4</span>,<span class="dv">7</span>,<span class="dv">2</span>,<span class="dv">6</span>],</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">9</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">7</span>],</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                [<span class="dv">1</span>,<span class="dv">4</span>,<span class="dv">2</span>,<span class="dv">6</span>]])</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">2</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">1</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>pc_data1 <span class="op">=</span> cp.array([<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">5</span>,<span class="dv">4</span>,<span class="dv">32</span>,<span class="dv">2</span>])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>pc_data2 <span class="op">=</span> cp.array([<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">2</span>,<span class="dv">1</span>,<span class="dv">4</span>])</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>idx, iidx1, iidx2 <span class="op">=</span> pc_intersect(idx1,idx2)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>pc_data_int1 <span class="op">=</span> pc_data1[iidx1]</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>pc_data_int2 <span class="op">=</span> pc_data2[iidx2]</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(idx),np.array([[<span class="dv">0</span>,<span class="dv">2</span>],</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                                                  [<span class="dv">3</span>,<span class="dv">1</span>]]))</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(ras[(idx[<span class="dv">0</span>],idx[<span class="dv">1</span>])]),np.array([<span class="dv">3</span>,<span class="dv">0</span>]))</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(pc_data_int1),np.array([<span class="dv">2</span>,<span class="dv">32</span>]))</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(pc_data_int2),np.array([<span class="dv">5</span>,<span class="dv">2</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pc.py#L96" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="diff-2" class="level2">
-<h2 class="anchored" data-anchor-id="diff-2">diff</h2>
-</section>
-<section id="diff-3" class="level2">
-<h2 class="anchored" data-anchor-id="diff-3">diff</h2>
+<section id="pc_diff" class="level3">
+<h3 class="anchored" data-anchor-id="pc_diff">pc_diff</h3>
+<blockquote class="blockquote">
+<pre><code> pc_diff (idx1:Union[numpy.ndarray,cupy.ndarray],
+          idx2:Union[numpy.ndarray,cupy.ndarray])</code></pre>
+</blockquote>
+<p>Get the point cloud in <code>idx1</code> that are not in <code>idx2</code>.</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>idx1</td>
+<td>Union</td>
+<td>int array, index of the first point cloud</td>
+</tr>
+<tr class="even">
+<td>idx2</td>
+<td>Union</td>
+<td>int array, index of the second point cloud</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>tuple</strong></td>
+<td><strong>the diff index <code>idx</code>,<br>index of the point in first point cloud index that do not exist in the second point cloud,</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>idx1 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">2</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>idx2 <span class="op">=</span> cp.array([[<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">3</span>],</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                 [<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">1</span>]],dtype<span class="op">=</span>np.int32)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>idx, iidx1 <span class="op">=</span> pc_diff(idx1,idx2)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>pc_data_diff <span class="op">=</span> pc_data1[iidx1]</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(idx),np.array([[<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">1</span>,<span class="dv">3</span>],</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                                                  [<span class="dv">2</span>,<span class="dv">0</span>,<span class="dv">3</span>,<span class="dv">2</span>]]))</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>np.testing.assert_equal(cp.asnumpy(iidx1),np.array([<span class="dv">0</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">5</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 
 
 </section>

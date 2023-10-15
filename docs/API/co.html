@@ -152,7 +152,7 @@ div.csl-indent {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/pt.html">API</a></li><li class="breadcrumb-item"><a href="../API/co.html">co</a></li></ol></nav>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">API</li><li class="breadcrumb-item"><a href="../API/co.html">co</a></li></ol></nav>
       <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
       </a>
     </div>
@@ -167,7 +167,7 @@ div.csl-indent {
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">decorrelation</span></a>
+ <span class="menu-text">Decorrelation</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
@@ -197,11 +197,8 @@ div.csl-indent {
       </div>
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../API/pt.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">pt</span></a>
-  </div>
-</li>
+ <span class="menu-text">API/pt.ipynb</span>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/shp.html" class="sidebar-item-text sidebar-link">
@@ -261,40 +258,17 @@ div.csl-indent {
  <span class="menu-text">pl</span></a>
   </div>
 </li>
-          <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false">
- <span class="menu-text">utils</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="false" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth2 ">  
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/logging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">logging</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../CLI/utils/dask.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">dask</span></a>
-  </div>
-</li>
-      </ul>
-  </li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
  <span class="menu-text">Tutorials</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -334,7 +308,7 @@ div.csl-indent {
   <li><a href="#covariance-and-coherence-matrix-estimator" id="toc-covariance-and-coherence-matrix-estimator" class="nav-link active" data-scroll-target="#covariance-and-coherence-matrix-estimator">Covariance and Coherence Matrix Estimator</a>
   <ul>
   <li><a href="#emperical_co" id="toc-emperical_co" class="nav-link" data-scroll-target="#emperical_co">emperical_co</a></li>
-  <li><a href="#emperical_co_sp" id="toc-emperical_co_sp" class="nav-link" data-scroll-target="#emperical_co_sp">emperical_co_sp</a></li>
+  <li><a href="#emperical_co_pc" id="toc-emperical_co_pc" class="nav-link" data-scroll-target="#emperical_co_pc">emperical_co_pc</a></li>
   </ul></li>
   <li><a href="#covariance-and-coherence-matrix-regularizer" id="toc-covariance-and-coherence-matrix-regularizer" class="nav-link" data-scroll-target="#covariance-and-coherence-matrix-regularizer">Covariance and Coherence Matrix Regularizer</a>
   <ul>
@@ -489,11 +463,11 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L144" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
-<section id="emperical_co_sp" class="level3">
-<h3 class="anchored" data-anchor-id="emperical_co_sp">emperical_co_sp</h3>
+<section id="emperical_co_pc" class="level3">
+<h3 class="anchored" data-anchor-id="emperical_co_pc">emperical_co_pc</h3>
 <blockquote class="blockquote">
-<pre><code> emperical_co_sp (rslc:cupy.ndarray, sp_idx:cupy.ndarray,
-                  is_shp_sp:cupy.ndarray, block_size:int=128)</code></pre>
+<pre><code> emperical_co_pc (rslc:cupy.ndarray, idx:cupy.ndarray,
+                  pc_is_shp:cupy.ndarray, block_size:int=128)</code></pre>
 </blockquote>
 <p>Maximum likelihood covariance estimator for sparse data.</p>
 <table class="table">
@@ -519,13 +493,13 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <td>rslc stack, dtype: <code>cupy.complexfloating</code></td>
 </tr>
 <tr class="even">
-<td>sp_idx</td>
+<td>idx</td>
 <td>ndarray</td>
 <td></td>
 <td>index of point target (azimuth_index, range_index), dtype: <code>cupy.int</code>, shape: (2,n_sp)</td>
 </tr>
 <tr class="odd">
-<td>is_shp_sp</td>
+<td>pc_is_shp</td>
 <td>ndarray</td>
 <td></td>
 <td>shp bool, dtype: <code>cupy.bool</code></td>
@@ -544,8 +518,8 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tr>
 </tbody>
 </table>
-<p><a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_sp"><code>emperical_co_sp</code></a> is the <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> on sparse data, e.g., DSs. <code>rslc</code> is same as <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>. <code>sp_idx</code> is the index, i.e., a tuple of (azimuth_idx, range_idx). Each index is 1D array. <code>is_shp_sp</code> is similar to <code>is_shp</code> in <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> but it only contains information about the sparse data. It is a 3D array with shape [number_of_point,az_win,r_win].</p>
-<p>Compared with <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>, <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_sp"><code>emperical_co_sp</code></a> only estimate coherence/covariance at specific position so the memory usage is much small.</p>
+<p><code>emperical_co_sp</code> is the <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> on sparse data, e.g., DSs. <code>rslc</code> is same as <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>. <code>sp_idx</code> is the index, i.e., a tuple of (azimuth_idx, range_idx). Each index is 1D array. <code>pc_is_shp</code> is similar to <code>is_shp</code> in <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> but it only contains information about the point cloud data. It is a 3D array with shape [number_of_point,az_win,r_win].</p>
+<p>Compared with <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>, <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_pc"><code>emperical_co_pc</code></a> only estimate coherence/covariance at specific position so the memory usage is much small.</p>
 <p>Example:</p>
 <div class="cell">
 <details>
@@ -598,7 +572,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 <p><code>rslc</code> is a stack of 17 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. <code>ds_can_idx</code> shows the index of the DS candidates and <code>ds_can_is_shp</code> shows the corrosponding SHPs.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds_can_cov, ds_can_coh <span class="op">=</span> emperical_co_sp(rslc,ds_can_idx,ds_can_is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds_can_cov, ds_can_coh <span class="op">=</span> emperical_co_pc(rslc,ds_can_idx,ds_can_is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
@@ -659,7 +633,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> is_shp[is_ds_can]</span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.where(is_ds_can)</span>
 <span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> emperical_co_sp(rslc,ds_can_idx,ds_can_is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> emperical_co_pc(rslc,ds_can_idx,ds_can_is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell">
