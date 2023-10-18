@@ -21,7 +21,8 @@ from dask_cuda import LocalCUDACluster
 
 from ..shp import ks_test
 from .utils.logging import get_logger, log_args
-from .utils.dask import get_cuda_cluster, get_pc_chunk_size
+from .utils.dask import get_cuda_cluster
+from .utils.chunk_size import get_pc_chunk_size_from_n_az_chunk
 from fastcore.script import call_parse
 
 # %% ../../nbs/CLI/shp.ipynb 4
@@ -192,7 +193,7 @@ def de_select_ds_can(pvalue:str, # input: pvalue of hypothetic test
     logger.darr_info('ds_can_idx',ds_can_idx)
     logger.darr_info('ds_can_is_shp',ds_can_is_shp)
     
-    pc_chunk_size = get_pc_chunk_size(az_chunk_size=az_chunk_size,pc_size=ds_can_idx.shape[1],n_pc_chunk=n_pc_chunk,pc_chunk_size=pc_chunk_size,logger=logger)
+    pc_chunk_size = get_pc_chunk_size_from_n_az_chunk('p_value','ds_can_idx', p.shape[0], az_chunk_size, ds_can_idx.shape[1], logger, n_pc_chunk=n_pc_chunk,pc_chunk_size=pc_chunk_size)
 
     logger.info(f'rechunk ds_can_idx and ds_can_is_shp:')
     ds_can_is_shp = ds_can_is_shp.rechunk((pc_chunk_size,*ds_can_is_shp.shape[1:]))

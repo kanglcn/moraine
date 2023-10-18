@@ -20,7 +20,8 @@ from dask_cuda import LocalCUDACluster
 
 from ..co import emperical_co_pc
 from .utils.logging import get_logger, log_args
-from .utils.dask import pad_internal, get_cuda_cluster, get_pc_chunk_size
+from .utils.dask import pad_internal, get_cuda_cluster
+from .utils.chunk_size import get_pc_chunk_size_from_n_az_chunk
 
 from fastcore.script import call_parse
 
@@ -138,7 +139,7 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
     logger.info(f'got coherence matrix.')
 
     # zarr do not support irregular chunk size
-    pc_chunk_size = get_pc_chunk_size(az_chunk_size,ds_can_coh.shape[0],pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk,logger=logger)
+    pc_chunk_size = get_pc_chunk_size_from_n_az_chunk('rslc','ds_can_coh',cpu_rslc.shape[0],az_chunk_size,ds_can_coh.shape[0],logger,pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk)
     cpu_ds_can_coh = cpu_ds_can_coh.rechunk((pc_chunk_size,nimage,nimage))
     logger.info('rechunking ds_can_coh to chunk size (for saving with zarr): '+str(cpu_ds_can_coh.chunksize))
 
