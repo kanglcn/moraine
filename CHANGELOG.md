@@ -2,6 +2,12 @@
 
 <!-- do not remove -->
 
+## 0.4.2
+
+Finish point cloud manipulation functions and commands
+
+Add utils for automatically determine chunk_size
+
 ## 0.4.1
 
 Fix a small deploy issue
