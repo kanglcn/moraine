@@ -95,7 +95,7 @@ def get_az_chunk_size_from_n_pc_chunk(pc_name, ras_name,
             logger.info(f'automatically determine az_chunk_size from nlines of {ras_name} and n_pc_chunk of {pc_name}')
             n_az_chunk = math.ceil(n_pc/pc_chunk_size)
             az_chunk_size = math.ceil(nlines/n_az_chunk)
-            logger.info(f'az_chunk_size for {az_name}: {az_chunk_size}')
+            logger.info(f'az_chunk_size for {ras_name}: {az_chunk_size}')
             return az_chunk_size
 
 # %% ../../../nbs/CLI/utils/chunk_size.ipynb 8
@@ -117,5 +117,5 @@ def get_az_chunk_size_from_az_chunk_size(in_ras_name, out_ras_name,
         else:
             logger.info(f'automatically determine az_chunk_size from az_chunk_size of {in_ras_name}')
             az_chunk_size = az_chunk_size_in
-            logger.info(f'az_chunk_size for {out_az_name}: {az_chunk_size}')
+            logger.info(f'az_chunk_size for {out_ras_name}: {az_chunk_size}')
             return az_chunk_size

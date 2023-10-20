@@ -3,39 +3,37 @@
 # %% auto 0
 __all__ = ['de_emperical_co_pc']
 
-# %% ../../nbs/CLI/co.ipynb 3
+# %% ../../nbs/CLI/co.ipynb 4
 import math
 
 import zarr
 import cupy as cp
 import numpy as np
-from matplotlib import pyplot as plt
-import colorcet
 
 import dask
 from dask import array as da
 from dask import delayed
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster, progress
 from dask_cuda import LocalCUDACluster
 
 from ..co import emperical_co_pc
 from .utils.logging import get_logger, log_args
-from .utils.dask import pad_internal, get_cuda_cluster
+from .utils.dask import pad_internal, get_cuda_cluster_arg
 from .utils.chunk_size import get_pc_chunk_size_from_n_az_chunk
 
 from fastcore.script import call_parse
 
-# %% ../../nbs/CLI/co.ipynb 4
+# %% ../../nbs/CLI/co.ipynb 5
 @call_parse
 @log_args
 def de_emperical_co_pc(rslc:str, # input: rslc stack
-                       ds_can_is_shp:str, # input: bool array indicating the SHPs of every pixel
-                       ds_can_idx:str, # input: bool array indicating DS candidate
-                       ds_can_coh:str, # output: complex coherence matrix for DS candidate
+                       is_shp:str, # input: bool array indicating the SHPs of pc
+                       idx:str, # input: bool array indicating pc
+                       coh:str, # output: complex coherence matrix for pc
+                       coh_ave:str, # output: average value of coherence matrix magnitude
                        az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack
                        n_pc_chunk:int=None, # number of point chunk, optional.
-                       pc_chunk_size:int=None, # chunk size of output zarr dataset, optional. Default: same as ds_can_is_shp
-                       ds_can_coh_ave_fig:str=None, # path to the plot of average coherence matrix of DS candidate, optional. Default: no plot
+                       pc_chunk_size:int=None, # chunk size of output zarr dataset, optional. Default: same as is_shp
                        log=None, # log file. Default: no log file
                        ):
     '''estimate emperical coherence matrix on point cloud data.
@@ -43,26 +41,27 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
     If all of them are not setted, the `n_pc_chunk` will be setted as the number of azimuth chunks.
     '''
     rslc_path = rslc
-    ds_can_is_shp_path = ds_can_is_shp
-    ds_can_idx_path = ds_can_idx
-    ds_can_coh_path = ds_can_coh
+    is_shp_path = is_shp
+    idx_path = idx
+    coh_path = coh
+    coh_ave_path = coh_ave
     logger = get_logger(logfile=log)
 
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path, rslc_zarr)
     assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
 
-    ds_can_is_shp_zarr = zarr.open(ds_can_is_shp_path,mode='r')
-    logger.zarr_info(ds_can_is_shp_path, ds_can_is_shp_zarr)
-    assert ds_can_is_shp_zarr.ndim == 3, "ds_can_is_shp dimentation is not 3."
+    is_shp_zarr = zarr.open(is_shp_path,mode='r')
+    logger.zarr_info(is_shp_path, is_shp_zarr)
+    assert is_shp_zarr.ndim == 3, "is_shp dimentation is not 3."
 
-    ds_can_idx_zarr = zarr.open(ds_can_idx_path,mode='r')
-    logger.zarr_info(ds_can_idx_path, ds_can_idx_zarr)
-    assert ds_can_idx_zarr.ndim == 2, "ds_can_idx dimentation is not 2."
-    logger.info('loading ds_can_idx into memory.')
-    ds_can_idx = zarr.open(ds_can_idx_path,mode='r')[:]
+    idx_zarr = zarr.open(idx_path,mode='r')
+    logger.zarr_info(idx_path, idx_zarr)
+    assert idx_zarr.ndim == 2, "idx dimentation is not 2."
+    logger.info('loading idx into memory.')
+    idx = zarr.open(idx_path,mode='r')[:]
 
-    az_win, r_win = ds_can_is_shp_zarr.shape[1:]
+    az_win, r_win = is_shp_zarr.shape[1:]
     az_half_win = int((az_win-1)/2)
     r_half_win = int((r_win-1)/2)
     logger.info(f'got azimuth window size and half azimuth window size from is_shp shape: {az_win}, {az_half_win}')
@@ -74,95 +73,89 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
     logger.info('parallel processing azimuth chunk size: '+str(az_chunk_size))
 
     logger.info('starting dask CUDA local cluster.')
-    cluster, client = get_cuda_cluster()
-    logger.info('dask local CUDA cluster started.')
+    with LocalCUDACluster(**get_cuda_cluster_arg()) as cluster, Client(cluster) as client:
+        logger.info('dask local CUDA cluster started.')
 
-    logger.info('create raster bool array is_ds_can from ds_can_idx')
-    np_is_ds_can = np.zeros(rslc_zarr.shape[:2],dtype=bool)
-    np_is_ds_can[(ds_can_idx[0],ds_can_idx[1])] = True
-    logger.info('create dask bool array is_ds_can')
-    cpu_is_ds_can = da.from_array(np_is_ds_can,chunks=(az_chunk_size,-1))
-    logger.darr_info('is_ds_can', cpu_is_ds_can)
-    
-    logger.info('Using azimuth chunk size as the processing chunk size.')
-    logger.info('Calculate point chunk size')
-    cpu_ds_can_idx = da.nonzero(cpu_is_ds_can)
-    idx_0 = cpu_ds_can_idx[0]
-    process_pc_chunk_size = idx_0.compute_chunk_sizes().chunks[0]
-    logger.info(f'Point chunk size: {process_pc_chunk_size}')
+        logger.info('create raster bool array is_pc from idx')
+        np_is_pc = np.zeros(rslc_zarr.shape[:2],dtype=bool)
+        np_is_pc[(idx[0],idx[1])] = True
+        logger.info('create dask bool array is_pc')
+        cpu_is_pc = da.from_array(np_is_pc,chunks=(az_chunk_size,-1))
+        logger.darr_info('is_pc', cpu_is_pc)
 
-    cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunk_size,*rslc_zarr.shape[1:]))
-    logger.darr_info('rslc', cpu_rslc)
+        logger.info('Using azimuth chunk size as the processing chunk size.')
+        logger.info('Calculate point chunk size')
+        cpu_idx = da.nonzero(cpu_is_pc)
+        idx_0 = cpu_idx[0]
+        process_pc_chunk_size = idx_0.compute_chunk_sizes().chunks[0]
+        logger.info(f'Point chunk size: {process_pc_chunk_size}')
 
-    cpu_ds_can_is_shp = da.from_zarr(ds_can_is_shp_path,chunks=(process_pc_chunk_size,*ds_can_is_shp_zarr.shape[1:]))
-    logger.darr_info('ds_can_is_shp', cpu_ds_can_is_shp)
+        cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunk_size,*rslc_zarr.shape[1:]))
+        logger.darr_info('rslc', cpu_rslc)
 
-    depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
-    cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
-    logger.info('setting shared boundaries between rlsc chunks.')
-    logger.darr_info('rslc_overlap', cpu_rslc_overlap)
+        cpu_is_shp = da.from_zarr(is_shp_path,chunks=(process_pc_chunk_size,*is_shp_zarr.shape[1:]))
+        logger.darr_info('is_shp', cpu_is_shp)
 
-    depth = {0:az_half_win, 1:r_half_win}
-    cpu_is_ds_can_padded = pad_internal(cpu_is_ds_can,depth=depth)
-    logger.info('padding zero between is_ds_can chunks.')
-    logger.darr_info('is_ds_can_padded', cpu_is_ds_can_padded)
+        depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
+        cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
+        logger.info('setting shared boundaries between rlsc chunks.')
+        logger.darr_info('rslc_overlap', cpu_rslc_overlap)
 
-    logger.info(f'estimating coherence matrix.')
-    rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
-    is_ds_can_padded = cpu_is_ds_can_padded.map_blocks(cp.asarray)
-    ds_can_is_shp = cpu_ds_can_is_shp.map_blocks(cp.asarray)
-    
-    emperical_co_pc_delayed = delayed(emperical_co_pc,pure=True,nout=2)
+        depth = {0:az_half_win, 1:r_half_win}
+        cpu_is_pc_padded = pad_internal(cpu_is_pc,depth=depth)
+        logger.info('padding zero between is_pc chunks.')
+        logger.darr_info('is_pc_padded', cpu_is_pc_padded)
 
-    is_ds_can_padded_delayed = is_ds_can_padded.to_delayed()
-    is_ds_can_padded_delayed = np.squeeze(is_ds_can_padded_delayed,axis=-1)
-    rslc_overlap_delayed = rslc_overlap.to_delayed()
-    rslc_overlap_delayed = np.squeeze(rslc_overlap_delayed,axis=(-2,-1))
-    ds_can_is_shp_delayed = ds_can_is_shp.to_delayed()
-    ds_can_is_shp_delayed = np.squeeze(ds_can_is_shp_delayed,axis=(-2,-1))
+        logger.info(f'estimating coherence matrix.')
+        rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
+        is_pc_padded = cpu_is_pc_padded.map_blocks(cp.asarray)
+        is_shp = cpu_is_shp.map_blocks(cp.asarray)
 
-    ds_can_coh_delayed = np.empty_like(rslc_overlap_delayed,dtype=object)
-    ds_can_idx_delayed = np.empty_like(rslc_overlap_delayed,dtype=object)
+        emperical_co_pc_delayed = delayed(emperical_co_pc,pure=True,nout=2)
 
-    nimage = rslc_overlap.shape[-1]
-    with np.nditer(rslc_overlap_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
-        for block in it:
-            idx = it.multi_index
-            ds_can_idx_delayed[idx] = delayed(cp.where)(is_ds_can_padded_delayed[idx])
-            ds_can_coh_delayed[idx] = emperical_co_pc_delayed(rslc_overlap_delayed[idx],ds_can_idx_delayed[idx],ds_can_is_shp_delayed[idx])[1]
-            chunk_shape = (ds_can_is_shp.blocks[idx].shape[0],nimage,nimage)
-            dtype = rslc_overlap.dtype
-            ds_can_coh_delayed[idx] = da.from_delayed(ds_can_coh_delayed[idx],shape=chunk_shape,meta=cp.array((),dtype=dtype))
+        is_pc_padded_delayed = is_pc_padded.to_delayed()
+        is_pc_padded_delayed = np.squeeze(is_pc_padded_delayed,axis=-1)
+        rslc_overlap_delayed = rslc_overlap.to_delayed()
+        rslc_overlap_delayed = np.squeeze(rslc_overlap_delayed,axis=(-2,-1))
+        is_shp_delayed = is_shp.to_delayed()
+        is_shp_delayed = np.squeeze(is_shp_delayed,axis=(-2,-1))
 
-    ds_can_coh = da.block(ds_can_coh_delayed.reshape(*ds_can_coh_delayed.shape,1,1).tolist())
-    cpu_ds_can_coh = ds_can_coh.map_blocks(cp.asnumpy)
-    logger.info(f'got coherence matrix.')
+        coh_delayed = np.empty_like(rslc_overlap_delayed,dtype=object)
+        idx_delayed = np.empty_like(rslc_overlap_delayed,dtype=object)
 
-    # zarr do not support irregular chunk size
-    pc_chunk_size = get_pc_chunk_size_from_n_az_chunk('rslc','ds_can_coh',cpu_rslc.shape[0],az_chunk_size,ds_can_coh.shape[0],logger,pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk)
-    cpu_ds_can_coh = cpu_ds_can_coh.rechunk((pc_chunk_size,nimage,nimage))
-    logger.info('rechunking ds_can_coh to chunk size (for saving with zarr): '+str(cpu_ds_can_coh.chunksize))
+        nimage = rslc_overlap.shape[-1]
+        with np.nditer(rslc_overlap_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
+            for block in it:
+                ix = it.multi_index
+                idx_delayed[ix] = delayed(cp.where)(is_pc_padded_delayed[ix])
+                coh_delayed[ix] = emperical_co_pc_delayed(rslc_overlap_delayed[ix],idx_delayed[ix],is_shp_delayed[ix])[1]
+                chunk_shape = (is_shp.blocks[ix].shape[0],nimage,nimage)
+                dtype = rslc_overlap.dtype
+                coh_delayed[ix] = da.from_delayed(coh_delayed[ix],shape=chunk_shape,meta=cp.array((),dtype=dtype))
 
-    logger.info('saving ds_can_coh.')
-    _cpu_ds_can_coh = cpu_ds_can_coh.to_zarr(ds_can_coh_path,overwrite=True,compute=False)
+        coh = da.block(coh_delayed.reshape(*coh_delayed.shape,1,1).tolist())
+        cpu_coh = coh.map_blocks(cp.asnumpy)
+        logger.info(f'got coherence matrix.'); logger.darr_info('coh', cpu_coh)
 
-    cpu_ds_can_coh_ave = da.abs(cpu_ds_can_coh).mean(axis=0)
+        # zarr do not support irregular chunk size
+        pc_chunk_size = get_pc_chunk_size_from_n_az_chunk('rslc','coh',cpu_rslc.shape[0],az_chunk_size,coh.shape[0],logger,pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk)
+        cpu_coh = cpu_coh.rechunk((pc_chunk_size,nimage,nimage))
+        logger.info('rechunking_coh to chunk size (for saving with zarr): '+str(cpu_coh.chunksize))
+        logger.darr_info('coh', cpu_coh)
 
-    logger.info('computing graph setted. doing all the computing.')
-    #This function is really slow just because the coherence is very big and rechunk and saving takes too much time.
-    # I do not find any solution to it.
-    cpu_ds_can_coh_ave_result = da.compute(_cpu_ds_can_coh,cpu_ds_can_coh_ave)[1]
+        cpu_coh_ave = da.abs(cpu_coh).mean(axis=0); logger.info('get average coherence matrix magnitude.')
+        logger.darr_info('coh_ave', cpu_coh_ave)
 
-    # pdb.set_trace()
-    logger.info('computing finished.')
-    cluster.close()
+        logger.info('saving coh and coh_ave.')
+        _cpu_coh = cpu_coh.to_zarr(coh_path,overwrite=True,compute=False)
+        _cpu_coh_ave = cpu_coh_ave.to_zarr(coh_ave_path,overwrite=True,compute=False)
+
+        logger.info('computing graph setted. doing all the computing.')
+        #This function is really slow just because the coherence is very big and rechunk and saving takes too much time.
+        # I do not find any solution to it.
+        futures = client.persist([_cpu_coh,_cpu_coh_ave])
+        progress(futures,notebook=False)
+        da.compute(futures)
+        # pdb.set_trace()
+        logger.info('computing finished.')
     logger.info('dask cluster closed.')
-
-    if ds_can_coh_ave_fig:
-        logger.info('plotting average coherence matrix.')
-        fig, ax = plt.subplots(1,1,figsize=(15,10))
-        pcm = ax.imshow(cpu_ds_can_coh_ave_result,cmap=colorcet.cm.fire)
-        ax.set(title='Average Coherence Matrix',xlabel='Image Index',ylabel='Image Index')
-        fig.colorbar(pcm)
-        fig.show()
-        fig.savefig(ds_can_coh_ave_fig)
