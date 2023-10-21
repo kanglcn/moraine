@@ -50,7 +50,7 @@ def de_emi(coh:str, # coherence matrix
     pc_chunk_size = get_pc_chunk_size_from_pc_chunk_size('coh','ph',coh_zarr.chunks[0],coh_zarr.shape[0],logger,n_pc_chunk=n_pc_chunk,pc_chunk_size=pc_chunk_size)
 
     logger.info('starting dask CUDA local cluster.')
-    with LocalCUDACluster() as cluster, Client(cluster) as client:
+    with LocalCUDACluster(CUDA_VISIBLE_DEVICES=get_cuda_cluster_arg()['CUDA_VISIBLE_DEVICES']) as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
 
         cpu_coh = da.from_zarr(coh_path, chunks=(pc_chunk_size,*coh_zarr.shape[1:]))

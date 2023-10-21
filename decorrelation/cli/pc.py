@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 
 import dask
 from dask import array as da
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster, progress
 
 from ..pc import pc2ras, pc_union, pc_intersect, pc_diff
 from .utils.logging import get_logger, log_args
@@ -24,7 +24,7 @@ from .utils.chunk_size import (get_pc_chunk_size_from_n_pc_chunk,
 
 from fastcore.script import call_parse, Param
 
-# %% ../../nbs/CLI/pc.ipynb 5
+# %% ../../nbs/CLI/pc.ipynb 4
 @call_parse
 @log_args
 def de_idx2bool(idx:str, # point cloud index
@@ -55,7 +55,7 @@ def de_idx2bool(idx:str, # point cloud index
     is_pc_zarr[:] = is_pc
     logger.info('write done.')
 
-# %% ../../nbs/CLI/pc.ipynb 6
+# %% ../../nbs/CLI/pc.ipynb 5
 @call_parse
 @log_args
 def de_bool2idx(is_pc:str, # input bool array
@@ -82,7 +82,7 @@ def de_bool2idx(is_pc:str, # input bool array
     idx_zarr[:] = idx
     logger.info('write done.')
 
-# %% ../../nbs/CLI/pc.ipynb 7
+# %% ../../nbs/CLI/pc.ipynb 6
 @log_args
 def de_ras2pc(idx:str, # point cloud index
               ras:str|list, # path (in string) or list of path for raster data
@@ -149,12 +149,14 @@ def de_ras2pc(idx:str, # point cloud index
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_pc_list)
-
+        futures = client.persist(_pc_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
+
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 8
+# %% ../../nbs/CLI/pc.ipynb 7
 @call_parse
 def console_de_ras2pc(idx:str, # point cloud index
                       ras:Param(type=str,required=True,nargs='+',help='one or more path for raster data')=None,
@@ -187,7 +189,7 @@ def console_de_ras2pc(idx:str, # point cloud index
 
     de_ras2pc(idx,ras,pc,pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk,hd_chunk_size=hd_chunk_size_,log=log)
 
-# %% ../../nbs/CLI/pc.ipynb 13
+# %% ../../nbs/CLI/pc.ipynb 12
 @log_args
 def de_pc2ras(idx:str, # point cloud index
               pc:str|list, # path (in string) or list of path for point cloud data
@@ -239,12 +241,14 @@ def de_pc2ras(idx:str, # point cloud index
             _ras_list += (_ras,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_ras_list)
-
+        futures = client.persist(_ras_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
+
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 14
+# %% ../../nbs/CLI/pc.ipynb 13
 @call_parse
 def console_de_pc2ras(idx:str, # point cloud index
                       pc:Param(type=str,required=True,nargs='+',help='one or more path for point cloud data')=None,
@@ -265,7 +269,7 @@ def console_de_pc2ras(idx:str, # point cloud index
 
     de_pc2ras(idx,pc,ras,shape,az_chunk_size=az_chunk_size,n_az_chunk=n_az_chunk,log=log)
 
-# %% ../../nbs/CLI/pc.ipynb 19
+# %% ../../nbs/CLI/pc.ipynb 18
 @call_parse
 @log_args
 def de_pc_union(idx1:str, # index of the first point cloud
@@ -333,12 +337,14 @@ def de_pc_union(idx1:str, # index of the first point cloud
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_pc_list)
-
+        futures = client.persist(_pc_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
+
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 23
+# %% ../../nbs/CLI/pc.ipynb 22
 @call_parse
 @log_args
 def de_pc_intersect(idx1:str, # index of the first point cloud
@@ -413,12 +419,13 @@ def de_pc_intersect(idx1:str, # index of the first point cloud
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_pc_list)
-
+        futures = client.persist(_pc_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 27
+# %% ../../nbs/CLI/pc.ipynb 26
 @call_parse
 @log_args
 def de_pc_diff(idx1:str, # index of the first point cloud
@@ -481,12 +488,13 @@ def de_pc_diff(idx1:str, # index of the first point cloud
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_pc_list)
-
+        futures = client.persist(_pc_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 31
+# %% ../../nbs/CLI/pc.ipynb 30
 @call_parse
 @log_args
 def de_pc_thres_ras(ras, # the raster image used for thresholding
@@ -524,7 +532,7 @@ def de_pc_thres_ras(ras, # the raster image used for thresholding
     logger.info('writing idx.')
     idx_zarr[:] = idx
 
-# %% ../../nbs/CLI/pc.ipynb 34
+# %% ../../nbs/CLI/pc.ipynb 33
 @call_parse
 @log_args
 def de_pc_thres_pc(idx_in,# the index of input pc data
@@ -568,7 +576,7 @@ def de_pc_thres_pc(idx_in,# the index of input pc data
     logger.info('writing idx.')
     idx_zarr[:] = idx
 
-# %% ../../nbs/CLI/pc.ipynb 38
+# %% ../../nbs/CLI/pc.ipynb 37
 @call_parse
 @log_args
 def de_pc_select_data(idx_in:str, # index of the input data
@@ -616,7 +624,8 @@ def de_pc_select_data(idx_in:str, # index of the input data
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
-        da.compute(*_pc_list)
-
+        futures = client.persist(_pc_list)
+        progress(futures,notebook=False)
+        da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
