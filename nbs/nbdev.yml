@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "moraine"
+  site-url: "https://kanglcn.github.io/moraine"
+  description: "MOdern RAdar INterferometry Environment"
+  repo-branch: main
+  repo-url: "https://github.com/kanglcn/moraine"
