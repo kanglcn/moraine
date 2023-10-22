@@ -7,23 +7,41 @@ project:
 
 format:
   html:
-    theme: cosmo
+    jupyter: python3
+    theme: zephyr
     css: styles.css
+    grid:
+      sidebar-width: 250px
+      body-width: 1000px
+      margin-width: 250px
+    smooth-scroll: true
     toc: true
     toc-depth: 4
+    fig-responsive: true
+    filters:
+        - lightbox
+    lightbox:
+      match: auto
+      effect: zoom
 
 website:
+  page-navigation: true
   repo-actions: [issue]
+  search: 
+    location: navbar
+    type: overlay
   navbar:
-    background: primary
     search: true
+    background: primary
     right:
       - icon: github
         href: "https://github.com/kanglcn/decorrelation"
   sidebar:
     style: "floating"
+    border: true
 
 bibliography: references.bib
+citation-location: margin
 
 metadata-files: 
   - sidebar.yml

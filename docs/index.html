@@ -64,6 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
+<link href="./Introduction/software_architecture.html" rel="next">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -92,6 +93,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -333,8 +335,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Decorrelation support interative big data visulization. Since the SAR data volume increase dramatically recently and in near future, not only the processing time is a concern (which is largely solved as Decorrelation runs so fast!), the inspection on the images is a problem. Decorrelation provide <a href="https://datashader.org/index.html">Datashader</a>-based functions for accurate, interative representation on even largest time series InSAR data.</li>
 </ul>
 <p>Please refer to the <a href="https://kanglcn.github.io/decorrelation">Documentation</a> for detailed usage.</p>
-<p><strong>Warning!!!</strong> Due to the heavy dependence on CUDA, this package only works on device with Nivida GPU.</p>
-<p><strong>Warning!!!</strong> This package is under intensive development. API is subjected to change without any noticement.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Due to the heavy dependence on CuPy and CUDA, this package only works on device with Nivida GPU.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This package is under intensive development. API is subjected to change without any noticement.</p>
+</div>
+</div>
 </section>
 <section id="install" class="level2">
 <h2 class="anchored" data-anchor-id="install">Install</h2>
@@ -616,8 +642,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./Introduction/software_architecture.html" class="pagination-link">
+        <span class="nav-page-text">Software Architecture</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
 
+<script src="site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

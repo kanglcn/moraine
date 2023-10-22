@@ -84,6 +84,8 @@ div.csl-indent {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../API/co.html" rel="next">
+<link href="../Introduction/software_architecture.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -112,12 +114,13 @@ div.csl-indent {
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
 
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar floating nav-fixed">
+<body class="nav-sidebar floating nav-fixed slimcontent">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -320,7 +323,7 @@ div.csl-indent {
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -350,11 +353,11 @@ div.csl-indent {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<section id="kolmogorov-smirnov-ks-two-sample-test" class="level2">
+<section id="kolmogorov-smirnov-ks-two-sample-test" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="kolmogorov-smirnov-ks-two-sample-test">Kolmogorov-Smirnov (KS) two-sample test</h2>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/shp.py#L76" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="ks_test" class="level3">
+<section id="ks_test" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="ks_test">ks_test</h3>
 <blockquote class="blockquote">
 <pre><code> ks_test (rmli:cupy.ndarray, az_half_win:int, r_half_win:int,
@@ -410,7 +413,9 @@ div.csl-indent {
 </tbody>
 </table>
 <p>The <a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> function apply the Two-Sample Kolmogorov-Smirnov Test on a stack of rmli images to identify SHPs candidate for further processing. This method is originally published in <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>. This function is designed to run on GPU for high speed.</p>
-<p>The <code>rmli</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float</code>. From outerest to innerest, the three dimentions are azimuth, range and image. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
+<div class="no-row-height column-margin column-container"><div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
+Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
+</div></div><p>The <code>rmli</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>float</code>. From outerest to innerest, the three dimentions are azimuth, range and image. For each pixel P, a search window centered at P is defined by <code>az_half_win</code> and <code>r_half_win</code>. All pixels in this search window is compared with P by KS test. They are refered here as secondary pixels. The total number of secondary pixels (including P) is (2*<code>az_half_win</code>+1)*(2*<code>r_half_win</code>+1).</p>
 <p>The returns are the ks test statistic which is the maximum value of the absolute difference between the emperical cumulative distribution functions of the two samples, and p value. Both of them are 4 dimentional cupy ndarrays. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range. For P at the corner of the image where part of the search window is out of the image, the result is <code>-1</code>.</p>
 <p>Here is a simplest example. First simulate rmli time series of two pixels from two correlated normal distributions:</p>
 <div class="cell">
@@ -473,11 +478,7 @@ div.csl-indent {
 </section>
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
-<div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
-Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
-</div>
-</div></section></div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -711,8 +712,21 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../Introduction/software_architecture.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Software Architecture</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../API/co.html" class="pagination-link">
+        <span class="nav-page-text">co</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
 
 
 
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

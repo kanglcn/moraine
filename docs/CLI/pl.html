@@ -65,6 +65,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../CLI/pc.html" rel="next">
+<link href="../CLI/co.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -74,6 +76,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -93,6 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
 
 <link rel="stylesheet" href="../styles.css">
@@ -327,22 +333,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 https://github.com/rapidsai/raft/pull/923
 and https://github.com/cupy/cupy/issues/6112 -->
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pl.py#L31" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pl.py#L32" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="de_emi" class="level3">
 <h3 class="anchored" data-anchor-id="de_emi">de_emi</h3>
 <blockquote class="blockquote">
-<pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0,
-         point_chunk_size:int=None, log:str=None,
-         plot_emi_quality:bool=False, vmin:int=1.0, vmax:int=1.3,
-         ds_idx:str=None, shape:tuple=None, emi_quality_fig:str=None)</code></pre>
+<pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0, n_pc_chunk:int=None,
+         pc_chunk_size:int=None, log:str=None)</code></pre>
 </blockquote>
+<p>Phase linking with EMI estimator.</p>
 <table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
 <thead>
 <tr class="header">
 <th></th>
@@ -377,136 +376,157 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <td>reference image for phase</td>
 </tr>
 <tr class="odd">
-<td>point_chunk_size</td>
+<td>n_pc_chunk</td>
 <td>int</td>
 <td>None</td>
-<td>parallel processing point chunk size</td>
+<td>number of point cloud chunk</td>
 </tr>
 <tr class="even">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>point cloud chunk size</td>
+</tr>
+<tr class="odd">
 <td>log</td>
 <td>str</td>
 <td>None</td>
 <td>log</td>
-</tr>
-<tr class="odd">
-<td>plot_emi_quality</td>
-<td>bool</td>
-<td>False</td>
-<td>if plot the emi quality</td>
-</tr>
-<tr class="even">
-<td>vmin</td>
-<td>int</td>
-<td>1.0</td>
-<td>min value of emi quality to plot</td>
-</tr>
-<tr class="odd">
-<td>vmax</td>
-<td>int</td>
-<td>1.3</td>
-<td>max value of emi quality to plot</td>
-</tr>
-<tr class="even">
-<td>ds_idx</td>
-<td>str</td>
-<td>None</td>
-<td>index of ds</td>
-</tr>
-<tr class="odd">
-<td>shape</td>
-<td>tuple</td>
-<td>None</td>
-<td>shape of one image</td>
-</tr>
-<tr class="even">
-<td>emi_quality_fig</td>
-<td>str</td>
-<td>None</td>
-<td>path to save the emi quality plot, optional. Default, no saving</td>
 </tr>
 </tbody>
 </table>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./co/ds_can_coh.zarr'</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./ph/ds_can_ph.zarr'</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./shp/ds_can_idx.zarr'</span> <span class="co"># only for plot</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./pl/ds_can_emi_quality.zarr'</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>point_chunk_size <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>vmin<span class="op">=</span><span class="fl">1.0</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>vmax<span class="op">=</span><span class="fl">1.3</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>log <span class="op">=</span> <span class="st">'pl/de_emi.log'</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>emi_quality_fig <span class="op">=</span> <span class="st">'./pl/emi_quality.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./pl/ds_can_ph.zarr'</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./pl/ds_can_emi_quality.zarr'</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>log <span class="op">=</span> <span class="st">'pl/de_emi.log'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>shape <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./raw/rslc.zarr/'</span>,<span class="st">'r'</span>).shape[:<span class="dv">2</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality,ref<span class="op">=</span>ref,point_chunk_size<span class="op">=</span>point_chunk_size,log<span class="op">=</span>log,plot_emi_quality<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>       vmin<span class="op">=</span>vmin,vmax<span class="op">=</span>vmax,ds_idx<span class="op">=</span>ds_can_idx,shape<span class="op">=</span>shape,emi_quality_fig<span class="op">=</span>emi_quality_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality,ref<span class="op">=</span>ref,log<span class="op">=</span>log)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:36:34 - de_emi - INFO - fetching args:
-2023-10-13 21:36:34 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
-2023-10-13 21:36:34 - de_emi - INFO - ph = './ph/ds_can_ph.zarr'
-2023-10-13 21:36:34 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
-2023-10-13 21:36:34 - de_emi - INFO - ref = 0
-2023-10-13 21:36:34 - de_emi - INFO - point_chunk_size = None
-2023-10-13 21:36:34 - de_emi - INFO - log = 'pl/de_emi.log'
-2023-10-13 21:36:34 - de_emi - INFO - plot_emi_quality = True
-2023-10-13 21:36:34 - de_emi - INFO - vmin = 1.0
-2023-10-13 21:36:34 - de_emi - INFO - vmax = 1.3
-2023-10-13 21:36:34 - de_emi - INFO - ds_idx = './shp/ds_can_idx.zarr'
-2023-10-13 21:36:34 - de_emi - INFO - shape = (2500, 1834)
-2023-10-13 21:36:34 - de_emi - INFO - emi_quality_fig = './pl/emi_quality.png'
-2023-10-13 21:36:34 - de_emi - INFO - fetching args done.
-2023-10-13 21:36:34 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
-2023-10-13 21:36:34 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (1000, 17, 17)
-2023-10-13 21:36:34 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
-2023-10-13 21:36:34 - de_emi - INFO - using default parallel processing azimuth chunk size from coh dataset.
-2023-10-13 21:36:34 - de_emi - INFO - parallel processing point chunk size: 1000
-2023-10-13 21:36:34 - de_emi - INFO - starting dask CUDA local cluster.
-2023-10-13 21:36:42 - de_emi - INFO - dask local CUDA cluster started.
-2023-10-13 21:36:42 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
-2023-10-13 21:36:42 - de_emi - INFO - coh dask array chunksize: (1000, 17, 17)
-2023-10-13 21:36:42 - de_emi - INFO - coh dask array dtype: complex64
-2023-10-13 21:36:42 - de_emi - INFO - phase linking with EMI.
-2023-10-13 21:36:44 - de_emi - INFO - got ph and emi_quality.
-2023-10-13 21:36:44 - de_emi - INFO - ph dask array shape: (740397, 17)
-2023-10-13 21:36:44 - de_emi - INFO - ph dask array chunksize: (1000, 17)
-2023-10-13 21:36:44 - de_emi - INFO - ph dask array dtype: complex64
-2023-10-13 21:36:44 - de_emi - INFO - emi_quality dask array shape: (740397,)
-2023-10-13 21:36:44 - de_emi - INFO - emi_quality dask array chunksize: (1000,)
-2023-10-13 21:36:44 - de_emi - INFO - emi_quality dask array dtype: float32
-2023-10-13 21:36:44 - de_emi - INFO - saving ph and emi_quality.
-2023-10-13 21:36:44 - de_emi - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:36:50 - de_emi - INFO - computing finished.
-2023-10-13 21:36:52 - de_emi - INFO - dask cluster closed.
-2023-10-13 21:36:52 - de_emi - INFO - plotting emi_quality.
-2023-10-13 21:36:52 - de_emi - INFO - reading is_ds bool array
-2023-10-13 21:36:53 - de_emi - INFO - converting emi_quality from point cloud to raster.
-2023-10-13 21:36:53 - de_emi - INFO - saving figure
-2023-10-13 21:36:53 - de_emi - INFO - showing</code></pre>
+<pre><code>2023-10-20 19:49:47 - de_emi - INFO - fetching args:
+2023-10-20 19:49:47 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
+2023-10-20 19:49:47 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
+2023-10-20 19:49:47 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
+2023-10-20 19:49:47 - de_emi - INFO - ref = 0
+2023-10-20 19:49:47 - de_emi - INFO - n_pc_chunk = None
+2023-10-20 19:49:47 - de_emi - INFO - pc_chunk_size = None
+2023-10-20 19:49:47 - de_emi - INFO - log = 'pl/de_emi.log'
+2023-10-20 19:49:47 - de_emi - INFO - fetching args done.
+2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
+2023-10-20 19:49:47 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-20 19:49:47 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-20 19:49:47 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-20 19:49:57 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-20 19:49:57 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-20 19:49:57 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-20 19:49:57 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-20 19:49:57 - de_emi - INFO - phase linking with EMI.
+2023-10-20 19:49:58 - de_emi - INFO - got ph and emi_quality.
+2023-10-20 19:49:58 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-20 19:49:58 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-20 19:49:58 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-20 19:49:58 - de_emi - INFO - saving ph and emi_quality.
+2023-10-20 19:49:58 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-20 19:50:03 - de_emi - INFO - computing finished.ed |  4.7s
+2023-10-20 19:50:05 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>2023-10-13 21:36:36,515 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,515 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,524 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,524 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,528 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,528 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,532 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,532 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,533 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,534 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,534 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,534 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,535 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,535 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:36:36,542 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:36:36,542 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./shp/ds_can_idx.zarr'</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>emi_quality <span class="op">=</span> <span class="st">'./pl/emi_quality.zarr'</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./raw/rslc.zarr/'</span>,<span class="st">'r'</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_emi_quality,emi_quality,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-20 19:50:10 - de_pc2ras - INFO - fetching args:
+2023-10-20 19:50:10 - de_pc2ras - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-20 19:50:10 - de_pc2ras - INFO - pc = './pl/ds_can_emi_quality.zarr'
+2023-10-20 19:50:10 - de_pc2ras - INFO - ras = './pl/emi_quality.zarr'
+2023-10-20 19:50:10 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-20 19:50:10 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-20 19:50:10 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-20 19:50:10 - de_pc2ras - INFO - log = None
+2023-10-20 19:50:10 - de_pc2ras - INFO - fetching args done.
+2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-20 19:50:10 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-20 19:50:10 - de_pc2ras - INFO - loading idx into memory.
+2023-10-20 19:50:10 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-20 19:50:17 - de_pc2ras - INFO - dask local cluster started.
+2023-10-20 19:50:17 - de_pc2ras - INFO - start to work on ./pl/ds_can_emi_quality.zarr
+2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray shape: (740397,)
+2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray chunks: (246799,)
+2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray dtype: float32
+2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-20 19:50:17 - de_pc2ras - INFO - create ras dask array
+2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-20 19:50:17 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-20 19:50:17 - de_pc2ras - INFO - computing finished.|  0.4s
+2023-10-20 19:50:18 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>emi_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./pl/emi_quality.zarr'</span>,<span class="st">'r'</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(emi_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>,vmin<span class="op">=</span><span class="fl">1.0</span>,vmax<span class="op">=</span><span class="fl">1.3</span>,cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'EMI quality factor'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="pl_files/figure-html/cell-5-output-3.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="pl_files/figure-html/cell-6-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="pl_files/figure-html/cell-6-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_emi .<span class="op">/</span>co<span class="op">/</span>ds_can_coh.zarr .<span class="op">/</span>pl<span class="op">/</span>ds_can_ph.zarr .<span class="op">/</span>pl<span class="op">/</span>ds_can_emi_quality.zarr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-20 19:50:41 - de_emi - INFO - fetching args:
+2023-10-20 19:50:41 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
+2023-10-20 19:50:41 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
+2023-10-20 19:50:41 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
+2023-10-20 19:50:41 - de_emi - INFO - ref = 0
+2023-10-20 19:50:41 - de_emi - INFO - n_pc_chunk = None
+2023-10-20 19:50:41 - de_emi - INFO - pc_chunk_size = None
+2023-10-20 19:50:41 - de_emi - INFO - log = None
+2023-10-20 19:50:41 - de_emi - INFO - fetching args done.
+2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
+2023-10-20 19:50:41 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-20 19:50:41 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-20 19:50:41 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-20 19:50:48 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-20 19:50:48 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-20 19:50:48 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-20 19:50:48 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-20 19:50:48 - de_emi - INFO - phase linking with EMI.
+2023-10-20 19:50:50 - de_emi - INFO - got ph and emi_quality.
+2023-10-20 19:50:50 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-20 19:50:50 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-20 19:50:50 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-20 19:50:50 - de_emi - INFO - saving ph and emi_quality.
+2023-10-20 19:50:50 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-20 19:50:55 - de_emi - INFO - computing finished.ed |  4.5s
+2023-10-20 19:50:57 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 
@@ -747,8 +767,22 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../CLI/co.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">co</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../CLI/pc.html" class="pagination-link">
+        <span class="nav-page-text">pc</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","selector":".lightbox","descPosition":"bottom","openEffect":"zoom","loop":true});</script>
 
 
 
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

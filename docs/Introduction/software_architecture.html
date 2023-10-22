@@ -64,6 +64,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../API/shp.html" rel="next">
+<link href="../index.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -73,6 +75,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -92,6 +97,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -341,7 +347,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Most of the stored data in this package is in the <a href="https://zarr.readthedocs.io/en/stable/">zarr</a> format, which is a file storage format for chunked, compressed, N-dimensional arrays. The figure below shows how the structure of zarr data. The reading and writing speed is fast since the data volume is compressed. Before compressing, the data are divided into chunks to be more flexiable for <code>dask</code> parallel operation. Generally, the file name is <code>xxxxxx.zarr</code>. You will find it is indeed a directory in the file system. But just treat it as a single file in use.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="./software_architecture/array.svg" class="img-fluid figure-img"></p>
+<p><a href="./software_architecture/array.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="imga"><img src="./software_architecture/array.svg" class="img-fluid figure-img"></a></p>
 <figcaption class="figure-caption">imga</figcaption>
 </figure>
 </div>
@@ -406,18 +412,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="de_emi" class="level3">
 <h3 class="anchored" data-anchor-id="de_emi">de_emi</h3>
 <blockquote class="blockquote">
-<pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0,
-         point_chunk_size:int=None, log:str=None,
-         plot_emi_quality:bool=False, vmin:int=1.0, vmax:int=1.3,
-         ds_idx:str=None, shape:tuple=None, emi_quality_fig:str=None)</code></pre>
+<pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0, n_pc_chunk:int=None,
+         pc_chunk_size:int=None, log:str=None)</code></pre>
 </blockquote>
+<p>Phase linking with EMI estimator.</p>
 <table class="table">
-<colgroup>
-<col style="width: 6%">
-<col style="width: 25%">
-<col style="width: 34%">
-<col style="width: 34%">
-</colgroup>
 <thead>
 <tr class="header">
 <th></th>
@@ -452,52 +451,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>reference image for phase</td>
 </tr>
 <tr class="odd">
-<td>point_chunk_size</td>
+<td>n_pc_chunk</td>
 <td>int</td>
 <td>None</td>
-<td>parallel processing point chunk size</td>
+<td>number of point cloud chunk</td>
 </tr>
 <tr class="even">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>point cloud chunk size</td>
+</tr>
+<tr class="odd">
 <td>log</td>
 <td>str</td>
 <td>None</td>
 <td>log</td>
-</tr>
-<tr class="odd">
-<td>plot_emi_quality</td>
-<td>bool</td>
-<td>False</td>
-<td>if plot the emi quality</td>
-</tr>
-<tr class="even">
-<td>vmin</td>
-<td>int</td>
-<td>1.0</td>
-<td>min value of emi quality to plot</td>
-</tr>
-<tr class="odd">
-<td>vmax</td>
-<td>int</td>
-<td>1.3</td>
-<td>max value of emi quality to plot</td>
-</tr>
-<tr class="even">
-<td>ds_idx</td>
-<td>str</td>
-<td>None</td>
-<td>index of ds</td>
-</tr>
-<tr class="odd">
-<td>shape</td>
-<td>tuple</td>
-<td>None</td>
-<td>shape of one image</td>
-</tr>
-<tr class="even">
-<td>emi_quality_fig</td>
-<td>str</td>
-<td>None</td>
-<td>path to save the emi quality plot, optional. Default, no saving</td>
 </tr>
 </tbody>
 </table>
@@ -886,8 +855,22 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../index.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Decorrelation</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../API/shp.html" class="pagination-link">
+        <span class="nav-page-text">shp</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","closeEffect":"zoom","loop":true,"selector":".lightbox","descPosition":"bottom"});</script>
 
 
 
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

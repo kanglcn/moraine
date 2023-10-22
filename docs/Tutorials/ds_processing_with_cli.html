@@ -64,6 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../Tutorials/work_with_dask.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -73,6 +74,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -92,6 +96,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
 
 <link rel="stylesheet" href="../styles.css">
@@ -386,15 +391,15 @@ dem_seg  dem_seg_par
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>de_load_gamma_range(rslc_par,range_zarr,az_chunk_size)</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>de_load_gamma_metadata(rslc_dir,reference,meta_file)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - fetching args:
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - rslc_zarr = './DS_Processing_with_CLI/rslc.zarr'
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - log = None
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - fetching args done.
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - rslc found: 
+<pre><code>2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - fetching args:
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - reference = '20220620'
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - rslc_zarr = './DS_Processing_with_CLI/rslc.zarr'
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - az_chunk_size = 1000
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - log = None
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - fetching args done.
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - rslc found: 
         date                                 rslc  \
 0   20210802  ../../data/gamma/rslc/20210802.rslc   
 1   20210816  ../../data/gamma/rslc/20210816.rslc   
@@ -432,123 +437,123 @@ dem_seg  dem_seg_par
 14  ../../data/gamma/rslc/20220926.rslc.par  
 15  ../../data/gamma/rslc/20221010.rslc.par  
 16  ../../data/gamma/rslc/20221024.rslc.par  
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate required data for flattened rslcs:
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp_vdp1egt/20220620_20210802.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:18 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp_vdp1egt/20220620_20210802.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:23 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp_vdp1egt/20220620_20210816.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:23 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp_vdp1egt/20220620_20210816.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:24 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp_vdp1egt/20220620_20210830.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:24 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp_vdp1egt/20220620_20210830.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:26 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp_vdp1egt/20220620_20210913.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:26 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp_vdp1egt/20220620_20210913.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:29 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp_vdp1egt/20220620_20211011.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:29 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp_vdp1egt/20220620_20211011.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:30 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp_vdp1egt/20220620_20211025.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:30 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp_vdp1egt/20220620_20211025.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:31 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp_vdp1egt/20220620_20220606.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:31 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp_vdp1egt/20220620_20220606.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:33 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp_vdp1egt/20220620_20220620.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:33 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp_vdp1egt/20220620_20220620.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:34 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp_vdp1egt/20220620_20220704.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:34 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp_vdp1egt/20220620_20220704.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:35 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp_vdp1egt/20220620_20220718.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:35 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp_vdp1egt/20220620_20220718.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:36 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp_vdp1egt/20220620_20220801.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:36 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp_vdp1egt/20220620_20220801.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:37 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp_vdp1egt/20220620_20220815.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:37 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp_vdp1egt/20220620_20220815.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:39 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp_vdp1egt/20220620_20220829.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:39 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp_vdp1egt/20220620_20220829.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:41 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp_vdp1egt/20220620_20220912.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:41 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp_vdp1egt/20220620_20220912.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:43 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp_vdp1egt/20220620_20220926.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:43 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp_vdp1egt/20220620_20220926.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:44 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp_vdp1egt/20220620_20221010.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:44 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp_vdp1egt/20220620_20221010.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:45 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp_vdp1egt/20220620_20221024.off 1 1 1 0 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:45 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp_vdp1egt/20220620_20221024.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp_vdp1egt/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp_vdp1egt/log
-2023-10-13 21:40:47 - de_load_gamma_flatten_rslc - INFO - gamma command finished.
-2023-10-13 21:40:47 - de_load_gamma_flatten_rslc - INFO - using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.
-2023-10-13 21:40:47 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
-2023-10-13 21:40:49 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
-2023-10-13 21:40:49 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array shape: (2500, 1834, 17)
-2023-10-13 21:40:49 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array chunksize: (1000, 1834, 1)
-2023-10-13 21:40:49 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array dtype: complex64
-2023-10-13 21:40:49 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:40:50 - de_load_gamma_flatten_rslc - INFO - computing finished.
-2023-10-13 21:40:51 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - fetching args:
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - diff_par = '../../data/gamma/geocoding/20210802.diff_par'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - lat_zarr = './DS_Processing_with_CLI/lat.zarr'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - lon_zarr = './DS_Processing_with_CLI/lon.zarr'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - hgt_zarr = './DS_Processing_with_CLI/hgt.zarr'
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - az_chunk_size = 1000
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - log = None
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - fetching args done.
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - image shape: (2500,1834)
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - run gamma command to generate longitude, latitude and height:
-2023-10-13 21:40:51 - de_load_gamma_lat_lon_hgt - INFO - run command: pt2geo /tmp/tmpr41c952x/plist - ../../data/gamma/rslc/20220620.rslc.par - ../../data/gamma/geocoding/20210802.hgt ../../data/gamma/DEM/dem_seg_par ../../data/gamma/geocoding/20210802.diff_par 1 1 - - /tmp/tmpr41c952x/plat_lon /tmp/tmpr41c952x/phgt_wgs84 &gt; /tmp/tmpr41c952x/log
-2023-10-13 21:41:04 - de_load_gamma_lat_lon_hgt - INFO - gamma command finished.
-2023-10-13 21:41:04 - de_load_gamma_lat_lon_hgt - INFO - Done.
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - fetching args:
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - theta = '../../data/gamma/geocoding/20210802.lv_theta'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - phi = '../../data/gamma/geocoding/20210802.lv_phi'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - theta_zarr = './DS_Processing_with_CLI/theta.zarr'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - phi_zarr = './DS_Processing_with_CLI/phi.zarr'
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - az_chunk_size = 1000
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - log = None
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - fetching args done.
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - image shape: (2500,1834)
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - run gamma command to generate elevation angle in range doppler coordinate:
-2023-10-13 21:41:04 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_theta 5741 /tmp/tmpb03khaiu/theta_rdc 1834 2500 &gt; /tmp/tmpb03khaiu/log
-2023-10-13 21:41:06 - de_load_gamma_look_vector - INFO - gamma command finished.
-2023-10-13 21:41:06 - de_load_gamma_look_vector - INFO - writing data.
-2023-10-13 21:41:06 - de_load_gamma_look_vector - INFO - run gamma command to generate orientation angle in range doppler coordinate:
-2023-10-13 21:41:06 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_phi 5741 /tmp/tmpb03khaiu/phi_rdc 1834 2500 &gt; /tmp/tmpb03khaiu/log
-2023-10-13 21:41:07 - de_load_gamma_look_vector - INFO - gamma command finished.
-2023-10-13 21:41:07 - de_load_gamma_look_vector - INFO - writing data.
-2023-10-13 21:41:07 - de_load_gamma_look_vector - INFO - Done.
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - fetching args:
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - range_zarr = './DS_Processing_with_CLI/range.zarr'
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - az_chunk_size = 1000
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - log = None
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - fetching args done.
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - image shape: (2500,1834)
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - Calculating slant range distance.
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - writing data.
-2023-10-13 21:41:07 - de_load_gamma_range - INFO - Done.
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - fetching args:
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma/rslc'
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - reference = '20220620'
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - meta_file = './DS_Processing_with_CLI/meta.toml'
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - log = None
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - fetching args done.
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - Fetching heading angle
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - Fetching range pixel spacing
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - fetching azimuth pixel spacing
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - Fetching randar wavelength
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - Run gamma command to calculate baseline:
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - run command: base_calc /tmp/tmpvt001mob/slc_tab ../../data/gamma/rslc/20220620.rslc.par /tmp/tmpvt001mob/bperp /tmp/tmpvt001mob/itab - &gt; /tmp/tmpvt001mob/log
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - gamma command finished.
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - All meta data: 
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - number of images: 17.
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - image number of lines: 2500.
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - image width: 1834.
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - run gamma command to generate required data for flattened rslcs:
+2023-10-19 19:44:29 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2c4xotab/20220620_20210802.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:30 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210802.rslc.par /tmp/tmp2c4xotab/20220620_20210802.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20210802.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:36 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2c4xotab/20220620_20210816.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:36 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210816.rslc.par /tmp/tmp2c4xotab/20220620_20210816.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20210816.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:38 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2c4xotab/20220620_20210830.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:38 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210830.rslc.par /tmp/tmp2c4xotab/20220620_20210830.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20210830.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:40 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2c4xotab/20220620_20210913.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:40 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20210913.rslc.par /tmp/tmp2c4xotab/20220620_20210913.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20210913.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:41 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2c4xotab/20220620_20211011.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:41 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211011.rslc.par /tmp/tmp2c4xotab/20220620_20211011.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20211011.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:42 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2c4xotab/20220620_20211025.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:42 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20211025.rslc.par /tmp/tmp2c4xotab/20220620_20211025.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20211025.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:44 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2c4xotab/20220620_20220606.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:44 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220606.rslc.par /tmp/tmp2c4xotab/20220620_20220606.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220606.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:45 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2c4xotab/20220620_20220620.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:45 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220620.rslc.par /tmp/tmp2c4xotab/20220620_20220620.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220620.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:46 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2c4xotab/20220620_20220704.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:46 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220704.rslc.par /tmp/tmp2c4xotab/20220620_20220704.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220704.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:48 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2c4xotab/20220620_20220718.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:48 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220718.rslc.par /tmp/tmp2c4xotab/20220620_20220718.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220718.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:49 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2c4xotab/20220620_20220801.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:49 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220801.rslc.par /tmp/tmp2c4xotab/20220620_20220801.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220801.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:51 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2c4xotab/20220620_20220815.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:51 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220815.rslc.par /tmp/tmp2c4xotab/20220620_20220815.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220815.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:52 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2c4xotab/20220620_20220829.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:52 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220829.rslc.par /tmp/tmp2c4xotab/20220620_20220829.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220829.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:54 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2c4xotab/20220620_20220912.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:54 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220912.rslc.par /tmp/tmp2c4xotab/20220620_20220912.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220912.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:56 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2c4xotab/20220620_20220926.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:56 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20220926.rslc.par /tmp/tmp2c4xotab/20220620_20220926.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20220926.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:58 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2c4xotab/20220620_20221010.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:58 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221010.rslc.par /tmp/tmp2c4xotab/20220620_20221010.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20221010.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:59 - de_load_gamma_flatten_rslc - INFO - run command: create_offset ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2c4xotab/20220620_20221024.off 1 1 1 0 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:44:59 - de_load_gamma_flatten_rslc - INFO - run command: phase_sim_orb ../../data/gamma/rslc/20220620.rslc.par ../../data/gamma/rslc/20221024.rslc.par /tmp/tmp2c4xotab/20220620_20221024.off ../../data/gamma/geocoding/20210802.hgt /tmp/tmp2c4xotab/20220620_20221024.sim_orb ../../data/gamma/rslc/20220620.rslc.par - - 1 1 &gt; /tmp/tmp2c4xotab/log
+2023-10-19 19:45:00 - de_load_gamma_flatten_rslc - INFO - gamma command finished.
+2023-10-19 19:45:00 - de_load_gamma_flatten_rslc - INFO - using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.
+2023-10-19 19:45:00 - de_load_gamma_flatten_rslc - INFO - starting dask local cluster.
+2023-10-19 19:45:10 - de_load_gamma_flatten_rslc - INFO - dask local cluster started.
+2023-10-19 19:45:10 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array shape: (2500, 1834, 17)
+2023-10-19 19:45:10 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array chunksize: (1000, 1834, 1)
+2023-10-19 19:45:10 - de_load_gamma_flatten_rslc - INFO - flattened rslc dask array dtype: complex64
+2023-10-19 19:45:10 - de_load_gamma_flatten_rslc - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:45:12 - de_load_gamma_flatten_rslc - INFO - computing finished.
+2023-10-19 19:45:14 - de_load_gamma_flatten_rslc - INFO - dask cluster closed.
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - fetching args:
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - diff_par = '../../data/gamma/geocoding/20210802.diff_par'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - hgt = '../../data/gamma/geocoding/20210802.hgt'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - lat_zarr = './DS_Processing_with_CLI/lat.zarr'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - lon_zarr = './DS_Processing_with_CLI/lon.zarr'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - hgt_zarr = './DS_Processing_with_CLI/hgt.zarr'
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - az_chunk_size = 1000
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - log = None
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - fetching args done.
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - image shape: (2500,1834)
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - run gamma command to generate longitude, latitude and height:
+2023-10-19 19:45:14 - de_load_gamma_lat_lon_hgt - INFO - run command: pt2geo /tmp/tmpyl133y9e/plist - ../../data/gamma/rslc/20220620.rslc.par - ../../data/gamma/geocoding/20210802.hgt ../../data/gamma/DEM/dem_seg_par ../../data/gamma/geocoding/20210802.diff_par 1 1 - - /tmp/tmpyl133y9e/plat_lon /tmp/tmpyl133y9e/phgt_wgs84 &gt; /tmp/tmpyl133y9e/log
+2023-10-19 19:45:26 - de_load_gamma_lat_lon_hgt - INFO - gamma command finished.
+2023-10-19 19:45:26 - de_load_gamma_lat_lon_hgt - INFO - Done.
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - fetching args:
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - theta = '../../data/gamma/geocoding/20210802.lv_theta'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - phi = '../../data/gamma/geocoding/20210802.lv_phi'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - lt = '../../data/gamma/geocoding/20210802.lt_fine'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - dem_par = '../../data/gamma/DEM/dem_seg_par'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - theta_zarr = './DS_Processing_with_CLI/theta.zarr'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - phi_zarr = './DS_Processing_with_CLI/phi.zarr'
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - az_chunk_size = 1000
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - log = None
+2023-10-19 19:45:26 - de_load_gamma_look_vector - INFO - fetching args done.
+2023-10-19 19:45:27 - de_load_gamma_look_vector - INFO - image shape: (2500,1834)
+2023-10-19 19:45:27 - de_load_gamma_look_vector - INFO - run gamma command to generate elevation angle in range doppler coordinate:
+2023-10-19 19:45:27 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_theta 5741 /tmp/tmpuhrz6ztu/theta_rdc 1834 2500 &gt; /tmp/tmpuhrz6ztu/log
+2023-10-19 19:45:28 - de_load_gamma_look_vector - INFO - gamma command finished.
+2023-10-19 19:45:28 - de_load_gamma_look_vector - INFO - writing data.
+2023-10-19 19:45:28 - de_load_gamma_look_vector - INFO - run gamma command to generate orientation angle in range doppler coordinate:
+2023-10-19 19:45:28 - de_load_gamma_look_vector - INFO - run command: geocode ../../data/gamma/geocoding/20210802.lt_fine ../../data/gamma/geocoding/20210802.lv_phi 5741 /tmp/tmpuhrz6ztu/phi_rdc 1834 2500 &gt; /tmp/tmpuhrz6ztu/log
+2023-10-19 19:45:30 - de_load_gamma_look_vector - INFO - gamma command finished.
+2023-10-19 19:45:30 - de_load_gamma_look_vector - INFO - writing data.
+2023-10-19 19:45:30 - de_load_gamma_look_vector - INFO - Done.
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - fetching args:
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - rslc_par = '../../data/gamma/rslc/20220620.rslc.par'
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - range_zarr = './DS_Processing_with_CLI/range.zarr'
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - az_chunk_size = 1000
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - log = None
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - fetching args done.
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - image shape: (2500,1834)
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - Calculating slant range distance.
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - writing data.
+2023-10-19 19:45:30 - de_load_gamma_range - INFO - Done.
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - fetching args:
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - rslc_dir = '../../data/gamma/rslc'
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - reference = '20220620'
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - meta_file = './DS_Processing_with_CLI/meta.toml'
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - log = None
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - fetching args done.
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - Fetching heading angle
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - Fetching range pixel spacing
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - fetching azimuth pixel spacing
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - Fetching randar wavelength
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - Run gamma command to calculate baseline:
+2023-10-19 19:45:30 - de_load_gamma_metadata - INFO - run command: base_calc /tmp/tmprj4viws0/slc_tab ../../data/gamma/rslc/20220620.rslc.par /tmp/tmprj4viws0/bperp /tmp/tmprj4viws0/itab - &gt; /tmp/tmprj4viws0/log
+2023-10-19 19:45:31 - de_load_gamma_metadata - INFO - gamma command finished.
+2023-10-19 19:45:31 - de_load_gamma_metadata - INFO - All meta data: 
 dates = [ "20210802", "20210816", "20210830", "20210913", "20211011", "20211025", "20220606", "20220620", "20220704", "20220718", "20220801", "20220815", "20220829", "20220912", "20220926", "20221010", "20221024",]
 radar_wavelength = 0.24245249210715603
 range_pixel_spacing = 4.29054
 azimuth_pixel_spacing = 3.740105
 perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.86680030822754, -26.258899688720703, -63.72420120239258, -56.363399505615234, 64.75759887695312, 0.0, -9.043999671936035, -13.02869987487793, -112.94960021972656, -86.09490203857422, -129.9635009765625, -127.6594009399414, -182.29519653320312, -129.735107421875, -184.31100463867188,]
 
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - writing data in toml file.
-2023-10-13 21:41:07 - de_load_gamma_metadata - INFO - Done.</code></pre>
+2023-10-19 19:45:31 - de_load_gamma_metadata - INFO - writing data in toml file.
+2023-10-19 19:45:31 - de_load_gamma_metadata - INFO - Done.</code></pre>
 </div>
 </div>
 <p>Then we get all needed data: look vector, latitude, lontitude, height, metadata, slant range distance, and flattened rslc stack.</p>
@@ -572,146 +577,218 @@ perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.8668003082
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>            az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>            method<span class="op">=</span>method,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:42:46 - de_shp_test - INFO - fetching args:
-2023-10-13 21:42:46 - de_shp_test - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
-2023-10-13 21:42:46 - de_shp_test - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
-2023-10-13 21:42:46 - de_shp_test - INFO - az_half_win = 5
-2023-10-13 21:42:46 - de_shp_test - INFO - r_half_win = 5
-2023-10-13 21:42:46 - de_shp_test - INFO - method = 'ks'
-2023-10-13 21:42:46 - de_shp_test - INFO - az_chunk_size = 1000
-2023-10-13 21:42:46 - de_shp_test - INFO - log = None
-2023-10-13 21:42:46 - de_shp_test - INFO - fetching args done.
-2023-10-13 21:42:46 - de_shp_test - INFO - hypothetic test method: ks
-2023-10-13 21:42:46 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray shape: (2500, 1834, 17)
-2023-10-13 21:42:46 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray chunks: (1000, 1834, 1)
-2023-10-13 21:42:46 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray dtype: complex64
-2023-10-13 21:42:46 - de_shp_test - INFO - parallel processing azimuth chunk size: 1000
-2023-10-13 21:42:46 - de_shp_test - INFO - starting dask CUDA local cluster.
-2023-10-13 21:42:51 - de_shp_test - INFO - dask local CUDA cluster started.
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc dask array chunksize: (1000, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc dask array dtype: complex64
-2023-10-13 21:42:51 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
-2023-10-13 21:42:51 - de_shp_test - INFO - range half window size: 5; range window size: 11
-2023-10-13 21:42:51 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc with overlap dask array shape: (2520, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc with overlap dask array chunksize: (1010, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rslc with overlap dask array dtype: complex64
-2023-10-13 21:42:51 - de_shp_test - INFO - rmli with overlap dask array shape: (2520, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rmli with overlap dask array chunksize: (1010, 1834, 17)
-2023-10-13 21:42:51 - de_shp_test - INFO - rmli with overlap dask array dtype: float32
-2023-10-13 21:42:51 - de_shp_test - INFO - applying test on sorted rmli stack.
-2023-10-13 21:42:51 - de_shp_test - INFO - p value generated
-2023-10-13 21:42:51 - de_shp_test - INFO - p value dask array shape: (2520, 1834, 11, 11)
-2023-10-13 21:42:51 - de_shp_test - INFO - p value dask array chunksize: (1010, 1834, 11, 11)
-2023-10-13 21:42:51 - de_shp_test - INFO - p value dask array dtype: float32
-2023-10-13 21:42:51 - de_shp_test - INFO - trim shared boundaries between p value chunks
-2023-10-13 21:42:51 - de_shp_test - INFO - trimmed p value dask array shape: (2500, 1834, 11, 11)
-2023-10-13 21:42:51 - de_shp_test - INFO - trimmed p value dask array chunksize: (1000, 1834, 11, 11)
-2023-10-13 21:42:51 - de_shp_test - INFO - trimmed p value dask array dtype: float32
-2023-10-13 21:42:52 - de_shp_test - INFO - saving p value.
-2023-10-13 21:42:52 - de_shp_test - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:42:57 - de_shp_test - INFO - computing finished.
-2023-10-13 21:42:58 - de_shp_test - INFO - dask cluster closed.</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>2023-10-13 21:42:48,068 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,068 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,068 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,068 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,086 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,087 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,087 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,087 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,087 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,087 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,088 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,088 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,089 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,089 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:48,089 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:48,089 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+<pre><code>2023-10-19 19:45:31 - de_shp_test - INFO - fetching args:
+2023-10-19 19:45:31 - de_shp_test - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
+2023-10-19 19:45:31 - de_shp_test - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
+2023-10-19 19:45:31 - de_shp_test - INFO - az_half_win = 5
+2023-10-19 19:45:31 - de_shp_test - INFO - r_half_win = 5
+2023-10-19 19:45:31 - de_shp_test - INFO - method = 'ks'
+2023-10-19 19:45:31 - de_shp_test - INFO - n_az_chunk = None
+2023-10-19 19:45:31 - de_shp_test - INFO - az_chunk_size = 1000
+2023-10-19 19:45:31 - de_shp_test - INFO - log = None
+2023-10-19 19:45:31 - de_shp_test - INFO - fetching args done.
+2023-10-19 19:45:31 - de_shp_test - INFO - hypothetic test method: ks
+2023-10-19 19:45:31 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-10-19 19:45:31 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray chunks: (1000, 1834, 1)
+2023-10-19 19:45:31 - de_shp_test - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray dtype: complex64
+2023-10-19 19:45:31 - de_shp_test - INFO - got az_chunk_size for pvalue: 1000
+2023-10-19 19:45:31 - de_shp_test - INFO - starting dask CUDA local cluster.
+2023-10-19 19:45:42 - de_shp_test - INFO - dask local CUDA cluster started.
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc dask array chunksize: (1000, 1834, 17)
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc dask array dtype: complex64
+2023-10-19 19:45:42 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
+2023-10-19 19:45:42 - de_shp_test - INFO - range half window size: 5; range window size: 11
+2023-10-19 19:45:42 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc with overlap dask array shape: (2520, 1834, 17)
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-19 19:45:42 - de_shp_test - INFO - rslc with overlap dask array dtype: complex64
+2023-10-19 19:45:43 - de_shp_test - INFO - rmli with overlap dask array shape: (2520, 1834, 17)
+2023-10-19 19:45:43 - de_shp_test - INFO - rmli with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-19 19:45:43 - de_shp_test - INFO - rmli with overlap dask array dtype: float32
+2023-10-19 19:45:43 - de_shp_test - INFO - applying test on sorted rmli stack.
+2023-10-19 19:45:43 - de_shp_test - INFO - p value generated
+2023-10-19 19:45:43 - de_shp_test - INFO - p value dask array shape: (2520, 1834, 11, 11)
+2023-10-19 19:45:43 - de_shp_test - INFO - p value dask array chunksize: (1010, 1834, 11, 11)
+2023-10-19 19:45:43 - de_shp_test - INFO - p value dask array dtype: float32
+2023-10-19 19:45:43 - de_shp_test - INFO - trim shared boundaries between p value chunks
+2023-10-19 19:45:43 - de_shp_test - INFO - trimmed p value dask array shape: (2500, 1834, 11, 11)
+2023-10-19 19:45:43 - de_shp_test - INFO - trimmed p value dask array chunksize: (1000, 1834, 11, 11)
+2023-10-19 19:45:43 - de_shp_test - INFO - trimmed p value dask array dtype: float32
+2023-10-19 19:45:43 - de_shp_test - INFO - saving p value.
+2023-10-19 19:45:43 - de_shp_test - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:45:49 - de_shp_test - INFO - computing finished. 6.1s
+2023-10-19 19:45:51 - de_shp_test - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 <p>Here we use two sample Kolmogorov-Smirnov (KS) test for SHP identification. The output <code>pvalue</code> is the P-value for this test. The smaller the p-value, the more likely the two sample are from same distribution, i.e., the more likely the two pixels are SHP to each other.</p>
 <p>Then we select SHP by setting a threshold on this Pvalue, and select DS by seeting a threshold on the number of SHP pixels have. They are done with one single function:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_select_ds_can</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_select_shp</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_is_shp.zarr'</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_idx.zarr'</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>shp_num_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/shp_num_fig.png'</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>is_ds_can_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_ds_can.png'</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>shp_num_min<span class="op">=</span><span class="dv">50</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>ds_can_chunk_size <span class="op">=</span> <span class="dv">100000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_shp.zarr'</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/shp_num.zarr'</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>de_select_ds_can(pvalue,ds_can_idx,ds_can_is_shp,</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                 p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size,</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                 shp_num_fig<span class="op">=</span>shp_num_fig,is_ds_can_fig<span class="op">=</span>is_ds_can_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>de_select_shp(pvalue,is_shp,shp_num,p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:41:21 - de_select_ds_can - INFO - fetching args:
-2023-10-13 21:41:21 - de_select_ds_can - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
-2023-10-13 21:41:21 - de_select_ds_can - INFO - ds_can_idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
-2023-10-13 21:41:21 - de_select_ds_can - INFO - ds_can_is_shp = './DS_Processing_with_CLI/ds_can_is_shp.zarr'
-2023-10-13 21:41:21 - de_select_ds_can - INFO - p_max = 0.05
-2023-10-13 21:41:21 - de_select_ds_can - INFO - shp_num_min = 50
-2023-10-13 21:41:21 - de_select_ds_can - INFO - az_chunk_size = 1000
-2023-10-13 21:41:21 - de_select_ds_can - INFO - n_pc_chunk = None
-2023-10-13 21:41:21 - de_select_ds_can - INFO - pc_chunk_size = None
-2023-10-13 21:41:21 - de_select_ds_can - INFO - shp_num_fig = './DS_Processing_with_CLI/shp_num_fig.png'
-2023-10-13 21:41:21 - de_select_ds_can - INFO - is_ds_can_fig = './DS_Processing_with_CLI/is_ds_can.png'
-2023-10-13 21:41:21 - de_select_ds_can - INFO - log = None
-2023-10-13 21:41:21 - de_select_ds_can - INFO - fetching args done.
-2023-10-13 21:41:21 - de_select_ds_can - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray shape: (2500, 1834, 11, 11)
-2023-10-13 21:41:21 - de_select_ds_can - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray chunks: (1000, 1834, 11, 11)
-2023-10-13 21:41:21 - de_select_ds_can - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray dtype: float32
-2023-10-13 21:41:21 - de_select_ds_can - INFO - parallel processing azimuth chunk size: 1000
-2023-10-13 21:41:21 - de_select_ds_can - INFO - starting dask local cluster.
-2023-10-13 21:41:23 - de_select_ds_can - INFO - dask local cluster started.
-2023-10-13 21:41:23 - de_select_ds_can - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - pvalue dask array chunksize: (1000, 1834, 11, 11)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - pvalue dask array dtype: float32
-2023-10-13 21:41:23 - de_select_ds_can - INFO - selecting SHPs based on pvalue threshold: 0.05
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_shp dask array chunksize: (1000, 1834, 11, 11)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_shp dask array dtype: bool
-2023-10-13 21:41:23 - de_select_ds_can - INFO - selecting DS candidates based on minimum of number of SHPs: 50
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_ds_can dask array shape: (2500, 1834)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_ds_can dask array chunksize: (1000, 1834)
-2023-10-13 21:41:23 - de_select_ds_can - INFO - is_ds_can dask array dtype: bool
-2023-10-13 21:41:23 - de_select_ds_can - INFO - calculate ds_can index:
-2023-10-13 21:41:23 - de_select_ds_can - INFO - slice is_shp on ds_can index:
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array shape: (2, 740397)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array chunksize: (1, 346329)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array dtype: int64
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array shape: (740397, 11, 11)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array chunksize: (346329, 11, 11)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array dtype: bool
-2023-10-13 21:41:27 - de_select_ds_can - INFO - set pc_chunk_size as az_chunk_size: 1000
-2023-10-13 21:41:27 - de_select_ds_can - INFO - rechunk ds_can_idx and ds_can_is_shp:
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array shape: (2, 740397)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array chunksize: (2, 1000)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_idx dask array dtype: int64
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array shape: (740397, 11, 11)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array chunksize: (1000, 11, 11)
-2023-10-13 21:41:27 - de_select_ds_can - INFO - ds_can_is_shp dask array dtype: bool
-2023-10-13 21:41:28 - de_select_ds_can - INFO - saving ds_can_is_shp.
-2023-10-13 21:41:28 - de_select_ds_can - INFO - saving ds_can_idx.
-2023-10-13 21:41:28 - de_select_ds_can - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:41:34 - de_select_ds_can - INFO - computing finished.
-2023-10-13 21:41:34 - de_select_ds_can - INFO - dask cluster closed.
-2023-10-13 21:41:34 - de_select_ds_can - INFO - plotting number of SHPs.
-2023-10-13 21:41:35 - de_select_ds_can - INFO - plotting DS candidate distribution.</code></pre>
+<pre><code>2023-10-19 19:48:49 - de_select_shp - INFO - fetching args:
+2023-10-19 19:48:49 - de_select_shp - INFO - pvalue = './DS_Processing_with_CLI/pvalue.zarr'
+2023-10-19 19:48:49 - de_select_shp - INFO - is_shp = './DS_Processing_with_CLI/is_shp.zarr'
+2023-10-19 19:48:49 - de_select_shp - INFO - shp_num = './DS_Processing_with_CLI/shp_num.zarr'
+2023-10-19 19:48:49 - de_select_shp - INFO - p_max = 0.05
+2023-10-19 19:48:49 - de_select_shp - INFO - n_az_chunk = None
+2023-10-19 19:48:49 - de_select_shp - INFO - az_chunk_size = 1000
+2023-10-19 19:48:49 - de_select_shp - INFO - log = None
+2023-10-19 19:48:49 - de_select_shp - INFO - fetching args done.
+2023-10-19 19:48:49 - de_select_shp - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-19 19:48:49 - de_select_shp - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-19 19:48:49 - de_select_shp - INFO - ./DS_Processing_with_CLI/pvalue.zarr zarray dtype: float32
+2023-10-19 19:48:49 - de_select_shp - INFO - got az_chunk_size for is_shp: 1000
+2023-10-19 19:48:49 - de_select_shp - INFO - starting dask cuda cluster.
+2023-10-19 19:48:58 - de_select_shp - INFO - dask cluster started.
+2023-10-19 19:48:58 - de_select_shp - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
+2023-10-19 19:48:58 - de_select_shp - INFO - pvalue dask array chunksize: (1000, 1834, 11, 11)
+2023-10-19 19:48:58 - de_select_shp - INFO - pvalue dask array dtype: float32
+2023-10-19 19:48:58 - de_select_shp - INFO - selecting SHPs based on pvalue threshold: 0.05
+2023-10-19 19:48:58 - de_select_shp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
+2023-10-19 19:48:58 - de_select_shp - INFO - is_shp dask array chunksize: (1000, 1834, 11, 11)
+2023-10-19 19:48:58 - de_select_shp - INFO - is_shp dask array dtype: bool
+2023-10-19 19:48:58 - de_select_shp - INFO - calculate shp_num.
+2023-10-19 19:48:58 - de_select_shp - INFO - shp_num dask array shape: (2500, 1834)
+2023-10-19 19:48:58 - de_select_shp - INFO - shp_num dask array chunksize: (1000, 1834)
+2023-10-19 19:48:58 - de_select_shp - INFO - shp_num dask array dtype: int32
+2023-10-19 19:48:58 - de_select_shp - INFO - saving is_shp.
+2023-10-19 19:48:58 - de_select_shp - INFO - saving shp_num.
+2023-10-19 19:48:58 - de_select_shp - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:49:03 - de_select_shp - INFO - computing finished..0s
+2023-10-19 19:49:05 - de_select_shp - INFO - dask cluster closed.</code></pre>
 </div>
-<div class="cell-output cell-output-display">
-<p><img src="DS_Processing_with_CLI_files/figure-html/cell-11-output-2.png" class="img-fluid"></p>
 </div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>shp_num_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(shp_num,<span class="st">'r'</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Number of SHPs'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="DS_Processing_with_CLI_files/figure-html/cell-11-output-3.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="DS_Processing_with_CLI_files/figure-html/cell-12-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="DS_Processing_with_CLI_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_thres_ras, de_ras2pc, de_idx2bool,de_pc2ras</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_idx.zarr'</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>is_ds_can<span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/is_ds_can.zarr'</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_is_shp.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>de_pc_thres_ras(shp_num,ds_can_idx,min_thres<span class="op">=</span><span class="dv">50</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx, is_shp, ds_can_is_shp)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>de_idx2bool(ds_can_idx, is_ds_can, shape<span class="op">=</span> shp_num_zarr.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-19 19:53:48 - de_pc_thres_ras - INFO - fetching args:
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - ras = './DS_Processing_with_CLI/shp_num.zarr'
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - min_thres = 50
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - max_thres = None
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - pc_chunk_size = None
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - n_pc_chunk = None
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - log = None
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - fetching args done.
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - ./DS_Processing_with_CLI/shp_num.zarr zarray shape: (2500, 1834)
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - ./DS_Processing_with_CLI/shp_num.zarr zarray chunks: (1000, 1834)
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - ./DS_Processing_with_CLI/shp_num.zarr zarray dtype: int32
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - loading ras into memory.
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - select pc based on min_thres.
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - number of selected pixels: 740397.
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - automatically determine pc_chunk_size from n_pc of idx and n_az_chunk of ras
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - pc_chunk_size for idx: 246799
+2023-10-19 19:53:48 - de_pc_thres_ras - INFO - writing idx.
+2023-10-19 19:53:48 - de_ras2pc - INFO - fetching args:
+2023-10-19 19:53:48 - de_ras2pc - INFO - idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
+2023-10-19 19:53:48 - de_ras2pc - INFO - ras = './DS_Processing_with_CLI/is_shp.zarr'
+2023-10-19 19:53:48 - de_ras2pc - INFO - pc = './DS_Processing_with_CLI/ds_can_is_shp.zarr'
+2023-10-19 19:53:48 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-19 19:53:48 - de_ras2pc - INFO - n_pc_chunk = None
+2023-10-19 19:53:48 - de_ras2pc - INFO - hd_chunk_size = None
+2023-10-19 19:53:48 - de_ras2pc - INFO - log = None
+2023-10-19 19:53:48 - de_ras2pc - INFO - fetching args done.
+2023-10-19 19:53:48 - de_ras2pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-19 19:53:48 - de_ras2pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-19 19:53:48 - de_ras2pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray dtype: int32
+2023-10-19 19:53:48 - de_ras2pc - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
+2023-10-19 19:53:48 - de_ras2pc - INFO - pc_chunk_size for pc: 246799
+2023-10-19 19:53:48 - de_ras2pc - INFO - loading idx into memory.
+2023-10-19 19:53:48 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-19 19:53:56 - de_ras2pc - INFO - dask local cluster started.
+2023-10-19 19:53:56 - de_ras2pc - INFO - start to slice on ./DS_Processing_with_CLI/is_shp.zarr
+2023-10-19 19:53:56 - de_ras2pc - INFO - ./DS_Processing_with_CLI/is_shp.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - ./DS_Processing_with_CLI/is_shp.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - ./DS_Processing_with_CLI/is_shp.zarr zarray dtype: bool
+2023-10-19 19:53:56 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./DS_Processing_with_CLI/is_shp.zarr.
+2023-10-19 19:53:56 - de_ras2pc - INFO - hd_chunk_size: (11, 11).
+2023-10-19 19:53:56 - de_ras2pc - INFO - ras dask array shape: (2500, 1834, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - ras dask array dtype: bool
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array chunksize: (346329, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-19 19:53:56 - de_ras2pc - INFO - rechunk pc data:
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array chunksize: (246799, 11, 11)
+2023-10-19 19:53:56 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-19 19:53:57 - de_ras2pc - INFO - saving to ./DS_Processing_with_CLI/ds_can_is_shp.zarr.
+2023-10-19 19:53:57 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:53:57 - de_ras2pc - INFO - computing finished.
+2023-10-19 19:53:58 - de_ras2pc - INFO - dask cluster closed.
+2023-10-19 19:53:58 - de_idx2bool - INFO - fetching args:
+2023-10-19 19:53:58 - de_idx2bool - INFO - idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
+2023-10-19 19:53:58 - de_idx2bool - INFO - is_pc = './DS_Processing_with_CLI/is_ds_can.zarr'
+2023-10-19 19:53:58 - de_idx2bool - INFO - shape = (2500, 1834)
+2023-10-19 19:53:58 - de_idx2bool - INFO - az_chunk_size = None
+2023-10-19 19:53:58 - de_idx2bool - INFO - n_az_chunk = None
+2023-10-19 19:53:58 - de_idx2bool - INFO - log = None
+2023-10-19 19:53:58 - de_idx2bool - INFO - fetching args done.
+2023-10-19 19:53:58 - de_idx2bool - INFO - idx zarray shape: (2, 740397)
+2023-10-19 19:53:58 - de_idx2bool - INFO - idx zarray chunks: (2, 246799)
+2023-10-19 19:53:58 - de_idx2bool - INFO - idx zarray dtype: int32
+2023-10-19 19:53:58 - de_idx2bool - INFO - loading idx into memory.
+2023-10-19 19:53:58 - de_idx2bool - INFO - calculate the bool array
+2023-10-19 19:53:58 - de_idx2bool - INFO - automatically determine az_chunk_size from nlines of ras and n_pc_chunk of idx
+2023-10-19 19:53:58 - de_idx2bool - INFO - az_chunk_size for ras: 834
+2023-10-19 19:53:58 - de_idx2bool - INFO - is_pc zarray shape: (2500, 1834)
+2023-10-19 19:53:58 - de_idx2bool - INFO - is_pc zarray chunks: (834, 1834)
+2023-10-19 19:53:58 - de_idx2bool - INFO - is_pc zarray dtype: bool
+2023-10-19 19:53:58 - de_idx2bool - INFO - write the bool array.
+2023-10-19 19:53:58 - de_idx2bool - INFO - write done.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>is_ds_can_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(is_ds_can,<span class="st">'r'</span>)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(is_ds_can_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS candidiate distribution'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="DS_Processing_with_CLI_files/figure-html/cell-16-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="DS_Processing_with_CLI_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
 </div>
 </div>
 <p>The output <code>ds_can_is_shp</code> indicate wheather a DS candidate in the window is a SHP to its center pixel. <code>ds_can_idx</code> is a int array with shape of (2, num_of_DS_can). It indicate the position of DS candidate in radar coordinate.</p>
@@ -720,92 +797,98 @@ perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.8668003082
 <h2 class="anchored" data-anchor-id="coherence-matrix-estimation">Coherence matrix estimation</h2>
 <p>Then we estimate the coherence matrix of ds candidate:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.co <span class="im">import</span> de_emperical_co_pc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.co <span class="im">import</span> de_emperical_co_pc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh.zarr'</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh_ave.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh.zarr'</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_coh_ave.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_pc(rslc,ds_can_is_shp,ds_can_idx,ds_can_coh,</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>                   az_chunk_size<span class="op">=</span>az_chunk_size,</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>                   ds_can_coh_ave_fig<span class="op">=</span>ds_can_coh_ave_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_pc(rslc,ds_can_is_shp,ds_can_idx,ds_can_coh,ds_can_coh_ave)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:41:36 - de_emperical_co_pc - INFO - fetching args:
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ds_can_is_shp = './DS_Processing_with_CLI/ds_can_is_shp.zarr'
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ds_can_idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ds_can_coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - az_chunk_size = 1000
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - n_pc_chunk = None
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - pc_chunk_size = None
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ds_can_coh_ave_fig = './DS_Processing_with_CLI/ds_can_coh_ave.png'
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - log = None
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - fetching args done.
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray shape: (2500, 1834, 17)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray chunks: (1000, 1834, 1)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray dtype: complex64
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray shape: (740397, 11, 11)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray chunks: (1000, 11, 11)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray dtype: bool
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray shape: (2, 740397)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray chunks: (2, 1000)
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray dtype: int64
-2023-10-13 21:41:36 - de_emperical_co_pc - INFO - loading ds_can_idx into memory.
-2023-10-13 21:41:37 - de_emperical_co_pc - INFO - got azimuth window size and half azimuth window size from is_shp shape: 11, 5
-2023-10-13 21:41:37 - de_emperical_co_pc - INFO - got range window size and half range window size from is_shp shape: 11, 5
-2023-10-13 21:41:37 - de_emperical_co_pc - INFO - parallel processing azimuth chunk size: 1000
-2023-10-13 21:41:37 - de_emperical_co_pc - INFO - starting dask CUDA local cluster.
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - dask local CUDA cluster started.
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - create raster bool array is_ds_can from ds_can_idx
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - create dask bool array is_ds_can
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can dask array shape: (2500, 1834)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can dask array chunksize: (1000, 1834)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can dask array dtype: bool
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - Using azimuth chunk size as the processing chunk size.
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - Calculate point chunk size
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - Point chunk size: (346329, 274921, 119147)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc dask array shape: (2500, 1834, 17)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc dask array chunksize: (1000, 1834, 17)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc dask array dtype: complex64
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - ds_can_is_shp dask array shape: (740397, 11, 11)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - ds_can_is_shp dask array chunksize: (346329, 11, 11)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - ds_can_is_shp dask array dtype: bool
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - setting shared boundaries between rlsc chunks.
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc_overlap dask array shape: (2520, 1834, 17)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc_overlap dask array chunksize: (1010, 1834, 17)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - rslc_overlap dask array dtype: complex64
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - padding zero between is_ds_can chunks.
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can_padded dask array shape: (2520, 1834)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can_padded dask array chunksize: (1010, 1834)
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - is_ds_can_padded dask array dtype: bool
-2023-10-13 21:41:42 - de_emperical_co_pc - INFO - estimating coherence matrix.
-2023-10-13 21:41:43 - de_emperical_co_pc - INFO - got coherence matrix.
-2023-10-13 21:41:43 - de_emperical_co_pc - INFO - set pc_chunk_size as az_chunk_size: 1000
-2023-10-13 21:41:43 - de_emperical_co_pc - INFO - rechunking ds_can_coh to chunk size (for saving with zarr): (1000, 17, 17)
-2023-10-13 21:41:43 - de_emperical_co_pc - INFO - saving ds_can_coh.
-2023-10-13 21:41:43 - de_emperical_co_pc - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:42:16 - de_emperical_co_pc - INFO - computing finished.
-2023-10-13 21:42:17 - de_emperical_co_pc - INFO - dask cluster closed.</code></pre>
+<pre><code>2023-10-19 19:56:40 - de_emperical_co_pc - INFO - fetching args:
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - rslc = './DS_Processing_with_CLI/rslc.zarr'
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - is_shp = './DS_Processing_with_CLI/ds_can_is_shp.zarr'
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - coh_ave = './DS_Processing_with_CLI/ds_can_coh_ave.zarr'
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - az_chunk_size = None
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - n_pc_chunk = None
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - pc_chunk_size = None
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - log = None
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - fetching args done.
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray chunks: (1000, 1834, 1)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/rslc.zarr zarray dtype: complex64
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray shape: (740397, 11, 11)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray chunks: (246799, 11, 11)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_is_shp.zarr zarray dtype: bool
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - ./DS_Processing_with_CLI/ds_can_idx.zarr zarray dtype: int32
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - loading idx into memory.
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - got azimuth window size and half azimuth window size from is_shp shape: 11, 5
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - got range window size and half range window size from is_shp shape: 11, 5
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - using default parallel processing azimuth chunk size from rslc dataset.
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - parallel processing azimuth chunk size: 1000
+2023-10-19 19:56:40 - de_emperical_co_pc - INFO - starting dask CUDA local cluster.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - dask local CUDA cluster started.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - create raster bool array is_pc from idx
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - create dask bool array is_pc
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc dask array shape: (2500, 1834)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc dask array chunksize: (1000, 1834)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc dask array dtype: bool
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - Using azimuth chunk size as the processing chunk size.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - Calculate point chunk size
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - Point chunk size: (346329, 274921, 119147)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc dask array chunksize: (1000, 1834, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc dask array dtype: complex64
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_shp dask array shape: (740397, 11, 11)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_shp dask array chunksize: (346329, 11, 11)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_shp dask array dtype: bool
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - setting shared boundaries between rlsc chunks.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc_overlap dask array shape: (2520, 1834, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc_overlap dask array chunksize: (1010, 1834, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rslc_overlap dask array dtype: complex64
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - padding zero between is_pc chunks.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc_padded dask array shape: (2520, 1834)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc_padded dask array chunksize: (1010, 1834)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - is_pc_padded dask array dtype: bool
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - estimating coherence matrix.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - got coherence matrix.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array chunksize: (346329, 17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array dtype: complex64
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - automatically determine pc_chunk_size from n_pc of coh and n_az_chunk of rslc
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - pc_chunk_size for coh: 246799
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - rechunking_coh to chunk size (for saving with zarr): (246799, 17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh dask array dtype: complex64
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - get average coherence matrix magnitude.
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh_ave dask array shape: (17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh_ave dask array chunksize: (17, 17)
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - coh_ave dask array dtype: float32
+2023-10-19 19:56:47 - de_emperical_co_pc - INFO - saving coh and coh_ave.
+2023-10-19 19:56:48 - de_emperical_co_pc - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:56:54 - de_emperical_co_pc - INFO - computing finished.2K
+2023-10-19 19:56:56 - de_emperical_co_pc - INFO - dask cluster closed.</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>2023-10-13 21:41:39,186 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,186 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,186 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,186 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,189 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,199 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,199 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,202 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,202 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:41:39,205 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:41:39,205 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_can_coh_ave,<span class="st">'r'</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(ds_can_coh_ave_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Average coherence matrix'</span>,xlabel<span class="op">=</span><span class="st">'Image Index'</span>,ylabel<span class="op">=</span><span class="st">'Image Index'</span>)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="DS_Processing_with_CLI_files/figure-html/cell-20-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="DS_Processing_with_CLI_files/figure-html/cell-20-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
@@ -813,88 +896,100 @@ perpendicular_baseline = [ -97.61360168457031, -45.58580017089844, 17.8668003082
 <h2 class="anchored" data-anchor-id="phase-linking">Phase linking</h2>
 <p>To get rid of the closure phase, phase linking is applied here:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_ph.zarr'</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_emi_quality.zarr'</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>ref <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>vmin<span class="op">=</span><span class="fl">1.0</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>vmax<span class="op">=</span><span class="fl">1.3</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>emi_quality_fig <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/emi_quality.png'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_ph.zarr'</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/ds_can_emi_quality.zarr'</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>emi_quality <span class="op">=</span> <span class="st">'./DS_Processing_with_CLI/emi_quality.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>shape <span class="op">=</span> zarr.<span class="bu">open</span>(pvalue,<span class="st">'r'</span>).shape[:<span class="dv">2</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality,</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>       ref<span class="op">=</span>ref,point_chunk_size<span class="op">=</span><span class="va">None</span>,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>       plot_emi_quality<span class="op">=</span><span class="va">True</span>,vmin<span class="op">=</span>vmin,vmax<span class="op">=</span>vmax,</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>       ds_idx<span class="op">=</span>ds_can_idx,shape<span class="op">=</span>shape,emi_quality_fig<span class="op">=</span>emi_quality_fig)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-13 21:42:17 - de_emi - INFO - fetching args:
-2023-10-13 21:42:17 - de_emi - INFO - coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
-2023-10-13 21:42:17 - de_emi - INFO - ph = './DS_Processing_with_CLI/ds_can_ph.zarr'
-2023-10-13 21:42:17 - de_emi - INFO - emi_quality = './DS_Processing_with_CLI/ds_can_emi_quality.zarr'
-2023-10-13 21:42:17 - de_emi - INFO - ref = 0
-2023-10-13 21:42:17 - de_emi - INFO - point_chunk_size = None
-2023-10-13 21:42:17 - de_emi - INFO - log = None
-2023-10-13 21:42:17 - de_emi - INFO - plot_emi_quality = True
-2023-10-13 21:42:17 - de_emi - INFO - vmin = 1.0
-2023-10-13 21:42:17 - de_emi - INFO - vmax = 1.3
-2023-10-13 21:42:17 - de_emi - INFO - ds_idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
-2023-10-13 21:42:17 - de_emi - INFO - shape = (2500, 1834)
-2023-10-13 21:42:17 - de_emi - INFO - emi_quality_fig = './DS_Processing_with_CLI/emi_quality.png'
-2023-10-13 21:42:17 - de_emi - INFO - fetching args done.
-2023-10-13 21:42:17 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray shape: (740397, 17, 17)
-2023-10-13 21:42:17 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray chunks: (1000, 17, 17)
-2023-10-13 21:42:17 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray dtype: complex64
-2023-10-13 21:42:17 - de_emi - INFO - using default parallel processing azimuth chunk size from coh dataset.
-2023-10-13 21:42:17 - de_emi - INFO - parallel processing point chunk size: 1000
-2023-10-13 21:42:17 - de_emi - INFO - starting dask CUDA local cluster.
-2023-10-13 21:42:24 - de_emi - INFO - dask local CUDA cluster started.
-2023-10-13 21:42:24 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
-2023-10-13 21:42:24 - de_emi - INFO - coh dask array chunksize: (1000, 17, 17)
-2023-10-13 21:42:24 - de_emi - INFO - coh dask array dtype: complex64
-2023-10-13 21:42:24 - de_emi - INFO - phase linking with EMI.
-2023-10-13 21:42:25 - de_emi - INFO - got ph and emi_quality.
-2023-10-13 21:42:25 - de_emi - INFO - ph dask array shape: (740397, 17)
-2023-10-13 21:42:25 - de_emi - INFO - ph dask array chunksize: (1000, 17)
-2023-10-13 21:42:25 - de_emi - INFO - ph dask array dtype: complex64
-2023-10-13 21:42:25 - de_emi - INFO - emi_quality dask array shape: (740397,)
-2023-10-13 21:42:25 - de_emi - INFO - emi_quality dask array chunksize: (1000,)
-2023-10-13 21:42:25 - de_emi - INFO - emi_quality dask array dtype: float32
-2023-10-13 21:42:25 - de_emi - INFO - saving ph and emi_quality.
-2023-10-13 21:42:25 - de_emi - INFO - computing graph setted. doing all the computing.
-2023-10-13 21:42:31 - de_emi - INFO - computing finished.
-2023-10-13 21:42:33 - de_emi - INFO - dask cluster closed.
-2023-10-13 21:42:33 - de_emi - INFO - plotting emi_quality.
-2023-10-13 21:42:33 - de_emi - INFO - reading is_ds bool array
-2023-10-13 21:42:33 - de_emi - INFO - converting emi_quality from point cloud to raster.
-2023-10-13 21:42:33 - de_emi - INFO - saving figure
-2023-10-13 21:42:33 - de_emi - INFO - showing</code></pre>
+<pre><code>2023-10-19 19:58:25 - de_emi - INFO - fetching args:
+2023-10-19 19:58:25 - de_emi - INFO - coh = './DS_Processing_with_CLI/ds_can_coh.zarr'
+2023-10-19 19:58:25 - de_emi - INFO - ph = './DS_Processing_with_CLI/ds_can_ph.zarr'
+2023-10-19 19:58:25 - de_emi - INFO - emi_quality = './DS_Processing_with_CLI/ds_can_emi_quality.zarr'
+2023-10-19 19:58:25 - de_emi - INFO - ref = 0
+2023-10-19 19:58:25 - de_emi - INFO - n_pc_chunk = None
+2023-10-19 19:58:25 - de_emi - INFO - pc_chunk_size = None
+2023-10-19 19:58:25 - de_emi - INFO - log = None
+2023-10-19 19:58:25 - de_emi - INFO - fetching args done.
+2023-10-19 19:58:25 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-19 19:58:25 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-19 19:58:25 - de_emi - INFO - ./DS_Processing_with_CLI/ds_can_coh.zarr zarray dtype: complex64
+2023-10-19 19:58:25 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-19 19:58:25 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-19 19:58:25 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-19 19:58:32 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-19 19:58:32 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-19 19:58:32 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-19 19:58:32 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-19 19:58:32 - de_emi - INFO - phase linking with EMI.
+2023-10-19 19:58:33 - de_emi - INFO - got ph and emi_quality.
+2023-10-19 19:58:33 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-19 19:58:33 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-19 19:58:33 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-19 19:58:33 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-19 19:58:33 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-19 19:58:33 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-19 19:58:33 - de_emi - INFO - saving ph and emi_quality.
+2023-10-19 19:58:33 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-19 19:58:38 - de_emi - INFO - computing finished.ed |  4.4s
+2023-10-19 19:58:40 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
-<div class="cell-output cell-output-stderr">
-<pre><code>2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Creating preload: dask_cuda.initialize
-2023-10-13 21:42:19,594 - distributed.preloading - INFO - Import preload module: dask_cuda.initialize</code></pre>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_emi_quality,emi_quality,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-19 20:00:50 - de_pc2ras - INFO - fetching args:
+2023-10-19 20:00:50 - de_pc2ras - INFO - idx = './DS_Processing_with_CLI/ds_can_idx.zarr'
+2023-10-19 20:00:50 - de_pc2ras - INFO - pc = './DS_Processing_with_CLI/ds_can_emi_quality.zarr'
+2023-10-19 20:00:50 - de_pc2ras - INFO - ras = './DS_Processing_with_CLI/emi_quality.zarr'
+2023-10-19 20:00:50 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-19 20:00:50 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-19 20:00:50 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-19 20:00:50 - de_pc2ras - INFO - log = None
+2023-10-19 20:00:50 - de_pc2ras - INFO - fetching args done.
+2023-10-19 20:00:50 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-19 20:00:50 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-19 20:00:50 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-19 20:00:50 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-19 20:00:50 - de_pc2ras - INFO - loading idx into memory.
+2023-10-19 20:00:50 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-19 20:00:58 - de_pc2ras - INFO - dask local cluster started.
+2023-10-19 20:00:58 - de_pc2ras - INFO - start to work on ./DS_Processing_with_CLI/ds_can_emi_quality.zarr
+2023-10-19 20:00:58 - de_pc2ras - INFO - ./DS_Processing_with_CLI/ds_can_emi_quality.zarr zarray shape: (740397,)
+2023-10-19 20:00:58 - de_pc2ras - INFO - ./DS_Processing_with_CLI/ds_can_emi_quality.zarr zarray chunks: (246799,)
+2023-10-19 20:00:58 - de_pc2ras - INFO - ./DS_Processing_with_CLI/ds_can_emi_quality.zarr zarray dtype: float32
+2023-10-19 20:00:58 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-19 20:00:58 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-19 20:00:58 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-19 20:00:58 - de_pc2ras - INFO - create ras dask array
+2023-10-19 20:00:58 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-19 20:00:58 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-19 20:00:58 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-19 20:00:58 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-19 20:00:59 - de_pc2ras - INFO - computing finished.
+2023-10-19 20:01:00 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>emi_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(emi_quality,<span class="st">'r'</span>)</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(emi_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>,vmin<span class="op">=</span><span class="fl">1.0</span>,vmax<span class="op">=</span><span class="fl">1.3</span>,cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'EMI quality factor'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
 </div>
 <div class="cell-output cell-output-display">
-<p><img src="DS_Processing_with_CLI_files/figure-html/cell-18-output-3.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="DS_Processing_with_CLI_files/figure-html/cell-25-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="DS_Processing_with_CLI_files/figure-html/cell-25-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
 </div>
 </div>
 <p>Unfinished…</p>
@@ -1136,8 +1231,19 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../Tutorials/work_with_dask.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Work With Dask</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","closeEffect":"zoom","selector":".lightbox","loop":true,"openEffect":"zoom"});</script>
 
 
 
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

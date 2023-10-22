@@ -84,6 +84,8 @@ div.csl-indent {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../API/pc.html" rel="next">
+<link href="../API/co.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -93,6 +95,9 @@ div.csl-indent {
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -112,6 +117,7 @@ div.csl-indent {
     "search-submit-button-title": "Submit"
   }
 }</script>
+<style>html{ scroll-behavior: smooth; }</style>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -119,7 +125,7 @@ div.csl-indent {
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar floating nav-fixed">
+<body class="nav-sidebar floating nav-fixed slimcontent">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -326,7 +332,7 @@ div.csl-indent {
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -367,11 +373,11 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<section id="emi" class="level2">
+<section id="emi" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="emi">EMI</h2>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pl.py#L10" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="emi-1" class="level3">
+<section id="emi-1" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="emi-1">emi</h3>
 <blockquote class="blockquote">
 <pre><code> emi (coh:cupy.ndarray, ref:int=0)</code></pre>
@@ -413,7 +419,9 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </tbody>
 </table>
 <p><a href="https://kanglcn.github.io/decorrelation/API/pl.html#emi"><code>emi</code></a> is a phase estimator base on Eigendecomposition-based Maximum-likelihood-estimator of Interferometric phase (EMI) <span class="citation" data-cites="ansariEfficientPhaseEstimation2018">(<a href="#ref-ansariEfficientPhaseEstimation2018" role="doc-biblioref">Ansari, De Zan, and Bamler 2018</a>)</span> phase linking method.</p>
-<p>The amplitude of <code>coh</code> should range between 0 and 1 and the phase of <code>coh</code> should be the interferometric phase. The returned phase is also complex but the amplitude is setted to 1. The quality factor is a measure for the inadequacy of EMI’s model that adding real-valued dyadic for calibration of real coherence matrix which is generally poorly estimated. It is supposed to larger than 1 and smaller means better.</p>
+<div class="no-row-height column-margin column-container"><div id="ref-ansariEfficientPhaseEstimation2018" class="csl-entry" role="listitem">
+Ansari, Homa, Francesco De Zan, and Richard Bamler. 2018. <span>“Efficient <span>Phase Estimation</span> for <span>Interferogram Stacks</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 56 (7): 4109–25. <a href="https://doi.org/10.1109/TGRS.2018.2826045">https://doi.org/10.1109/TGRS.2018.2826045</a>.
+</div></div><p>The amplitude of <code>coh</code> should range between 0 and 1 and the phase of <code>coh</code> should be the interferometric phase. The returned phase is also complex but the amplitude is setted to 1. The quality factor is a measure for the inadequacy of EMI’s model that adding real-valued dyadic for calibration of real coherence matrix which is generally poorly estimated. It is supposed to larger than 1 and smaller means better.</p>
 <p>Example: Complex coherence matrix from a stack of 17 SLC images:</p>
 <div class="cell">
 <details>
@@ -473,16 +481,20 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="pl_files/figure-html/cell-9-output-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="pl_files/figure-html/cell-9-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="pl_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
 </div>
 </div>
 </section>
 </section>
-<section id="temporal-coherence-for-distributed-scatterer" class="level2">
+<section id="temporal-coherence-for-distributed-scatterer" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="temporal-coherence-for-distributed-scatterer">Temporal Coherence for Distributed Scatterer</h2>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/pl.py#L23" target="_blank" style="float:right; font-size:smaller">source</a></p>
-<section id="temp_coh" class="level3">
+<section id="temp_coh" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="temp_coh">temp_coh</h3>
 <blockquote class="blockquote">
 <pre><code> temp_coh (coh:cupy.ndarray, ds_ph=&lt;class 'cupy.ndarray'&gt;)</code></pre>
@@ -512,7 +524,9 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </tbody>
 </table>
 <p>This function estimate the temporal coherence of DSs which is defined as <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>:</p>
-<p><span class="math display">\[\gamma = \frac{1}{N^2-N} \sum_{n=1}^{N} \sum_{k \neq n}^{N} e^{i\phi_{nk}} e^{-i(\theta_n-\theta_k)}\]</span></p>
+<div class="no-row-height column-margin column-container"><div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
+Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
+</div></div><p><span class="math display">\[\gamma = \frac{1}{N^2-N} \sum_{n=1}^{N} \sum_{k \neq n}^{N} e^{i\phi_{nk}} e^{-i(\theta_n-\theta_k)}\]</span></p>
 <p>Where <span class="math inline">\(\phi_{nk}\)</span> is the phase of complex coherence matrix and <span class="math inline">\(\theta_{n}\)</span> is the phase after phase linking.</p>
 <div class="cell">
 <details>
@@ -565,7 +579,11 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="pl_files/figure-html/cell-15-output-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="pl_files/figure-html/cell-15-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="pl_files/figure-html/cell-15-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
 </div>
 </div>
 
@@ -574,14 +592,7 @@ and https://github.com/cupy/cupy/issues/6112 -->
 </section>
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
-<div id="ref-ansariEfficientPhaseEstimation2018" class="csl-entry" role="listitem">
-Ansari, Homa, Francesco De Zan, and Richard Bamler. 2018. <span>“Efficient <span>Phase Estimation</span> for <span>Interferogram Stacks</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 56 (7): 4109–25. <a href="https://doi.org/10.1109/TGRS.2018.2826045">https://doi.org/10.1109/TGRS.2018.2826045</a>.
-</div>
-<div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
-Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
-</div>
-</div></section></div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -815,8 +826,22 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../API/co.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">co</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../API/pc.html" class="pagination-link">
+        <span class="nav-page-text">pc</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
 </div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"loop":true,"closeEffect":"zoom","openEffect":"zoom","selector":".lightbox","descPosition":"bottom"});</script>
 
 
 
+<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>

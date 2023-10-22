@@ -34,11 +34,23 @@ Please refer to the
 [Documentation](https://kanglcn.github.io/decorrelation) for detailed
 usage.
 
-**Warning!!!** Due to the heavy dependence on CUDA, this package only
-works on device with Nivida GPU.
+<div>
 
-**Warning!!!** This package is under intensive development. API is
-subjected to change without any noticement.
+> **Warning**
+>
+> Due to the heavy dependence on CuPy and CUDA, this package only works
+> on device with Nivida GPU.
+
+</div>
+
+<div>
+
+> **Warning**
+>
+> This package is under intensive development. API is subjected to
+> change without any noticement.
+
+</div>
 
 ## Install
 
