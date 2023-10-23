@@ -43,7 +43,6 @@ def pc_union(idx1:Union[np.ndarray,cp.ndarray], # int array, index of the first 
 
     idx = xp.concatenate((idx1,idx2),axis=-1)
     n1 = idx1.shape[1]; n2 = idx2.shape[1]
-    dims = (100,100)
     
     idx_1d = xp.ravel_multi_index(idx,dims=dims) # automatically the returned 1d index is in int64
     iidx = xp.argsort(idx_1d,kind='stable') # test shows argsort is faster than lexsort, that is why use ravel and unravel index

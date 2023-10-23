@@ -142,7 +142,7 @@ def de_select_shp(pvalue:str, # input: pvalue of hypothetic test
     chunks=(az_chunk_size,*p_zarr.shape[1:])
 
     logger.info('starting dask cuda cluster.')
-    with LocalCUDACluster(**get_cuda_cluster_arg()) as cluster, Client(cluster) as client:
+    with LocalCUDACluster(CUDA_VISIBLE_DEVICES=get_cuda_cluster_arg()['CUDA_VISIBLE_DEVICES']) as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
 
         p_cpu = da.from_zarr(pvalue,chunks=chunks)
