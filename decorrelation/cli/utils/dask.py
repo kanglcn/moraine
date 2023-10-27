@@ -73,7 +73,7 @@ def get_cuda_cluster_arg():
         n_gpu = len(visible_gpus)
     n_cpu = config.get('n_cpu')
     threads_per_worker = math.floor(n_cpu/n_gpu)
-    return {'CUDA_VISIBLE_DEVICES':config.get('visible_gpus'),'threads_per_worker':threads_per_worker}
+    return {'CUDA_VISIBLE_DEVICES':config.get('visible_gpus')}
 
 # %% ../../../nbs/CLI/utils/dask.ipynb 7
 def get_pc_chunk_size(az_chunk_size,pc_size,pc_chunk_size=None,n_pc_chunk=None,logger=None):

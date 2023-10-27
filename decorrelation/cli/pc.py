@@ -2,7 +2,8 @@
 
 # %% auto 0
 __all__ = ['de_idx2bool', 'de_bool2idx', 'de_ras2pc', 'console_de_ras2pc', 'de_pc2ras', 'console_de_pc2ras', 'de_pc_union',
-           'de_pc_intersect', 'de_pc_diff', 'de_pc_thres_ras', 'de_pc_thres_pc', 'de_pc_select_data']
+           'de_pc_intersect', 'de_pc_diff', 'de_pc_thres_ras', 'de_pc_logic_ras', 'de_pc_logic_pc', 'de_pc_thres_pc',
+           'de_pc_select_data']
 
 # %% ../../nbs/CLI/pc.ipynb 3
 import math
@@ -535,6 +536,64 @@ def de_pc_thres_ras(ras, # the raster image used for thresholding
 # %% ../../nbs/CLI/pc.ipynb 33
 @call_parse
 @log_args
+def de_pc_logic_ras(ras, # the raster image used for thresholding
+                    idx, # output, index of selected pixels
+                    operation:str, # logical operation on input ras
+                    pc_chunk_size:int=None, # chunk size in output data,optional
+                    n_pc_chunk:int=None, # number of chunk in output data, optional
+                    log:str=None, # log file. Default: no log file
+                   ):
+    '''generate point cloud index based on logical operation of one raster image.
+    '''
+    idx_path = idx
+    logger = get_logger(logfile=log)
+    ras_zarr = zarr.open(ras, mode='r'); logger.zarr_info(ras,ras_zarr)
+
+    ras = ras_zarr[:]; logger.info('loading ras into memory.')
+    is_pc = eval(operation,{'ras':ras})
+    logger.info(f'select pc based on operation: {operation}')
+    idx = np.stack(np.where(is_pc)).astype(np.int32)
+    n_pc = idx.shape[1]
+    logger.info(f'number of selected pixels: {n_pc}.')
+    pc_chunk_size = get_pc_chunk_size_from_n_az_chunk('ras','idx',ras_zarr.shape[0],ras_zarr.chunks[0],n_pc,logger=logger,pc_chunk_size=pc_chunk_size,n_pc_chunk=n_pc_chunk)
+    idx_zarr = zarr.open(idx_path,'w',dtype=idx.dtype,shape=idx.shape,chunks=(2,pc_chunk_size))
+    logger.info('writing idx.')
+    idx_zarr[:] = idx
+
+# %% ../../nbs/CLI/pc.ipynb 34
+@call_parse
+@log_args
+def de_pc_logic_pc(idx_in,# the index of input pc data
+                   pc_in, # the point cloud data used for thresholding
+                   idx, # output, index of selected pixels
+                   pc_chunk_size:int=None, # chunk size in output data,optional
+                   n_pc_chunk:int=None, # number of chunk in output data, optional
+                   log:str=None, # log file. Default: no log file
+                   ):
+    '''generate point cloud index and data based on logical operation one point cloud data.
+    '''
+    idx_path = idx
+    logger = get_logger(logfile=log)
+    idx_in_zarr = zarr.open(idx_in,mode='r'); logger.zarr_info(idx_in,idx_in_zarr)
+    pc_in_zarr = zarr.open(pc_in, mode='r'); logger.zarr_info(pc_in,pc_in_zarr)
+
+    idx_in = idx_in_zarr[:]; logger.info('loading idx_in into memory.')
+    pc_in = pc_in_zarr[:]; logger.info('loading pc_in into memory.')
+
+    is_pc = eval(operation,{'pc_in':pc_in})
+    logger.info(f'select pc based on operation: {operation}')
+    idx = idx_in[:,is_pc]
+    n_pc = idx.shape[1]
+    logger.info(f'number of selected pixels: {n_pc}.')
+    pc_chunk_size = get_pc_chunk_size_from_n_pc_chunk('idx_in','idx',idx_in_zarr.shape[1],idx_in_zarr.chunks[1],n_pc, logger, pc_chunk_size=pc_chunk_size, n_pc_chunk= n_pc_chunk)
+    idx_zarr = zarr.open(idx_path,'w',dtype=idx.dtype,shape=idx.shape,chunks=(2,pc_chunk_size))
+    logger.zarr_info('idx', idx_zarr)
+    logger.info('writing idx.')
+    idx_zarr[:] = idx
+
+# %% ../../nbs/CLI/pc.ipynb 35
+@call_parse
+@log_args
 def de_pc_thres_pc(idx_in,# the index of input pc data
                    pc_in, # the point cloud data used for thresholding
                    idx, # output, index of selected pixels
@@ -576,7 +635,7 @@ def de_pc_thres_pc(idx_in,# the index of input pc data
     logger.info('writing idx.')
     idx_zarr[:] = idx
 
-# %% ../../nbs/CLI/pc.ipynb 37
+# %% ../../nbs/CLI/pc.ipynb 39
 @call_parse
 @log_args
 def de_pc_select_data(idx_in:str, # index of the input data

@@ -21,7 +21,15 @@ website:
           - CLI/pc.ipynb
       - section: Tutorials
         contents:
+          - section: API
+          contents:
           - Tutorials/Adaptive_Multilook.ipynb
           - Tutorials/DS_Processing.ipynb
-          - Tutorials/Work_With_Dask.ipynb
-          - Tutorials/DS_Processing_with_CLI.ipynb
+          - section: CLI
+          contents:
+            - Tutorials/CLI/overview.ipynb
+            - Tutorials/CLI/load_data.ipynb
+            - Tutorials/CLI/ds_processing.ipynb
+          - section: Customization
+          contents:
+            - Tutorials/Work_With_Dask.ipynb
