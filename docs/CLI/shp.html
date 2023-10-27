@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.353">
+<meta name="generator" content="quarto-1.3.450">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -95,7 +95,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 <style>html{ scroll-behavior: smooth; }</style>
@@ -263,6 +264,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </a> 
       </div>
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -275,18 +285,51 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">DS Processing</span></a>
   </div>
 </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">CLI</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/CLI/overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tutorials for CLI Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/CLI/load_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Load Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+ <span class="menu-text">Tutorials/CLI/ds_processing.ipynb</span>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Customization</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work With Dask</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">DS processing with CLI</span></a>
-  </div>
-</li>
+      </ul>
+  </li>
       </ul>
   </li>
     </ul>
@@ -421,50 +464,50 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslc,pvalue,az_half_win<span class="op">=</span><span class="dv">5</span>,r_half_win<span class="op">=</span><span class="dv">5</span>, method<span class="op">=</span><span class="va">None</span>,az_chunk_size<span class="op">=</span><span class="dv">1000</span>,log<span class="op">=</span><span class="st">'./shp/de_shp_test.log'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-20 19:31:34 - de_shp_test - INFO - fetching args:
-2023-10-20 19:31:34 - de_shp_test - INFO - rslc = './raw/rslc.zarr'
-2023-10-20 19:31:34 - de_shp_test - INFO - pvalue = './shp/pvalue.zarr'
-2023-10-20 19:31:34 - de_shp_test - INFO - az_half_win = 5
-2023-10-20 19:31:34 - de_shp_test - INFO - r_half_win = 5
-2023-10-20 19:31:34 - de_shp_test - INFO - method = None
-2023-10-20 19:31:34 - de_shp_test - INFO - n_az_chunk = None
-2023-10-20 19:31:34 - de_shp_test - INFO - az_chunk_size = 1000
-2023-10-20 19:31:34 - de_shp_test - INFO - log = './shp/de_shp_test.log'
-2023-10-20 19:31:34 - de_shp_test - INFO - fetching args done.
-2023-10-20 19:31:34 - de_shp_test - INFO - hypothetic test method: ks
-2023-10-20 19:31:34 - de_shp_test - INFO - ./raw/rslc.zarr zarray shape: (2500, 1834, 17)
-2023-10-20 19:31:34 - de_shp_test - INFO - ./raw/rslc.zarr zarray chunks: (1000, 1834, 1)
-2023-10-20 19:31:34 - de_shp_test - INFO - ./raw/rslc.zarr zarray dtype: complex64
-2023-10-20 19:31:34 - de_shp_test - INFO - got az_chunk_size for pvalue: 1000
-2023-10-20 19:31:34 - de_shp_test - INFO - starting dask CUDA local cluster.
-2023-10-20 19:31:41 - de_shp_test - INFO - dask local CUDA cluster started.
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc dask array chunksize: (1000, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc dask array dtype: complex64
-2023-10-20 19:31:41 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
-2023-10-20 19:31:41 - de_shp_test - INFO - range half window size: 5; range window size: 11
-2023-10-20 19:31:41 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc with overlap dask array shape: (2520, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc with overlap dask array chunksize: (1010, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rslc with overlap dask array dtype: complex64
-2023-10-20 19:31:41 - de_shp_test - INFO - rmli with overlap dask array shape: (2520, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rmli with overlap dask array chunksize: (1010, 1834, 17)
-2023-10-20 19:31:41 - de_shp_test - INFO - rmli with overlap dask array dtype: float32
-2023-10-20 19:31:41 - de_shp_test - INFO - applying test on sorted rmli stack.
-2023-10-20 19:31:41 - de_shp_test - INFO - p value generated
-2023-10-20 19:31:41 - de_shp_test - INFO - p value dask array shape: (2520, 1834, 11, 11)
-2023-10-20 19:31:41 - de_shp_test - INFO - p value dask array chunksize: (1010, 1834, 11, 11)
-2023-10-20 19:31:41 - de_shp_test - INFO - p value dask array dtype: float32
-2023-10-20 19:31:41 - de_shp_test - INFO - trim shared boundaries between p value chunks
-2023-10-20 19:31:41 - de_shp_test - INFO - trimmed p value dask array shape: (2500, 1834, 11, 11)
-2023-10-20 19:31:41 - de_shp_test - INFO - trimmed p value dask array chunksize: (1000, 1834, 11, 11)
-2023-10-20 19:31:41 - de_shp_test - INFO - trimmed p value dask array dtype: float32
-2023-10-20 19:31:41 - de_shp_test - INFO - saving p value.
-2023-10-20 19:31:41 - de_shp_test - INFO - computing graph setted. doing all the computing.
-2023-10-20 19:31:47 - de_shp_test - INFO - computing finished. 5.9s
-2023-10-20 19:31:49 - de_shp_test - INFO - dask cluster closed.
-CPU times: user 512 ms, sys: 1.02 s, total: 1.53 s
-Wall time: 15.3 s</code></pre>
+<pre><code>2023-10-22 17:39:06 - de_shp_test - INFO - fetching args:
+2023-10-22 17:39:06 - de_shp_test - INFO - rslc = './raw/rslc.zarr'
+2023-10-22 17:39:06 - de_shp_test - INFO - pvalue = './shp/pvalue.zarr'
+2023-10-22 17:39:06 - de_shp_test - INFO - az_half_win = 5
+2023-10-22 17:39:06 - de_shp_test - INFO - r_half_win = 5
+2023-10-22 17:39:06 - de_shp_test - INFO - method = None
+2023-10-22 17:39:06 - de_shp_test - INFO - n_az_chunk = None
+2023-10-22 17:39:06 - de_shp_test - INFO - az_chunk_size = 1000
+2023-10-22 17:39:06 - de_shp_test - INFO - log = './shp/de_shp_test.log'
+2023-10-22 17:39:06 - de_shp_test - INFO - fetching args done.
+2023-10-22 17:39:06 - de_shp_test - INFO - hypothetic test method: ks
+2023-10-22 17:39:06 - de_shp_test - INFO - ./raw/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-10-22 17:39:06 - de_shp_test - INFO - ./raw/rslc.zarr zarray chunks: (1000, 1834, 1)
+2023-10-22 17:39:06 - de_shp_test - INFO - ./raw/rslc.zarr zarray dtype: complex64
+2023-10-22 17:39:06 - de_shp_test - INFO - got az_chunk_size for pvalue: 1000
+2023-10-22 17:39:06 - de_shp_test - INFO - starting dask CUDA local cluster.
+2023-10-22 17:39:15 - de_shp_test - INFO - dask local CUDA cluster started.
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc dask array chunksize: (1000, 1834, 17)
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc dask array dtype: complex64
+2023-10-22 17:39:15 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
+2023-10-22 17:39:15 - de_shp_test - INFO - range half window size: 5; range window size: 11
+2023-10-22 17:39:15 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc with overlap dask array shape: (2520, 1834, 17)
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-22 17:39:15 - de_shp_test - INFO - rslc with overlap dask array dtype: complex64
+2023-10-22 17:39:19 - de_shp_test - INFO - rmli with overlap dask array shape: (2520, 1834, 17)
+2023-10-22 17:39:19 - de_shp_test - INFO - rmli with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-22 17:39:19 - de_shp_test - INFO - rmli with overlap dask array dtype: float32
+2023-10-22 17:39:19 - de_shp_test - INFO - applying test on sorted rmli stack.
+2023-10-22 17:39:19 - de_shp_test - INFO - p value generated
+2023-10-22 17:39:19 - de_shp_test - INFO - p value dask array shape: (2520, 1834, 11, 11)
+2023-10-22 17:39:19 - de_shp_test - INFO - p value dask array chunksize: (1010, 1834, 11, 11)
+2023-10-22 17:39:19 - de_shp_test - INFO - p value dask array dtype: float32
+2023-10-22 17:39:19 - de_shp_test - INFO - trim shared boundaries between p value chunks
+2023-10-22 17:39:19 - de_shp_test - INFO - trimmed p value dask array shape: (2500, 1834, 11, 11)
+2023-10-22 17:39:19 - de_shp_test - INFO - trimmed p value dask array chunksize: (1000, 1834, 11, 11)
+2023-10-22 17:39:19 - de_shp_test - INFO - trimmed p value dask array dtype: float32
+2023-10-22 17:39:19 - de_shp_test - INFO - saving p value.
+2023-10-22 17:39:19 - de_shp_test - INFO - computing graph setted. doing all the computing.
+2023-10-22 17:39:26 - de_shp_test - INFO - computing finished. 7.2s
+2023-10-22 17:39:29 - de_shp_test - INFO - dask cluster closed.
+CPU times: user 2.57 s, sys: 2.5 s, total: 5.07 s
+Wall time: 22.3 s</code></pre>
 </div>
 </div>
 <p>This function can also be called from command line directly:</p>
@@ -572,39 +615,39 @@ options:
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>de_select_shp(pvalue,is_shp,shp_num,p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-19 22:54:29 - de_select_shp - INFO - fetching args:
-2023-10-19 22:54:29 - de_select_shp - INFO - pvalue = './shp/pvalue.zarr'
-2023-10-19 22:54:29 - de_select_shp - INFO - is_shp = './shp/is_shp.zarr'
-2023-10-19 22:54:29 - de_select_shp - INFO - shp_num = './shp/num.zarr'
-2023-10-19 22:54:29 - de_select_shp - INFO - p_max = 0.05
-2023-10-19 22:54:29 - de_select_shp - INFO - n_az_chunk = None
-2023-10-19 22:54:29 - de_select_shp - INFO - az_chunk_size = 1000
-2023-10-19 22:54:29 - de_select_shp - INFO - log = None
-2023-10-19 22:54:29 - de_select_shp - INFO - fetching args done.
-2023-10-19 22:54:29 - de_select_shp - INFO - ./shp/pvalue.zarr zarray shape: (2500, 1834, 11, 11)
-2023-10-19 22:54:29 - de_select_shp - INFO - ./shp/pvalue.zarr zarray chunks: (1000, 1834, 11, 11)
-2023-10-19 22:54:29 - de_select_shp - INFO - ./shp/pvalue.zarr zarray dtype: float32
-2023-10-19 22:54:29 - de_select_shp - INFO - got az_chunk_size for is_shp: 1000
-2023-10-19 22:54:29 - de_select_shp - INFO - starting dask cuda cluster.
-2023-10-19 22:54:36 - de_select_shp - INFO - dask cluster started.
-2023-10-19 22:54:36 - de_select_shp - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
-2023-10-19 22:54:36 - de_select_shp - INFO - pvalue dask array chunksize: (1000, 1834, 11, 11)
-2023-10-19 22:54:36 - de_select_shp - INFO - pvalue dask array dtype: float32
-2023-10-19 22:54:36 - de_select_shp - INFO - selecting SHPs based on pvalue threshold: 0.05
-2023-10-19 22:54:36 - de_select_shp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
-2023-10-19 22:54:36 - de_select_shp - INFO - is_shp dask array chunksize: (1000, 1834, 11, 11)
-2023-10-19 22:54:36 - de_select_shp - INFO - is_shp dask array dtype: bool
-2023-10-19 22:54:36 - de_select_shp - INFO - calculate shp_num.
-2023-10-19 22:54:36 - de_select_shp - INFO - shp_num dask array shape: (2500, 1834)
-2023-10-19 22:54:36 - de_select_shp - INFO - shp_num dask array chunksize: (1000, 1834)
-2023-10-19 22:54:36 - de_select_shp - INFO - shp_num dask array dtype: int32
-2023-10-19 22:54:36 - de_select_shp - INFO - saving is_shp.
-2023-10-19 22:54:36 - de_select_shp - INFO - saving shp_num.
-2023-10-19 22:54:36 - de_select_shp - INFO - computing graph setted. doing all the computing.
-2023-10-19 22:54:41 - de_select_shp - INFO - computing finished..2s
-2023-10-19 22:54:43 - de_select_shp - INFO - dask cluster closed.
-CPU times: user 566 ms, sys: 644 ms, total: 1.21 s
-Wall time: 14.9 s</code></pre>
+<pre><code>2023-10-22 18:12:03 - de_select_shp - INFO - fetching args:
+2023-10-22 18:12:03 - de_select_shp - INFO - pvalue = './shp/pvalue.zarr'
+2023-10-22 18:12:03 - de_select_shp - INFO - is_shp = './shp/is_shp.zarr'
+2023-10-22 18:12:03 - de_select_shp - INFO - shp_num = './shp/num.zarr'
+2023-10-22 18:12:03 - de_select_shp - INFO - p_max = 0.05
+2023-10-22 18:12:03 - de_select_shp - INFO - n_az_chunk = None
+2023-10-22 18:12:03 - de_select_shp - INFO - az_chunk_size = 1000
+2023-10-22 18:12:03 - de_select_shp - INFO - log = None
+2023-10-22 18:12:03 - de_select_shp - INFO - fetching args done.
+2023-10-22 18:12:03 - de_select_shp - INFO - ./shp/pvalue.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-22 18:12:03 - de_select_shp - INFO - ./shp/pvalue.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-22 18:12:03 - de_select_shp - INFO - ./shp/pvalue.zarr zarray dtype: float32
+2023-10-22 18:12:03 - de_select_shp - INFO - got az_chunk_size for is_shp: 1000
+2023-10-22 18:12:03 - de_select_shp - INFO - starting dask cuda cluster.
+2023-10-22 18:12:11 - de_select_shp - INFO - dask cluster started.
+2023-10-22 18:12:11 - de_select_shp - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
+2023-10-22 18:12:11 - de_select_shp - INFO - pvalue dask array chunksize: (1000, 1834, 11, 11)
+2023-10-22 18:12:11 - de_select_shp - INFO - pvalue dask array dtype: float32
+2023-10-22 18:12:11 - de_select_shp - INFO - selecting SHPs based on pvalue threshold: 0.05
+2023-10-22 18:12:11 - de_select_shp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
+2023-10-22 18:12:11 - de_select_shp - INFO - is_shp dask array chunksize: (1000, 1834, 11, 11)
+2023-10-22 18:12:11 - de_select_shp - INFO - is_shp dask array dtype: bool
+2023-10-22 18:12:11 - de_select_shp - INFO - calculate shp_num.
+2023-10-22 18:12:11 - de_select_shp - INFO - shp_num dask array shape: (2500, 1834)
+2023-10-22 18:12:11 - de_select_shp - INFO - shp_num dask array chunksize: (1000, 1834)
+2023-10-22 18:12:11 - de_select_shp - INFO - shp_num dask array dtype: int32
+2023-10-22 18:12:11 - de_select_shp - INFO - saving is_shp.
+2023-10-22 18:12:11 - de_select_shp - INFO - saving shp_num.
+2023-10-22 18:12:11 - de_select_shp - INFO - computing graph setted. doing all the computing.
+2023-10-22 18:12:16 - de_select_shp - INFO - computing finished..6s
+2023-10-22 18:12:19 - de_select_shp - INFO - dask cluster closed.
+CPU times: user 611 ms, sys: 914 ms, total: 1.52 s
+Wall time: 15.2 s</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -631,87 +674,87 @@ Wall time: 14.9 s</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>de_pc_thres_ras(shp_num,ds_can_idx,min_thres<span class="op">=</span><span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-19 22:54:44 - de_pc_thres_ras - INFO - fetching args:
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - ras = './shp/num.zarr'
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - idx = './shp/ds_can_idx.zarr'
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - min_thres = 50
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - max_thres = None
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - pc_chunk_size = None
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - n_pc_chunk = None
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - log = None
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - fetching args done.
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray shape: (2500, 1834)
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray chunks: (1000, 1834)
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray dtype: int32
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - loading ras into memory.
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - select pc based on min_thres.
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - number of selected pixels: 740397.
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - automatically determine pc_chunk_size from n_pc of idx and n_az_chunk of ras
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - pc_chunk_size for idx: 246799
-2023-10-19 22:54:44 - de_pc_thres_ras - INFO - writing idx.</code></pre>
+<pre><code>2023-10-22 17:39:51 - de_pc_thres_ras - INFO - fetching args:
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - ras = './shp/num.zarr'
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - min_thres = 50
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - max_thres = None
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - pc_chunk_size = None
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - n_pc_chunk = None
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - log = None
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - fetching args done.
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray shape: (2500, 1834)
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray chunks: (1000, 1834)
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - ./shp/num.zarr zarray dtype: int32
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - loading ras into memory.
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - select pc based on min_thres.
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - number of selected pixels: 740397.
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - automatically determine pc_chunk_size from n_pc of idx and n_az_chunk of ras
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - pc_chunk_size for idx: 246799
+2023-10-22 17:39:51 - de_pc_thres_ras - INFO - writing idx.</code></pre>
 </div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx, is_shp, ds_can_is_shp)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>de_idx2bool(ds_can_idx, is_ds_can, shape<span class="op">=</span> shp_num_zarr.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-19 22:54:44 - de_ras2pc - INFO - fetching args:
-2023-10-19 22:54:44 - de_ras2pc - INFO - idx = './shp/ds_can_idx.zarr'
-2023-10-19 22:54:44 - de_ras2pc - INFO - ras = './shp/is_shp.zarr'
-2023-10-19 22:54:44 - de_ras2pc - INFO - pc = './shp/ds_can_is_shp.zarr'
-2023-10-19 22:54:44 - de_ras2pc - INFO - pc_chunk_size = None
-2023-10-19 22:54:44 - de_ras2pc - INFO - n_pc_chunk = None
-2023-10-19 22:54:44 - de_ras2pc - INFO - hd_chunk_size = None
-2023-10-19 22:54:44 - de_ras2pc - INFO - log = None
-2023-10-19 22:54:44 - de_ras2pc - INFO - fetching args done.
-2023-10-19 22:54:44 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray shape: (2, 740397)
-2023-10-19 22:54:44 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray chunks: (2, 246799)
-2023-10-19 22:54:44 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray dtype: int32
-2023-10-19 22:54:44 - de_ras2pc - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
-2023-10-19 22:54:44 - de_ras2pc - INFO - pc_chunk_size for pc: 246799
-2023-10-19 22:54:44 - de_ras2pc - INFO - loading idx into memory.
-2023-10-19 22:54:44 - de_ras2pc - INFO - starting dask local cluster.
-2023-10-19 22:54:52 - de_ras2pc - INFO - dask local cluster started.
-2023-10-19 22:54:52 - de_ras2pc - INFO - start to slice on ./shp/is_shp.zarr
-2023-10-19 22:54:52 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray shape: (2500, 1834, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray chunks: (1000, 1834, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray dtype: bool
-2023-10-19 22:54:52 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./shp/is_shp.zarr.
-2023-10-19 22:54:52 - de_ras2pc - INFO - hd_chunk_size: (11, 11).
-2023-10-19 22:54:52 - de_ras2pc - INFO - ras dask array shape: (2500, 1834, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - ras dask array dtype: bool
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array chunksize: (346329, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array dtype: bool
-2023-10-19 22:54:52 - de_ras2pc - INFO - rechunk pc data:
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array chunksize: (246799, 11, 11)
-2023-10-19 22:54:52 - de_ras2pc - INFO - pc dask array dtype: bool
-2023-10-19 22:54:52 - de_ras2pc - INFO - saving to ./shp/ds_can_is_shp.zarr.
-2023-10-19 22:54:52 - de_ras2pc - INFO - computing graph setted. doing all the computing.
-2023-10-19 22:54:52 - de_ras2pc - INFO - computing finished.
-2023-10-19 22:54:53 - de_ras2pc - INFO - dask cluster closed.
-2023-10-19 22:54:53 - de_idx2bool - INFO - fetching args:
-2023-10-19 22:54:53 - de_idx2bool - INFO - idx = './shp/ds_can_idx.zarr'
-2023-10-19 22:54:53 - de_idx2bool - INFO - is_pc = './shp/is_ds_can.zarr'
-2023-10-19 22:54:53 - de_idx2bool - INFO - shape = (2500, 1834)
-2023-10-19 22:54:53 - de_idx2bool - INFO - az_chunk_size = None
-2023-10-19 22:54:53 - de_idx2bool - INFO - n_az_chunk = None
-2023-10-19 22:54:53 - de_idx2bool - INFO - log = None
-2023-10-19 22:54:53 - de_idx2bool - INFO - fetching args done.
-2023-10-19 22:54:53 - de_idx2bool - INFO - idx zarray shape: (2, 740397)
-2023-10-19 22:54:53 - de_idx2bool - INFO - idx zarray chunks: (2, 246799)
-2023-10-19 22:54:53 - de_idx2bool - INFO - idx zarray dtype: int32
-2023-10-19 22:54:53 - de_idx2bool - INFO - loading idx into memory.
-2023-10-19 22:54:53 - de_idx2bool - INFO - calculate the bool array
-2023-10-19 22:54:53 - de_idx2bool - INFO - automatically determine az_chunk_size from nlines of ras and n_pc_chunk of idx
-2023-10-19 22:54:53 - de_idx2bool - INFO - az_chunk_size for ras: 834
-2023-10-19 22:54:53 - de_idx2bool - INFO - is_pc zarray shape: (2500, 1834)
-2023-10-19 22:54:53 - de_idx2bool - INFO - is_pc zarray chunks: (834, 1834)
-2023-10-19 22:54:53 - de_idx2bool - INFO - is_pc zarray dtype: bool
-2023-10-19 22:54:53 - de_idx2bool - INFO - write the bool array.
-2023-10-19 22:54:53 - de_idx2bool - INFO - write done.</code></pre>
+<pre><code>2023-10-22 17:39:51 - de_ras2pc - INFO - fetching args:
+2023-10-22 17:39:51 - de_ras2pc - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-22 17:39:51 - de_ras2pc - INFO - ras = './shp/is_shp.zarr'
+2023-10-22 17:39:51 - de_ras2pc - INFO - pc = './shp/ds_can_is_shp.zarr'
+2023-10-22 17:39:51 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-22 17:39:51 - de_ras2pc - INFO - n_pc_chunk = None
+2023-10-22 17:39:51 - de_ras2pc - INFO - hd_chunk_size = None
+2023-10-22 17:39:51 - de_ras2pc - INFO - log = None
+2023-10-22 17:39:51 - de_ras2pc - INFO - fetching args done.
+2023-10-22 17:39:51 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-22 17:39:51 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-22 17:39:51 - de_ras2pc - INFO - ./shp/ds_can_idx.zarr zarray dtype: int32
+2023-10-22 17:39:51 - de_ras2pc - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
+2023-10-22 17:39:51 - de_ras2pc - INFO - pc_chunk_size for pc: 246799
+2023-10-22 17:39:51 - de_ras2pc - INFO - loading idx into memory.
+2023-10-22 17:39:51 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-22 17:39:57 - de_ras2pc - INFO - dask local cluster started.
+2023-10-22 17:39:57 - de_ras2pc - INFO - start to slice on ./shp/is_shp.zarr
+2023-10-22 17:39:57 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - ./shp/is_shp.zarr zarray dtype: bool
+2023-10-22 17:39:57 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./shp/is_shp.zarr.
+2023-10-22 17:39:57 - de_ras2pc - INFO - hd_chunk_size: (11, 11).
+2023-10-22 17:39:57 - de_ras2pc - INFO - ras dask array shape: (2500, 1834, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - ras dask array dtype: bool
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array chunksize: (346329, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-22 17:39:57 - de_ras2pc - INFO - rechunk pc data:
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array chunksize: (246799, 11, 11)
+2023-10-22 17:39:57 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-22 17:39:57 - de_ras2pc - INFO - saving to ./shp/ds_can_is_shp.zarr.
+2023-10-22 17:39:57 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-22 17:39:57 - de_ras2pc - INFO - computing finished.|  0.6s
+2023-10-22 17:39:58 - de_ras2pc - INFO - dask cluster closed.
+2023-10-22 17:39:58 - de_idx2bool - INFO - fetching args:
+2023-10-22 17:39:58 - de_idx2bool - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-22 17:39:58 - de_idx2bool - INFO - is_pc = './shp/is_ds_can.zarr'
+2023-10-22 17:39:58 - de_idx2bool - INFO - shape = (2500, 1834)
+2023-10-22 17:39:58 - de_idx2bool - INFO - az_chunk_size = None
+2023-10-22 17:39:58 - de_idx2bool - INFO - n_az_chunk = None
+2023-10-22 17:39:58 - de_idx2bool - INFO - log = None
+2023-10-22 17:39:58 - de_idx2bool - INFO - fetching args done.
+2023-10-22 17:39:58 - de_idx2bool - INFO - idx zarray shape: (2, 740397)
+2023-10-22 17:39:58 - de_idx2bool - INFO - idx zarray chunks: (2, 246799)
+2023-10-22 17:39:58 - de_idx2bool - INFO - idx zarray dtype: int32
+2023-10-22 17:39:58 - de_idx2bool - INFO - loading idx into memory.
+2023-10-22 17:39:58 - de_idx2bool - INFO - calculate the bool array
+2023-10-22 17:39:58 - de_idx2bool - INFO - automatically determine az_chunk_size from nlines of ras and n_pc_chunk of idx
+2023-10-22 17:39:58 - de_idx2bool - INFO - az_chunk_size for ras: 834
+2023-10-22 17:39:58 - de_idx2bool - INFO - is_pc zarray shape: (2500, 1834)
+2023-10-22 17:39:58 - de_idx2bool - INFO - is_pc zarray chunks: (834, 1834)
+2023-10-22 17:39:58 - de_idx2bool - INFO - is_pc zarray dtype: bool
+2023-10-22 17:39:58 - de_idx2bool - INFO - write the bool array.
+2023-10-22 17:39:58 - de_idx2bool - INFO - write done.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -980,7 +1023,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","closeEffect":"zoom","loop":true,"selector":".lightbox","descPosition":"bottom"});</script>
+<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","loop":true,"selector":".lightbox","openEffect":"zoom","closeEffect":"zoom"});</script>
 
 
 

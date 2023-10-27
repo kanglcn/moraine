@@ -2,6 +2,35 @@
 
 <!-- do not remove -->
 
+## 0.5.0
+
+New features:
+
+Add CLI for temporal coherence estimation for DS
+
+Add dispersion index calculation for PS
+
+Add logic operation for pc index
+
+Add `transform` for coordinate reprojection
+
+Add holoviews plot
+
+
+Maintain:
+
+Using `with ... as:` to prevent dask cluster unclosed
+
+Remove all plot options in CLI
+
+Set all thread per worker for local cuda cluster to 1
+
+Use progressbar
+
+Update doc theme
+
+Reorginaze Tutorial
+
 ## 0.4.2
 
 Finish point cloud manipulation functions and commands

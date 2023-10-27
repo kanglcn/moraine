@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.353">
+<meta name="generator" content="quarto-1.3.450">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -55,7 +55,26 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -95,16 +114,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 <style>html{ scroll-behavior: smooth; }</style>
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <link rel="stylesheet" href="../styles.css">
 </head>
 
-<body class="nav-sidebar floating nav-fixed">
+<body class="nav-sidebar floating nav-fixed slimcontent">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -263,6 +285,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           </a> 
       </div>
       <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
@@ -275,18 +306,51 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">DS Processing</span></a>
   </div>
 </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">CLI</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/CLI/overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tutorials for CLI Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../Tutorials/CLI/load_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Load Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+ <span class="menu-text">Tutorials/CLI/ds_processing.ipynb</span>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Customization</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Work With Dask</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../Tutorials/ds_processing_with_cli.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">DS processing with CLI</span></a>
-  </div>
-</li>
+      </ul>
+  </li>
       </ul>
   </li>
     </ul>
@@ -300,11 +364,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#de_emi" id="toc-de_emi" class="nav-link active" data-scroll-target="#de_emi">de_emi</a></li>
+  <li><a href="#de_ds_temp_coh" id="toc-de_ds_temp_coh" class="nav-link" data-scroll-target="#de_ds_temp_coh">de_ds_temp_coh</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -405,37 +470,37 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality,ref<span class="op">=</span>ref,log<span class="op">=</span>log)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-20 19:49:47 - de_emi - INFO - fetching args:
-2023-10-20 19:49:47 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
-2023-10-20 19:49:47 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
-2023-10-20 19:49:47 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
-2023-10-20 19:49:47 - de_emi - INFO - ref = 0
-2023-10-20 19:49:47 - de_emi - INFO - n_pc_chunk = None
-2023-10-20 19:49:47 - de_emi - INFO - pc_chunk_size = None
-2023-10-20 19:49:47 - de_emi - INFO - log = 'pl/de_emi.log'
-2023-10-20 19:49:47 - de_emi - INFO - fetching args done.
-2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
-2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
-2023-10-20 19:49:47 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
-2023-10-20 19:49:47 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
-2023-10-20 19:49:47 - de_emi - INFO - pc_chunk_size for ph: 246799
-2023-10-20 19:49:47 - de_emi - INFO - starting dask CUDA local cluster.
-2023-10-20 19:49:57 - de_emi - INFO - dask local CUDA cluster started.
-2023-10-20 19:49:57 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
-2023-10-20 19:49:57 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
-2023-10-20 19:49:57 - de_emi - INFO - coh dask array dtype: complex64
-2023-10-20 19:49:57 - de_emi - INFO - phase linking with EMI.
-2023-10-20 19:49:58 - de_emi - INFO - got ph and emi_quality.
-2023-10-20 19:49:58 - de_emi - INFO - ph dask array shape: (740397, 17)
-2023-10-20 19:49:58 - de_emi - INFO - ph dask array chunksize: (246799, 17)
-2023-10-20 19:49:58 - de_emi - INFO - ph dask array dtype: complex64
-2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array shape: (740397,)
-2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
-2023-10-20 19:49:58 - de_emi - INFO - emi_quality dask array dtype: float32
-2023-10-20 19:49:58 - de_emi - INFO - saving ph and emi_quality.
-2023-10-20 19:49:58 - de_emi - INFO - computing graph setted. doing all the computing.
-2023-10-20 19:50:03 - de_emi - INFO - computing finished.ed |  4.7s
-2023-10-20 19:50:05 - de_emi - INFO - dask cluster closed.</code></pre>
+<pre><code>2023-10-22 23:03:37 - de_emi - INFO - fetching args:
+2023-10-22 23:03:37 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
+2023-10-22 23:03:37 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
+2023-10-22 23:03:37 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
+2023-10-22 23:03:37 - de_emi - INFO - ref = 0
+2023-10-22 23:03:37 - de_emi - INFO - n_pc_chunk = None
+2023-10-22 23:03:37 - de_emi - INFO - pc_chunk_size = None
+2023-10-22 23:03:37 - de_emi - INFO - log = 'pl/de_emi.log'
+2023-10-22 23:03:37 - de_emi - INFO - fetching args done.
+2023-10-22 23:03:37 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-22 23:03:37 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-22 23:03:37 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
+2023-10-22 23:03:37 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-22 23:03:37 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-22 23:03:37 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-22 23:03:44 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-22 23:03:44 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-22 23:03:44 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-22 23:03:44 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-22 23:03:44 - de_emi - INFO - phase linking with EMI.
+2023-10-22 23:03:44 - de_emi - INFO - got ph and emi_quality.
+2023-10-22 23:03:44 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-22 23:03:44 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-22 23:03:44 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-22 23:03:44 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-22 23:03:44 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-22 23:03:44 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-22 23:03:44 - de_emi - INFO - saving ph and emi_quality.
+2023-10-22 23:03:44 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-22 23:03:49 - de_emi - INFO - computing finished.ed |  4.9s
+2023-10-22 23:03:52 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -444,36 +509,36 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./raw/rslc.zarr/'</span>,<span class="st">'r'</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_emi_quality,emi_quality,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-20 19:50:10 - de_pc2ras - INFO - fetching args:
-2023-10-20 19:50:10 - de_pc2ras - INFO - idx = './shp/ds_can_idx.zarr'
-2023-10-20 19:50:10 - de_pc2ras - INFO - pc = './pl/ds_can_emi_quality.zarr'
-2023-10-20 19:50:10 - de_pc2ras - INFO - ras = './pl/emi_quality.zarr'
-2023-10-20 19:50:10 - de_pc2ras - INFO - shape = (2500, 1834)
-2023-10-20 19:50:10 - de_pc2ras - INFO - az_chunk_size = 1000
-2023-10-20 19:50:10 - de_pc2ras - INFO - n_az_chunk = None
-2023-10-20 19:50:10 - de_pc2ras - INFO - log = None
-2023-10-20 19:50:10 - de_pc2ras - INFO - fetching args done.
-2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
-2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
-2023-10-20 19:50:10 - de_pc2ras - INFO - idx zarray dtype: int32
-2023-10-20 19:50:10 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
-2023-10-20 19:50:10 - de_pc2ras - INFO - loading idx into memory.
-2023-10-20 19:50:10 - de_pc2ras - INFO - starting dask local cluster.
-2023-10-20 19:50:17 - de_pc2ras - INFO - dask local cluster started.
-2023-10-20 19:50:17 - de_pc2ras - INFO - start to work on ./pl/ds_can_emi_quality.zarr
-2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray shape: (740397,)
-2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray chunks: (246799,)
-2023-10-20 19:50:17 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray dtype: float32
-2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array shape: (740397,)
-2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
-2023-10-20 19:50:17 - de_pc2ras - INFO - pc dask array dtype: float32
-2023-10-20 19:50:17 - de_pc2ras - INFO - create ras dask array
-2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
-2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
-2023-10-20 19:50:17 - de_pc2ras - INFO - ras dask array dtype: float32
-2023-10-20 19:50:17 - de_pc2ras - INFO - computing graph setted. doing all the computing.
-2023-10-20 19:50:17 - de_pc2ras - INFO - computing finished.|  0.4s
-2023-10-20 19:50:18 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+<pre><code>2023-10-22 22:34:20 - de_pc2ras - INFO - fetching args:
+2023-10-22 22:34:20 - de_pc2ras - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-22 22:34:20 - de_pc2ras - INFO - pc = './pl/ds_can_emi_quality.zarr'
+2023-10-22 22:34:20 - de_pc2ras - INFO - ras = './pl/emi_quality.zarr'
+2023-10-22 22:34:20 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-22 22:34:20 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-22 22:34:20 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-22 22:34:20 - de_pc2ras - INFO - log = None
+2023-10-22 22:34:20 - de_pc2ras - INFO - fetching args done.
+2023-10-22 22:34:20 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-22 22:34:20 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-22 22:34:20 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-22 22:34:20 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-22 22:34:20 - de_pc2ras - INFO - loading idx into memory.
+2023-10-22 22:34:20 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-22 22:34:28 - de_pc2ras - INFO - dask local cluster started.
+2023-10-22 22:34:28 - de_pc2ras - INFO - start to work on ./pl/ds_can_emi_quality.zarr
+2023-10-22 22:34:28 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray shape: (740397,)
+2023-10-22 22:34:28 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray chunks: (246799,)
+2023-10-22 22:34:28 - de_pc2ras - INFO - ./pl/ds_can_emi_quality.zarr zarray dtype: float32
+2023-10-22 22:34:28 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-22 22:34:28 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-22 22:34:28 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-22 22:34:28 - de_pc2ras - INFO - create ras dask array
+2023-10-22 22:34:28 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-22 22:34:28 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-22 22:34:28 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-22 22:34:28 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-22 22:34:29 - de_pc2ras - INFO - computing finished.|  0.5s
+2023-10-22 22:34:30 - de_pc2ras - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -496,39 +561,201 @@ and https://github.com/cupy/cupy/issues/6112 -->
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>de_emi .<span class="op">/</span>co<span class="op">/</span>ds_can_coh.zarr .<span class="op">/</span>pl<span class="op">/</span>ds_can_ph.zarr .<span class="op">/</span>pl<span class="op">/</span>ds_can_emi_quality.zarr</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-20 19:50:41 - de_emi - INFO - fetching args:
-2023-10-20 19:50:41 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
-2023-10-20 19:50:41 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
-2023-10-20 19:50:41 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
-2023-10-20 19:50:41 - de_emi - INFO - ref = 0
-2023-10-20 19:50:41 - de_emi - INFO - n_pc_chunk = None
-2023-10-20 19:50:41 - de_emi - INFO - pc_chunk_size = None
-2023-10-20 19:50:41 - de_emi - INFO - log = None
-2023-10-20 19:50:41 - de_emi - INFO - fetching args done.
-2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
-2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
-2023-10-20 19:50:41 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
-2023-10-20 19:50:41 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
-2023-10-20 19:50:41 - de_emi - INFO - pc_chunk_size for ph: 246799
-2023-10-20 19:50:41 - de_emi - INFO - starting dask CUDA local cluster.
-2023-10-20 19:50:48 - de_emi - INFO - dask local CUDA cluster started.
-2023-10-20 19:50:48 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
-2023-10-20 19:50:48 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
-2023-10-20 19:50:48 - de_emi - INFO - coh dask array dtype: complex64
-2023-10-20 19:50:48 - de_emi - INFO - phase linking with EMI.
-2023-10-20 19:50:50 - de_emi - INFO - got ph and emi_quality.
-2023-10-20 19:50:50 - de_emi - INFO - ph dask array shape: (740397, 17)
-2023-10-20 19:50:50 - de_emi - INFO - ph dask array chunksize: (246799, 17)
-2023-10-20 19:50:50 - de_emi - INFO - ph dask array dtype: complex64
-2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array shape: (740397,)
-2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
-2023-10-20 19:50:50 - de_emi - INFO - emi_quality dask array dtype: float32
-2023-10-20 19:50:50 - de_emi - INFO - saving ph and emi_quality.
-2023-10-20 19:50:50 - de_emi - INFO - computing graph setted. doing all the computing.
-2023-10-20 19:50:55 - de_emi - INFO - computing finished.ed |  4.5s
-2023-10-20 19:50:57 - de_emi - INFO - dask cluster closed.</code></pre>
+<pre><code>2023-10-22 22:34:35 - de_emi - INFO - fetching args:
+2023-10-22 22:34:35 - de_emi - INFO - coh = './co/ds_can_coh.zarr'
+2023-10-22 22:34:35 - de_emi - INFO - ph = './pl/ds_can_ph.zarr'
+2023-10-22 22:34:35 - de_emi - INFO - emi_quality = './pl/ds_can_emi_quality.zarr'
+2023-10-22 22:34:35 - de_emi - INFO - ref = 0
+2023-10-22 22:34:35 - de_emi - INFO - n_pc_chunk = None
+2023-10-22 22:34:35 - de_emi - INFO - pc_chunk_size = None
+2023-10-22 22:34:35 - de_emi - INFO - log = None
+2023-10-22 22:34:35 - de_emi - INFO - fetching args done.
+2023-10-22 22:34:35 - de_emi - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-22 22:34:35 - de_emi - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-22 22:34:35 - de_emi - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
+2023-10-22 22:34:35 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-22 22:34:35 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-22 22:34:35 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-22 22:34:43 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-22 22:34:43 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-22 22:34:43 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-22 22:34:43 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-22 22:34:43 - de_emi - INFO - phase linking with EMI.
+2023-10-22 22:34:44 - de_emi - INFO - got ph and emi_quality.
+2023-10-22 22:34:44 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-22 22:34:44 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-22 22:34:44 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-22 22:34:44 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-22 22:34:44 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-22 22:34:44 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-22 22:34:44 - de_emi - INFO - saving ph and emi_quality.
+2023-10-22 22:34:45 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-22 22:34:49 - de_emi - INFO - computing finished.ed |  4.7s
+2023-10-22 22:34:52 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
+<hr>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/pl.py#L97" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="de_ds_temp_coh" class="level3 page-columns page-full">
+<h3 class="anchored" data-anchor-id="de_ds_temp_coh">de_ds_temp_coh</h3>
+<blockquote class="blockquote">
+<pre><code> de_ds_temp_coh (coh:str, ph:str, t_coh:str, n_pc_chunk:int=None,
+                 pc_chunk_size:int=None, log:str=None)</code></pre>
+</blockquote>
+<p>DS temporal coherence.</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>coh</td>
+<td>str</td>
+<td></td>
+<td>coherence matrix</td>
+</tr>
+<tr class="even">
+<td>ph</td>
+<td>str</td>
+<td></td>
+<td>wrapped phase</td>
+</tr>
+<tr class="odd">
+<td>t_coh</td>
+<td>str</td>
+<td></td>
+<td>output, temporal coherence</td>
+</tr>
+<tr class="even">
+<td>n_pc_chunk</td>
+<td>int</td>
+<td>None</td>
+<td>number of point cloud chunk</td>
+</tr>
+<tr class="odd">
+<td>pc_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>point cloud chunk size</td>
+</tr>
+<tr class="even">
+<td>log</td>
+<td>str</td>
+<td>None</td>
+<td>log</td>
+</tr>
+</tbody>
+</table>
+<p>This function estimate the temporal coherence of DSs which is defined as <span class="citation" data-cites="ferrettiNewAlgorithmProcessing2011">(<a href="#ref-ferrettiNewAlgorithmProcessing2011" role="doc-biblioref">Ferretti et al. 2011</a>)</span>:</p>
+<div class="no-row-height column-margin column-container"><div id="ref-ferrettiNewAlgorithmProcessing2011" class="csl-entry" role="listitem">
+Ferretti, Alessandro, Alfio Fumagalli, Fabrizio Novali, Claudio Prati, Fabio Rocca, and Alessio Rucci. 2011. <span>“A <span>New Algorithm</span> for <span>Processing Interferometric Data-Stacks</span>: <span>SqueeSAR</span>.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 49 (9): 3460–70. <a href="https://doi.org/10.1109/TGRS.2011.2124465">https://doi.org/10.1109/TGRS.2011.2124465</a>.
+</div></div><p><span class="math display">\[\gamma = \frac{1}{N^2-N} \sum_{n=1}^{N} \sum_{k \neq n}^{N} e^{i\phi_{nk}} e^{-i(\theta_n-\theta_k)}\]</span></p>
+<p>Where <span class="math inline">\(\phi_{nk}\)</span> is the phase of complex coherence matrix and <span class="math inline">\(\theta_{n}\)</span> is the phase after phase linking.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./co/ds_can_coh.zarr'</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./pl/ds_can_ph.zarr'</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ds_can_t_coh <span class="op">=</span> <span class="st">'./pl/ds_can_t_coh.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>de_ds_temp_coh(ds_can_coh,ds_can_ph, ds_can_t_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-22 23:37:53 - de_ds_temp_coh - INFO - fetching args:
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - coh = './co/ds_can_coh.zarr'
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ph = './pl/ds_can_ph.zarr'
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - t_coh = './pl/ds_can_t_coh.zarr'
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - n_pc_chunk = None
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - pc_chunk_size = None
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - log = None
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - fetching args done.
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./co/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./co/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./co/ds_can_coh.zarr zarray dtype: complex64
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./pl/ds_can_ph.zarr zarray shape: (740397, 17)
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./pl/ds_can_ph.zarr zarray chunks: (246799, 17)
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - ./pl/ds_can_ph.zarr zarray dtype: complex64
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - pc_chunk_size for ph: 246799
+2023-10-22 23:37:53 - de_ds_temp_coh - INFO - starting dask CUDA local cluster.
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - dask local CUDA cluster started.
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - coh dask array dtype: complex64
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - ph dask array shape: (740397, 17)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - ph dask array chunksize: (246799, 17)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - ph dask array dtype: complex64
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - Estimate temporal coherence for DS.
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - got temporal coherence t_coh.
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - t_coh dask array shape: (740397,)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - t_coh dask array chunksize: (246799,)
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - t_coh dask array dtype: float32
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - saving t_coh.
+2023-10-22 23:38:02 - de_ds_temp_coh - INFO - computing graph setted. doing all the computing.
+2023-10-22 23:38:05 - de_ds_temp_coh - INFO - computing finished.0s
+2023-10-22 23:38:07 - de_ds_temp_coh - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./shp/ds_can_idx.zarr'</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>t_coh <span class="op">=</span> <span class="st">'./pl/t_coh.zarr'</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./raw/rslc.zarr/'</span>,<span class="st">'r'</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_t_coh,t_coh,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-22 23:42:11 - de_pc2ras - INFO - fetching args:
+2023-10-22 23:42:11 - de_pc2ras - INFO - idx = './shp/ds_can_idx.zarr'
+2023-10-22 23:42:11 - de_pc2ras - INFO - pc = './pl/ds_can_t_coh.zarr'
+2023-10-22 23:42:11 - de_pc2ras - INFO - ras = './pl/t_coh.zarr'
+2023-10-22 23:42:11 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-22 23:42:11 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-22 23:42:11 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-22 23:42:11 - de_pc2ras - INFO - log = None
+2023-10-22 23:42:11 - de_pc2ras - INFO - fetching args done.
+2023-10-22 23:42:11 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-22 23:42:11 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-22 23:42:11 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-22 23:42:11 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-22 23:42:11 - de_pc2ras - INFO - loading idx into memory.
+2023-10-22 23:42:11 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-22 23:42:19 - de_pc2ras - INFO - dask local cluster started.
+2023-10-22 23:42:19 - de_pc2ras - INFO - start to work on ./pl/ds_can_t_coh.zarr
+2023-10-22 23:42:19 - de_pc2ras - INFO - ./pl/ds_can_t_coh.zarr zarray shape: (740397,)
+2023-10-22 23:42:19 - de_pc2ras - INFO - ./pl/ds_can_t_coh.zarr zarray chunks: (246799,)
+2023-10-22 23:42:19 - de_pc2ras - INFO - ./pl/ds_can_t_coh.zarr zarray dtype: float32
+2023-10-22 23:42:19 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-22 23:42:19 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-22 23:42:19 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-22 23:42:20 - de_pc2ras - INFO - create ras dask array
+2023-10-22 23:42:20 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-22 23:42:20 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-22 23:42:20 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-22 23:42:20 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-22 23:42:20 - de_pc2ras - INFO - computing finished.|  0.6s
+2023-10-22 23:42:21 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>t_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(t_coh,<span class="st">'r'</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(t_coh_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS temporal coherence'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="pl_files/figure-html/cell-12-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="pl_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+
 
 
 </section>
@@ -780,7 +1007,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","selector":".lightbox","descPosition":"bottom","openEffect":"zoom","loop":true});</script>
+<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","openEffect":"zoom","loop":true,"selector":".lightbox","closeEffect":"zoom"});</script>
 
 
 

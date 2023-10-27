@@ -13,7 +13,7 @@ import holoviews as hv
 import holoviews.operation.datashader as hd
 import datashader as ds
 
-# %% ../nbs/API/plot.ipynb 8
+# %% ../nbs/API/plot.ipynb 9
 def points(data:Union[pd.DataFrame,dd.DataFrame], # dataset to be plot
            kdims:list,# colomn name of Mercator coordinate in dataframe
            pdim:str, # column name of data to be plotted in dataframe
@@ -40,7 +40,7 @@ def points(data:Union[pd.DataFrame,dd.DataFrame], # dataset to be plot
         points = geo_bg*points
     return points
 
-# %% ../nbs/API/plot.ipynb 21
+# %% ../nbs/API/plot.ipynb 23
 def points_stack(data:Union[pd.DataFrame,dd.DataFrame], # common data in all plots
                  kdims:list,# colomn name of Mercator coordinate in dataframe
                  pdata:Union[pd.DataFrame,dd.DataFrame], # data to be plotted as color
@@ -76,7 +76,7 @@ def points_stack(data:Union[pd.DataFrame,dd.DataFrame], # common data in all plo
         hmap = geo_bg*hmap
     return hmap
 
-# %% ../nbs/API/plot.ipynb 35
+# %% ../nbs/API/plot.ipynb 37
 def bg_alpha(pwr):
     _pwr = np.power(pwr,0.35)
     cv = _pwr.mean()*2.5

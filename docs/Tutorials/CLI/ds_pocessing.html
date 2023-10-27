@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>decorrelation - DS Processing</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../../site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
+<link href="../../site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
+<link href="../../site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">decorrelation</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">DS Processing</li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Decorrelation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Introduction/software_architecture.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Software Architecture</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../API/shp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shp</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../API/co.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">co</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../API/pl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pl</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../API/pc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pc</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../API/plot.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Plot</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">CLI</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../CLI/load.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">load</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../CLI/shp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">shp</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../CLI/co.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">co</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../CLI/pl.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pl</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../CLI/pc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">pc</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Tutorials</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false">
+ <span class="menu-text">API</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Tutorials/adaptive_multilook.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adaptive Multilook</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Tutorials/ds_processing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DS Processing</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">CLI</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Tutorials/CLI/overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tutorials for CLI Overview</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Tutorials/CLI/load_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Load Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+ <span class="menu-text">Tutorials/CLI/ds_processing.ipynb</span>
+  </li>
+      </ul>
+  </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Customization</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../Tutorials/work_with_dask.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Work With Dask</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#shp-selection" id="toc-shp-selection" class="nav-link active" data-scroll-target="#shp-selection">SHP selection</a></li>
+  <li><a href="#ds-candidates-selection" id="toc-ds-candidates-selection" class="nav-link" data-scroll-target="#ds-candidates-selection">DS candidates selection</a></li>
+  <li><a href="#coherence-matrix-estimation" id="toc-coherence-matrix-estimation" class="nav-link" data-scroll-target="#coherence-matrix-estimation">Coherence matrix estimation</a></li>
+  <li><a href="#phase-linking" id="toc-phase-linking" class="nav-link" data-scroll-target="#phase-linking">Phase linking</a></li>
+  <li><a href="#ds-temporal-coherence-estimation" id="toc-ds-temporal-coherence-estimation" class="nav-link" data-scroll-target="#ds-temporal-coherence-estimation">DS temporal coherence estimation</a></li>
+  <li><a href="#ds-candidiates-refinement" id="toc-ds-candidiates-refinement" class="nav-link" data-scroll-target="#ds-candidiates-refinement">DS candidiates refinement</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">DS Processing</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>In this tutorial, we demostrate how to do standard DS processing with the decorrelation CLI interface. The input data for DS processing is prepared in <a href="../../Tutorials/CLI/load_data.html">Load Data</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>ls .<span class="op">/</span>load_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hgt.zarr  lon.zarr   non_nan.zarr  range.zarr  theta.zarr
+lat.zarr  meta.toml  phi.zarr      rslc.zarr</code></pre>
+</div>
+</div>
+<section id="shp-selection" class="level2">
+<h2 class="anchored" data-anchor-id="shp-selection">SHP selection</h2>
+<p>Here we use two sample Kolmogorov-Smirnov (KS) test for Spatially Homogenious Pixel (SHP) identification.</p>
+<p>The output <code>pvalue</code> is the P-value for this test. The smaller the p-value, the more likely the two sample are from same distribution, i.e., the more likely the two pixels are SHP to each other.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_shp_test</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> <span class="st">'./load_data/rslc.zarr'</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./ds_processing/pvalue.zarr'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>r_half_win <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>method <span class="op">=</span> <span class="st">'ks'</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslc,pvalue,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>            az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>            method<span class="op">=</span>method,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:14:19 - de_shp_test - INFO - fetching args:
+2023-10-26 16:14:19 - de_shp_test - INFO - rslc = './load_data/rslc.zarr'
+2023-10-26 16:14:19 - de_shp_test - INFO - pvalue = './ds_processing/pvalue.zarr'
+2023-10-26 16:14:19 - de_shp_test - INFO - az_half_win = 5
+2023-10-26 16:14:19 - de_shp_test - INFO - r_half_win = 5
+2023-10-26 16:14:19 - de_shp_test - INFO - method = 'ks'
+2023-10-26 16:14:19 - de_shp_test - INFO - n_az_chunk = None
+2023-10-26 16:14:19 - de_shp_test - INFO - az_chunk_size = 1000
+2023-10-26 16:14:19 - de_shp_test - INFO - log = None
+2023-10-26 16:14:19 - de_shp_test - INFO - fetching args done.
+2023-10-26 16:14:19 - de_shp_test - INFO - hypothetic test method: ks
+2023-10-26 16:14:19 - de_shp_test - INFO - ./load_data/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-10-26 16:14:19 - de_shp_test - INFO - ./load_data/rslc.zarr zarray chunks: (1000, 1834, 1)
+2023-10-26 16:14:19 - de_shp_test - INFO - ./load_data/rslc.zarr zarray dtype: complex64
+2023-10-26 16:14:19 - de_shp_test - INFO - got az_chunk_size for pvalue: 1000
+2023-10-26 16:14:19 - de_shp_test - INFO - starting dask CUDA local cluster.
+2023-10-26 16:14:29 - de_shp_test - INFO - dask local CUDA cluster started.
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc dask array chunksize: (1000, 1834, 17)
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc dask array dtype: complex64
+2023-10-26 16:14:29 - de_shp_test - INFO - azimuth half window size: 5; azimuth window size: 11
+2023-10-26 16:14:29 - de_shp_test - INFO - range half window size: 5; range window size: 11
+2023-10-26 16:14:29 - de_shp_test - INFO - setting shared boundaries between rlsc chunks.
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc with overlap dask array shape: (2520, 1834, 17)
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-26 16:14:29 - de_shp_test - INFO - rslc with overlap dask array dtype: complex64
+2023-10-26 16:14:30 - de_shp_test - INFO - rmli with overlap dask array shape: (2520, 1834, 17)
+2023-10-26 16:14:30 - de_shp_test - INFO - rmli with overlap dask array chunksize: (1010, 1834, 17)
+2023-10-26 16:14:30 - de_shp_test - INFO - rmli with overlap dask array dtype: float32
+2023-10-26 16:14:31 - de_shp_test - INFO - applying test on sorted rmli stack.
+2023-10-26 16:14:31 - de_shp_test - INFO - p value generated
+2023-10-26 16:14:31 - de_shp_test - INFO - p value dask array shape: (2520, 1834, 11, 11)
+2023-10-26 16:14:31 - de_shp_test - INFO - p value dask array chunksize: (1010, 1834, 11, 11)
+2023-10-26 16:14:31 - de_shp_test - INFO - p value dask array dtype: float32
+2023-10-26 16:14:31 - de_shp_test - INFO - trim shared boundaries between p value chunks
+2023-10-26 16:14:31 - de_shp_test - INFO - trimmed p value dask array shape: (2500, 1834, 11, 11)
+2023-10-26 16:14:31 - de_shp_test - INFO - trimmed p value dask array chunksize: (1000, 1834, 11, 11)
+2023-10-26 16:14:31 - de_shp_test - INFO - trimmed p value dask array dtype: float32
+2023-10-26 16:14:31 - de_shp_test - INFO - saving p value.
+2023-10-26 16:14:31 - de_shp_test - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:14:37 - de_shp_test - INFO - computing finished. 5.7s
+2023-10-26 16:14:38 - de_shp_test - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<p>Then we select SHP by setting a threshold on this Pvalue:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_select_shp</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./ds_processing/is_shp.zarr'</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> <span class="st">'./ds_processing/shp_num.zarr'</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>de_select_shp(pvalue,is_shp,shp_num,p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:14:39 - de_select_shp - INFO - fetching args:
+2023-10-26 16:14:39 - de_select_shp - INFO - pvalue = './ds_processing/pvalue.zarr'
+2023-10-26 16:14:39 - de_select_shp - INFO - is_shp = './ds_processing/is_shp.zarr'
+2023-10-26 16:14:39 - de_select_shp - INFO - shp_num = './ds_processing/shp_num.zarr'
+2023-10-26 16:14:39 - de_select_shp - INFO - p_max = 0.05
+2023-10-26 16:14:39 - de_select_shp - INFO - n_az_chunk = None
+2023-10-26 16:14:39 - de_select_shp - INFO - az_chunk_size = 1000
+2023-10-26 16:14:39 - de_select_shp - INFO - log = None
+2023-10-26 16:14:39 - de_select_shp - INFO - fetching args done.
+2023-10-26 16:14:39 - de_select_shp - INFO - ./ds_processing/pvalue.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-26 16:14:39 - de_select_shp - INFO - ./ds_processing/pvalue.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-26 16:14:39 - de_select_shp - INFO - ./ds_processing/pvalue.zarr zarray dtype: float32
+2023-10-26 16:14:39 - de_select_shp - INFO - got az_chunk_size for is_shp: 1000
+2023-10-26 16:14:39 - de_select_shp - INFO - starting dask cuda cluster.
+2023-10-26 16:14:46 - de_select_shp - INFO - dask cluster started.
+2023-10-26 16:14:46 - de_select_shp - INFO - pvalue dask array shape: (2500, 1834, 11, 11)
+2023-10-26 16:14:46 - de_select_shp - INFO - pvalue dask array chunksize: (1000, 1834, 11, 11)
+2023-10-26 16:14:46 - de_select_shp - INFO - pvalue dask array dtype: float32
+2023-10-26 16:14:46 - de_select_shp - INFO - selecting SHPs based on pvalue threshold: 0.05
+2023-10-26 16:14:46 - de_select_shp - INFO - is_shp dask array shape: (2500, 1834, 11, 11)
+2023-10-26 16:14:46 - de_select_shp - INFO - is_shp dask array chunksize: (1000, 1834, 11, 11)
+2023-10-26 16:14:46 - de_select_shp - INFO - is_shp dask array dtype: bool
+2023-10-26 16:14:46 - de_select_shp - INFO - calculate shp_num.
+2023-10-26 16:14:46 - de_select_shp - INFO - shp_num dask array shape: (2500, 1834)
+2023-10-26 16:14:46 - de_select_shp - INFO - shp_num dask array chunksize: (1000, 1834)
+2023-10-26 16:14:46 - de_select_shp - INFO - shp_num dask array dtype: int32
+2023-10-26 16:14:46 - de_select_shp - INFO - saving is_shp.
+2023-10-26 16:14:46 - de_select_shp - INFO - saving shp_num.
+2023-10-26 16:14:46 - de_select_shp - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:14:50 - de_select_shp - INFO - computing finished..5s
+2023-10-26 16:14:52 - de_select_shp - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<p>The output <code>is_shp</code> indicate wheather a pixel in the window is a SHP to its center pixel.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>shp_num_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(shp_num,<span class="st">'r'</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Number of SHPs'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-9-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ds_pocessing_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="ds-candidates-selection" class="level2">
+<h2 class="anchored" data-anchor-id="ds-candidates-selection">DS candidates selection</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_thres_ras, de_ras2pc, de_idx2bool,de_pc2ras</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_idx.zarr'</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>is_ds_can<span class="op">=</span> <span class="st">'./ds_processing/is_ds_can.zarr'</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> <span class="st">'./ds_processing/ds_can_is_shp.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>de_pc_thres_ras(shp_num,ds_can_idx,min_thres<span class="op">=</span><span class="dv">50</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx, is_shp, ds_can_is_shp)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>de_idx2bool(ds_can_idx, is_ds_can, shape<span class="op">=</span> shp_num_zarr.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:14:53 - de_pc_thres_ras - INFO - fetching args:
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - ras = './ds_processing/shp_num.zarr'
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - min_thres = 50
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - max_thres = None
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - pc_chunk_size = None
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - n_pc_chunk = None
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - log = None
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - fetching args done.
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - ./ds_processing/shp_num.zarr zarray shape: (2500, 1834)
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - ./ds_processing/shp_num.zarr zarray chunks: (1000, 1834)
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - ./ds_processing/shp_num.zarr zarray dtype: int32
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - loading ras into memory.
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - select pc based on min_thres.
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - number of selected pixels: 740397.
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - automatically determine pc_chunk_size from n_pc of idx and n_az_chunk of ras
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - pc_chunk_size for idx: 246799
+2023-10-26 16:14:53 - de_pc_thres_ras - INFO - writing idx.
+2023-10-26 16:14:53 - de_ras2pc - INFO - fetching args:
+2023-10-26 16:14:53 - de_ras2pc - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:14:53 - de_ras2pc - INFO - ras = './ds_processing/is_shp.zarr'
+2023-10-26 16:14:53 - de_ras2pc - INFO - pc = './ds_processing/ds_can_is_shp.zarr'
+2023-10-26 16:14:53 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-26 16:14:53 - de_ras2pc - INFO - n_pc_chunk = None
+2023-10-26 16:14:53 - de_ras2pc - INFO - hd_chunk_size = None
+2023-10-26 16:14:53 - de_ras2pc - INFO - log = None
+2023-10-26 16:14:53 - de_ras2pc - INFO - fetching args done.
+2023-10-26 16:14:53 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:14:53 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:14:53 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:14:53 - de_ras2pc - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
+2023-10-26 16:14:53 - de_ras2pc - INFO - pc_chunk_size for pc: 246799
+2023-10-26 16:14:53 - de_ras2pc - INFO - loading idx into memory.
+2023-10-26 16:14:53 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-26 16:15:00 - de_ras2pc - INFO - dask local cluster started.
+2023-10-26 16:15:00 - de_ras2pc - INFO - start to slice on ./ds_processing/is_shp.zarr
+2023-10-26 16:15:00 - de_ras2pc - INFO - ./ds_processing/is_shp.zarr zarray shape: (2500, 1834, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - ./ds_processing/is_shp.zarr zarray chunks: (1000, 1834, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - ./ds_processing/is_shp.zarr zarray dtype: bool
+2023-10-26 16:15:00 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./ds_processing/is_shp.zarr.
+2023-10-26 16:15:00 - de_ras2pc - INFO - hd_chunk_size: (11, 11).
+2023-10-26 16:15:00 - de_ras2pc - INFO - ras dask array shape: (2500, 1834, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - ras dask array dtype: bool
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array chunksize: (346329, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-26 16:15:00 - de_ras2pc - INFO - rechunk pc data:
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array shape: (740397, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array chunksize: (246799, 11, 11)
+2023-10-26 16:15:00 - de_ras2pc - INFO - pc dask array dtype: bool
+2023-10-26 16:15:00 - de_ras2pc - INFO - saving to ./ds_processing/ds_can_is_shp.zarr.
+2023-10-26 16:15:00 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:15:01 - de_ras2pc - INFO - computing finished.|  0.6s
+2023-10-26 16:15:01 - de_ras2pc - INFO - dask cluster closed.
+2023-10-26 16:15:01 - de_idx2bool - INFO - fetching args:
+2023-10-26 16:15:01 - de_idx2bool - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:15:01 - de_idx2bool - INFO - is_pc = './ds_processing/is_ds_can.zarr'
+2023-10-26 16:15:01 - de_idx2bool - INFO - shape = (2500, 1834)
+2023-10-26 16:15:01 - de_idx2bool - INFO - az_chunk_size = None
+2023-10-26 16:15:01 - de_idx2bool - INFO - n_az_chunk = None
+2023-10-26 16:15:01 - de_idx2bool - INFO - log = None
+2023-10-26 16:15:01 - de_idx2bool - INFO - fetching args done.
+2023-10-26 16:15:02 - de_idx2bool - INFO - idx zarray shape: (2, 740397)
+2023-10-26 16:15:02 - de_idx2bool - INFO - idx zarray chunks: (2, 246799)
+2023-10-26 16:15:02 - de_idx2bool - INFO - idx zarray dtype: int32
+2023-10-26 16:15:02 - de_idx2bool - INFO - loading idx into memory.
+2023-10-26 16:15:02 - de_idx2bool - INFO - calculate the bool array
+2023-10-26 16:15:02 - de_idx2bool - INFO - automatically determine az_chunk_size from nlines of ras and n_pc_chunk of idx
+2023-10-26 16:15:02 - de_idx2bool - INFO - az_chunk_size for ras: 834
+2023-10-26 16:15:02 - de_idx2bool - INFO - is_pc zarray shape: (2500, 1834)
+2023-10-26 16:15:02 - de_idx2bool - INFO - is_pc zarray chunks: (834, 1834)
+2023-10-26 16:15:02 - de_idx2bool - INFO - is_pc zarray dtype: bool
+2023-10-26 16:15:02 - de_idx2bool - INFO - write the bool array.
+2023-10-26 16:15:02 - de_idx2bool - INFO - write done.</code></pre>
+</div>
+</div>
+<p><code>ds_can_idx</code> is a int array with shape of (2, num_of_DS_can). It indicate the position of DS candidate in radar coordinate.</p>
+<p>Also, select lon, lat for DS candidates:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>e <span class="op">=</span> <span class="st">'./load_data/e.zarr/'</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="st">'./load_data/n.zarr/'</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>lon <span class="op">=</span> <span class="st">'./load_data/lon.zarr/'</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>lat <span class="op">=</span> <span class="st">'./load_data/lat.zarr/'</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>ds_can_e <span class="op">=</span> <span class="st">'./ds_processing/ds_can_e.zarr'</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>ds_can_n <span class="op">=</span> <span class="st">'./ds_processing/ds_can_n.zarr'</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>ds_can_lon <span class="op">=</span> <span class="st">'./ds_processing/ds_can_lon.zarr'</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>ds_can_lat <span class="op">=</span> <span class="st">'./ds_processing/ds_can_lat.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx,[e,n,lon,lat],[ds_can_e,ds_can_n,ds_can_lon,ds_can_lat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:48:49 - de_ras2pc - INFO - fetching args:
+2023-10-26 16:48:49 - de_ras2pc - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:48:49 - de_ras2pc - INFO - ras = ['./load_data/e.zarr/', './load_data/n.zarr/', './load_data/lon.zarr/', './load_data/lat.zarr/']
+2023-10-26 16:48:49 - de_ras2pc - INFO - pc = ['./ds_processing/ds_can_e.zarr', './ds_processing/ds_can_n.zarr', './ds_processing/ds_can_lon.zarr', './ds_processing/ds_can_lat.zarr']
+2023-10-26 16:48:49 - de_ras2pc - INFO - pc_chunk_size = None
+2023-10-26 16:48:49 - de_ras2pc - INFO - n_pc_chunk = None
+2023-10-26 16:48:49 - de_ras2pc - INFO - hd_chunk_size = None
+2023-10-26 16:48:49 - de_ras2pc - INFO - log = None
+2023-10-26 16:48:49 - de_ras2pc - INFO - fetching args done.
+2023-10-26 16:48:49 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:48:49 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:48:49 - de_ras2pc - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:48:49 - de_ras2pc - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
+2023-10-26 16:48:49 - de_ras2pc - INFO - pc_chunk_size for pc: 246799
+2023-10-26 16:48:49 - de_ras2pc - INFO - loading idx into memory.
+2023-10-26 16:48:49 - de_ras2pc - INFO - starting dask local cluster.
+2023-10-26 16:48:56 - de_ras2pc - INFO - dask local cluster started.
+2023-10-26 16:48:56 - de_ras2pc - INFO - start to slice on ./load_data/e.zarr/
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/e.zarr/ zarray shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/e.zarr/ zarray chunks: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/e.zarr/ zarray dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./load_data/e.zarr/.
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (346329,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - rechunk pc data:
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - saving to ./ds_processing/ds_can_e.zarr.
+2023-10-26 16:48:56 - de_ras2pc - INFO - start to slice on ./load_data/n.zarr/
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/n.zarr/ zarray shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/n.zarr/ zarray chunks: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/n.zarr/ zarray dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./load_data/n.zarr/.
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (346329,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - rechunk pc data:
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - saving to ./ds_processing/ds_can_n.zarr.
+2023-10-26 16:48:56 - de_ras2pc - INFO - start to slice on ./load_data/lon.zarr/
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lon.zarr/ zarray shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lon.zarr/ zarray chunks: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lon.zarr/ zarray dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./load_data/lon.zarr/.
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (346329,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - rechunk pc data:
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - saving to ./ds_processing/ds_can_lon.zarr.
+2023-10-26 16:48:56 - de_ras2pc - INFO - start to slice on ./load_data/lat.zarr/
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lat.zarr/ zarray shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lat.zarr/ zarray chunks: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ./load_data/lat.zarr/ zarray dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size not setted. Use the one from ./load_data/lat.zarr/.
+2023-10-26 16:48:56 - de_ras2pc - INFO - hd_chunk_size: ().
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:48:56 - de_ras2pc - INFO - ras dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (346329,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - rechunk pc data:
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array shape: (740397,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:48:56 - de_ras2pc - INFO - pc dask array dtype: float64
+2023-10-26 16:48:56 - de_ras2pc - INFO - saving to ./ds_processing/ds_can_lat.zarr.
+2023-10-26 16:48:56 - de_ras2pc - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:48:57 - de_ras2pc - INFO - computing finished.|  0.7s
+2023-10-26 16:48:58 - de_ras2pc - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>is_ds_can_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(is_ds_can,<span class="st">'r'</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(is_ds_can_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS candidiate distribution'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-15-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="ds_pocessing_files/figure-html/cell-15-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="coherence-matrix-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="coherence-matrix-estimation">Coherence matrix estimation</h2>
+<p>Then we estimate the coherence matrix of ds candidate:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.co <span class="im">import</span> de_emperical_co_pc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_can_coh.zarr'</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave <span class="op">=</span> <span class="st">'./ds_processing/ds_can_coh_ave.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_pc(rslc,ds_can_is_shp,ds_can_idx,ds_can_coh,ds_can_coh_ave)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:15:02 - de_emperical_co_pc - INFO - fetching args:
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - rslc = './load_data/rslc.zarr'
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - is_shp = './ds_processing/ds_can_is_shp.zarr'
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - coh = './ds_processing/ds_can_coh.zarr'
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - coh_ave = './ds_processing/ds_can_coh_ave.zarr'
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - az_chunk_size = None
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - n_pc_chunk = None
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - pc_chunk_size = None
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - log = None
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - fetching args done.
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./load_data/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./load_data/rslc.zarr zarray chunks: (1000, 1834, 1)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./load_data/rslc.zarr zarray dtype: complex64
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_is_shp.zarr zarray shape: (740397, 11, 11)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_is_shp.zarr zarray chunks: (246799, 11, 11)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_is_shp.zarr zarray dtype: bool
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - loading idx into memory.
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - got azimuth window size and half azimuth window size from is_shp shape: 11, 5
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - got range window size and half range window size from is_shp shape: 11, 5
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - using default parallel processing azimuth chunk size from rslc dataset.
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - parallel processing azimuth chunk size: 1000
+2023-10-26 16:15:02 - de_emperical_co_pc - INFO - starting dask CUDA local cluster.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - dask local CUDA cluster started.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - create raster bool array is_pc from idx
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - create dask bool array is_pc
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc dask array shape: (2500, 1834)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc dask array chunksize: (1000, 1834)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc dask array dtype: bool
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - Using azimuth chunk size as the processing chunk size.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - Calculate point chunk size
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - Point chunk size: (346329, 274921, 119147)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc dask array chunksize: (1000, 1834, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc dask array dtype: complex64
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_shp dask array shape: (740397, 11, 11)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_shp dask array chunksize: (346329, 11, 11)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_shp dask array dtype: bool
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - setting shared boundaries between rlsc chunks.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc_overlap dask array shape: (2520, 1834, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc_overlap dask array chunksize: (1010, 1834, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rslc_overlap dask array dtype: complex64
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - padding zero between is_pc chunks.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc_padded dask array shape: (2520, 1834)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc_padded dask array chunksize: (1010, 1834)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - is_pc_padded dask array dtype: bool
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - estimating coherence matrix.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - got coherence matrix.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array chunksize: (346329, 17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array dtype: complex64
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - automatically determine pc_chunk_size from n_pc of coh and n_az_chunk of rslc
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - pc_chunk_size for coh: 246799
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - rechunking_coh to chunk size (for saving with zarr): (246799, 17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh dask array dtype: complex64
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - get average coherence matrix magnitude.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh_ave dask array shape: (17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh_ave dask array chunksize: (17, 17)
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - coh_ave dask array dtype: float32
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - saving coh and coh_ave.
+2023-10-26 16:15:09 - de_emperical_co_pc - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:15:16 - de_emperical_co_pc - INFO - computing finished.2K
+2023-10-26 16:15:18 - de_emperical_co_pc - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_can_coh_ave,<span class="st">'r'</span>)</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(ds_can_coh_ave_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Average coherence matrix'</span>,xlabel<span class="op">=</span><span class="st">'Image Index'</span>,ylabel<span class="op">=</span><span class="st">'Image Index'</span>)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-19-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="ds_pocessing_files/figure-html/cell-19-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="phase-linking" class="level2">
+<h2 class="anchored" data-anchor-id="phase-linking">Phase linking</h2>
+<p>To get rid of the closure phase, phase linking is applied here:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./ds_processing/ds_can_ph.zarr'</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./ds_processing/ds_can_emi_quality.zarr'</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>emi_quality <span class="op">=</span> <span class="st">'./ds_processing/emi_quality.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:15:19 - de_emi - INFO - fetching args:
+2023-10-26 16:15:19 - de_emi - INFO - coh = './ds_processing/ds_can_coh.zarr'
+2023-10-26 16:15:19 - de_emi - INFO - ph = './ds_processing/ds_can_ph.zarr'
+2023-10-26 16:15:19 - de_emi - INFO - emi_quality = './ds_processing/ds_can_emi_quality.zarr'
+2023-10-26 16:15:19 - de_emi - INFO - ref = 0
+2023-10-26 16:15:19 - de_emi - INFO - n_pc_chunk = None
+2023-10-26 16:15:19 - de_emi - INFO - pc_chunk_size = None
+2023-10-26 16:15:19 - de_emi - INFO - log = None
+2023-10-26 16:15:19 - de_emi - INFO - fetching args done.
+2023-10-26 16:15:19 - de_emi - INFO - ./ds_processing/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-26 16:15:19 - de_emi - INFO - ./ds_processing/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-26 16:15:19 - de_emi - INFO - ./ds_processing/ds_can_coh.zarr zarray dtype: complex64
+2023-10-26 16:15:19 - de_emi - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-26 16:15:19 - de_emi - INFO - pc_chunk_size for ph: 246799
+2023-10-26 16:15:19 - de_emi - INFO - starting dask CUDA local cluster.
+2023-10-26 16:15:27 - de_emi - INFO - dask local CUDA cluster started.
+2023-10-26 16:15:27 - de_emi - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-26 16:15:27 - de_emi - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-26 16:15:27 - de_emi - INFO - coh dask array dtype: complex64
+2023-10-26 16:15:27 - de_emi - INFO - phase linking with EMI.
+2023-10-26 16:15:27 - de_emi - INFO - got ph and emi_quality.
+2023-10-26 16:15:27 - de_emi - INFO - ph dask array shape: (740397, 17)
+2023-10-26 16:15:27 - de_emi - INFO - ph dask array chunksize: (246799, 17)
+2023-10-26 16:15:27 - de_emi - INFO - ph dask array dtype: complex64
+2023-10-26 16:15:27 - de_emi - INFO - emi_quality dask array shape: (740397,)
+2023-10-26 16:15:27 - de_emi - INFO - emi_quality dask array chunksize: (246799,)
+2023-10-26 16:15:27 - de_emi - INFO - emi_quality dask array dtype: float32
+2023-10-26 16:15:27 - de_emi - INFO - saving ph and emi_quality.
+2023-10-26 16:15:27 - de_emi - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:15:31 - de_emi - INFO - computing finished.ed |  4.3s
+2023-10-26 16:15:33 - de_emi - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_emi_quality,emi_quality,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:15:33 - de_pc2ras - INFO - fetching args:
+2023-10-26 16:15:33 - de_pc2ras - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:15:33 - de_pc2ras - INFO - pc = './ds_processing/ds_can_emi_quality.zarr'
+2023-10-26 16:15:33 - de_pc2ras - INFO - ras = './ds_processing/emi_quality.zarr'
+2023-10-26 16:15:33 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-26 16:15:33 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-26 16:15:33 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-26 16:15:33 - de_pc2ras - INFO - log = None
+2023-10-26 16:15:33 - de_pc2ras - INFO - fetching args done.
+2023-10-26 16:15:33 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-26 16:15:33 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-26 16:15:33 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-26 16:15:33 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-26 16:15:33 - de_pc2ras - INFO - loading idx into memory.
+2023-10-26 16:15:33 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-26 16:15:40 - de_pc2ras - INFO - dask local cluster started.
+2023-10-26 16:15:40 - de_pc2ras - INFO - start to work on ./ds_processing/ds_can_emi_quality.zarr
+2023-10-26 16:15:40 - de_pc2ras - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray shape: (740397,)
+2023-10-26 16:15:40 - de_pc2ras - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray chunks: (246799,)
+2023-10-26 16:15:40 - de_pc2ras - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray dtype: float32
+2023-10-26 16:15:40 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-26 16:15:40 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:15:40 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-26 16:15:40 - de_pc2ras - INFO - create ras dask array
+2023-10-26 16:15:40 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:15:40 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:15:40 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-26 16:15:40 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:15:41 - de_pc2ras - INFO - computing finished.|  0.5s
+2023-10-26 16:15:42 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>emi_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(emi_quality,<span class="st">'r'</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(emi_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>,vmin<span class="op">=</span><span class="fl">0.5</span>,vmax<span class="op">=</span><span class="fl">1.3</span>,cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'EMI quality factor'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-24-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="ds_pocessing_files/figure-html/cell-24-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="ds-temporal-coherence-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="ds-temporal-coherence-estimation">DS temporal coherence estimation</h2>
+<p>We can also estimate a temporal coherence for DS:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_ds_temp_coh</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ds_can_t_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_can_t_coh.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>de_ds_temp_coh(ds_can_coh,ds_can_ph, ds_can_t_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:15:42 - de_ds_temp_coh - INFO - fetching args:
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - coh = './ds_processing/ds_can_coh.zarr'
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ph = './ds_processing/ds_can_ph.zarr'
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - t_coh = './ds_processing/ds_can_t_coh.zarr'
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - n_pc_chunk = None
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - pc_chunk_size = None
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - log = None
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - fetching args done.
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_coh.zarr zarray dtype: complex64
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_ph.zarr zarray shape: (740397, 17)
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_ph.zarr zarray chunks: (246799, 17)
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - ./ds_processing/ds_can_ph.zarr zarray dtype: complex64
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - automatically determine pc_chunk_size from pc_chunk_size of coh.
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - pc_chunk_size for ph: 246799
+2023-10-26 16:15:42 - de_ds_temp_coh - INFO - starting dask CUDA local cluster.
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - dask local CUDA cluster started.
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - coh dask array shape: (740397, 17, 17)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - coh dask array chunksize: (246799, 17, 17)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - coh dask array dtype: complex64
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - ph dask array shape: (740397, 17)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - ph dask array chunksize: (246799, 17)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - ph dask array dtype: complex64
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - Estimate temporal coherence for DS.
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - got temporal coherence t_coh.
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - t_coh dask array shape: (740397,)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - t_coh dask array chunksize: (246799,)
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - t_coh dask array dtype: float32
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - saving t_coh.
+2023-10-26 16:15:50 - de_ds_temp_coh - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:15:53 - de_ds_temp_coh - INFO - computing finished.0s
+2023-10-26 16:15:56 - de_ds_temp_coh - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<p>Plot it:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>t_coh <span class="op">=</span> <span class="st">'./ds_processing/t_coh.zarr'</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_t_coh,t_coh,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:15:56 - de_pc2ras - INFO - fetching args:
+2023-10-26 16:15:56 - de_pc2ras - INFO - idx = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:15:56 - de_pc2ras - INFO - pc = './ds_processing/ds_can_t_coh.zarr'
+2023-10-26 16:15:56 - de_pc2ras - INFO - ras = './ds_processing/t_coh.zarr'
+2023-10-26 16:15:56 - de_pc2ras - INFO - shape = (2500, 1834)
+2023-10-26 16:15:56 - de_pc2ras - INFO - az_chunk_size = 1000
+2023-10-26 16:15:56 - de_pc2ras - INFO - n_az_chunk = None
+2023-10-26 16:15:56 - de_pc2ras - INFO - log = None
+2023-10-26 16:15:56 - de_pc2ras - INFO - fetching args done.
+2023-10-26 16:15:56 - de_pc2ras - INFO - idx zarray shape: (2, 740397)
+2023-10-26 16:15:56 - de_pc2ras - INFO - idx zarray chunks: (2, 246799)
+2023-10-26 16:15:56 - de_pc2ras - INFO - idx zarray dtype: int32
+2023-10-26 16:15:56 - de_pc2ras - INFO - got az_chunk_size for ras: 1000
+2023-10-26 16:15:56 - de_pc2ras - INFO - loading idx into memory.
+2023-10-26 16:15:56 - de_pc2ras - INFO - starting dask local cluster.
+2023-10-26 16:16:02 - de_pc2ras - INFO - dask local cluster started.
+2023-10-26 16:16:02 - de_pc2ras - INFO - start to work on ./ds_processing/ds_can_t_coh.zarr
+2023-10-26 16:16:02 - de_pc2ras - INFO - ./ds_processing/ds_can_t_coh.zarr zarray shape: (740397,)
+2023-10-26 16:16:02 - de_pc2ras - INFO - ./ds_processing/ds_can_t_coh.zarr zarray chunks: (246799,)
+2023-10-26 16:16:02 - de_pc2ras - INFO - ./ds_processing/ds_can_t_coh.zarr zarray dtype: float32
+2023-10-26 16:16:02 - de_pc2ras - INFO - pc dask array shape: (740397,)
+2023-10-26 16:16:02 - de_pc2ras - INFO - pc dask array chunksize: (246799,)
+2023-10-26 16:16:02 - de_pc2ras - INFO - pc dask array dtype: float32
+2023-10-26 16:16:02 - de_pc2ras - INFO - create ras dask array
+2023-10-26 16:16:02 - de_pc2ras - INFO - ras dask array shape: (2500, 1834)
+2023-10-26 16:16:02 - de_pc2ras - INFO - ras dask array chunksize: (1000, 1834)
+2023-10-26 16:16:02 - de_pc2ras - INFO - ras dask array dtype: float32
+2023-10-26 16:16:02 - de_pc2ras - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:16:03 - de_pc2ras - INFO - computing finished.|  0.4s
+2023-10-26 16:16:04 - de_pc2ras - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>t_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(t_coh,<span class="st">'r'</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(t_coh_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS temporal coherence'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-29-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="ds_pocessing_files/figure-html/cell-29-output-2.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="ds-candidiates-refinement" class="level2">
+<h2 class="anchored" data-anchor-id="ds-candidiates-refinement">DS candidiates refinement</h2>
+<p>Then, we refine the ds candidate using EMI quality factor and the temporal coherence:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_thres_pc,de_pc_intersect,de_pc_select_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>ds_can_r1_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r1_idx.zarr'</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>de_pc_thres_pc(ds_can_idx, ds_can_emi_quality,ds_can_r1_idx,min_thres<span class="op">=</span><span class="fl">1.0</span>,max_thres<span class="op">=</span><span class="fl">1.2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:16:04 - de_pc_thres_pc - INFO - fetching args:
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx_in = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_in = './ds_processing/ds_can_emi_quality.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx = './ds_processing/ds_can_r1_idx.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - min_thres = 1.0
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - max_thres = 1.2
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_chunk_size = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - n_pc_chunk = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - log = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - fetching args done.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray shape: (740397,)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray chunks: (246799,)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_emi_quality.zarr zarray dtype: float32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - loading idx_in into memory.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - loading pc_in into memory.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - select pc based on min_thres and max_thres.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - number of selected pixels: 667113.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - automatically determine pc_chunk_size from n_pc of idx and n_pc_chunk of idx_in
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_chunk_size for idx: 222371
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray shape: (2, 667113)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray chunks: (2, 222371)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - writing idx.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>ds_can_r2_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r2_idx.zarr'</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>de_pc_thres_pc(ds_can_idx, ds_can_t_coh,ds_can_r2_idx,min_thres<span class="op">=</span><span class="fl">0.5</span>,max_thres<span class="op">=</span><span class="fl">1.0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:16:04 - de_pc_thres_pc - INFO - fetching args:
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx_in = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_in = './ds_processing/ds_can_t_coh.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx = './ds_processing/ds_can_r2_idx.zarr'
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - min_thres = 0.5
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - max_thres = 1.0
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_chunk_size = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - n_pc_chunk = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - log = None
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - fetching args done.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_t_coh.zarr zarray shape: (740397,)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_t_coh.zarr zarray chunks: (246799,)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - ./ds_processing/ds_can_t_coh.zarr zarray dtype: float32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - loading idx_in into memory.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - loading pc_in into memory.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - select pc based on min_thres and max_thres.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - number of selected pixels: 610220.
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - automatically determine pc_chunk_size from n_pc of idx and n_pc_chunk of idx_in
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - pc_chunk_size for idx: 203407
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray shape: (2, 610220)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray chunks: (2, 203407)
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - idx zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_thres_pc - INFO - writing idx.</code></pre>
+</div>
+</div>
+<p>Get their intersection and mask water:</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note that <a href="https://kanglcn.github.io/decorrelation/CLI/pc.html#de_pc_union"><code>de_pc_union</code></a> can be applied is the coherence is not good and no much pixels selected.</p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>ds_can_r_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r_idx.zarr'</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>ds_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_idx.zarr'</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>non_nan_idx <span class="op">=</span> <span class="st">'./load_data/non_nan.zarr'</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r1_idx,ds_can_r2_idx,ds_can_r_idx)</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r_idx,non_nan_idx,ds_idx)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:16:04 - de_pc_intersect - INFO - fetching args:
+2023-10-26 16:16:04 - de_pc_intersect - INFO - idx1 = './ds_processing/ds_can_r1_idx.zarr'
+2023-10-26 16:16:04 - de_pc_intersect - INFO - idx2 = './ds_processing/ds_can_r2_idx.zarr'
+2023-10-26 16:16:04 - de_pc_intersect - INFO - idx = './ds_processing/ds_can_r_idx.zarr'
+2023-10-26 16:16:04 - de_pc_intersect - INFO - pc1 = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - pc2 = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - pc = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - pc_chunk_size = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - n_pc_chunk = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - prefer_1 = True
+2023-10-26 16:16:04 - de_pc_intersect - INFO - log = None
+2023-10-26 16:16:04 - de_pc_intersect - INFO - fetching args done.
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r1_idx.zarr zarray shape: (2, 667113)
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r1_idx.zarr zarray chunks: (2, 222371)
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r1_idx.zarr zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r2_idx.zarr zarray shape: (2, 610220)
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r2_idx.zarr zarray chunks: (2, 203407)
+2023-10-26 16:16:04 - de_pc_intersect - INFO - ./ds_processing/ds_can_r2_idx.zarr zarray dtype: int32
+2023-10-26 16:16:04 - de_pc_intersect - INFO - loading idx1 and idx2 into memory.
+2023-10-26 16:16:04 - de_pc_intersect - INFO - calculate the intersection
+2023-10-26 16:16:05 - de_pc_intersect - INFO - number of points in the intersection: 574013
+2023-10-26 16:16:05 - de_pc_intersect - INFO - automatically determine pc_chunk_size from n_pc of idx and n_pc_chunk of idx1
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc_chunk_size for idx: 191338
+2023-10-26 16:16:05 - de_pc_intersect - INFO - write intersect idx
+2023-10-26 16:16:05 - de_pc_intersect - INFO - write done
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray shape: (2, 574013)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray chunks: (2, 191338)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray dtype: int32
+2023-10-26 16:16:05 - de_pc_intersect - INFO - no point cloud data provided, exit.
+2023-10-26 16:16:05 - de_pc_intersect - INFO - fetching args:
+2023-10-26 16:16:05 - de_pc_intersect - INFO - idx1 = './ds_processing/ds_can_r_idx.zarr'
+2023-10-26 16:16:05 - de_pc_intersect - INFO - idx2 = './load_data/non_nan.zarr'
+2023-10-26 16:16:05 - de_pc_intersect - INFO - idx = './ds_processing/ds_idx.zarr'
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc1 = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc2 = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc_chunk_size = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - n_pc_chunk = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - prefer_1 = True
+2023-10-26 16:16:05 - de_pc_intersect - INFO - log = None
+2023-10-26 16:16:05 - de_pc_intersect - INFO - fetching args done.
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray shape: (2, 574013)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray chunks: (2, 191338)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_can_r_idx.zarr zarray dtype: int32
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./load_data/non_nan.zarr zarray shape: (2, 4439623)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./load_data/non_nan.zarr zarray chunks: (2, 1479875)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./load_data/non_nan.zarr zarray dtype: int32
+2023-10-26 16:16:05 - de_pc_intersect - INFO - loading idx1 and idx2 into memory.
+2023-10-26 16:16:05 - de_pc_intersect - INFO - calculate the intersection
+2023-10-26 16:16:05 - de_pc_intersect - INFO - number of points in the intersection: 571317
+2023-10-26 16:16:05 - de_pc_intersect - INFO - automatically determine pc_chunk_size from n_pc of idx and n_pc_chunk of idx1
+2023-10-26 16:16:05 - de_pc_intersect - INFO - pc_chunk_size for idx: 190439
+2023-10-26 16:16:05 - de_pc_intersect - INFO - write intersect idx
+2023-10-26 16:16:05 - de_pc_intersect - INFO - write done
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_idx.zarr zarray shape: (2, 571317)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_idx.zarr zarray chunks: (2, 190439)
+2023-10-26 16:16:05 - de_pc_intersect - INFO - ./ds_processing/ds_idx.zarr zarray dtype: int32
+2023-10-26 16:16:05 - de_pc_intersect - INFO - no point cloud data provided, exit.</code></pre>
+</div>
+</div>
+<p>Then get the needed data for ds:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>ds_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_coh.zarr'</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>ds_ph <span class="op">=</span> <span class="st">'./ds_processing/ds_ph.zarr'</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>ds_e <span class="op">=</span> <span class="st">'./ds_processing/ds_e.zarr'</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>ds_n <span class="op">=</span> <span class="st">'./ds_processing/ds_n.zarr'</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>ds_lon <span class="op">=</span> <span class="st">'./ds_processing/ds_lon.zarr'</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>ds_lat <span class="op">=</span> <span class="st">'./ds_processing/ds_lat.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>de_pc_select_data(ds_can_idx,ds_idx,pc_in<span class="op">=</span>[ds_can_coh,ds_can_ph,ds_can_e,ds_can_n,ds_can_lon,ds_can_lat],pc<span class="op">=</span>[ds_coh,ds_ph,ds_e,ds_n,ds_lon,ds_lat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2023-10-26 16:51:56 - de_pc_select_data - INFO - fetching args:
+2023-10-26 16:51:56 - de_pc_select_data - INFO - idx_in = './ds_processing/ds_can_idx.zarr'
+2023-10-26 16:51:56 - de_pc_select_data - INFO - idx = './ds_processing/ds_idx.zarr'
+2023-10-26 16:51:56 - de_pc_select_data - INFO - pc_in = ['./ds_processing/ds_can_coh.zarr', './ds_processing/ds_can_ph.zarr', './ds_processing/ds_can_e.zarr', './ds_processing/ds_can_n.zarr', './ds_processing/ds_can_lon.zarr', './ds_processing/ds_can_lat.zarr']
+2023-10-26 16:51:56 - de_pc_select_data - INFO - pc = ['./ds_processing/ds_coh.zarr', './ds_processing/ds_ph.zarr', './ds_processing/ds_e.zarr', './ds_processing/ds_n.zarr', './ds_processing/ds_lon.zarr', './ds_processing/ds_lat.zarr']
+2023-10-26 16:51:56 - de_pc_select_data - INFO - pc_chunk_size = None
+2023-10-26 16:51:56 - de_pc_select_data - INFO - n_pc_chunk = None
+2023-10-26 16:51:56 - de_pc_select_data - INFO - log = None
+2023-10-26 16:51:56 - de_pc_select_data - INFO - fetching args done.
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_can_idx.zarr zarray shape: (2, 740397)
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_can_idx.zarr zarray chunks: (2, 246799)
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_can_idx.zarr zarray dtype: int32
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_idx.zarr zarray shape: (2, 571317)
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_idx.zarr zarray chunks: (2, 190439)
+2023-10-26 16:51:56 - de_pc_select_data - INFO - ./ds_processing/ds_idx.zarr zarray dtype: int32
+2023-10-26 16:51:56 - de_pc_select_data - INFO - loading idx_in and idx into memory.
+2023-10-26 16:51:56 - de_pc_select_data - INFO - automatically determine pc_chunk_size from pc_chunk_size of idx.
+2023-10-26 16:51:56 - de_pc_select_data - INFO - pc_chunk_size for pc: 190439
+2023-10-26 16:51:56 - de_pc_select_data - INFO - starting dask local cluster.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - dask local cluster started.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_coh.zarr zarray shape: (740397, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_coh.zarr zarray chunks: (246799, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_coh.zarr zarray dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439, 17, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_ph.zarr zarray shape: (740397, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_ph.zarr zarray chunks: (246799, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_ph.zarr zarray dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439, 17)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: complex64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_e.zarr zarray shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_e.zarr zarray chunks: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_e.zarr zarray dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_n.zarr zarray shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_n.zarr zarray chunks: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_n.zarr zarray dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lon.zarr zarray shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lon.zarr zarray chunks: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lon.zarr zarray dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lat.zarr zarray shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lat.zarr zarray chunks: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - ./ds_processing/ds_can_lat.zarr zarray dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array shape: (740397,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array chunksize: (246799,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc_in dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - set up selected pc data dask array.
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array shape: (571317,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array chunksize: (190439,)
+2023-10-26 16:52:04 - de_pc_select_data - INFO - pc dask array dtype: float64
+2023-10-26 16:52:04 - de_pc_select_data - INFO - computing graph setted. doing all the computing.
+2023-10-26 16:52:07 - de_pc_select_data - INFO - computing finished.[2K
+2023-10-26 16:52:08 - de_pc_select_data - INFO - dask cluster closed.</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>ds_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_coh,<span class="st">'r'</span>)</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(np.mean(<span class="bu">abs</span>(ds_coh_zarr[:]),axis<span class="op">=</span><span class="dv">0</span>),cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Average coherence matrix'</span>,xlabel<span class="op">=</span><span class="st">'Image Index'</span>,ylabel<span class="op">=</span><span class="st">'Image Index'</span>)</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><a href="ds_pocessing_files/figure-html/cell-36-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="ds_pocessing_files/figure-html/cell-36-output-1.png" class="img-fluid figure-img"></a></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Here we find the coherence matrix is better.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","descPosition":"bottom","closeEffect":"zoom","loop":true,"selector":".lightbox"});</script>
+
+
+
+<script src="../../site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
