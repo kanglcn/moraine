@@ -210,7 +210,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -390,12 +390,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Most of the stored data in this package is in the <a href="https://zarr.readthedocs.io/en/stable/">zarr</a> format, which is a file storage format for chunked, compressed, N-dimensional arrays. The figure below shows how the structure of zarr data. The reading and writing speed is fast since the data volume is compressed. Before compressing, the data are divided into chunks to be more flexiable for <code>dask</code> parallel operation. Generally, the file name is <code>xxxxxx.zarr</code>. You will find it is indeed a directory in the file system. But just treat it as a single file in use.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="./software_architecture/array.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="imga"><img src="./software_architecture/array.svg" class="img-fluid figure-img"></a></p>
+<p><a href="./software_architecture/array.svg" class="lightbox" title="imga" data-gallery="quarto-lightbox-gallery-1"><img src="./software_architecture/array.svg" class="img-fluid figure-img"></a></p>
 <figcaption class="figure-caption">imga</figcaption>
 </figure>
 </div>
 <p>Note that the sturcture of dask array is similar. Each chunk of a big dask array is just a numpy or cupy array. Independent operations on every chunks are automatically parallelized.</p>
-<p>In this software, there are mainly two kind of dataset. One is stack of raster data, another is stack of point cloud data. The raster dataset are divided into chunks along azimuth dimension, not range dimension. The point cloud dataset are divided into chunks along the spatial dimension. These two chunksize needs to be determined by the user. The chunksize in high dims are automatically determined. Users don’t need to care about it. Unproper chunksize slows down the processing speed or even crash the program. The rule of thumb is to maximize it while processing of one chunk fits the memory of one GPU.</p>
+<p>In this software, there are mainly two kind of dataset. One is stack of raster data, another is stack of point cloud data. The raster dataset are divided into chunks both azimuth dimension and range dimension. The point cloud dataset are divided into chunks along the spatial dimension. These two chunksize needs to be determined by the user. The chunksize in high dims are automatically determined. Users don’t need to care about it.</p>
+<p>Chunksize affect the performance of the program. Unproper chunksize slows down the processing speed or even crash the program. Using too small chunksize makes too much inter-process communication and slows down the program. Too big chunksize may crash the program due to mamory limit. For raster data, it is good to make sure range chunksize of the last chunk is same as others. And it is prefered to divide raster data along azimuth direction rather than range direction.</p>
 </section>
 <section id="an-example" class="level2">
 <h2 class="anchored" data-anchor-id="an-example">An example</h2>
@@ -456,7 +457,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="de_emi">de_emi</h3>
 <blockquote class="blockquote">
 <pre><code> de_emi (coh:str, ph:str, emi_quality:str, ref:int=0, n_pc_chunk:int=None,
-         pc_chunk_size:int=None, log:str=None)</code></pre>
+         pc_chunk_size:int=None)</code></pre>
 </blockquote>
 <p>Phase linking with EMI estimator.</p>
 <table class="table">
@@ -504,12 +505,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>int</td>
 <td>None</td>
 <td>point cloud chunk size</td>
-</tr>
-<tr class="odd">
-<td>log</td>
-<td>str</td>
-<td>None</td>
-<td>log</td>
 </tr>
 </tbody>
 </table>
@@ -911,7 +906,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"closeEffect":"zoom","openEffect":"zoom","descPosition":"bottom","loop":true,"selector":".lightbox"});</script>
+<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","selector":".lightbox","loop":true,"openEffect":"zoom","closeEffect":"zoom"});</script>
 
 
 

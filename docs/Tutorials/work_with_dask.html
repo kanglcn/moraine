@@ -211,7 +211,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -397,8 +397,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>cluster <span class="op">=</span> LocalCUDACluster(n_workers<span class="op">=</span><span class="dv">2</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>client <span class="op">=</span> Client(cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 395 ms, sys: 285 ms, total: 679 ms
-Wall time: 6.87 s</code></pre>
+<pre><code>CPU times: user 646 ms, sys: 189 ms, total: 836 ms
+Wall time: 5.32 s</code></pre>
 </div>
 </div>
 <p>In this tutorial, we demostrate how to use <code>Dask</code> for distributed computing.</p>
@@ -504,7 +504,7 @@ Wall time: 6.87 s</code></pre>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>progress(futures)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
-{"model_id":"74dfcbbec57c4e519d28deb6f58d0cce","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+{"model_id":"94d67b8924a74616b85d8be3ec8b25dc","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
 </script>
 </div>
 </div>
@@ -562,8 +562,8 @@ Wall time: 6.87 s</code></pre>
 <span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'dist_ks.zarr'</span>, dist_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span>
 <span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>zarr.save_array(<span class="st">'p_ks.zarr'</span>, p_cpu,chunks<span class="op">=</span>(<span class="dv">1000</span>,<span class="dv">1000</span>,az_win,r_win),compressor<span class="op">=</span><span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 1.21 s, sys: 6.73 s, total: 7.94 s
-Wall time: 8.16 s</code></pre>
+<pre><code>CPU times: user 1.27 s, sys: 5.68 s, total: 6.95 s
+Wall time: 8.21 s</code></pre>
 </div>
 </div>
 </section>
@@ -837,7 +837,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","selector":".lightbox","openEffect":"zoom","closeEffect":"zoom","loop":true});</script>
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","closeEffect":"zoom","selector":".lightbox","loop":true,"descPosition":"bottom"});</script>
 
 
 

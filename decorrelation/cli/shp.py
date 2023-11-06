@@ -6,10 +6,15 @@ __all__ = ['de_shp_test', 'de_select_shp']
 # %% ../../nbs/CLI/shp.ipynb 4
 from itertools import product
 import math
+import logging
 
 import zarr
+import numcodecs
 import cupy as cp
 import numpy as np
+
+import kvikio
+import kvikio.zarr
 
 import dask
 from dask import array as da
@@ -18,14 +23,15 @@ from dask.distributed import Client, LocalCluster, progress
 from dask_cuda import LocalCUDACluster
 
 from ..shp import ks_test
-from .utils.logging import get_logger, log_args
+from .utils.logging import de_logger, log_args
 from .utils.dask import get_cuda_cluster_arg
-from .utils.chunk_size import get_pc_chunk_size_from_n_az_chunk, get_az_chunk_size_from_az_chunk_size
+from .utils.chunk_size import get_pc_chunk_size_from_n_ras_chunk, get_ras_chunk_size_from_ras_chunk_size
 from fastcore.script import call_parse
 
 # %% ../../nbs/CLI/shp.ipynb 5
 @call_parse
 @log_args
+@de_logger
 def de_shp_test(rslc:str, # input: rslc stack
                 pvalue:str, # output: the p value of the test
                 az_half_win:int, # azimuth half window size
@@ -33,13 +39,14 @@ def de_shp_test(rslc:str, # input: rslc stack
                 method:str=None, # SHP identification method,optional. Default: ks
                 n_az_chunk:int=None, # number of azimuth chunk
                 az_chunk_size:int=None, # azimuth chunk size, optional. Default: the azimuth chunk size in rslc
-                log:str=None, # log file, optional. Default: no log file
+                r_chunk_size:int=None, # output range chunk size
+                n_r_chunk:int=None, # output number of range chunks
                ):
     '''SHP identification through hypothetic test.'''
     rslc_path = rslc
     pvalue_path = pvalue
 
-    logger = get_logger(logfile=log)
+    logger = logging.getLogger(__name__)
     if not method: method = 'ks'
     logger.info(f'hypothetic test method: {method}')
     if method != 'ks':
@@ -51,8 +58,13 @@ def de_shp_test(rslc:str, # input: rslc stack
 
     assert rslc_zarr.ndim == 3, " rslcs dimentation is not 3."
 
-    az_chunk_size = get_az_chunk_size_from_az_chunk_size('rslc','pvalue', rslc_zarr.chunks[0], rslc_zarr.shape[0], logger, az_chunk_size=az_chunk_size, n_az_chunk=n_az_chunk)
-    chunks=(az_chunk_size,*rslc_zarr.shape[1:])
+    chunk_size = get_ras_chunk_size_from_ras_chunk_size('rslc','pvalue',
+                                                        *rslc_zarr.shape[:2],
+                                                        *rslc_zarr.chunks[:2],
+                                                        az_chunk_size=az_chunk_size, n_az_chunk=n_az_chunk,
+                                                        r_chunk_size=r_chunk_size, n_r_chunk=n_r_chunk,
+                                                        )
+    chunks=(*chunk_size,*rslc_zarr.shape[2:])
 
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster(**get_cuda_cluster_arg()) as cluster, Client(cluster) as client:
@@ -100,18 +112,18 @@ def de_shp_test(rslc:str, # input: rslc stack
         depth = {0:az_half_win, 1:r_half_win, 2:0, 3:0}; boundary = {0:'none',1:'none',2:'none',3:'none'}
         # dist = da.overlap.trim_overlap(dist,depth=depth,boundary=boundary)
         p = da.overlap.trim_overlap(p,depth=depth,boundary=boundary)
-        logger.info('trim shared boundaries between p value chunks')
-        logger.darr_info('trimmed p value', p)
+        p = p.rechunk((*p.chunks[:2],1,1))
+        logger.info('trim shared boundaries between p value chunks and rechunk')
+        logger.darr_info('p value', p)
 
-        # cpu_dist = da.map_blocks(cp.asnumpy,dist)
-        cpu_p = da.map_blocks(cp.asnumpy,p)
-        # cpu_p = cpu_p.rechunk((*cpu_p.chunksize[:2],1,1))
-
-        # _cpu_dist = cpu_dist.to_zarr(statistic,overwrite=True,compute=False)
-        _cpu_p = cpu_p.to_zarr(pvalue_path,overwrite=True,compute=False)
+        cpu_p = p.map_blocks(cp.asnumpy)
+        _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True,compressor=numcodecs.LZ4(5))
+        # p_zarr = kvikio.zarr.open_cupy_array(pvalue_path,'w',shape=p.shape, chunks=p.chunksize, dtype=p.dtype,compressor=None)
+        # _p = da.store(p,p_zarr,compute=False,lock=False)
         logger.info('saving p value.')
+
         logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_cpu_p)
+        futures = client.persist(_p)
         progress(futures,notebook=False)
         da.compute(futures)
         logger.info('computing finished.')
@@ -120,33 +132,39 @@ def de_shp_test(rslc:str, # input: rslc stack
 # %% ../../nbs/CLI/shp.ipynb 11
 @call_parse
 @log_args
+@de_logger
 def de_select_shp(pvalue:str, # input: pvalue of hypothetic test
                   is_shp:str, # output: bool array indicating the SHPs
                   shp_num:str, # output: integer array indicating number of SHPs
                   p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
                   n_az_chunk:int=None, # number of point chunks, optional.
                   az_chunk_size:int=None, # point cloud data chunk size, optional
-                  log=None, # log file. Default: no log file
+                  r_chunk_size:int=None, # output range chunk size
+                  n_r_chunk:int=None, # output number of range chunks
                  ):
     '''
     Select SHP based on pvalue of SHP test.
     '''
     is_shp_path = is_shp
     shp_num_path = shp_num
-    logger = get_logger(logfile=log)
+    logger = logging.getLogger(__name__)
 
     p_zarr = zarr.open(pvalue,mode='r'); logger.zarr_info(pvalue, p_zarr)
     assert p_zarr.ndim == 4, " pvalue dimentation is not 4."
 
-    az_chunk_size = get_az_chunk_size_from_az_chunk_size('pvalue','is_shp',p_zarr.chunks[0],p_zarr.shape[0],logger,az_chunk_size=az_chunk_size,n_az_chunk=n_az_chunk)
-    chunks=(az_chunk_size,*p_zarr.shape[1:])
+    chunk_size = get_ras_chunk_size_from_ras_chunk_size('pvalue','is_shp',
+                                                        *p_zarr.shape[:2],
+                                                        *p_zarr.chunks[:2],
+                                                        az_chunk_size=az_chunk_size,n_az_chunk=n_az_chunk,
+                                                        r_chunk_size=r_chunk_size, n_r_chunk=n_r_chunk,
+                                                       )
+    chunks=(*chunk_size,*p_zarr.shape[2:])
 
     logger.info('starting dask cuda cluster.')
     with LocalCUDACluster(CUDA_VISIBLE_DEVICES=get_cuda_cluster_arg()['CUDA_VISIBLE_DEVICES']) as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
 
         p_cpu = da.from_zarr(pvalue,chunks=chunks)
-        # p_cpu = da.from_array(p_zarr[:],chunks=chunks)
         logger.darr_info('pvalue', p_cpu)
         p = da.map_blocks(cp.asarray,p_cpu[:])
 
@@ -160,6 +178,8 @@ def de_select_shp(pvalue:str, # input: pvalue of hypothetic test
 
         is_shp_cpu = da.map_blocks(cp.asnumpy,is_shp)
         shp_num_cpu = da.map_blocks(cp.asnumpy,shp_num)
+        logger.info('rechunk is_shp')
+        is_shp_cpu = is_shp_cpu.rechunk((*is_shp_cpu.chunksize[0:2],1,1)); logger.darr_info('is_shp', is_shp_cpu)
         _is_shp = is_shp_cpu.to_zarr(is_shp_path,overwrite=True,compute=False)
         logger.info('saving is_shp.')
         _shp_num = shp_num_cpu.to_zarr(shp_num_path,overwrite=True,compute=False)

@@ -226,7 +226,7 @@ div.csl-indent {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -395,7 +395,7 @@ div.csl-indent {
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/ps.py#L13" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/ps.py#L59" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="amp_disp" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="amp_disp">amp_disp</h3>
 <blockquote class="blockquote">
@@ -426,20 +426,26 @@ div.csl-indent {
 <p>Using amplitude dispersion index (ADI) to identify persistent scatterers is first used in <span class="citation" data-cites="ferrettiPermanentScatterersSAR2001">(<a href="#ref-ferrettiPermanentScatterersSAR2001" role="doc-biblioref">Ferretti, Prati, and Rocca Jan./2001</a>)</span>.</p>
 <div class="no-row-height column-margin column-container"><div id="ref-ferrettiPermanentScatterersSAR2001" class="csl-entry" role="listitem">
 Ferretti, A., C. Prati, and F. Rocca. Jan./2001. <span>“Permanent Scatterers in <span>SAR</span> Interferometry.”</span> <em>IEEE Transactions on Geoscience and Remote Sensing</em> 39 (1): 8–20. <a href="https://doi.org/10.1109/36.898661">https://doi.org/10.1109/36.898661</a>.
-</div></div><div class="cell">
+</div></div><p>Usage:</p>
+<div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[:]</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>adi <span class="op">=</span> amp_disp(rslc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>rslc_gpu <span class="op">=</span> cp.asarray(rslc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(adi,vmin<span class="op">=</span><span class="dv">0</span>,vmax<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Amplitude Dispersion Index'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>adi_cpu <span class="op">=</span> amp_disp(rslc)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>adi_gpu <span class="op">=</span> amp_disp(rslc_gpu)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>np.testing.assert_array_almost_equal(adi_cpu,adi_gpu.get())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(adi_cpu,vmin<span class="op">=</span><span class="dv">0</span>,vmax<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Amplitude Dispersion Index'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="ps_files/figure-html/cell-5-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ps_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></a></p>
+<p><a href="ps_files/figure-html/cell-6-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ps_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -684,7 +690,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom","loop":true,"descPosition":"bottom"});</script>
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","selector":".lightbox","loop":true,"descPosition":"bottom","closeEffect":"zoom"});</script>
 
 
 

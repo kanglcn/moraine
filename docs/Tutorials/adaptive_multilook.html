@@ -208,7 +208,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -414,8 +414,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> ks_test(rmli,az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 48.8 ms, sys: 10.5 ms, total: 59.3 ms
-Wall time: 65 ms</code></pre>
+<pre><code>CPU times: user 371 ms, sys: 56.7 ms, total: 428 ms
+Wall time: 821 ms</code></pre>
 </div>
 </div>
 <p><a href="https://kanglcn.github.io/decorrelation/API/shp.html#ks_test"><code>ks_test</code></a> in decorrelation package is extremely fast!</p>
@@ -449,8 +449,8 @@ Wall time: 65 ms</code></pre>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>coh <span class="op">=</span> emperical_co(rslc,is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>CPU times: user 259 ms, sys: 17.3 ms, total: 276 ms
-Wall time: 285 ms</code></pre>
+<pre><code>CPU times: user 2.63 s, sys: 38.1 ms, total: 2.67 s
+Wall time: 2.86 s</code></pre>
 </div>
 </div>
 </section>
@@ -762,7 +762,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","loop":true,"openEffect":"zoom","selector":".lightbox","closeEffect":"zoom"});</script>
+<script>var lightboxQuarto = GLightbox({"loop":true,"selector":".lightbox","closeEffect":"zoom","descPosition":"bottom","openEffect":"zoom"});</script>
 
 
 

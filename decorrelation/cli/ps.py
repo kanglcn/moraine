@@ -4,10 +4,10 @@
 __all__ = ['de_amp_disp']
 
 # %% ../../nbs/CLI/ps.ipynb 4
-import math
+import logging
+import zarr
+import numpy as np
 import cupy as cp
-from matplotlib import pyplot as plt
-import colorcet
 
 import dask
 from dask import array as da
@@ -16,9 +16,9 @@ from dask.distributed import Client, LocalCluster, progress
 from dask_cuda import LocalCUDACluster
 
 from ..ps import amp_disp
-from .pc import de_pc_thres_ras
-from .utils.logging import get_logger, log_args
-from .utils.chunk_size import get_az_chunk_size_from_az_chunk_size
+from .pc import de_pc_logic_ras
+from .utils.logging import de_logger, log_args
+from .utils.chunk_size import get_ras_chunk_size_from_ras_chunk_size
 from .utils.dask import get_cuda_cluster_arg
 
 from fastcore.script import call_parse
@@ -26,44 +26,58 @@ from fastcore.script import call_parse
 # %% ../../nbs/CLI/ps.ipynb 5
 @call_parse
 @log_args
+@de_logger
 def de_amp_disp(rslc:str, # rslc stack
                 adi:str, #output, amplitude dispersion index
-                n_az_chunk:str=None, # number of azimuth chunks
                 az_chunk_size:str=None, # azimuth chunk size
-                log:str=None, # log file
+                n_az_chunk:str=None, # number of azimuth chunks
+                r_chunk_size:int=None, # output range chunk size
+                n_r_chunk:int=None, # output number of range chunks
             ):
     '''calculation the amplitude dispersion index from SLC stack.'''
     rslc_path = rslc
     adi_path = adi
-    logger = get_logger(logfile=log)
+    logger = logging.getLogger(__name__)
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path,rslc_zarr)
 
-    az_chunk_size = get_az_chunk_size_from_az_chunk_size('rslc','adi',rslc_zarr.chunks[0],rslc_zarr.shape[0],logger,n_az_chunk=n_az_chunk,az_chunk_size=az_chunk_size)
+    chunk_size = get_ras_chunk_size_from_ras_chunk_size('rslc','adi',
+                                                        *rslc_zarr.shape[0:2],
+                                                        *rslc_zarr.chunks[0:2],
+                                                        n_az_chunk=n_az_chunk,az_chunk_size=az_chunk_size,
+                                                        r_chunk_size=r_chunk_size,n_r_chunk=n_r_chunk,
+                                                       )
 
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster(CUDA_VISIBLE_DEVICES=get_cuda_cluster_arg()['CUDA_VISIBLE_DEVICES']) as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
 
-        cpu_rslc = da.from_zarr(rslc_path, chunks=(az_chunk_size,*rslc_zarr.shape[1:]))
+        cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunk_size,*rslc_zarr.shape[2:]))
         logger.darr_info('rslc', cpu_rslc)
-
+    
         logger.info(f'calculate amplitude dispersion index.')
         rslc = cpu_rslc.map_blocks(cp.asarray)
-        rmli = da.abs(rslc)
-        mean = da.nanmean(rmli,axis=2)
-        std = da.nanstd(rmli,axis=2)
-        adi = std/mean
+        rslc_delayed = rslc.to_delayed()
+        adi_delayed = np.empty_like(rslc_delayed,dtype=object)
+        with np.nditer(rslc_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
+            for block in it:
+                idx = it.multi_index
+                adi_delayed[idx] = delayed(amp_disp,pure=True,nout=1)(rslc_delayed[idx])
+                adi_delayed[idx] =da.from_delayed(adi_delayed[idx],shape=rslc.blocks[idx].shape[0:2],meta=cp.array((),dtype=cp.float32))
+        adi = da.block(adi_delayed[...,0].tolist())
         
-        cpu_adi = adi.map_blocks(cp.asnumpy)
+        # cpu_adi = adi.map_blocks(cp.asnumpy)
         logger.info(f'got amplitude dispersion index.')
-        logger.darr_info('adi', cpu_adi)
+        logger.darr_info('adi', adi)
 
         logger.info('saving adi.')
-        _cpu_adi = cpu_adi.to_zarr(adi_path,compute=False,overwrite=True)
+        cpu_adi = adi.map_blocks(cp.asnumpy)
+        _adi = da.to_zarr(cpu_adi,adi_path,compute=False,overwrite=True)
+        # adi_zarr = kvikio.zarr.open_cupy_array(adi_path,'w',shape=adi.shape, chunks=adi.chunksize, dtype=adi.dtype,compressor=kvikio.zarr.CompatCompressor.lz4())
+        # _adi = da.store(adi,adi_zarr,compute=False,lock=False)
 
         logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_cpu_adi)
+        futures = client.persist(_adi)
         progress(futures,notebook=False)
         da.compute(futures)
         logger.info('computing finished.')

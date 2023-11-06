@@ -170,7 +170,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -305,7 +305,6 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#pad_internal" id="toc-pad_internal" class="nav-link active" data-scroll-target="#pad_internal">pad_internal</a></li>
   <li><a href="#get_cuda_cluster_arg" id="toc-get_cuda_cluster_arg" class="nav-link" data-scroll-target="#get_cuda_cluster_arg">get_cuda_cluster_arg</a></li>
-  <li><a href="#get_pc_chunk_size" id="toc-get_pc_chunk_size" class="nav-link" data-scroll-target="#get_pc_chunk_size">get_pc_chunk_size</a></li>
   </ul>
 <div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
     </div>
@@ -342,7 +341,7 @@ ul.task-list li input[type="checkbox"] {
 <blockquote class="blockquote">
 <pre><code> pad_internal (arr:&lt;function array&gt;, depth:dict=None)</code></pre>
 </blockquote>
-<p>Pad zero between block boundaries, currently one pad zero are supported</p>
+<p>Pad zero between block boundaries, currently only pad zero are supported</p>
 <hr>
 <p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L66" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
@@ -351,16 +350,6 @@ ul.task-list li input[type="checkbox"] {
 <blockquote class="blockquote">
 <pre><code> get_cuda_cluster_arg ()</code></pre>
 </blockquote>
-<hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/utils/dask.py#L79" target="_blank" style="float:right; font-size:smaller">source</a></p>
-</section>
-<section id="get_pc_chunk_size" class="level3">
-<h3 class="anchored" data-anchor-id="get_pc_chunk_size">get_pc_chunk_size</h3>
-<blockquote class="blockquote">
-<pre><code> get_pc_chunk_size (az_chunk_size, pc_size, pc_chunk_size=None,
-                    n_pc_chunk=None, logger=None)</code></pre>
-</blockquote>
-<p>automatically determine pc_chunk_size, n_pc_chunk.</p>
 
 
 </section>

@@ -226,7 +226,7 @@ div.csl-indent {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../API/plot.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Plot</span></a>
+ <span class="menu-text">plot</span></a>
   </div>
 </li>
       </ul>
@@ -393,15 +393,17 @@ div.csl-indent {
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.utils.logging <span class="im">import</span> get_logger</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/ps.py#L29" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/cli/ps.py#L30" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="de_amp_disp" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="de_amp_disp">de_amp_disp</h3>
 <blockquote class="blockquote">
-<pre><code> de_amp_disp (rslc:str, adi:str, n_az_chunk:str=None,
-              az_chunk_size:str=None, log:str=None)</code></pre>
+<pre><code> de_amp_disp (rslc:str, adi:str, az_chunk_size:str=None,
+              n_az_chunk:str=None, r_chunk_size:int=None,
+              n_r_chunk:int=None)</code></pre>
 </blockquote>
 <p>calculation the amplitude dispersion index from SLC stack.</p>
 <table class="table">
@@ -427,22 +429,28 @@ div.csl-indent {
 <td>output, amplitude dispersion index</td>
 </tr>
 <tr class="odd">
-<td>n_az_chunk</td>
-<td>str</td>
-<td>None</td>
-<td>number of azimuth chunks</td>
-</tr>
-<tr class="even">
 <td>az_chunk_size</td>
 <td>str</td>
 <td>None</td>
 <td>azimuth chunk size</td>
 </tr>
-<tr class="odd">
-<td>log</td>
+<tr class="even">
+<td>n_az_chunk</td>
 <td>str</td>
 <td>None</td>
-<td>log file</td>
+<td>number of azimuth chunks</td>
+</tr>
+<tr class="odd">
+<td>r_chunk_size</td>
+<td>int</td>
+<td>None</td>
+<td>output range chunk size</td>
+</tr>
+<tr class="even">
+<td>n_r_chunk</td>
+<td>int</td>
+<td>None</td>
+<td>output number of range chunks</td>
 </tr>
 </tbody>
 </table>
@@ -455,78 +463,87 @@ Ferretti, A., C. Prati, and F. Rocca. Jan./2001. <span>“Permanent Scatterers i
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>adi <span class="op">=</span> <span class="st">'./ps/adi.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>de_amp_disp(rslc,adi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>logger <span class="op">=</span> get_logger()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>de_amp_disp(rslc,adi)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-22 18:37:14 - de_amp_disp - INFO - fetching args:
-2023-10-22 18:37:14 - de_amp_disp - INFO - rslc = '../../data/rslc.zarr'
-2023-10-22 18:37:14 - de_amp_disp - INFO - adi = './ps/adi.zarr'
-2023-10-22 18:37:14 - de_amp_disp - INFO - n_az_chunk = None
-2023-10-22 18:37:14 - de_amp_disp - INFO - az_chunk_size = None
-2023-10-22 18:37:14 - de_amp_disp - INFO - log = None
-2023-10-22 18:37:14 - de_amp_disp - INFO - fetching args done.
-2023-10-22 18:37:14 - de_amp_disp - INFO - ../../data/rslc.zarr zarray shape: (2500, 1834, 17)
-2023-10-22 18:37:14 - de_amp_disp - INFO - ../../data/rslc.zarr zarray chunks: (1000, 1000, 17)
-2023-10-22 18:37:14 - de_amp_disp - INFO - ../../data/rslc.zarr zarray dtype: complex64
-2023-10-22 18:37:14 - de_amp_disp - INFO - automatically determine az_chunk_size from az_chunk_size of rslc
-2023-10-22 18:37:14 - de_amp_disp - INFO - az_chunk_size for adi: 1000
-2023-10-22 18:37:14 - de_amp_disp - INFO - starting dask CUDA local cluster.
-2023-10-22 18:37:23 - de_amp_disp - INFO - dask local CUDA cluster started.
-2023-10-22 18:37:23 - de_amp_disp - INFO - rslc dask array shape: (2500, 1834, 17)
-2023-10-22 18:37:23 - de_amp_disp - INFO - rslc dask array chunksize: (1000, 1834, 17)
-2023-10-22 18:37:23 - de_amp_disp - INFO - rslc dask array dtype: complex64
-2023-10-22 18:37:23 - de_amp_disp - INFO - calculate amplitude dispersion index.
-2023-10-22 18:37:26 - de_amp_disp - INFO - got amplitude dispersion index.
-2023-10-22 18:37:26 - de_amp_disp - INFO - adi dask array shape: (2500, 1834)
-2023-10-22 18:37:26 - de_amp_disp - INFO - adi dask array chunksize: (1000, 1834)
-2023-10-22 18:37:26 - de_amp_disp - INFO - adi dask array dtype: float32
-2023-10-22 18:37:26 - de_amp_disp - INFO - saving adi.
-2023-10-22 18:37:26 - de_amp_disp - INFO - computing graph setted. doing all the computing.
-2023-10-22 18:37:30 - de_amp_disp - INFO - computing finished. 3.8s
-2023-10-22 18:37:32 - de_amp_disp - INFO - dask cluster closed.
-CPU times: user 2.58 s, sys: 2.12 s, total: 4.7 s
-Wall time: 17.9 s</code></pre>
+<pre><code>2023-11-05 02:48:57 - logging_args - INFO - running function: de_amp_disp
+2023-11-05 02:48:57 - logging_args - INFO - fetching args:
+2023-11-05 02:48:57 - logging_args - INFO - rslc = '../../data/rslc.zarr'
+2023-11-05 02:48:57 - logging_args - INFO - adi = './ps/adi.zarr'
+2023-11-05 02:48:57 - logging_args - INFO - az_chunk_size = None
+2023-11-05 02:48:57 - logging_args - INFO - n_az_chunk = None
+2023-11-05 02:48:57 - logging_args - INFO - r_chunk_size = None
+2023-11-05 02:48:57 - logging_args - INFO - n_r_chunk = None
+2023-11-05 02:48:57 - logging_args - INFO - fetching args done.
+2023-11-05 02:48:57 - zarr_info - INFO - ../../data/rslc.zarr zarray shape: (2500, 1834, 17)
+2023-11-05 02:48:57 - zarr_info - INFO - ../../data/rslc.zarr zarray chunks: (1000, 1000, 17)
+2023-11-05 02:48:57 - zarr_info - INFO - ../../data/rslc.zarr zarray dtype: complex64
+2023-11-05 02:48:57 - get_ras_chunk_size_from_ras_chunk_size - INFO - automatically determine az_chunk_size from 
+            az_chunk_size of rslc
+2023-11-05 02:48:57 - get_ras_chunk_size_from_ras_chunk_size - INFO - az_chunk_size for adi: 1000
+2023-11-05 02:48:57 - get_ras_chunk_size_from_ras_chunk_size - INFO - automatically determine r_chunk_size from
+            r_chunk_size of rslc
+2023-11-05 02:48:57 - get_ras_chunk_size_from_ras_chunk_size - INFO - r_chunk_size for adi: 1000
+2023-11-05 02:48:57 - de_amp_disp - INFO - starting dask CUDA local cluster.
+2023-11-05 02:49:03 - de_amp_disp - INFO - dask local CUDA cluster started.
+2023-11-05 02:49:03 - darr_info - INFO - rslc dask array shape: (2500, 1834, 17)
+2023-11-05 02:49:03 - darr_info - INFO - rslc dask array chunksize: (1000, 1000, 17)
+2023-11-05 02:49:03 - darr_info - INFO - rslc dask array dtype: complex64
+2023-11-05 02:49:03 - de_amp_disp - INFO - calculate amplitude dispersion index.
+2023-11-05 02:49:04 - de_amp_disp - INFO - got amplitude dispersion index.
+2023-11-05 02:49:04 - darr_info - INFO - adi dask array shape: (2500, 1834)
+2023-11-05 02:49:04 - darr_info - INFO - adi dask array chunksize: (1000, 1000)
+2023-11-05 02:49:04 - darr_info - INFO - adi dask array dtype: float32
+2023-11-05 02:49:04 - de_amp_disp - INFO - saving adi.
+2023-11-05 02:49:04 - de_amp_disp - INFO - computing graph setted. doing all the computing.
+2023-11-05 02:49:05 - de_amp_disp - INFO - computing finished. 0.9s
+2023-11-05 02:49:07 - de_amp_disp - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>adi <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./ps/adi.zarr/'</span>,<span class="st">'r'</span>)[:]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>adi <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'./ps/adi.zarr/'</span>,<span class="st">'r'</span>)[:]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(adi,vmin<span class="op">=</span><span class="dv">0</span>,vmax<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Amplitude Dispersion Index'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(adi,vmin<span class="op">=</span><span class="dv">0</span>,vmax<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Amplitude Dispersion Index'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="ps_files/figure-html/cell-7-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ps_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></a></p>
+<p><a href="ps_files/figure-html/cell-8-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ps_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
 </div>
 <p>We can then select PS candidate according to adi:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ps_can_idx <span class="op">=</span> <span class="st">'./ps/ps_can_idx.zarr'</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>de_pc_thres_ras(<span class="st">'./ps/adi.zarr/'</span>,ps_can_idx,min_thres<span class="op">=</span><span class="dv">0</span>,max_thres<span class="op">=</span><span class="fl">0.3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ps_can_idx <span class="op">=</span> <span class="st">'./ps/ps_can_idx.zarr'</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>de_pc_logic_ras(<span class="st">'./ps/adi.zarr/'</span>,ps_can_idx,<span class="st">'(ras&gt;=0)&amp;(ras&lt;=0.3)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>2023-10-22 18:37:33 - de_pc_thres_ras - INFO - fetching args:
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - ras = './ps/adi.zarr/'
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - idx = './ps/ps_can_idx.zarr'
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - min_thres = 0
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - max_thres = 0.3
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - pc_chunk_size = None
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - n_pc_chunk = None
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - log = None
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - fetching args done.
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - ./ps/adi.zarr/ zarray shape: (2500, 1834)
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - ./ps/adi.zarr/ zarray chunks: (1000, 1834)
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - ./ps/adi.zarr/ zarray dtype: float32
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - loading ras into memory.
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - select pc based on min_thres and max_thres.
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - number of selected pixels: 44018.
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - automatically determine pc_chunk_size from n_pc of idx and n_az_chunk of ras
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - pc_chunk_size for idx: 14673
-2023-10-22 18:37:33 - de_pc_thres_ras - INFO - writing idx.</code></pre>
+<pre><code>2023-11-05 02:49:07 - logging_args - INFO - running function: de_pc_logic_ras
+2023-11-05 02:49:07 - logging_args - INFO - fetching args:
+2023-11-05 02:49:07 - logging_args - INFO - ras = './ps/adi.zarr/'
+2023-11-05 02:49:07 - logging_args - INFO - idx = './ps/ps_can_idx.zarr'
+2023-11-05 02:49:07 - logging_args - INFO - operation = '(ras&gt;=0)&amp;(ras&lt;=0.3)'
+2023-11-05 02:49:07 - logging_args - INFO - pc_chunk_size = None
+2023-11-05 02:49:07 - logging_args - INFO - n_pc_chunk = None
+2023-11-05 02:49:07 - logging_args - INFO - fetching args done.
+2023-11-05 02:49:07 - zarr_info - INFO - ./ps/adi.zarr/ zarray shape: (2500, 1834)
+2023-11-05 02:49:07 - zarr_info - INFO - ./ps/adi.zarr/ zarray chunks: (1000, 1000)
+2023-11-05 02:49:07 - zarr_info - INFO - ./ps/adi.zarr/ zarray dtype: float32
+2023-11-05 02:49:07 - de_pc_logic_ras - INFO - loading ras into memory.
+2023-11-05 02:49:07 - de_pc_logic_ras - INFO - select pc based on operation: (ras&gt;=0)&amp;(ras&lt;=0.3)
+2023-11-05 02:49:08 - de_pc_logic_ras - INFO - number of selected pixels: 44018.
+2023-11-05 02:49:08 - get_pc_chunk_size_from_n_ras_chunk - INFO - automatically determine pc_chunk_size from
+            n_pc of idx and n_ras_chunk of ras
+2023-11-05 02:49:08 - get_pc_chunk_size_from_n_ras_chunk - INFO - n_ras_chunk of ras: 6
+2023-11-05 02:49:08 - get_pc_chunk_size_from_n_ras_chunk - INFO - pc_chunk_size for idx: 7337
+2023-11-05 02:49:08 - de_pc_logic_ras - INFO - writing idx.
+2023-11-05 02:49:08 - de_pc_logic_ras - INFO - write done.</code></pre>
 </div>
 </div>
 
@@ -769,7 +786,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","selector":".lightbox","loop":true,"closeEffect":"zoom","openEffect":"zoom"});</script>
+<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","closeEffect":"zoom","openEffect":"zoom","loop":true,"selector":".lightbox"});</script>
 
 
 
