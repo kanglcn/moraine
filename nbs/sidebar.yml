@@ -29,6 +29,7 @@ website:
             contents:
               - Tutorials/CLI/overview.ipynb
               - Tutorials/CLI/load_data.ipynb
+              - Tutorials/CLI/ps_processing.ipynb
               - Tutorials/CLI/ds_processing.ipynb
           - section: Customization
             contents:

@@ -15,7 +15,6 @@ _tmp*
 tmp*
 tags
 *.pkg
-*.png
 *.jpg
 *.bmp
 
