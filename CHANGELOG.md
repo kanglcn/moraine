@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.5.1
+
+Fix the doc generation
+
 ## 0.5.0
 
 New features:

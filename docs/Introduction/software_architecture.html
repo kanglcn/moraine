@@ -399,7 +399,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Most of the stored data in this package is in the <a href="https://zarr.readthedocs.io/en/stable/">zarr</a> format, which is a file storage format for chunked, compressed, N-dimensional arrays. The figure below shows how the structure of zarr data. The reading and writing speed is fast since the data volume is compressed. Before compressing, the data are divided into chunks to be more flexiable for <code>dask</code> parallel operation. Generally, the file name is <code>xxxxxx.zarr</code>. You will find it is indeed a directory in the file system. But just treat it as a single file in use.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="./software_architecture/array.svg" class="lightbox" title="imga" data-gallery="quarto-lightbox-gallery-1"><img src="./software_architecture/array.svg" class="img-fluid figure-img"></a></p>
+<p><a href="./software_architecture/array.svg" class="lightbox" data-gallery="quarto-lightbox-gallery-1" title="imga"><img src="./software_architecture/array.svg" class="img-fluid figure-img"></a></p>
 <figcaption class="figure-caption">imga</figcaption>
 </figure>
 </div>
@@ -915,7 +915,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"descPosition":"bottom","closeEffect":"zoom","loop":true,"selector":".lightbox","openEffect":"zoom"});</script>
+<script>var lightboxQuarto = GLightbox({"openEffect":"zoom","descPosition":"bottom","loop":true,"selector":".lightbox","closeEffect":"zoom"});</script>
 
 
 

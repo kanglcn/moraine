@@ -10,6 +10,11 @@
   margin-bottom: 0;
 }
 
+.cell-output-stdout {
+overflow-y: scroll;
+max-height: 300px;
+}
+
 .cell-output > pre, .cell-output > .sourceCode > pre, .cell-output-stdout > pre {
   margin-left: 0.8rem;
   margin-top: 0;
