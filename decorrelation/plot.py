@@ -76,7 +76,7 @@ def points_stack(data:Union[pd.DataFrame,dd.DataFrame], # common data in all plo
         hmap = geo_bg*hmap
     return hmap
 
-# %% ../nbs/API/plot.ipynb 37
+# %% ../nbs/API/plot.ipynb 38
 def bg_alpha(pwr):
     _pwr = np.power(pwr,0.35)
     cv = _pwr.mean()*2.5
