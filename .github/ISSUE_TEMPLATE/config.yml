@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Decorrelation Discussions
+    url: https://github.com/kanglcn/decorrelation/discussions
+    about: Please ask questions here or find answers to common problems.
