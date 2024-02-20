@@ -8,6 +8,16 @@ import cupy as cp
 import numpy as np
 from typing import Union
 from cupy._sorting.search import _exists_kernel
+import geopandas as gpd
+from shapely.geometry import Point
+
+def pc_mask(lon:np.ndarray, lat:np.ndarray, kml):
+    '''mask the points in a polygon with kml file'''
+    polys = gpd.read_file(kml, driver='rw')
+    point_geometries = [Point(xy) for xy in zip(lon,lat)]
+    geo_points = gpd.GeoSeries(point_geometries)
+    mask = geo_points.within(polys.loc[0, 'geometry'])
+    return mask
 
 # %% ../nbs/API/pc.ipynb 5
 def pc2ras(idx:Union[np.ndarray,cp.ndarray], # idx array
