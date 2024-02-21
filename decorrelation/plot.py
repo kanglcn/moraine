@@ -12,6 +12,7 @@ from typing import Union
 import holoviews as hv
 import holoviews.operation.datashader as hd
 import datashader as ds
+from scipy.interpolate import griddata
 
 def profile_plot(start_point:tuple(lon,lat),end_point:tuple(lon,lat),
                  num:int, # number of points to be sampled. 
