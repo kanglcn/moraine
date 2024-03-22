@@ -7,14 +7,16 @@ __all__ = ['de_amp_disp']
 import logging
 import zarr
 import numpy as np
-import cupy as cp
 
 import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from dask_cuda import LocalCUDACluster
-
+try:
+    import cupy as cp
+    from dask_cuda import LocalCUDACluster
+except ImportError:
+    pass
 from ..ps import amp_disp
 from .pc import de_pc_logic_ras
 from .utils.logging import de_logger, log_args

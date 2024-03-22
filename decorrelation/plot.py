@@ -13,7 +13,7 @@ import holoviews as hv
 import holoviews.operation.datashader as hd
 import datashader as ds
 
-# %% ../nbs/API/plot.ipynb 11
+# %% ../nbs/API/plot.ipynb 10
 def raster(p:np.ndarray, # data to be plot, shape (n,m)
            kdims:list,# name of coordinates (x, y)
            pdim:str, # name of data to be plotted
@@ -41,7 +41,7 @@ def raster(p:np.ndarray, # data to be plot, shape (n,m)
         plot = plot*highlight
     return plot
 
-# %% ../nbs/API/plot.ipynb 16
+# %% ../nbs/API/plot.ipynb 15
 def raster_stack(p:np.ndarray, # data to be plot, shape (n,m,l)
                  kdims:list,# name of coordinates (x, y)
                  tdim:str, # name of coordiantes (t,)
@@ -72,7 +72,7 @@ def raster_stack(p:np.ndarray, # data to be plot, shape (n,m,l)
 
     return hmap
 
-# %% ../nbs/API/plot.ipynb 23
+# %% ../nbs/API/plot.ipynb 22
 def points(data:Union[pd.DataFrame,dd.DataFrame], # dataset to be plot
            kdims:list,# colomn name of Mercator coordinate in dataframe
            pdim:str, # column name of data to be plotted in dataframe
@@ -99,7 +99,7 @@ def points(data:Union[pd.DataFrame,dd.DataFrame], # dataset to be plot
         points = geo_bg*points
     return points
 
-# %% ../nbs/API/plot.ipynb 35
+# %% ../nbs/API/plot.ipynb 34
 def points_stack(data:Union[pd.DataFrame,dd.DataFrame], # common data in all plots
                  kdims:list,# colomn name of Mercator coordinate in dataframe
                  pdata:Union[pd.DataFrame,dd.DataFrame], # data to be plotted as color
@@ -135,7 +135,7 @@ def points_stack(data:Union[pd.DataFrame,dd.DataFrame], # common data in all plo
         hmap = geo_bg*hmap
     return hmap
 
-# %% ../nbs/API/plot.ipynb 50
+# %% ../nbs/API/plot.ipynb 49
 def bg_alpha(pwr):
     _pwr = np.power(pwr,0.35)
     cv = _pwr.mean()*2.5

@@ -18,8 +18,6 @@ format:
     toc: true
     toc-depth: 4
     fig-responsive: true
-    filters:
-        - lightbox
     lightbox:
       match: auto
       effect: zoom

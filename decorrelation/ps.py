@@ -4,11 +4,14 @@
 __all__ = ['amp_disp']
 
 # %% ../nbs/API/ps.ipynb 4
-import cupy as cp
 import numpy as np
 from typing import Union
 import math
 import numba
+try:
+    import cupy as cp
+except:
+    pass
 
 # %% ../nbs/API/ps.ipynb 5
 @numba.jit(nopython=True, cache=True,parallel=True)

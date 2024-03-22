@@ -4,10 +4,13 @@
 __all__ = ['pc2ras', 'pc_union', 'pc_intersect', 'pc_diff']
 
 # %% ../nbs/API/pc.ipynb 4
-import cupy as cp
 import numpy as np
 from typing import Union
-from cupy._sorting.search import _exists_kernel
+try:
+    import cupy as cp
+    from cupy._sorting.search import _exists_kernel
+except:
+    pass
 
 # %% ../nbs/API/pc.ipynb 5
 def pc2ras(idx:Union[np.ndarray,cp.ndarray], # idx array

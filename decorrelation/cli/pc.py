@@ -7,7 +7,6 @@ __all__ = ['de_idx2bool', 'de_bool2idx', 'de_ras2pc', 'console_de_ras2pc', 'de_p
 # %% ../../nbs/CLI/pc.ipynb 4
 import logging
 import zarr
-import cupy as cp
 import numpy as np
 import numexpr as ne
 

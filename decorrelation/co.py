@@ -4,7 +4,10 @@
 __all__ = ['emperical_co', 'emperical_co_pc', 'isPD', 'nearestPD', 'regularize_spectral']
 
 # %% ../nbs/API/co.ipynb 4
-import cupy as cp
+try:
+    import cupy as cp
+except:
+    pass
 from typing import Union
 
 # %% ../nbs/API/co.ipynb 6

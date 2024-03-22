@@ -4,7 +4,10 @@
 __all__ = ['ks_test']
 
 # %% ../nbs/API/shp.ipynb 4
-import cupy as cp
+try:
+    import cupy as cp
+except:
+    pass
 import math
 
 # %% ../nbs/API/shp.ipynb 6

@@ -10,17 +10,19 @@ import logging
 
 import zarr
 import numcodecs
-import cupy as cp
 import numpy as np
-
-import kvikio
-import kvikio.zarr
 
 import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from dask_cuda import LocalCUDACluster
+try:
+    import cupy as cp
+    from dask_cuda import LocalCUDACluster
+    # import kvikio
+    # import kvikio.zarr
+except ImportError:
+    pass
 
 from ..shp import ks_test
 from .utils.logging import de_logger, log_args

@@ -4,7 +4,10 @@
 __all__ = ['emi', 'ds_temp_coh']
 
 # %% ../nbs/API/pl.ipynb 5
-import cupy as cp
+try:
+    import cupy as cp
+except:
+    pass
 
 # %% ../nbs/API/pl.ipynb 8
 def emi(coh:cp.ndarray, #complex coherence metrix,dtype cupy.complex

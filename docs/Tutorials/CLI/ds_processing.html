@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.450">
+<meta name="generator" content="quarto-1.4.550">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -22,7 +22,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -84,7 +84,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -93,6 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
@@ -108,9 +114,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">decorrelation</span>
     </a>
@@ -122,31 +128,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/kanglcn/decorrelation" rel="" target=""><i class="bi bi-github" role="img">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation"> <i class="bi bi-github" role="img">
 </i> 
- <span class="menu-text"></span></a>
+<span class="menu-text"></span></a>
   </li>  
 </ul>
-            <div class="quarto-navbar-tools">
-</div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Tutorials</li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/overview.html">CLI</a></li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/ds_processing.html">DS Processing</a></li></ol></nav>
-      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-      </a>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Tutorials</li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/overview.html">CLI</a></li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/ds_processing.html">DS Processing</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
     </div>
   </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -343,7 +349,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
@@ -357,12 +363,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#ds-temporal-coherence-estimation" id="toc-ds-temporal-coherence-estimation" class="nav-link" data-scroll-target="#ds-temporal-coherence-estimation">DS temporal coherence estimation</a></li>
   <li><a href="#ds-candidiates-refinement" id="toc-ds-candidiates-refinement" class="nav-link" data-scroll-target="#ds-candidiates-refinement">DS candidiates refinement</a></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Tutorials</li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/overview.html">CLI</a></li><li class="breadcrumb-item"><a href="../../Tutorials/CLI/ds_processing.html">DS Processing</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">DS Processing</h1>
 </div>
@@ -377,11 +383,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </div>
   
 
+
 </header>
+
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
 <p>In this tutorial, we demostrate how to do DS processing with the decorrelation CLI interface. The input data for DS processing is prepared in <a href="../../Tutorials/CLI/load_data.html">Load Data</a>.</p>
-<div class="cell">
+<div id="f3ec6a65-38cc-41d7-8651-14045ea10f4b" class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>ls .<span class="op">/</span>load_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>e.zarr    lat.zarr  meta.toml     n.zarr    range.zarr  scratch
@@ -392,12 +400,12 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <h2 class="anchored" data-anchor-id="shp-selection">SHP selection</h2>
 <p>Here we use two sample Kolmogorov-Smirnov (KS) test for Spatially Homogenious Pixel (SHP) identification.</p>
 <p>The output <code>pvalue</code> is the P-value for this test. The smaller the p-value, the more likely the two sample are from same distribution, i.e., the more likely the two pixels are SHP to each other.</p>
-<div class="cell">
+<div id="7ce365ad-5b6a-4492-a011-6d8104e9664b" class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_shp_test</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.utils.logging <span class="im">import</span> get_logger</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="aac47599-da98-4727-83bc-3eeffc0a36ee" class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> <span class="st">'./load_data/rslc.zarr'</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>pvalue <span class="op">=</span> <span class="st">'./ds_processing/pvalue.zarr'</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>az_half_win <span class="op">=</span> <span class="dv">5</span></span>
@@ -406,10 +414,10 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>r_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="294bcf4a-ab5c-49ee-944f-7b5fad2a6d28" class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>logger <span class="op">=</span> get_logger()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="aeac777a-928f-43a3-a7da-3879d03ac05c" class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>de_shp_test(rslc,pvalue,</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>            az_half_win<span class="op">=</span>az_half_win,r_half_win<span class="op">=</span>r_half_win,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>            method<span class="op">=</span>method,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -464,19 +472,19 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 </div>
 </div>
 <p>Then we select SHP by setting a threshold on this Pvalue:</p>
-<div class="cell">
+<div id="3ca0d91d-a8de-4d4c-96d5-f9e3f64b29f4" class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.shp <span class="im">import</span> de_select_shp</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> colorcet</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="4bfc013d-2a3c-4f1e-967f-b3eecfdd256e" class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>is_shp <span class="op">=</span> <span class="st">'./ds_processing/is_shp.zarr'</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>shp_num <span class="op">=</span> <span class="st">'./ds_processing/shp_num.zarr'</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>p_max <span class="op">=</span> <span class="fl">0.05</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>az_chunk_size <span class="op">=</span> <span class="dv">1000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="31c4066a-2947-4eb3-91ee-3ae21f0f5452" class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>de_select_shp(pvalue,is_shp,shp_num,p_max<span class="op">=</span>p_max,az_chunk_size<span class="op">=</span>az_chunk_size)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:43:09 - logging_args - INFO - running function: de_select_shp
@@ -522,7 +530,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 </div>
 </div>
 <p>The output <code>is_shp</code> indicate wheather a pixel in the window is a SHP to its center pixel.</p>
-<div class="cell">
+<div id="f393a5e8-ad8e-4497-9832-d01efd7a4d1f" class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>shp_num_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(shp_num,<span class="st">'r'</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(shp_num_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
@@ -530,7 +538,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
 <p><a href="ds_processing_files/figure-html/cell-10-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="ds_processing_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
@@ -540,15 +548,15 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 </section>
 <section id="ds-candidates-selection" class="level2">
 <h2 class="anchored" data-anchor-id="ds-candidates-selection">DS candidates selection</h2>
-<div class="cell">
+<div id="08a8e9dd-fd60-4089-8ea2-b025cf554095" class="cell">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_logic_ras, de_ras2pc, de_idx2bool,de_pc2ras</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="5ab2f1bb-2f2a-4062-889d-b8f3270876e9" class="cell">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_idx.zarr'</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>is_ds_can<span class="op">=</span> <span class="st">'./ds_processing/is_ds_can.zarr'</span></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>ds_can_is_shp <span class="op">=</span> <span class="st">'./ds_processing/ds_can_is_shp.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="51e2f486-8143-45fb-ad89-e655389efcde" class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>de_pc_logic_ras(shp_num,ds_can_idx,<span class="st">'ras&gt;=50'</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx, is_shp, ds_can_is_shp)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>de_idx2bool(ds_can_idx, is_ds_can, shape<span class="op">=</span> shp_num_zarr.shape)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -639,7 +647,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 </div>
 <p><code>ds_can_idx</code> is a int array with shape of (2, num_of_DS_can). It indicate the position of DS candidate in radar coordinate.</p>
 <p>Also, select lon, lat for DS candidates:</p>
-<div class="cell">
+<div id="e523bcec-1772-4320-9973-fdcb4ee7c4a1" class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>e <span class="op">=</span> <span class="st">'./load_data/e.zarr/'</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="st">'./load_data/n.zarr/'</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>lon <span class="op">=</span> <span class="st">'./load_data/lon.zarr/'</span></span>
@@ -649,7 +657,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>ds_can_lon <span class="op">=</span> <span class="st">'./ds_processing/ds_can_lon.zarr'</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>ds_can_lat <span class="op">=</span> <span class="st">'./ds_processing/ds_can_lat.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="e1ccd21d-b1bf-4797-9558-cdd8bb9a5640" class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>de_ras2pc(ds_can_idx,[e,n,lon,lat],[ds_can_e,ds_can_n,ds_can_lon,ds_can_lat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:45:11 - logging_args - INFO - running function: de_ras2pc
@@ -743,7 +751,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:45:18 - de_ras2pc - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="35cebf11-faca-4887-a3ae-b2252ea56342" class="cell">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>is_ds_can_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(is_ds_can,<span class="st">'r'</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(is_ds_can_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
@@ -751,7 +759,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
 <p><a href="ds_processing_files/figure-html/cell-16-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="ds_processing_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
@@ -762,14 +770,14 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <section id="coherence-matrix-estimation" class="level2">
 <h2 class="anchored" data-anchor-id="coherence-matrix-estimation">Coherence matrix estimation</h2>
 <p>Then we estimate the coherence matrix of ds candidate:</p>
-<div class="cell">
+<div id="6be114a5-7303-4deb-85a0-ae84a10f6430" class="cell">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.co <span class="im">import</span> de_emperical_co_pc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="9d6c809d-3a34-4830-931c-623e16840e79" class="cell">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_can_coh.zarr'</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave <span class="op">=</span> <span class="st">'./ds_processing/ds_can_coh_ave.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="c4086c48-8a9d-4528-92bd-478df78e1baf" class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>de_emperical_co_pc(rslc,ds_can_is_shp,ds_can_idx,ds_can_coh,ds_can_coh_ave)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:45:22 - logging_args - INFO - running function: de_emperical_co_pc
@@ -834,7 +842,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:45:43 - de_emperical_co_pc - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="f9e1b7b3-91ee-40a5-863e-74e783e42cb6" class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh_ave_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_can_coh_ave,<span class="st">'r'</span>)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(ds_can_coh_ave_zarr[:],cmap<span class="op">=</span>colorcet.cm.fire)</span>
@@ -842,7 +850,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
 <p><a href="ds_processing_files/figure-html/cell-20-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="ds_processing_files/figure-html/cell-20-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
@@ -853,15 +861,15 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <section id="phase-linking" class="level2">
 <h2 class="anchored" data-anchor-id="phase-linking">Phase linking</h2>
 <p>To get rid of the closure phase, phase linking is applied here:</p>
-<div class="cell">
+<div id="645a4621-72d4-4d8d-9869-292ad22f55aa" class="cell">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_emi</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="270b5b42-d4af-4dde-b8f6-d1d70d922d44" class="cell">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ds_can_ph <span class="op">=</span> <span class="st">'./ds_processing/ds_can_ph.zarr'</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>ds_can_emi_quality <span class="op">=</span> <span class="st">'./ds_processing/ds_can_emi_quality.zarr'</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>emi_quality <span class="op">=</span> <span class="st">'./ds_processing/emi_quality.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="248422ad-bf04-4e10-81a4-459f1d4b255e" class="cell">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>de_emi(ds_can_coh,ds_can_ph,ds_can_emi_quality)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:45:43 - logging_args - INFO - running function: de_emi
@@ -902,7 +910,7 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:45:55 - de_emi - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="34a64318-daf3-4b00-aaa1-0a161b534274" class="cell">
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_emi_quality,emi_quality,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -941,19 +949,16 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:46:01 - de_pc2ras - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="13ba96d0-cefe-4f44-aa9d-1f561b63800e" class="cell">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>emi_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(emi_quality,<span class="st">'r'</span>)</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(emi_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>,vmin<span class="op">=</span><span class="fl">0.5</span>,vmax<span class="op">=</span><span class="fl">1.3</span>,cmap<span class="op">=</span>colorcet.cm.fire)</span>
 <span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'EMI quality factor'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
 <span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><a href="ds_processing_files/figure-html/cell-25-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="ds_processing_files/figure-html/cell-25-output-2.png" class="img-fluid figure-img"></a></p>
+<p><a href="ds_processing_files/figure-html/cell-25-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="ds_processing_files/figure-html/cell-25-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -962,14 +967,14 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <section id="ds-temporal-coherence-estimation" class="level2">
 <h2 class="anchored" data-anchor-id="ds-temporal-coherence-estimation">DS temporal coherence estimation</h2>
 <p>We can also estimate a temporal coherence for DS:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_ds_temp_coh</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="544fe7c4-78a3-426e-af0c-21d817b9e0c8" class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pl <span class="im">import</span> de_ds_temp_coh</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>ds_can_t_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_can_t_coh.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="1d9f8e01-0cb4-473a-a250-f8d620acab2e" class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ds_can_t_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_can_t_coh.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>de_ds_temp_coh(ds_can_coh,ds_can_ph, ds_can_t_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cce787d5-5bb9-4496-b5d7-ac6eda4601e1" class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>de_ds_temp_coh(ds_can_coh,ds_can_ph, ds_can_t_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:46:07 - logging_args - INFO - running function: de_ds_temp_coh
 2023-11-05 23:46:07 - logging_args - INFO - fetching args:
@@ -1008,10 +1013,10 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 </div>
 </div>
 <p>Plot it:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>t_coh <span class="op">=</span> <span class="st">'./ds_processing/t_coh.zarr'</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_t_coh,t_coh,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="048265c8-ba7d-4841-8229-cebf0c969d85" class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>t_coh <span class="op">=</span> <span class="st">'./ds_processing/t_coh.zarr'</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>rslc_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(rslc,<span class="st">'r'</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>de_pc2ras(ds_can_idx, ds_can_t_coh,t_coh,rslc_zarr.shape[:<span class="dv">2</span>],az_chunk_size<span class="op">=</span>rslc_zarr.chunks[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:46:17 - logging_args - INFO - running function: de_pc2ras
 2023-11-05 23:46:17 - logging_args - INFO - fetching args:
@@ -1048,19 +1053,16 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:46:23 - de_pc2ras - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>t_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(t_coh,<span class="st">'r'</span>)</span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(t_coh_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>)</span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS temporal coherence'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cb086ea7-b398-4fce-9f4a-fe72dd734224" class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>t_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(t_coh,<span class="st">'r'</span>)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(t_coh_zarr[:],interpolation<span class="op">=</span><span class="st">'nearest'</span>)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'DS temporal coherence'</span>,xlabel<span class="op">=</span><span class="st">'Range Index'</span>,ylabel<span class="op">=</span><span class="st">'Azimuth Index'</span>)</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<pre><code>&lt;matplotlib.colorbar.Colorbar&gt;</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><a href="ds_processing_files/figure-html/cell-30-output-2.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="ds_processing_files/figure-html/cell-30-output-2.png" class="img-fluid figure-img"></a></p>
+<p><a href="ds_processing_files/figure-html/cell-30-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="ds_processing_files/figure-html/cell-30-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
 </div>
 </div>
@@ -1069,12 +1071,12 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 <section id="ds-candidiates-refinement" class="level2">
 <h2 class="anchored" data-anchor-id="ds-candidiates-refinement">DS candidiates refinement</h2>
 <p>Then, we refine the ds candidate using EMI quality factor and the temporal coherence:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_logic_pc,de_pc_intersect,de_pc_select_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="2df6a9e2-c200-465c-ad23-6d8c64211654" class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.cli.pc <span class="im">import</span> de_pc_logic_pc,de_pc_intersect,de_pc_select_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>ds_can_r1_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r1_idx.zarr'</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>de_pc_logic_pc(ds_can_idx, ds_can_emi_quality,ds_can_r1_idx,<span class="st">'(pc_in&gt;=1.0)&amp;(pc_in&lt;=1.2)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="a973784d-fb44-4056-ac5f-ee4ca85c6769" class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>ds_can_r1_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r1_idx.zarr'</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>de_pc_logic_pc(ds_can_idx, ds_can_emi_quality,ds_can_r1_idx,<span class="st">'(pc_in&gt;=1.0)&amp;(pc_in&lt;=1.2)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:47:31 - logging_args - INFO - running function: de_pc_logic_pc
 2023-11-05 23:47:31 - logging_args - INFO - fetching args:
@@ -1105,9 +1107,9 @@ hgt.zarr  lon.zarr  non_nan.zarr  phi.zarr  rslc.zarr   theta.zarr</code></pre>
 2023-11-05 23:47:31 - de_pc_logic_pc - INFO - write done.</code></pre>
 </div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>ds_can_r2_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r2_idx.zarr'</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>de_pc_logic_pc(ds_can_idx, ds_can_t_coh,ds_can_r2_idx,<span class="st">'(pc_in&gt;=0.5)&amp;(pc_in&lt;=1.0)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="5805bc6a-c272-4e4f-ad6f-94dd81c01799" class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>ds_can_r2_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r2_idx.zarr'</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>de_pc_logic_pc(ds_can_idx, ds_can_t_coh,ds_can_r2_idx,<span class="st">'(pc_in&gt;=0.5)&amp;(pc_in&lt;=1.0)'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:49:17 - logging_args - INFO - running function: de_pc_logic_pc
 2023-11-05 23:49:17 - logging_args - INFO - fetching args:
@@ -1152,12 +1154,12 @@ Note
 <p>Note that <a href="https://kanglcn.github.io/decorrelation/CLI/pc.html#de_pc_union"><code>de_pc_union</code></a> can be applied is the coherence is not good and no much pixels selected.</p>
 </div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>ds_can_r_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r_idx.zarr'</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>ds_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_idx.zarr'</span></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>non_nan_idx <span class="op">=</span> <span class="st">'./load_data/non_nan.zarr'</span></span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r1_idx,ds_can_r2_idx,ds_can_r_idx)</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r_idx,non_nan_idx,ds_idx)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="ae131a7f-13e0-4c62-aae0-27b12032d1dd" class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>ds_can_r_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_can_r_idx.zarr'</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>ds_idx <span class="op">=</span> <span class="st">'./ds_processing/ds_idx.zarr'</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>non_nan_idx <span class="op">=</span> <span class="st">'./load_data/non_nan.zarr'</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r1_idx,ds_can_r2_idx,ds_can_r_idx)</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>de_pc_intersect(ds_can_r_idx,non_nan_idx,ds_idx)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:49:28 - logging_args - INFO - running function: de_pc_intersect
 2023-11-05 23:49:28 - logging_args - INFO - fetching args:
@@ -1222,16 +1224,16 @@ Note
 </div>
 </div>
 <p>Then get the needed data for ds:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>ds_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_coh.zarr'</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>ds_ph <span class="op">=</span> <span class="st">'./ds_processing/ds_ph.zarr'</span></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>ds_e <span class="op">=</span> <span class="st">'./ds_processing/ds_e.zarr'</span></span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>ds_n <span class="op">=</span> <span class="st">'./ds_processing/ds_n.zarr'</span></span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>ds_lon <span class="op">=</span> <span class="st">'./ds_processing/ds_lon.zarr'</span></span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>ds_lat <span class="op">=</span> <span class="st">'./ds_processing/ds_lat.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="566ff088-8a3a-4503-a6a3-215de8d82cdd" class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>ds_coh <span class="op">=</span> <span class="st">'./ds_processing/ds_coh.zarr'</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>ds_ph <span class="op">=</span> <span class="st">'./ds_processing/ds_ph.zarr'</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>ds_e <span class="op">=</span> <span class="st">'./ds_processing/ds_e.zarr'</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>ds_n <span class="op">=</span> <span class="st">'./ds_processing/ds_n.zarr'</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>ds_lon <span class="op">=</span> <span class="st">'./ds_processing/ds_lon.zarr'</span></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>ds_lat <span class="op">=</span> <span class="st">'./ds_processing/ds_lat.zarr'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>de_pc_select_data(ds_can_idx,ds_idx,pc_in<span class="op">=</span>[ds_can_coh,ds_can_ph,ds_can_e,ds_can_n,ds_can_lon,ds_can_lat],pc<span class="op">=</span>[ds_coh,ds_ph,ds_e,ds_n,ds_lon,ds_lat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="6f2624cd-6a3a-4c3b-9fad-7f0fbe73bb5c" class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>de_pc_select_data(ds_can_idx,ds_idx,pc_in<span class="op">=</span>[ds_can_coh,ds_can_ph,ds_can_e,ds_can_n,ds_can_lon,ds_can_lat],pc<span class="op">=</span>[ds_coh,ds_ph,ds_e,ds_n,ds_lon,ds_lat])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>2023-11-05 23:49:43 - logging_args - INFO - running function: de_pc_select_data
 2023-11-05 23:49:43 - logging_args - INFO - fetching args:
@@ -1319,15 +1321,15 @@ Note
 2023-11-05 23:50:04 - de_pc_select_data - INFO - dask cluster closed.</code></pre>
 </div>
 </div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>ds_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_coh,<span class="st">'r'</span>)</span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
-<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(np.mean(<span class="bu">abs</span>(ds_coh_zarr[:]),axis<span class="op">=</span><span class="dv">0</span>),cmap<span class="op">=</span>colorcet.cm.fire)</span>
-<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Average coherence matrix'</span>,xlabel<span class="op">=</span><span class="st">'Image Index'</span>,ylabel<span class="op">=</span><span class="st">'Image Index'</span>)</span>
-<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
-<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="3f2a0dd0-3d0b-4e59-8eb4-92d87132d69f" class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>ds_coh_zarr <span class="op">=</span> zarr.<span class="bu">open</span>(ds_coh,<span class="st">'r'</span>)</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>pcm <span class="op">=</span> ax.imshow(np.mean(<span class="bu">abs</span>(ds_coh_zarr[:]),axis<span class="op">=</span><span class="dv">0</span>),cmap<span class="op">=</span>colorcet.cm.fire)</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(title<span class="op">=</span><span class="st">'Average coherence matrix'</span>,xlabel<span class="op">=</span><span class="st">'Image Index'</span>,ylabel<span class="op">=</span><span class="st">'Image Index'</span>)</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>fig.colorbar(pcm)</span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>fig.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
 <p><a href="ds_processing_files/figure-html/cell-37-output-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="ds_processing_files/figure-html/cell-37-output-1.png" class="img-fluid figure-img"></a></p>
 </figure>
@@ -1419,10 +1421,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -1432,8 +1433,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -1446,6 +1456,125 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -1489,6 +1618,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -1514,6 +1644,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1575,18 +1731,43 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../../Tutorials/CLI/ps_processing.html" class="pagination-link">
+      <a href="../../Tutorials/CLI/ps_processing.html" class="pagination-link" aria-label="PS Processing">
         <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">PS Processing</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../Tutorials/work_with_dask.html" class="pagination-link">
+      <a href="../../Tutorials/work_with_dask.html" class="pagination-link" aria-label="Work With Dask">
         <span class="nav-page-text">Work With Dask</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
 </div> <!-- /content -->
-<script>var lightboxQuarto = GLightbox({"loop":true,"descPosition":"bottom","openEffect":"zoom","closeEffect":"zoom","selector":".lightbox"});</script>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer><script>var lightboxQuarto = GLightbox({"descPosition":"bottom","loop":false,"openEffect":"zoom","closeEffect":"zoom","selector":".lightbox"});
+window.onload = () => {
+  lightboxQuarto.on('slide_before_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    const href = trigger.getAttribute('href');
+    if (href !== null) {
+      const imgEl = window.document.querySelector(`a[href="${href}"] img`);
+      if (imgEl !== null) {
+        const srcAttr = imgEl.getAttribute("src");
+        if (srcAttr && srcAttr.startsWith("data:")) {
+          slideConfig.href = srcAttr;
+        }
+      }
+    } 
+  });
+
+  lightboxQuarto.on('slide_after_load', (data) => {
+    const { slideIndex, slideNode, slideConfig, player, trigger } = data;
+    if (window.Quarto?.typesetMath) {
+      window.Quarto.typesetMath(slideNode);
+    }
+  });
+
+};
+          </script>
+
 
 
 

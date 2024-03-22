@@ -7,15 +7,17 @@ __all__ = ['de_emi', 'de_ds_temp_coh']
 import logging
 
 import zarr
-import cupy as cp
 import numpy as np
 
 import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from dask_cuda import LocalCUDACluster
-
+try:
+    import cupy as cp
+    from dask_cuda import LocalCUDACluster
+except ImportError:
+    pass
 from ..pl import emi, ds_temp_coh
 from .utils.logging import de_logger, log_args
 from .utils.chunk_size import get_pc_chunk_size_from_pc_chunk_size

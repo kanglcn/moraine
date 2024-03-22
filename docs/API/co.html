@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.450">
+<meta name="generator" content="quarto-1.4.550">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -23,7 +23,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -59,6 +59,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 div.csl-bib-body { }
 div.csl-entry {
   clear: both;
+  margin-bottom: 0em;
 }
 .hanging-indent div.csl-entry {
   margin-left:2em;
@@ -101,7 +102,12 @@ div.csl-indent {
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -110,6 +116,7 @@ div.csl-indent {
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
     "search-submit-button-title": "Submit",
     "search-label": "Search"
@@ -120,6 +127,33 @@ div.csl-indent {
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 <link rel="stylesheet" href="../styles.css">
 </head>
 
@@ -127,9 +161,9 @@ div.csl-indent {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">decorrelation</span>
     </a>
@@ -141,31 +175,31 @@ div.csl-indent {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item compact">
-    <a class="nav-link" href="https://github.com/kanglcn/decorrelation" rel="" target=""><i class="bi bi-github" role="img">
+    <a class="nav-link" href="https://github.com/kanglcn/decorrelation"> <i class="bi bi-github" role="img">
 </i> 
- <span class="menu-text"></span></a>
+<span class="menu-text"></span></a>
   </li>  
 </ul>
-            <div class="quarto-navbar-tools">
-</div>
           </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+</div>
       </div> <!-- /container-fluid -->
     </nav>
   <nav class="quarto-secondary-nav">
     <div class="container-fluid d-flex">
-      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/shp.html">API</a></li><li class="breadcrumb-item"><a href="../API/co.html">co</a></li></ol></nav>
-      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
-      </a>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/shp.html">API</a></li><li class="breadcrumb-item"><a href="../API/co.html">co</a></li></ol></nav>
+        <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
     </div>
   </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
-  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -362,7 +396,7 @@ div.csl-indent {
     </ul>
     </div>
 </nav>
-<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         <nav id="TOC" role="doc-toc" class="toc-active">
@@ -381,12 +415,12 @@ div.csl-indent {
   <li><a href="#regularize_spectral" id="toc-regularize_spectral" class="nav-link" data-scroll-target="#regularize_spectral">regularize_spectral</a></li>
   </ul></li>
   </ul>
-<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+<div class="toc-actions"><ul><li><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content page-columns page-full" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../API/shp.html">API</a></li><li class="breadcrumb-item"><a href="../API/co.html">co</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">co</h1>
 </div>
@@ -406,24 +440,29 @@ div.csl-indent {
   </div>
   
 
+
 </header>
 
+
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<div class="cell">
-<details>
+<div id="67bad67a-2e1c-43ba-a2f9-791a66320dc3" class="cell">
+<details class="code-fold">
 <summary>For generating data for doc and test</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cupy <span class="im">as</span> cp</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> cupy.testing <span class="im">import</span> assert_array_almost_equal</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> zarr</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decorrelation.shp <span class="im">import</span> ks_test</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="im">import</span> cupy <span class="im">as</span> cp</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="im">from</span> cupy.testing <span class="im">import</span> assert_array_almost_equal</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span>:</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">pass</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="covariance-and-coherence-matrix-estimator" class="level2">
 <h2 class="anchored" data-anchor-id="covariance-and-coherence-matrix-estimator">Covariance and Coherence Matrix Estimator</h2>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L67" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L70" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="emperical_co" class="level3">
 <h3 class="anchored" data-anchor-id="emperical_co">emperical_co</h3>
 <blockquote class="blockquote">
@@ -483,8 +522,8 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <p>using all selected SHPs. Their shapes are [nlines,width,nimages,nimages].</p>
 <p>The <code>rslc</code> is a three dimentional cupy <code>ndarray</code>. The <code>dtype</code> should be <code>cupy.complex64</code>. From outerest to innerest, the three dimentions are azimuth, range and image. <code>is_shp</code> is a four dimentional cupy <code>ndarray</code>. It describes if pixels in the search window are SHP to the central pixel. From outerest ot innerest, they are azimuth, range, secondary pixel relative azimuth, secondary pixel relative range.</p>
 <p>Here is an example:</p>
-<div class="cell">
-<details>
+<div id="3ad7f705-0a18-46aa-b449-c7bed701021c" class="cell">
+<details class="code-fold">
 <summary>For generating data for doc and test</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
@@ -505,7 +544,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.where(is_ds_can)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div class="cell">
+<div id="2de5bedc-a805-45ab-b585-b081dda62dcd" class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>rslc.shape, is_shp.shape, is_shp[<span class="dv">2</span>,<span class="dv">3</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>((5, 10, 17),
@@ -516,7 +555,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 </div>
 <p><code>rslc</code> is a stack of 17 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. It shows for pixel (2,3), the (3*5) window around it has 2 SHPs to it (the central one is itself).</p>
-<div class="cell">
+<div id="643819bc-8509-4433-82f1-40bbc57291a4" class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> emperical_co(rslc,is_shp)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cov.shape, coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
@@ -525,7 +564,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 <p>Both <code>cov</code> and <code>coh</code> are complex data. The shape shows each covarience or coherence matrix is 17 by 17 since there are 17 images. And <code>cov</code> and <code>coh</code> are matrix for all 5*10 pixels.</p>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L144" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L147" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="emperical_co_pc" class="level3">
 <h3 class="anchored" data-anchor-id="emperical_co_pc">emperical_co_pc</h3>
@@ -585,8 +624,8 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <p><code>emperical_co_sp</code> is the <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> on sparse data, e.g., DSs. <code>rslc</code> is same as <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>. <code>sp_idx</code> is the index, i.e., a tuple of (azimuth_idx, range_idx). Each index is 1D array. <code>pc_is_shp</code> is similar to <code>is_shp</code> in <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a> but it only contains information about the point cloud data. It is a 3D array with shape [number_of_point,az_win,r_win].</p>
 <p>Compared with <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co"><code>emperical_co</code></a>, <a href="https://kanglcn.github.io/decorrelation/API/co.html#emperical_co_pc"><code>emperical_co_pc</code></a> only estimate coherence/covariance at specific position so the memory usage is much small.</p>
 <p>Example:</p>
-<div class="cell">
-<details>
+<div id="1d9211f0-0fb8-4ecd-b4df-649a6c1c0e51" class="cell">
+<details class="code-fold">
 <summary>Code for generating data for doc</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
@@ -607,7 +646,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>ds_can_idx <span class="op">=</span> cp.stack(cp.where(is_ds_can))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div class="cell">
+<div id="67a1b396-e738-4320-af80-13d6d8ea3cc7" class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>rslc.shape,ds_can_idx,ds_can_is_shp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>((5, 10, 17),
@@ -635,7 +674,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 </div>
 <p><code>rslc</code> is a stack of 17 rslc images. Each of the image has 5 pixel in azimuth dimention and 10 pixels in range dimention. <code>ds_can_idx</code> shows the index of the DS candidates and <code>ds_can_is_shp</code> shows the corrosponding SHPs.</p>
-<div class="cell">
+<div id="ab0b0b18-56f0-45a6-9a92-e914f2f60bc4" class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>ds_can_cov, ds_can_coh <span class="op">=</span> emperical_co_pc(rslc,ds_can_idx,ds_can_is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -643,7 +682,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <section id="covariance-and-coherence-matrix-regularizer" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="covariance-and-coherence-matrix-regularizer">Covariance and Coherence Matrix Regularizer</h2>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L168" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L171" target="_blank" style="float:right; font-size:smaller">source</a></p>
 <section id="ispd" class="level3">
 <h3 class="anchored" data-anchor-id="ispd">isPD</h3>
 <blockquote class="blockquote">
@@ -676,8 +715,8 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </tbody>
 </table>
 <p>This function tells if the matrix is positive defined or not.</p>
-<div class="cell">
-<details>
+<div id="64102a7e-790f-4e23-9032-3fff8081fa7c" class="cell">
+<details class="code-fold">
 <summary>Code for generating data for doc</summary>
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">650</span>,<span class="dv">600</span>:<span class="dv">650</span>]</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
@@ -700,16 +739,16 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>ds_can_coh <span class="op">=</span> emperical_co_pc(rslc,ds_can_idx,ds_can_is_shp)[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div class="cell">
+<div id="a613fb00-cba5-4470-9d13-c08d22a59a7f" class="cell">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>ds_can_coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(149, 17, 17)</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="1c483118-6d27-44fa-9ea7-e5173c220fdb" class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>isPD_ds_can <span class="op">=</span> isPD(ds_can_coh)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell">
+<div id="c671e6ec-0241-4ecb-a27d-a27d51136fc3" class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>isPD_ds_can</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>array([ True,  True,  True,  True,  True,  True,  True,  True,  True,
@@ -733,7 +772,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </div>
 <p>All coherence matrix are positive defined.</p>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L187" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L190" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="nearestpd" class="level3">
 <h3 class="anchored" data-anchor-id="nearestpd">nearestPD</h3>
@@ -769,7 +808,7 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 </table>
 <p><code>nearest</code> means the Frobenius norm of the difference is minimized.</p>
 <hr>
-<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L224" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<p><a href="https://github.com/kanglcn/decorrelation/blob/main/decorrelation/co.py#L227" target="_blank" style="float:right; font-size:smaller">source</a></p>
 </section>
 <section id="regularize_spectral" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="regularize_spectral">regularize_spectral</h3>
@@ -812,8 +851,8 @@ cov = \frac{\sum_{i=1}^{L}z_1^{i}z_2^{i*}}{L} \quad coh = \frac{\sum_{i=1}^{L}z_
 <div class="no-row-height column-margin column-container"><div id="ref-zwiebackCheapValidRegularizers2022a" class="csl-entry" role="listitem">
 Zwieback, S. 2022. <span>“Cheap, <span>Valid Regularizers</span> for <span>Improved Interferometric Phase Linking</span>.”</span> <em>IEEE Geoscience and Remote Sensing Letters</em> 19: 1–4. <a href="https://doi.org/10.1109/LGRS.2022.3197423">https://doi.org/10.1109/LGRS.2022.3197423</a>.
 </div></div><p>Examples:</p>
-<div class="cell">
-<details>
+<div id="d2c8deda-51a2-41a2-bad9-695dd634fe30" class="cell">
+<details class="code-fold">
 <summary>Code for generating data for doc</summary>
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> zarr.<span class="bu">open</span>(<span class="st">'../../data/rslc.zarr/'</span>,<span class="st">'r'</span>)[<span class="dv">600</span>:<span class="dv">605</span>,<span class="dv">600</span>:<span class="dv">610</span>]</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>rslc <span class="op">=</span> cp.asarray(rslc)</span>
@@ -830,17 +869,17 @@ Zwieback, S. 2022. <span>“Cheap, <span>Valid Regularizers</span> for <span>Imp
 <span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>cov,coh <span class="op">=</span> emperical_co(rslc,is_shp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div class="cell">
+<div id="d1ecdf5a-2fb7-4241-a29d-6c89755f0af4" class="cell">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>coh.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <pre><code>(5, 10, 17, 17)</code></pre>
 </div>
 </div>
-<div class="cell">
+<div id="2e7aedb4-8bc4-4a11-93c3-7c29331416d1" class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>regularized_coh1 <span class="op">=</span> regularize_spectral(coh,<span class="fl">0.1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>More general, <code>bata</code> can be a <code>cp.ndarray</code>:</p>
-<div class="cell">
+<div id="735f8970-8c67-4401-844c-219e981117b5" class="cell">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>beta <span class="op">=</span> cp.ones(coh.shape[:<span class="op">-</span><span class="dv">2</span>])<span class="op">/</span><span class="dv">10</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>regularized_coh2 <span class="op">=</span> regularize_spectral(coh,beta)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -930,10 +969,9 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // clear code selection
     e.clearSelection();
   });
-  function tippyHover(el, contentFn) {
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -943,8 +981,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -957,6 +1004,125 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
       return note.innerHTML;
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -1000,6 +1166,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -1025,6 +1192,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1086,12 +1279,12 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../API/shp.html" class="pagination-link">
+      <a href="../API/shp.html" class="pagination-link" aria-label="shp">
         <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">shp</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../API/pl.html" class="pagination-link">
+      <a href="../API/pl.html" class="pagination-link" aria-label="pl">
         <span class="nav-page-text">pl</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
@@ -1100,5 +1293,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<script src="../site_libs/quarto-html/zenscroll-min.js"></script>
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/kanglcn/decorrelation/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer><script src="../site_libs/quarto-html/zenscroll-min.js"></script>
 </body></html>
