@@ -19,6 +19,7 @@ website:
           - CLI/co.ipynb
           - CLI/pl.ipynb
           - CLI/pc.ipynb
+          - CLI/plot.ipynb
       - section: Tutorials
         contents:
           - section: API
