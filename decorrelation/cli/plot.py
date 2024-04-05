@@ -109,6 +109,7 @@ def render_ras_tiles(ras:str, # path to input data, 2D zarr array (one single ra
 
 # %% ../../nbs/CLI/plot.ipynb 13
 def hv_image(x_range,y_range,width,height,scale,data_dir,post_proc,coord):
+    # start = time.time()
     if x_range is None:
         x0 = coord.x0; xm = coord.xm
     else:
@@ -128,8 +129,16 @@ def hv_image(x_range,y_range,width,height,scale,data_dir,post_proc,coord):
     xim, yim = coord.coord2idx(xm,ym,level)
     x0, y0 = coord.idx2coord(xi0,yi0,level)
     xm, ym = coord.idx2coord(xim,yim,level)
+    # decide_slice = time.time()
+    # print(f"It takes {decide_slice-start} to decide the data range", file = sourceFile) 
     data = data_zarr[yi0:yim+1,xi0:xim+1]
+    # load_data = time.time()
+    # print(f"It takes {load_data-decide_slice} to load the data", file = sourceFile) 
     data = post_proc(data)
+    # post_proc_data = time.time()
+    # print(f"It takes {post_proc_data-load_data} to post_proc the data", file = sourceFile)
+    ### test shows data read takes only 0.006 s, post_proc and data_range takes only 0.001s
+    ### the majority of time is used by holoviews that I can not optimize.
     return hv.Image(data[::-1,:],bounds=(x0, y0, xm, ym))
 
 # %% ../../nbs/CLI/plot.ipynb 14
@@ -155,7 +164,7 @@ def ras_plot(rendered_tiles_dir:str, # directory to the rendered images
     images = hv.DynamicMap(partial(hv_image,data_dir=rendered_tiles_dir,post_proc=post_proc,coord=coord),streams=[rangexy,plotsize])
     return images
 
-# %% ../../nbs/CLI/plot.ipynb 23
+# %% ../../nbs/CLI/plot.ipynb 24
 def hv_image_stack(x_range,y_range,width,height,scale,data_dir,post_proc,coord,i=0):
     if x_range is None:
         x0 = coord.x0; xm = coord.xm
@@ -179,7 +188,7 @@ def hv_image_stack(x_range,y_range,width,height,scale,data_dir,post_proc,coord,i
     data = post_proc(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i)
     return hv.Image(data[::-1,:],bounds=(x0, y0, xm, ym))
 
-# %% ../../nbs/CLI/plot.ipynb 24
+# %% ../../nbs/CLI/plot.ipynb 25
 def ras_stack_plot(rendered_tiles_dir:str, # directory to the rendered images
                    post_proc:Callable=None, # function for the post processing
                    bounds:tuple=None, # bounding box (x0, y0, x_max, y_max)
