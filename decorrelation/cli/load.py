@@ -14,6 +14,7 @@ import logging
 import math
 import toml
 import zarr
+import time
 
 import numpy as np
 import numba
@@ -208,7 +209,7 @@ def de_load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of
     logger.info('gamma command finished.')
     logger.info('using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.')
     logger.info('starting dask local cluster.')
-    with LocalCluster(n_workers=1, threads_per_worker=3) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=False, n_workers=1, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         read_gamma_image_delayed = delayed(read_gamma_image, pure=True)
 
@@ -235,6 +236,9 @@ def de_load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of
         progress(futures,notebook=False)
         da.compute(futures)
         logger.info('computing finished.')
+        time.sleep(0.1) 
+        #when progresses=False with progress, there is always asyncio.exceptions.CancelledError
+        # use sleep to temporally stop it
     logger.info('dask cluster closed.')
 
 # %% ../../nbs/CLI/load.ipynb 25

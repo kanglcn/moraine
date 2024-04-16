@@ -46,7 +46,7 @@ def mean_coh_pc(coh):
 @log_args
 def de_emperical_co_pc(rslc:str, # input: rslc stack
                        is_shp:str, # input: bool array indicating the SHPs of pc
-                       idx:str, # input: bool array indicating pc
+                       gix:str, # input: bool array indicating pc
                        coh:str, # output: complex coherence matrix for pc
                        coh_ave:str, # output: average value of coherence matrix magnitude
                        az_chunk_size:int=None, # processing azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack
@@ -60,7 +60,7 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
     '''
     rslc_path = rslc
     is_shp_path = is_shp
-    idx_path = idx
+    gix_path = gix
     coh_path = coh
     coh_ave_path = coh_ave
     logger = logging.getLogger(__name__)
@@ -74,11 +74,11 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
     logger.zarr_info(is_shp_path, is_shp_zarr)
     assert is_shp_zarr.ndim == 3, "is_shp dimentation is not 3."
 
-    idx_zarr = zarr.open(idx_path,mode='r')
-    logger.zarr_info(idx_path, idx_zarr)
-    assert idx_zarr.ndim == 2, "idx dimentation is not 2."
-    logger.info('loading idx into memory.')
-    idx = zarr.open(idx_path,mode='r')[:]
+    gix_zarr = zarr.open(gix_path,mode='r')
+    logger.zarr_info(gix_path, gix_zarr)
+    assert gix_zarr.ndim == 2, "gix dimentation is not 2."
+    logger.info('loading gix into memory.')
+    gix = zarr.open(gix_path,mode='r')[:]
 
     az_win, r_win = is_shp_zarr.shape[1:]
     az_half_win = int((az_win-1)/2)
@@ -94,7 +94,7 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
 
     n_az_chunk = int(np.ceil(nlines/az_chunk_size))
     j_chunk_boundary = np.arange(n_az_chunk+1)*1000; j_chunk_boundary[-1] = nlines
-    point_boundary = np.searchsorted(idx[0],j_chunk_boundary)
+    point_boundary = np.searchsorted(gix[0],j_chunk_boundary)
     process_pc_chunk_size = np.diff(point_boundary)
     process_pc_chunk_size = tuple(process_pc_chunk_size.tolist())
     logger.info(f'number of point in each chunk: {process_pc_chunk_size}')
@@ -126,13 +126,13 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
         for j in range(n_az_chunk):
             jstart = j*az_chunk_size; jend = jstart + az_chunk_size
             if jend>=nlines: jend = nlines
-            idx_local_j = idx[0,point_boundary[j]:point_boundary[j+1]]-jstart
-            if j!= 0: idx_local_j += az_half_win
-            idx_local_i = idx[1,point_boundary[j]:point_boundary[j+1]]
-            idx_local = np.stack((idx_local_j,idx_local_i))
-            idx_local_delayed = da.from_array(idx_local).map_blocks(cp.asarray)
+            gix_local_j = gix[0,point_boundary[j]:point_boundary[j+1]]-jstart
+            if j!= 0: gix_local_j += az_half_win
+            gix_local_i = gix[1,point_boundary[j]:point_boundary[j+1]]
+            gix_local = np.stack((gix_local_j,gix_local_i))
+            gix_local_delayed = da.from_array(gix_local).map_blocks(cp.asarray)
 
-            coh_delayed[j] = emperical_co_pc_delayed(rslc_overlap_delayed[j],idx_local_delayed,is_shp_delayed[j])[1]
+            coh_delayed[j] = emperical_co_pc_delayed(rslc_overlap_delayed[j],gix_local_delayed,is_shp_delayed[j])[1]
             coh_ave_delayed[j] = delayed(mean_coh_pc)(coh_delayed[j])
             coh_delayed[j] = da.from_delayed(coh_delayed[j],shape=(process_pc_chunk_size[j],nimage,nimage),meta=cp.array((),dtype=cp.complex64))
             coh_ave_delayed[j] = (da.from_delayed(coh_ave_delayed[j],shape=(nimage,nimage),meta=cp.array((),dtype=cp.float32))).reshape(1,nimage,nimage)

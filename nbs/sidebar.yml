@@ -7,19 +7,25 @@ website:
           - Introduction/software_architecture.ipynb
       - section: API
         contents:
+          - API/pc.ipynb
+          - API/hillbert_curve.ipynb
+          - API/rtree.ipynb
           - API/shp.ipynb
           - API/co.ipynb
           - API/pl.ipynb
-          - API/pc.ipynb
+          - API/ps.ipynb
           - API/plot.ipynb
       - section: CLI
         contents:
           - CLI/load.ipynb
+          - CLI/pc.ipynb
+          - CLI/ps.ipynb
           - CLI/shp.ipynb
           - CLI/co.ipynb
           - CLI/pl.ipynb
-          - CLI/pc.ipynb
           - CLI/plot.ipynb
+          - CLI/math.ipynb
+          - CLI/utils/transform.ipynb
       - section: Tutorials
         contents:
           - section: API

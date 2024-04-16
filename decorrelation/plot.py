@@ -15,8 +15,8 @@ import datashader as ds
 
 # %% ../nbs/API/plot.ipynb 10
 def raster(p:np.ndarray, # data to be plot, shape (n,m)
-           kdims:list,# name of coordinates (x, y)
-           pdim:str, # name of data to be plotted
+           kdims:list=None,# name of coordinates (x, y), ['x','y']by default
+           pdim:str=None, # name of data to be plotted, 'z' by default
            bounds:tuple=None, # extent of the raster, (x0, y0, x1 and y1), (0,0,m,n) )by default
            prange:tuple=None, # range of data to be plotted, it is interactively adjusted by default
            aggregator=ds.first, # aggregator for data rasterization
@@ -24,6 +24,8 @@ def raster(p:np.ndarray, # data to be plot, shape (n,m)
 ):
     '''Interative visulization of a raster image.
     '''
+    if kdims is None: kdims = ['x','y']
+    if pdim is None: pdim = 'z'
     if prange is None: prange = (None, None)
     # if extents is None: extents = (None, None, None, None)
     # if bounds is None: bounds = (0, 0, p.shape[1], p.shape[0])
@@ -43,9 +45,9 @@ def raster(p:np.ndarray, # data to be plot, shape (n,m)
 
 # %% ../nbs/API/plot.ipynb 15
 def raster_stack(p:np.ndarray, # data to be plot, shape (n,m,l)
-                 kdims:list,# name of coordinates (x, y)
-                 tdim:str, # name of coordiantes (t,)
-                 pdim:str, # name of data to be plotted
+                 kdims:list=None,# name of coordinates (x, y), ['x','y'] by default
+                 tdim:str=None, # name of coordiantes (t,), 't' by default
+                 pdim:str=None, # name of data to be plotted, 'z' by default
                  bounds:tuple=None, # extent of the raster, (x0, y0, x1 and y1), (0,0,m,n) )by default
                  t:list=None, # t coordinate of the plot, len: l, list of string. ['0','1',...] by default
                  prange:tuple=None, # range of data to be plotted, it is interactively adjusted by default
@@ -54,6 +56,9 @@ def raster_stack(p:np.ndarray, # data to be plot, shape (n,m,l)
                 ):
     '''Interative visulization of a raster image.
     '''
+    if kdims is None: kdims = ['x','y']
+    if tdim is None: tdim = 't'
+    if pdim is None: pdim = 'z'
     if prange is None: prange = (None, None)
     if bounds is None: bounds = (0, p.shape[0], p.shape[1], 0)
     if t is None: t = map(str, np.arange(p.shape[2]))

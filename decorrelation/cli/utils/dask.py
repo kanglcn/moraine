@@ -8,6 +8,7 @@ from dask import array as da
 import numpy as np
 import os
 import math
+import multiprocessing
 from .appconfig import get_config
 
 # %% ../../../nbs/CLI/utils/dask.ipynb 4
@@ -72,5 +73,6 @@ def get_cuda_cluster_arg():
     else:
         n_gpu = len(visible_gpus)
     n_cpu = config.get('n_cpu')
+    if n_cpu is None: n_cpu = multiprocessing.cpu_count()
     threads_per_worker = math.floor(n_cpu/n_gpu)
     return {'CUDA_VISIBLE_DEVICES':config.get('visible_gpus')}
