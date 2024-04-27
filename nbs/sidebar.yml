@@ -8,7 +8,6 @@ website:
       - section: API
         contents:
           - API/pc.ipynb
-          - API/hillbert_curve.ipynb
           - API/rtree.ipynb
           - API/shp.ipynb
           - API/co.ipynb

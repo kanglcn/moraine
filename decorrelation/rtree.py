@@ -14,7 +14,7 @@ import numpy as np
 from numba import float64, int64
 from numba import prange
 import math
-from .utils import ngjit, ngpjit
+from .utils_ import ngjit, ngpjit
 try:
     from numba.experimental import jitclass
 except ImportError:
@@ -74,6 +74,18 @@ def _is_inside(query_bounds, node_bounds):
         return True
     else:
         return False
+
+# %% ../nbs/API/rtree.ipynb 14
+@ngpjit
+def _is_inside_bf(bounds, x, y):
+    out = np.empty(x.shape,np.bool_)
+    for i in prange(x.size):
+        x_i = x[i]; y_i = y[i]
+        if (x_i>bounds[0]) and (x_i<bounds[2]) and (y_i>bounds[1]) and (y_i<bounds[3]):
+            out[i] = True
+        else:
+            out[i] = False
+    return out
 
 # %% ../nbs/API/rtree.ipynb 16
 @ngpjit
@@ -152,8 +164,8 @@ def _merge_ranges(ranges,is_covered):
 # %% ../nbs/API/rtree.ipynb 18
 @ngjit
 def _expand_ranges(ranges):
-    len = np.sum(ranges[:,1]-ranges[:,0])
-    idx = np.zeros(len,dtype=np.int64)
+    length = np.sum(ranges[:,1]-ranges[:,0])
+    idx = np.zeros(length,dtype=np.int64)
     idx_start = 0
     for i in range(ranges.shape[0]):
         start = ranges[i,0]
@@ -163,15 +175,17 @@ def _expand_ranges(ranges):
         idx_start += size
     return idx
 
-# %% ../nbs/API/rtree.ipynb 19
+# %% ../nbs/API/rtree.ipynb 20
 _numbartree_spec = [
     ('_bounds_tree', float64[:, :]),
+    ('_n_points', int64),
     ('_page_size', int64),
 ]
 @jitclass(_numbartree_spec)
 class _NumbaRtree:
-    def __init__(self, bounds_tree, page_size):
+    def __init__(self, bounds_tree, n_points, page_size):
         self._bounds_tree = bounds_tree
+        self._n_points = n_points
         self._page_size = page_size
 
     def _leaf_start(self):
@@ -255,10 +269,13 @@ class _NumbaRtree:
                     # Partial overlap of interior bounding box, recurse to children
                     nodes.extend([_right_child(next_node), _left_child(next_node)])
 
+        # to ensure end do not exceed the true length
+        if maybe_covered_ranges[-1][1] > self._n_points:
+            maybe_covered_ranges[-1] = (maybe_covered_ranges[-1][0], self._n_points)
         maybe_covered_ranges, is_covered = _merge_ranges(maybe_covered_ranges, is_covered)
         return np.array(maybe_covered_ranges), np.array(is_covered)
 
-# %% ../nbs/API/rtree.ipynb 20
+# %% ../nbs/API/rtree.ipynb 21
 @ngjit
 def _merged_idx(ranges, is_covered, maybe_covered_is_inside):
     max_len = np.sum(ranges[:,1]-ranges[:,0])
@@ -280,7 +297,7 @@ def _merged_idx(ranges, is_covered, maybe_covered_is_inside):
             idx_start += size
     return idx[:idx_start]
 
-# %% ../nbs/API/rtree.ipynb 21
+# %% ../nbs/API/rtree.ipynb 23
 class HilbertRtree:
     """
     This class provides a read-only Hilbert R-tree for spatial indexing.
@@ -292,26 +309,28 @@ class HilbertRtree:
     representation of a binary tree.
     """
     
-    def __init__(self, bounds_tree:np.array, # an array representation of a binary tree. shape [n_pages, 4]. Every row is a bounding box of a node: [x0, y0, xm, ym]
+    def __init__(self, bounds_tree:np.ndarray, # an array representation of a binary tree. shape [n_pages, 4]. Every row is a bounding box of a node: [x0, y0, xm, ym]
+                 n_points:int, # number of total points
                  page_size=512, # number of points in every leaf node.
                 ):
         '''Note that HilbertRtree should not be instantiated directly, 
         but always through the module-level function `build` and `load`.'''
         self._bounds_tree = bounds_tree
+        self._n_points = n_points
         self._page_size = page_size
         self._numba_rtree = _NumbaRtree(
-                self._bounds_tree,self._page_size)
+                self._bounds_tree,self._n_points, self._page_size)
 
     @classmethod
-    def build(cls, x:np.array, # x coordinates, e.g., lon, shape [n_points,]
-              y:np.array, # y coordinates, e.g., lat, shape [n_points,]
+    def build(cls, x:np.ndarray, # x coordinates, e.g., lon, shape [n_points,]
+              y:np.ndarray, # y coordinates, e.g., lat, shape [n_points,]
               page_size=512, # number of points in every leaf node. should be same as pc_chunk_size.
              ):
         """classmethod to build a HilbertRtree."""
         assert x.shape == y.shape
         page_size = max(1, page_size)
         bounds_tree = _build_hillbert_rtree(x.astype(np.float64), y.astype(np.float64), page_size)
-        return cls(bounds_tree,page_size)
+        return cls(bounds_tree,x.shape[0], page_size)
 
     def save(path:str, # zarr path
             ):
@@ -319,13 +338,14 @@ class HilbertRtree:
         zarr.open(path,'w',shape=self._bounds_tree.shape,dtype=self._bounds_tree.shape)
         zarr[:] = self._bounds_tree[:]
         zarr.attrs['page_size'] = self._page_size
+        zarr.attres['n_points'] = self._n_points
 
     @classmethod
     def load(cls, zarr_path:str, # zarr path
             ):
         '''classmethod to load the saved HilbertRtree.'''
         bounds_tree_zarr = zarr.open(path,'r')
-        return cls(bounds_tree_zarr[:], bounds_tree_zarr.attrs['page_size'])
+        return cls(bounds_tree_zarr[:], bounds_tree_zarr.attrs['n_points'], bounds_tree_zarr.attrs['page_size'])
 
     def __getstate__(self):
         # Remove _NumbaRtree instance during serialization since jitclass instances

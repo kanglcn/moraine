@@ -296,9 +296,10 @@ def de_load_gamma_lat_lon_hgt(diff_par:str, # geocoding diff_par,using the simul
         os.system(command)
         logger.info('gamma command finished.')
     logger.info('writing zarr file.')
-    ptlonlat = read_gamma_plist(str(scratch_dir/'plat_lon'),dtype='double')
-    lon_data[:], lat_data[:] = ptlonlat[:,0].reshape(rdc_nlines,rdc_width),ptlonlat[:,1].reshape(rdc_nlines,rdc_width)
     hgt_data[:] = read_gamma_image(str(phgt_wgs84),width=rdc_width,dtype='float')
+
+    ptlonlat = read_gamma_plist(str(scratch_dir/'plat_lon'),dtype='double').reshape(rdc_nlines, rdc_width, 2)
+    lon_data[:], lat_data[:] = ptlonlat[...,0], ptlonlat[...,1]
     logger.info('write done.')
 
 # %% ../../nbs/CLI/load.ipynb 31
@@ -392,9 +393,10 @@ def de_load_gamma_range(rslc_par:str, # par file of one rslc
 # %% ../../nbs/CLI/load.ipynb 42
 @call_parse
 @log_args
-def de_load_gamma_metadata(rslc_dir:str, # # gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
+def de_load_gamma_metadata(rslc_dir:str, # gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
+                           dem_par:str, # dem par
                            reference:str, # reference date, eg: '20200202'
-                           meta_file:str, # text toml file for meta data
+                           meta_file:str, # output, text toml file for meta data
 ):
     '''
     Load necessary metadata into a toml file.
@@ -407,6 +409,7 @@ def de_load_gamma_metadata(rslc_dir:str, # # gamma rslc directory, the name of t
         dates.append(par_file.name[:8])
     meta['dates'] = dates
 
+    logger.info('fetching slc related metadata.')
     with open(rslc_dir/(reference+'.rslc.par')) as f:
         for line in f:
             if re.search('radar_frequency',line):
@@ -426,6 +429,17 @@ def de_load_gamma_metadata(rslc_dir:str, # # gamma rslc directory, the name of t
     meta['radar_wavelength'] = rdr_wavelen
     meta['range_pixel_spacing'] = dr
     meta['azimuth_pixel_spacing'] = daz
+
+    logger.info('fetching dem related metadata')
+    geo_width, geo_nlines = _geo_width_nlines(dem_par)
+    cor_lat, cor_lon, pos_lat, pos_lon = _cor_pos_dem(dem_par)
+    x0, xm = cor_lon, cor_lon+(geo_width-1)*pos_lon
+    y0, ym = cor_lat+(geo_nlines-1)*pos_lat, cor_lat
+    lonlat_bbox = [x0, y0, xm, ym]
+    meta['lonlat_bbox'] = lonlat_bbox
+    web_x0, web_xm = (lon*20037508.34/180 for lon in (x0, xm))
+    web_y0, web_ym = (math.log(math.tan((90+lat)*math.pi/360))/(math.pi/180)*20037508.34/180 for lat in (y0, ym))
+    meta['merca_bbox'] = [web_x0, web_y0, web_xm, web_ym]
 
     with tempfile.TemporaryDirectory() as temp_dir:        
         temp_dir = Path(temp_dir)

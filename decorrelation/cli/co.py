@@ -90,7 +90,7 @@ def de_emperical_co_pc(rslc:str, # input: rslc stack
 
     if az_chunk_size is None: az_chunk_size = rslc_zarr.chunks[0]
     logger.info('parallel processing azimuth chunk size: '+str(az_chunk_size))
-    logger.info('parallel processing range chunk size: 1.')
+    logger.info(f'parallel processing range chunk size: {width}')
 
     n_az_chunk = int(np.ceil(nlines/az_chunk_size))
     j_chunk_boundary = np.arange(n_az_chunk+1)*1000; j_chunk_boundary[-1] = nlines

@@ -28,8 +28,8 @@ def raster(p:np.ndarray, # data to be plot, shape (n,m)
     if pdim is None: pdim = 'z'
     if prange is None: prange = (None, None)
     # if extents is None: extents = (None, None, None, None)
-    # if bounds is None: bounds = (0, 0, p.shape[1], p.shape[0])
-    if bounds is None: bounds = (0, p.shape[0], p.shape[1], 0)
+    if bounds is None: bounds = (0-0.5, 0-0.5, p.shape[1]+0.5, p.shape[0]+0.5)
+    # if bounds is None: bounds = (0, p.shape[0], p.shape[1], 0)
     ## many problem to be solved:
     ##  1. the integer tiks should be at the center of pixel, but not
     ##  2. What does the bounds mean? center of the pixel or upper left of the pixel
