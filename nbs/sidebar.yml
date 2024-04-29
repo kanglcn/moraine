@@ -9,13 +9,16 @@ website:
         contents:
           - API/pc.ipynb
           - API/rtree.ipynb
+          - API/ps.ipynb
           - API/shp.ipynb
           - API/co.ipynb
           - API/pl.ipynb
-          - API/ps.ipynb
           - API/plot.ipynb
       - section: CLI
         contents:
+          - CLI/logging.ipynb
+          - CLI/transform.ipynb
+          - CLI/math.ipynb
           - CLI/load.ipynb
           - CLI/pc.ipynb
           - CLI/ps.ipynb
@@ -23,8 +26,6 @@ website:
           - CLI/co.ipynb
           - CLI/pl.ipynb
           - CLI/plot.ipynb
-          - CLI/math.ipynb
-          - CLI/utils/transform.ipynb
       - section: Tutorials
         contents:
           - section: API

@@ -33,7 +33,7 @@ website:
     background: primary
     right:
       - icon: github
-        href: "https://github.com/kanglcn/decorrelation"
+        href: "https://github.com/kanglcn/moraine"
   sidebar:
     style: "floating"
     border: true
