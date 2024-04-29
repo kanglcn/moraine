@@ -2,6 +2,14 @@
 
 <!-- do not remove -->
 
+## 0.6.0
+
+Rename to Moraine
+
+Add CLI plot
+
+Package Reconstruction
+
 ## 0.5.1
 
 Fix the doc generation
