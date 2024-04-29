@@ -9,9 +9,8 @@ from numba import prange
 import math
 try:
     import cupy as cp
-    from cupy._sorting.search import _exists_kernel
 except:
-    pass
+    cp = None
 from .utils_ import ngjit, ngpjit
 from .coord_ import Coord
 
