@@ -10,7 +10,7 @@ import numba
 try:
     import cupy as cp
 except:
-    import numpy as cp
+    pass
 
 # %% ../nbs/API/ps.ipynb 5
 @numba.jit(nopython=True, cache=True,parallel=True)

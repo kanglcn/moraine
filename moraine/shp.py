@@ -7,7 +7,7 @@ __all__ = ['ks_test']
 try:
     import cupy as cp
 except:
-    import numpy as cp
+    pass
 import math
 
 # %% ../nbs/API/shp.ipynb 6
