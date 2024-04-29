@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.6.5
+Test
+
 ## 0.6.4
 Test
 
