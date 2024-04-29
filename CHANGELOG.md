@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.6.2
+Test
+
 ## 0.6.1
 
 Bug fix
