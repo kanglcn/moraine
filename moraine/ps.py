@@ -5,7 +5,6 @@ __all__ = ['amp_disp']
 
 # %% ../nbs/API/ps.ipynb 4
 import numpy as np
-from typing import Union
 import math
 import numba
 try:
@@ -59,8 +58,8 @@ def _amp_disp_cp(rslc):
     return amp_disp
 
 # %% ../nbs/API/ps.ipynb 8
-def amp_disp(rslc:Union[cp.ndarray,np.ndarray], # rslc stack
-            )-> Union[cp.ndarray,np.ndarray]: # dispersion index
+def amp_disp(rslc:cp.ndarray|np.ndarray, # rslc stack
+            )-> cp.ndarray|np.ndarray: # dispersion index
     '''calculation the amplitude dispersion index from SLC stack.'''
     xp = cp.get_array_module(rslc)
     if xp is np:
