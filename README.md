@@ -84,13 +84,12 @@ willing to read the documentation, and solve their own problems.
 
 All users are encouraged to participate and contribute to this package.
 Reporting bugs and requesting new features by raising a Github
-[issue](https://github.com/kanglcn/decorrelation/issues) is highly
-valued and bugs fixing, documentation improving and features
-implementation by make a Github [pull
-request](https://github.com/kanglcn/decorrelation/pulls) are very
-appreciated. Users can also freely ask questions, provide technical
+[issue](https://github.com/kanglcn/moraine/issues) is highly valued and
+bugs fixing, documentation improving and features implementation by make
+a Github [pull request](https://github.com/kanglcn/moraine/pulls) are
+very appreciated. Users can also freely ask questions, provide technical
 assistance to others or just exchange opinions in the
-[discussions](https://github.com/kanglcn/decorrelation/discussions).
+[discussions](https://github.com/kanglcn/moraine/discussions).
 
 ## Install
 
