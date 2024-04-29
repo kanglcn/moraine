@@ -2,6 +2,10 @@
 
 <!-- do not remove -->
 
+## 0.6.1
+
+Bug fix
+
 ## 0.6.0
 
 Rename to Moraine
