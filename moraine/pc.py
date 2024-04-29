@@ -10,7 +10,7 @@ import math
 try:
     import cupy as cp
 except:
-    import numpy as np
+    import numpy as cp
 from .utils_ import ngjit, ngpjit
 from .coord_ import Coord
 
