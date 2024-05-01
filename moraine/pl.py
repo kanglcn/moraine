@@ -4,33 +4,35 @@
 __all__ = ['emi', 'ds_temp_coh']
 
 # %% ../nbs/API/pl.ipynb 5
-try:
+import numpy as np
+from .utils_ import is_cuda_available, get_array_module
+if is_cuda_available():
     import cupy as cp
-except:
-    pass
 
 # %% ../nbs/API/pl.ipynb 8
-def emi(coh:cp.ndarray, #complex coherence metrix,dtype cupy.complex
+def emi(coh:np.ndarray, #complex coherence metrix,dtype cupy.complex
         ref:int=0, #index of reference image in the phase history output, optional. Default: 0
-       )-> tuple[cp.ndarray,cp.ndarray]: # estimated phase history `ph`, dtype complex; quality (minimum eigvalue, dtype float)
-    coh_mag = abs(coh)
-    coh_mag_inv = cp.linalg.inv(coh_mag)
-    min_eigval, min_eig = cp.linalg.eigh(coh_mag_inv*coh)
+       )-> tuple[np.ndarray,np.ndarray]: # estimated phase history `ph`, dtype complex; quality (minimum eigvalue, dtype float)
+    xp = get_array_module(coh)
+    coh_mag = xp.abs(coh)
+    coh_mag_inv = xp.linalg.inv(coh_mag)
+    min_eigval, min_eig = xp.linalg.eigh(coh_mag_inv*coh)
     min_eigval = min_eigval[...,0]
     # min_eig = min_eig[...,0]
     min_eig = min_eig[...,0]*min_eig[...,[ref],0].conj()
 
     return min_eig/abs(min_eig), min_eigval
 
-# %% ../nbs/API/pl.ipynb 17
-def ds_temp_coh(coh:cp.ndarray,# complex coherence metrix, dtype cupy.complex
-                ph = cp.ndarray, # complex phase history, dtype cupy.complex
+# %% ../nbs/API/pl.ipynb 15
+def ds_temp_coh(coh:np.ndarray,# complex coherence metrix, dtype cupy.complex
+                ph = np.ndarray, # complex phase history, dtype cupy.complex
             ):
+    xp = get_array_module(coh)
     nimages = ph.shape[-1]
     assert coh.shape[-2:] == (nimages,nimages), "input dimension not match"
     ph = ph/abs(ph)
     coh = coh/abs(coh)
     int_ph = ph[...,None]*ph[...,None,:].conj()
     diff_ph = coh*int_ph.conj()
-    t_coh = (cp.sum(diff_ph,axis=(-2,-1))-cp.trace(diff_ph,axis1=-2,axis2=-1)).real/(nimages**2-nimages)
+    t_coh = (xp.sum(diff_ph,axis=(-2,-1))-xp.trace(diff_ph,axis1=-2,axis2=-1)).real/(nimages**2-nimages)
     return t_coh

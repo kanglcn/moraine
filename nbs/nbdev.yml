@@ -4,6 +4,6 @@ project:
 website:
   title: "moraine"
   site-url: "https://kanglcn.github.io/moraine"
-  description: "Modern Radar Interferometry Environment; A simple, stupid InSAR postprocessing tool in big data era"
+  description: "Modern Radar Interferometry Environment, A simple, stupid InSAR postprocessing tool in big data era"
   repo-branch: main
   repo-url: "https://github.com/kanglcn/moraine"

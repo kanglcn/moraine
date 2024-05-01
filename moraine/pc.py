@@ -7,31 +7,30 @@ __all__ = ['pc2ras', 'pc_hix', 'pc_sort', 'pc_union', 'pc_intersect', 'pc_diff']
 import numpy as np
 from numba import prange
 import math
-try:
+from .utils_ import is_cuda_available, get_array_module
+if is_cuda_available():
     import cupy as cp
-except:
-    pass
 from .utils_ import ngjit, ngpjit
 from .coord_ import Coord
 
 # %% ../nbs/API/pc.ipynb 9
-def pc2ras(gix:np.ndarray|cp.ndarray, # gix array
-           pc_data:np.ndarray|cp.ndarray, # data, 1D or more
+def pc2ras(gix:np.ndarray, # gix array
+           pc_data:np.ndarray, # data, 1D or more
            shape:tuple, # image shape
           ):
     '''convert point cloud data to original raster, filled with nan'''
-    xp = cp.get_array_module(pc_data)
+    xp = get_array_module(pc_data)
     raster = xp.empty((*shape,*pc_data.shape[1:]),dtype=pc_data.dtype)
     raster[:] = xp.nan
     raster[gix[0],gix[1]] = pc_data
     return raster
 
 # %% ../nbs/API/pc.ipynb 11
-def _ras_dims(gix1:np.ndarray|cp.ndarray, # int array, grid index of the first point cloud
-              gix2:np.ndarray|cp.ndarray=None, # int array, grid index of the second point cloud
+def _ras_dims(gix1:np.ndarray, # int array, grid index of the first point cloud
+              gix2:np.ndarray=None, # int array, grid index of the second point cloud
              )->tuple: # the shape of the original raster image
     '''Get the shape of the original raster image from two index, the shape could be smaller than the truth but it doesn't matter.'''
-    xp = cp.get_array_module(gix1)
+    xp = get_array_module(gix1)
     if gix2 is None:
         dims_az = gix1[0,-1]+1
         dims_r = int(xp.max(gix1[1,:]))+1
@@ -186,10 +185,10 @@ def pc_hix(x:np.ndarray, # horizonal coordinate
     return hix
 
 # %% ../nbs/API/pc.ipynb 19
-def pc_sort(idx:np.ndarray|cp.ndarray, # unsorted `gix` (2D) or `hix`(1D)
-           )->np.ndarray|cp.ndarray: # indices that sort input
+def pc_sort(idx:np.ndarray, # unsorted `gix` (2D) or `hix`(1D)
+           )->np.ndarray: # indices that sort input
     '''Get the indices that sort the input.'''
-    xp = cp.get_array_module(idx)
+    xp = get_array_module(idx)
     if idx.ndim == 2:
         dims_az = int(xp.max(idx[0,:]))+1
         dims_r = int(xp.max(idx[1,:]))+1
@@ -200,8 +199,8 @@ def pc_sort(idx:np.ndarray|cp.ndarray, # unsorted `gix` (2D) or `hix`(1D)
     return key
 
 # %% ../nbs/API/pc.ipynb 23
-def pc_union(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the first point cloud
-             idx2:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the second point cloud
+def pc_union(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
+             idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
              # the union index `idx`; index of the point in output union index that originally in the first point cloud `inv_iidx`;
              # index of the point in output union index that only exist in the second point cloud `inv_iidx2`;
              # index of the point in the second input index that are not in the first input point cloud
@@ -209,7 +208,7 @@ def pc_union(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert ind
     '''Get the union of two point cloud dataset. For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.'''
     # this function is modified from np.unique
 
-    xp = cp.get_array_module(idx1)
+    xp = get_array_module(idx1)
     n1 = idx1.shape[-1]; n2 = idx2.shape[-1]
     idx = xp.concatenate((idx1,idx2),axis=-1)
     if idx.ndim == 2:
@@ -246,8 +245,8 @@ def pc_union(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert ind
     return idx, inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
 # %% ../nbs/API/pc.ipynb 32
-def pc_intersect(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the first point cloud
-                 idx2:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the second point cloud
+def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
+                 idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
                  # the intersect index `idx`,
                  # index of the point in first point cloud index that also exist in the second point cloud,
                  # index of the point in second point cloud index that also exist in the first point cloud
@@ -255,7 +254,7 @@ def pc_intersect(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert
     '''Get the intersection of two point cloud dataset.'''
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
 
-    xp = cp.get_array_module(idx1)
+    xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = _ras_dims(idx1,idx2)
         idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64
@@ -269,13 +268,13 @@ def pc_intersect(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert
     return idx, iidx1, iidx2
 
 # %% ../nbs/API/pc.ipynb 35
-def pc_diff(idx1:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the first point cloud
-            idx2:np.ndarray|cp.ndarray, # int array, grid index or hillbert index of the second point cloud
+def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
+            idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
             # the diff index `idx`,
             # index of the point in first point cloud index that do not exist in the second point cloud,
            )->tuple:
     '''Get the point cloud in `idx1` that are not in `idx2`.'''
-    xp = cp.get_array_module(idx1)
+    xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = _ras_dims(idx1,idx2)
         idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64

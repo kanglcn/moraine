@@ -16,13 +16,10 @@ import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, progress
-try:
+from ..utils_ import is_cuda_available, get_array_module
+if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster
-    # import kvikio
-    # import kvikio.zarr
-except ImportError:
-    pass
 
 import moraine as mr
 from .logging import mc_logger
