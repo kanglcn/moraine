@@ -2,6 +2,9 @@
 
 <!-- do not remove -->
 
+## 0.7.0
+Make cuda depedency optional
+
 ## 0.6.6
 Test
 
