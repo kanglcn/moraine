@@ -238,7 +238,7 @@ def pc_pyramid(pc:str, # path to point cloud data, 1D array (one single pc image
                x:str, # path to x coordinate, e.g., longitude or web mercator x
                y:str, # path to y coordinate, e.g., latitude or web mercator y
                out_dir:str, # output directory to store rendered data
-               ras_resolution:float=5, # minimum resolution of rendered raster data,
+               ras_resolution:float=20, # minimum resolution of rendered raster data,
                ):
     '''render point cloud data to pyramid of difference zoom levels.'''
     logger = logging.getLogger(__name__)
