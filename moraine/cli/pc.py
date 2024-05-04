@@ -71,23 +71,28 @@ def bool2gix(is_pc:str, # input bool array
 
 # %% ../../nbs/CLI/pc.ipynb 7
 @mc_logger
-def ras2pc(gix:str, # point cloud grid index
+def ras2pc(idx:str, # point cloud grid index or hillbert index
            ras:str|list, # path (in string) or list of path for raster data
            pc:str|list, # output, path (in string) or list of path for point cloud data
+           shape:tuple=None, # (nlines, width), needed if hillbert index provided
            chunks:int=None, # output point chunk size, same as gix by default
           ):
     '''Convert raster data to point cloud data'''
     logger = logging.getLogger(__name__)
 
-    gix_zarr = zarr.open(gix,mode='r')
-    if chunks is None: chunks = gix_zarr.chunks[1]
-    logger.zarr_info(gix,gix_zarr)
-    assert gix_zarr.ndim == 2, "gix dimentation is not 2."
+    idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
+    if idx_zarr.ndim == 2:
+        if chunks is None: chunks = idx_zarr.chunks[1]
+        logger.info('loading gix into memory.')
+        gix = idx_zarr[:]
+    else:
+        if chunks is None: chunks = idx_zarr.chunks[0]
+        logger.info('loading hix into memory and convert to gix')
+        hix = idx_zarr[:]
+        assert shape is not None, "shape not provided for hillbert index input"
+        gix = mr.pc_gix(hix,shape=shape)
 
-    logger.info('loading gix into memory.')
-    gix = zarr.open(gix,mode='r')[:]
     n_pc = gix.shape[1]
-
     if isinstance(ras,str):
         assert isinstance(pc,str)
         ras_list = [ras]; pc_list = [pc]
@@ -126,7 +131,7 @@ def ras2pc(gix:str, # point cloud grid index
 
 # %% ../../nbs/CLI/pc.ipynb 12
 @mc_logger
-def pc2ras(gix:str, # point cloud grid index
+def pc2ras(idx:str, # point cloud grid index or hillbert index
            pc:str|list, # path (in string) or list of path for point cloud data
            ras:str|list, # output, path (in string) or list of path for raster data
            shape:tuple[int], # shape of one image (nlines,width)
@@ -135,14 +140,19 @@ def pc2ras(gix:str, # point cloud grid index
     '''Convert point cloud data to raster data, filled with nan'''
     logger = logging.getLogger(__name__)
 
-    gix_zarr = zarr.open(gix,mode='r')
-    logger.zarr_info('gix', gix_zarr)
-    assert gix_zarr.ndim == 2, "gix dimentation is not 2."
+    idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
+    if idx_zarr.ndim == 2:
+        if chunks is None: chunks = idx_zarr.chunks[1]
+        logger.info('loading gix into memory.')
+        gix = idx_zarr[:]
+    else:
+        if chunks is None: chunks = idx_zarr.chunks[0]
+        logger.info('loading hix into memory and convert to gix')
+        hix = idx_zarr[:]
+        assert shape is not None, "shape not provided for hillbert index input"
+        gix = mr.pc_gix(hix,shape=shape)
 
-    logger.info('loading gix into memory.')
-    gix = zarr.open(gix,mode='r')[:]
     n_pc = gix.shape[1]
-    
     if isinstance(pc,str):
         assert isinstance(ras,str)
         pc_list = [pc]; ras_list = [ras]
@@ -163,7 +173,7 @@ def pc2ras(gix:str, # point cloud grid index
 
             pc = da.from_zarr(pc_path, chunks=(pc_zarr.shape[0],*pc_zarr.chunks[1:]))
             logger.darr_info('pc', pc)
-            ras = da.empty((shape[0]*shape[1],*pc.shape[1:]),chunks = (chunks[0]*shape[1],*pc_zarr.chunks[1:]), dtype=pc.dtype)
+            ras = da.empty((shape[0]*shape[1],*pc.shape[1:]),chunks = (shape[0]*shape[1],*pc_zarr.chunks[1:]), dtype=pc.dtype)
             ras[:] = np.nan
             ras[np.ravel_multi_index((gix[0],gix[1]),dims=shape)] = pc
             ras = ras.reshape(*shape,*pc.shape[1:])
@@ -187,13 +197,14 @@ def pc2ras(gix:str, # point cloud grid index
 def pc_hix(
     gix:str, # grid index
     hix:str, # output, path
-    shape:tuple, # (nlines, width
+    shape:tuple, # (nlines, width)
 ):
     '''Compute the hillbert index from grid index for point cloud data.
     '''
     logger = logging.getLogger(__name__)
-    gix_zarr = zarr.open(gix,'r')
+    gix_zarr = zarr.open(gix,'r'); logger.zarr_info(gix, gix_zarr)
     hix_zarr = zarr.open(hix, 'w', chunks=gix_zarr.chunks[1], dtype=np.int64, shape=gix_zarr.shape[1])
+    logger.zarr_info(hix, hix_zarr)
     logger.info('calculating the hillbert index based on grid index')
     hix_data = mr.pc_hix(gix_zarr[:],shape=shape)
     logger.info("writing the hillbert index")
@@ -205,13 +216,14 @@ def pc_hix(
 def pc_gix(
     hix:str, # grid index
     gix:str, # output, path
-    shape:tuple, # (nlines, width
+    shape:tuple, # (nlines, width)
 ):
     '''Compute the hillbert index from grid index for point cloud data.
     '''
     logger = logging.getLogger(__name__)
-    hix_zarr = zarr.open(hix,'r')
+    hix_zarr = zarr.open(hix,'r'); logger.zarr_info(hix, hix_zarr)
     gix_zarr = zarr.open(gix, 'w', chunks=(2, hix_zarr.chunks[0]), dtype=np.int32, shape=(2,hix_zarr.shape[0]))
+    logger.zarr_info(gix, gix_zarr)
     logger.info('calculating the grid index from hillbert index')
     gix_data = mr.pc_gix(hix_zarr[:],shape=shape)
     logger.info("writing the grid index")
@@ -222,8 +234,9 @@ def pc_gix(
 @mc_logger
 def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input data
             idx:str, # output, the sorted grid index or hillbert index
-            pc_in:str|list, # path (in string) or list of path for the input point cloud data
-            pc:str|list, # output, path (in string) or list of path for the output point cloud data
+            pc_in:str|list=None, # path (in string) or list of path for the input point cloud data
+            pc:str|list=None, # output, path (in string) or list of path for the output point cloud data
+            shape:tuple=None, # (nline, width), faster if provided for grid index input
             chunks:int=None, # chunk size in output data, same as `idx_in` by default
            ):
     '''Sort point cloud data according to the indices that sort `idx_in`.
@@ -232,7 +245,7 @@ def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input
     logger = logging.getLogger(__name__)
     idx_in_zarr = zarr.open(idx_in_path,mode='r'); logger.zarr_info(idx_in_path,idx_in_zarr)
     logger.info('loading idx_in and calculate the sorting indices.')
-    idx_in = idx_in_zarr[:]; iidx = mr.pc_sort(idx_in)
+    idx_in = idx_in_zarr[:]; iidx = mr.pc_sort(idx_in, shape=shape)
     n_pc = idx_in_zarr.shape[-1]
     if chunks is None: chunks = idx_in_zarr.chunks[-1] 
     logger.info(f'output pc chunk size is {chunks}')
@@ -240,6 +253,9 @@ def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input
     idx_zarr = zarr.open(idx,'w', shape=idx_in_zarr.shape, dtype=idx_in.dtype, chunks=idx_chunk_size)
     logger.info('write idx'); logger.zarr_info('idx', idx_zarr)
     idx_zarr[:] = idx_in[...,iidx]
+    if pc_in is None:
+        logger.info('no point cloud data provided, exit.')
+        return None
 
     if isinstance(pc_in,str):
         assert isinstance(pc,str)
@@ -285,6 +301,7 @@ def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
              pc1:str|list=None, # path (in string) or list of path for the first point cloud data
              pc2:str|list=None, # path (in string) or list of path for the second point cloud data
              pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+             shape:tuple=None, # image shape, faster if provided for grid index input
              chunks:int=None, # chunk size in output data, same as `idx1` by default
             ):
     '''Get the union of two point cloud dataset.
@@ -301,7 +318,7 @@ def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
 
     logger.info('calculate the union')
     idx_path = idx
-    idx, inv_iidx1, inv_iidx2, iidx2 = mr.pc_union(idx1,idx2)
+    idx, inv_iidx1, inv_iidx2, iidx2 = mr.pc_union(idx1,idx2,shape=shape)
     n_pc = idx.shape[-1]
     logger.info(f'number of points in the union: {n_pc}')
     if chunks is None: chunks = idx1_zarr.chunks[-1] 
@@ -363,6 +380,7 @@ def pc_intersect(idx1:str, # grid index or hillbert index of the first point clo
                  pc1:str|list=None, # path (in string) or list of path for the first point cloud data
                  pc2:str|list=None, # path (in string) or list of path for the second point cloud data
                  pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+                 shape:tuple=None, # image shape, faster if provided for grid index input
                  chunks:int=None, # chunk size in output data, same as `idx1` by default
                  prefer_1=True, # save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
                 ):
@@ -379,7 +397,7 @@ def pc_intersect(idx1:str, # grid index or hillbert index of the first point clo
 
     logger.info('calculate the intersection')
     idx_path = idx
-    idx, iidx1, iidx2 = mr.pc_intersect(idx1,idx2)
+    idx, iidx1, iidx2 = mr.pc_intersect(idx1,idx2,shape=shape)
     n_pc = idx.shape[-1]
     logger.info(f'number of points in the intersection: {n_pc}')
     if chunks is None: chunks = idx1_zarr.chunks[-1] 
@@ -445,6 +463,7 @@ def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
             idx:str, # output, grid index or hillbert index of the union point cloud
             pc1:str|list=None, # path (in string) or list of path for the first point cloud data
             pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+            shape:tuple=None, # image shape, faster if provided for grid index input
             chunks:int=None, # chunk size in output data,optional
            ):
     '''Get the point cloud in `idx1` that are not in `idx2`.
@@ -460,7 +479,7 @@ def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
 
     logger.info('calculate the diff.')
     idx_path = idx
-    idx, iidx1 = mr.pc_diff(idx1,idx2)
+    idx, iidx1 = mr.pc_diff(idx1,idx2,shape=shape)
     n_pc = idx.shape[-1]
     logger.info(f'number of points in the diff: {n_pc}')
     if chunks is None: chunks = idx1_zarr.chunks[-1] 

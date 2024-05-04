@@ -87,7 +87,7 @@ def ras_pyramid(ras:str, # path to input data, 2D zarr array (one single raster)
     logger.info(f'tiles rendering finished.')
 
 # %% ../../nbs/CLI/plot.ipynb 13
-def hv_ras_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord):
+def hv_ras_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase):
     # start = time.time()
     if x_range is None:
         x0 = coord.x0; xm = coord.xm
@@ -102,6 +102,7 @@ def hv_ras_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord)
 
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res,y_res)))
+    level += level_increase
     level = sorted((0, level, coord.maxlevel))[1]
     data_zarr = zarr.open(data_dir/f'{level}.zarr','r')
     xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
@@ -122,6 +123,7 @@ def hv_ras_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord)
 def ras_plot(rendered_tiles_dir:str, # directory to the rendered images
              post_proc:Callable=None, # function for the post processing
              bounds:tuple=None, # bounding box (x0, y0, x_max, y_max)
+             level_increase=0, # amount of zoom level increase for more clear point show and faster responds time
             ):
     '''plot rendered ras tiles.'''
     rendered_tiles_dir = Path(rendered_tiles_dir)
@@ -138,11 +140,12 @@ def ras_plot(rendered_tiles_dir:str, # directory to the rendered images
     
     rangexy = streams.RangeXY()
     plotsize = streams.PlotSize()
-    images = hv.DynamicMap(partial(hv_ras_callback,data_dir=rendered_tiles_dir,post_proc=post_proc,coord=coord),streams=[rangexy,plotsize])
+    images = hv.DynamicMap(partial(hv_ras_callback,data_dir=rendered_tiles_dir,
+                                   post_proc=post_proc,coord=coord,level_increase=level_increase),streams=[rangexy,plotsize])
     return images
 
 # %% ../../nbs/CLI/plot.ipynb 24
-def hv_ras_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord,i=0):
+def hv_ras_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase,i=0):
     if x_range is None:
         x0 = coord.x0; xm = coord.xm
     else:
@@ -157,6 +160,7 @@ def hv_ras_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc,
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res,y_res)))
     level = sorted((0, level, coord.maxlevel))[1]
+    level += level_increase
     data_zarr = zarr.open(data_dir/f'{level}.zarr','r')
     xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
     coord_bbox = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
@@ -167,6 +171,7 @@ def hv_ras_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc,
 def ras_stack_plot(rendered_tiles_dir:str, # directory to the rendered images
                    post_proc:Callable=None, # function for the post processing
                    bounds:tuple=None, # bounding box (x0, y0, x_max, y_max)
+                   level_increase=0, # amount of zoom level increase for more clear point show and faster responds time
                   ):
     '''plot rendered stack of ras tiles.'''
     rendered_tiles_dir = Path(rendered_tiles_dir)
@@ -183,7 +188,8 @@ def ras_stack_plot(rendered_tiles_dir:str, # directory to the rendered images
     
     rangexy = streams.RangeXY()
     plotsize = streams.PlotSize()
-    images = hv.DynamicMap(partial(hv_ras_stack_callback,data_dir=rendered_tiles_dir,post_proc=post_proc,coord=coord),streams=[rangexy,plotsize],kdims='i')
+    images = hv.DynamicMap(partial(hv_ras_stack_callback,data_dir=rendered_tiles_dir,
+                                   post_proc=post_proc,coord=coord,level_increase=level_increase),streams=[rangexy,plotsize],kdims='i')
     return images
 
 # %% ../../nbs/CLI/plot.ipynb 39
@@ -332,7 +338,7 @@ def is_nan_range(x_range):
     return False
 
 # %% ../../nbs/CLI/plot.ipynb 50
-def hv_pc_Image_callback(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord):
+def hv_pc_Image_callback(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,level_increase):
     if is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
     else:
@@ -346,6 +352,7 @@ def hv_pc_Image_callback(x_range,y_range,width,height,scale,data_dir,post_proc_r
 
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
+    level += level_increase
     level = sorted((-1, level, coord.maxlevel))[1]
     # level = -1
     images = []
@@ -362,7 +369,7 @@ def hv_pc_Image_callback(x_range,y_range,width,height,scale,data_dir,post_proc_r
         return hv.Image([],vdims=['z','idx'])
 
 # %% ../../nbs/CLI/plot.ipynb 51
-def hv_pc_Points_callback(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree):
+def hv_pc_Points_callback(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,level_increase):
     if is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
     else:
@@ -376,6 +383,7 @@ def hv_pc_Points_callback(x_range,y_range,width,height,scale,data_dir,post_proc_
 
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
+    level += level_increase
     level = sorted((-1, level, coord.maxlevel))[1]
     # level = -1
     images = []
@@ -393,6 +401,7 @@ def pc_plot(pyramid_dir:str, # directory to the rendered point cloud pyramid
             post_proc_ras:Callable=None, # function for the post processing
             post_proc_pc:Callable=None, # function for the post processing
             rtree=None, # rtree
+            level_increase=0, # amount of zoom level increase for more clear point show and faster responds time
            ):
     '''plot rendered point cloud pyramid.'''    
     if post_proc_ras is None: post_proc_ras = lambda x: x
@@ -414,15 +423,15 @@ def pc_plot(pyramid_dir:str, # directory to the rendered point cloud pyramid
     rangexy = streams.RangeXY()
     plotsize = streams.PlotSize()
     images = hv.DynamicMap(partial(hv_pc_Image_callback,data_dir=pyramid_dir,
-                                   post_proc_ras=post_proc_ras,coord=coord),
+                                   post_proc_ras=post_proc_ras,coord=coord,level_increase=level_increase),
                            streams=[rangexy,plotsize])
     points = hv.DynamicMap(partial(hv_pc_Points_callback,data_dir=pyramid_dir,
-                                   post_proc_pc=post_proc_pc,coord=coord,rtree=rtree),
+                                   post_proc_pc=post_proc_pc,coord=coord,rtree=rtree,level_increase=level_increase),
                            streams=[rangexy,plotsize])
     return images*points
 
 # %% ../../nbs/CLI/plot.ipynb 64
-def hv_pc_Image_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,i):
+def hv_pc_Image_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,i,level_increase):
     if is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
     else:
@@ -436,6 +445,7 @@ def hv_pc_Image_stack_callback(x_range,y_range,width,height,scale,data_dir,post_
 
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
+    level += level_increase
     level = sorted((-1, level, coord.maxlevel))[1]
     # level = -1
     images = []
@@ -452,7 +462,7 @@ def hv_pc_Image_stack_callback(x_range,y_range,width,height,scale,data_dir,post_
         return hv.Image([],vdims=['z','idx'])
 
 # %% ../../nbs/CLI/plot.ipynb 65
-def hv_pc_Points_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,i):
+def hv_pc_Points_stack_callback(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,i,level_increase):
     if is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
     else:
@@ -466,6 +476,7 @@ def hv_pc_Points_stack_callback(x_range,y_range,width,height,scale,data_dir,post
 
     x_res = (xm-x0)/width; y_res = (ym-y0)/height
     level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
+    level += level_increase
     level = sorted((-1, level, coord.maxlevel))[1]
     # level = -1
     images = []
@@ -483,6 +494,7 @@ def pc_stack_plot(pyramid_dir:str, # directory to the rendered point cloud pyram
                   post_proc_ras:Callable=None, # function for the post processing
                   post_proc_pc:Callable=None, # function for the post processing
                   rtree=None, # rtree
+                  level_increase=0, # amount of zoom level increase for more clear point show and faster responds time
                  ):
     '''plot rendered point cloud pyramid.'''    
     if post_proc_ras is None: post_proc_ras = lambda data_zarr,x_slice,y_slice,i: data_zarr[y_slice, x_slice, i]
@@ -504,9 +516,9 @@ def pc_stack_plot(pyramid_dir:str, # directory to the rendered point cloud pyram
     rangexy = streams.RangeXY()
     plotsize = streams.PlotSize()
     images = hv.DynamicMap(partial(hv_pc_Image_stack_callback,data_dir=pyramid_dir,
-                                   post_proc_ras=post_proc_ras,coord=coord),
+                                   post_proc_ras=post_proc_ras,coord=coord,level_increase=level_increase),
                            streams=[rangexy,plotsize],kdims='i')
     points = hv.DynamicMap(partial(hv_pc_Points_stack_callback,data_dir=pyramid_dir,
-                                   post_proc_pc=post_proc_pc,coord=coord,rtree=rtree),
+                                   post_proc_pc=post_proc_pc,coord=coord,rtree=rtree,level_increase=level_increase),
                            streams=[rangexy,plotsize],kdims='i')
     return images*points

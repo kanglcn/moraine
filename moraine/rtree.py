@@ -181,7 +181,7 @@ _numbartree_spec = [
     ('_n_points', int64),
     ('_page_size', int64),
 ]
-@jitclass(_numbartree_spec)
+# @jitclass(_numbartree_spec)
 class _NumbaRtree:
     def __init__(self, bounds_tree, n_points, page_size):
         self._bounds_tree = bounds_tree
@@ -268,6 +268,9 @@ class _NumbaRtree:
                 else:
                     # Partial overlap of interior bounding box, recurse to children
                     nodes.extend([_right_child(next_node), _left_child(next_node)])
+
+        if len(maybe_covered_ranges) == 0:
+            return np.zeros((0,2),dtype=np.int_), np.array([],dtype=np.bool_)
 
         # to ensure end do not exceed the true length
         if maybe_covered_ranges[-1][1] > self._n_points:
@@ -373,6 +376,8 @@ class HilbertRtree:
         '''get the index of points that are in the bounding box.'''
         bounds = tuple(float(b) for b in bounds)
         ranges, is_covered = self._numba_rtree._maybe_covered_ranges(bounds)
+        # if len(ranges) == 0:
+        #     return np.array([],dtype=np.int64)
         maybe_covered_ranges = ranges[~is_covered]
         maybe_covered_index = _expand_ranges(maybe_covered_ranges)
         maybe_covered_x = x[maybe_covered_index]
