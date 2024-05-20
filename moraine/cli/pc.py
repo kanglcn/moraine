@@ -104,6 +104,7 @@ def ras2pc(idx:str, # point cloud grid index or hillbert index
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
         _pc_list = ()
         for ras_path, pc_path in zip(ras_list,pc_list):
             logger.info(f'start to slice on {ras_path}')
@@ -163,6 +164,7 @@ def pc2ras(idx:str, # point cloud grid index or hillbert index
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _ras_list = ()
 
@@ -267,6 +269,7 @@ def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
@@ -343,6 +346,7 @@ def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, n_workers=1, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc1_path, pc2_path, pc_path in zip(pc1_list,pc2_list,pc_list):
@@ -429,6 +433,7 @@ def pc_intersect(idx1:str, # grid index or hillbert index of the first point clo
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc_input_path, pc_path in zip(pc_input_list,pc_list):
@@ -504,6 +509,7 @@ def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc1_path, pc_path in zip(pc1_list,pc_list):
@@ -617,6 +623,7 @@ def pc_select_data(idx_in:str, # the grid index or hillbert index of the input d
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):

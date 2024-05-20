@@ -454,7 +454,6 @@ def hv_pc_Image_stack_callback(x_range,y_range,width,height,scale,data_dir,post_
         idx_zarr = zarr.open(data_dir/f'idx_{level}.zarr','r')
         xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
         x0, y0, xm, ym = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-        data = data_zarr[yi0:yim+1,xi0:xim+1]
         data = post_proc_ras(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i)
         idx = idx_zarr[yi0:yim+1,xi0:xim+1]
         return hv.Image((np.linspace(x0,xm,data.shape[1]), np.linspace(y0,ym,data.shape[0]),data,idx),vdims=['z','idx'])

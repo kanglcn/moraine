@@ -43,6 +43,7 @@ def emi(coh:str, # coherence matrix
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
+        logger.dask_cluster_info(cluster)
 
         cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
         logger.darr_info('coh', cpu_coh)
@@ -108,6 +109,7 @@ def ds_temp_coh(coh:str, # coherence matrix
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
+        logger.dask_cluster_info(cluster)
 
         cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
         logger.darr_info('coh', cpu_coh)

@@ -55,6 +55,7 @@ def shp_test(rslc:str, # input: rslc stack
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
+        logger.dask_cluster_info(cluster)
 
         cpu_rslc = da.from_zarr(rslc_path,chunks=chunks); logger.darr_info('rslc',cpu_rslc)
 
@@ -139,6 +140,7 @@ def select_shp(pvalue:str, # input: pvalue of hypothetic test
     logger.info('starting dask cuda cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
+        logger.dask_cluster_info(cluster)
 
         p_cpu = da.from_zarr(pvalue,chunks=chunks)
         logger.darr_info('pvalue', p_cpu)

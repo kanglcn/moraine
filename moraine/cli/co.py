@@ -93,6 +93,7 @@ def emperical_co_pc(rslc:str, # input: rslc stack, shape (nlines, width, nimages
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
+        logger.dask_cluster_info(cluster)
         emperical_co_pc_delayed = delayed(mr.emperical_co_pc,pure=True,nout=2)
 
         cpu_is_shp = da.from_zarr(is_shp_path,chunks=(process_pc_chunk_size,(az_win,),(r_win,)))

@@ -36,6 +36,7 @@ def amp_disp(rslc:str, # rslc stack
     logger.info('starting dask CUDA local cluster.')
     with LocalCUDACluster() as cluster, Client(cluster) as client:
         logger.info('dask local CUDA cluster started.')
+        logger.dask_cluster_info(cluster)
 
         cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]))
         logger.darr_info('rslc', cpu_rslc)

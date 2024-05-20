@@ -14,6 +14,7 @@ import types
 
 import zarr
 from dask import array as da
+import dask
 
 # %% ../../nbs/CLI/logging.ipynb 4
 class McLogger(logging.getLoggerClass()):
@@ -32,6 +33,24 @@ class McLogger(logging.getLoggerClass()):
         self.info(f'{name} dask array shape: '+str(darr.shape))
         self.info(f'{name} dask array chunksize: '+str(darr.chunksize))
         self.info(f'{name} dask array dtype: '+str(darr.dtype))
+    def dask_cluster_info(
+        self,
+        cluster,
+    ):
+        
+        text = "%s(dashboard_link=%r, workers=%d, threads=%d" % (
+            cluster._cluster_class_name,
+            cluster.dashboard_link,
+            len(cluster.scheduler_info["workers"]),
+            sum(w["nthreads"] for w in cluster.scheduler_info["workers"].values()),
+        )
+    
+        memory = [w["memory_limit"] for w in cluster.scheduler_info["workers"].values()]
+        if all(memory):
+            text += ", memory=" + dask.utils.format_bytes(sum(memory))
+    
+        text += ")"
+        self.info('dask cluster: '+text)
 
 # %% ../../nbs/CLI/logging.ipynb 5
 def mc_logger(func):

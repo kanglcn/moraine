@@ -36,6 +36,7 @@ def math(output:str, # path to output
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False,threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
         names = []; darrs = []
         
         for name, path in data.items():

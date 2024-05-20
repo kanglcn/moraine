@@ -205,6 +205,7 @@ def load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of th
     logger.info('starting dask local cluster.')
     with LocalCluster(processes=False, n_workers=1, threads_per_worker=2) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
         read_gamma_image_delayed = delayed(read_gamma_image, pure=True)
 
         n_az_chunk = math.ceil(nlines/az_chunk_size)
