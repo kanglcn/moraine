@@ -2,6 +2,16 @@
 
 <!-- do not remove -->
 
+## 0.8.0
+
+- add cpu version of all functions and make use cpu as default
+- add default args to dask cluster and allow users to configure that
+- only calculate low tri of coherence matrix and copy its conj to up tri
+- more flexiable plot functions
+- carefully deal with nan values for all functions
+- Update `pl.temp_coh` with elementwise kernel
+
+
 ## 0.7.0
 Make cuda depedency optional
 
