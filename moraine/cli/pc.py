@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['gix2bool', 'bool2gix', 'ras2pc', 'pc2ras', 'pc_hix', 'pc_gix', 'pc_sort', 'pc_union', 'pc_intersect', 'pc_diff',
-           'pc_logic_ras', 'pc_logic_pc', 'pc_select_data']
+           'pc_logic_ras', 'pc_logic_pc', 'pc_select_data', 'data_reduce']
 
 # %% ../../nbs/CLI/pc.ipynb 4
 import logging
@@ -10,6 +10,7 @@ import zarr
 import numpy as np
 import numexpr as ne
 import time
+from typing import Callable
 
 import dask
 from dask import array as da
@@ -17,6 +18,7 @@ from dask.distributed import Client, LocalCluster, progress
 
 from .logging import mc_logger
 import moraine as mr
+from ..utils_ import ngjit
 
 # %% ../../nbs/CLI/pc.ipynb 5
 @mc_logger
@@ -70,15 +72,32 @@ def bool2gix(is_pc:str, # input bool array
     logger.info('write done.')
 
 # %% ../../nbs/CLI/pc.ipynb 7
+def _ras2pc(ras,gix):
+    return ras[gix[0],gix[1]]
+
+# %% ../../nbs/CLI/pc.ipynb 9
 @mc_logger
-def ras2pc(idx:str, # point cloud grid index or hillbert index
-           ras:str|list, # path (in string) or list of path for raster data
-           pc:str|list, # output, path (in string) or list of path for point cloud data
-           shape:tuple=None, # (nlines, width), needed if hillbert index provided
-           chunks:int=None, # output point chunk size, same as gix by default
-          ):
+def ras2pc(
+    idx:str, # point cloud grid index or hillbert index
+    ras:str|list, # path (in string) or list of path for raster data
+    pc:str|list, # output, path (in string) or list of path for point cloud data
+    chunks:int=None, # output point chunk size, same as gix by default
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Convert raster data to point cloud data'''
     logger = logging.getLogger(__name__)
+    if isinstance(ras,str):
+        assert isinstance(pc,str)
+        ras_list = [ras]; pc_list = [pc]
+    else:
+        assert isinstance(ras,list); assert isinstance(pc,list)
+        ras_list = ras; pc_list = pc
+        n_data = len(ras_list)
+
+    shape = zarr.open(ras_list[0],'r').shape[:2]
 
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
     if idx_zarr.ndim == 2:
@@ -89,35 +108,28 @@ def ras2pc(idx:str, # point cloud grid index or hillbert index
         if chunks is None: chunks = idx_zarr.chunks[0]
         logger.info('loading hix into memory and convert to gix')
         hix = idx_zarr[:]
-        assert shape is not None, "shape not provided for hillbert index input"
         gix = mr.pc_gix(hix,shape=shape)
 
     n_pc = gix.shape[1]
-    if isinstance(ras,str):
-        assert isinstance(pc,str)
-        ras_list = [ras]; pc_list = [pc]
-    else:
-        assert isinstance(ras,list); assert isinstance(pc,list)
-        ras_list = ras; pc_list = pc
-        n_data = len(ras_list)
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         _pc_list = ()
+        gix_darr = da.from_array(gix,chunks=gix.shape)
         for ras_path, pc_path in zip(ras_list,pc_list):
             logger.info(f'start to slice on {ras_path}')
             ras_zarr = zarr.open(ras_path,'r'); logger.zarr_info(ras_path, ras_zarr)
             ras = da.from_zarr(ras_path,chunks=(*ras_zarr.shape[:2],*ras_zarr.chunks[2:])); logger.darr_info('ras',ras)
-            with dask.config.set(**{'array.slicing.split_large_chunks': False}):
-                pc = ras.reshape(-1,*ras.shape[2:])[np.ravel_multi_index((gix[0],gix[1]),dims=ras.shape[:2])]
+            pc = da.map_blocks(_ras2pc, ras, gix_darr, dtype=ras.dtype, chunks=(n_pc,*ras.chunks[2:]),drop_axis=0)
             logger.darr_info('pc', pc)
             logger.info('rechunk pc data:')
             pc = pc.rechunk((chunks,*pc.chunksize[1:]))
             logger.darr_info('pc', pc)
             _pc = pc.to_zarr(pc_path,overwrite=True,compute=False)
-            # _pc.visualize(filename=f'_pc.svg')
+            #_pc.visualize(filename=f'_pc.svg')
             logger.info(f'saving to {pc_path}.')
             _pc_list += (_pc,)
 
@@ -130,24 +142,38 @@ def ras2pc(idx:str, # point cloud grid index or hillbert index
 
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 12
+# %% ../../nbs/CLI/pc.ipynb 14
+def _pc2ras(
+    pc_data:np.ndarray, # data, 1D
+    gix:np.ndarray, # gix
+    shape:tuple, # image shape
+):
+    raster = np.empty((*shape,*pc_data.shape[1:]),dtype=pc_data.dtype)
+    raster[:] = np.nan
+    raster[gix[0],gix[1]] = pc_data
+    return raster
+
+# %% ../../nbs/CLI/pc.ipynb 15
 @mc_logger
-def pc2ras(idx:str, # point cloud grid index or hillbert index
-           pc:str|list, # path (in string) or list of path for point cloud data
-           ras:str|list, # output, path (in string) or list of path for raster data
-           shape:tuple[int], # shape of one image (nlines,width)
-           chunks:tuple[int]=(1000,1000), # output chunk size
-          ):
+def pc2ras(
+    idx:str, # point cloud grid index or hillbert index
+    pc:str|list, # path (in string) or list of path for point cloud data
+    ras:str|list, # output, path (in string) or list of path for raster data
+    shape:tuple[int], # shape of one image (nlines,width)
+    chunks:tuple[int]=(1000,1000), # output chunk size
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Convert point cloud data to raster data, filled with nan'''
     logger = logging.getLogger(__name__)
 
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
     if idx_zarr.ndim == 2:
-        if chunks is None: chunks = idx_zarr.chunks[1]
         logger.info('loading gix into memory.')
         gix = idx_zarr[:]
     else:
-        if chunks is None: chunks = idx_zarr.chunks[0]
         logger.info('loading hix into memory and convert to gix')
         hix = idx_zarr[:]
         assert shape is not None, "shape not provided for hillbert index input"
@@ -162,11 +188,13 @@ def pc2ras(idx:str, # point cloud grid index or hillbert index
         pc_list = pc; ras_list = ras
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
         _ras_list = ()
+        gix_darr = da.from_array(gix,chunks=gix.shape)
 
         for ras_path, pc_path in zip(ras_list,pc_list):
             logger.info(f'start to work on {pc_path}')
@@ -175,12 +203,9 @@ def pc2ras(idx:str, # point cloud grid index or hillbert index
 
             pc = da.from_zarr(pc_path, chunks=(pc_zarr.shape[0],*pc_zarr.chunks[1:]))
             logger.darr_info('pc', pc)
-            ras = da.empty((shape[0]*shape[1],*pc.shape[1:]),chunks = (shape[0]*shape[1],*pc_zarr.chunks[1:]), dtype=pc.dtype)
-            ras[:] = np.nan
-            ras[np.ravel_multi_index((gix[0],gix[1]),dims=shape)] = pc
-            ras = ras.reshape(*shape,*pc.shape[1:])
-            ras.rechunk((*chunks,*pc_zarr.chunks[1:]))
             logger.info('create ras dask array')
+            ras = da.map_blocks(_pc2ras, pc, gix_darr, shape, dtype=pc.dtype, chunks=(*shape,*pc_zarr.chunks[1:]))
+            ras = ras.rechunk((*chunks,*pc_zarr.chunks[1:]))
             logger.darr_info('ras', ras)
             _ras = ras.to_zarr(ras_path,overwrite=True,compute=False)
             _ras_list += (_ras,)
@@ -194,7 +219,7 @@ def pc2ras(idx:str, # point cloud grid index or hillbert index
 
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 16
+# %% ../../nbs/CLI/pc.ipynb 19
 @mc_logger
 def pc_hix(
     gix:str, # grid index
@@ -213,7 +238,7 @@ def pc_hix(
     hix_zarr[:] = hix_data
     logger.info("done.")
 
-# %% ../../nbs/CLI/pc.ipynb 21
+# %% ../../nbs/CLI/pc.ipynb 24
 @mc_logger
 def pc_gix(
     hix:str, # grid index
@@ -232,15 +257,20 @@ def pc_gix(
     gix_zarr[:] = gix_data
     logger.info("done.")
 
-# %% ../../nbs/CLI/pc.ipynb 23
+# %% ../../nbs/CLI/pc.ipynb 26
 @mc_logger
-def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input data
-            idx:str, # output, the sorted grid index or hillbert index
-            pc_in:str|list=None, # path (in string) or list of path for the input point cloud data
-            pc:str|list=None, # output, path (in string) or list of path for the output point cloud data
-            shape:tuple=None, # (nline, width), faster if provided for grid index input
-            chunks:int=None, # chunk size in output data, same as `idx_in` by default
-           ):
+def pc_sort(
+    idx_in:str, # the unsorted grid index or hillbert index of the input data
+    idx:str, # output, the sorted grid index or hillbert index
+    pc_in:str|list=None, # path (in string) or list of path for the input point cloud data
+    pc:str|list=None, # output, path (in string) or list of path for the output point cloud data
+    shape:tuple=None, # (nline, width), faster if provided for grid index input
+    chunks:int=None, # chunk size in output data, same as `idx_in` by default
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Sort point cloud data according to the indices that sort `idx_in`.
     '''
     idx_in_path = idx_in
@@ -267,7 +297,8 @@ def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input
         pc_in_list = pc_in; pc_list = pc
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
@@ -296,17 +327,22 @@ def pc_sort(idx_in:str, # the unsorted grid index or hillbert index of the input
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 27
+# %% ../../nbs/CLI/pc.ipynb 30
 @mc_logger
-def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
-             idx2:str, # grid index or hillbert index of the second point cloud
-             idx:str, # output, grid index or hillbert index of the union point cloud
-             pc1:str|list=None, # path (in string) or list of path for the first point cloud data
-             pc2:str|list=None, # path (in string) or list of path for the second point cloud data
-             pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
-             shape:tuple=None, # image shape, faster if provided for grid index input
-             chunks:int=None, # chunk size in output data, same as `idx1` by default
-            ):
+def pc_union(
+    idx1:str, # grid index or hillbert index of the first point cloud
+    idx2:str, # grid index or hillbert index of the second point cloud
+    idx:str, # output, grid index or hillbert index of the union point cloud
+    pc1:str|list=None, # path (in string) or list of path for the first point cloud data
+    pc2:str|list=None, # path (in string) or list of path for the second point cloud data
+    pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+    shape:tuple=None, # image shape, faster if provided for grid index input
+    chunks:int=None, # chunk size in output data, same as `idx1` by default
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Get the union of two point cloud dataset.
     For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.
     `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
@@ -344,7 +380,8 @@ def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
         pc1_list = pc1; pc2_list = pc2; pc_list = pc
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, n_workers=1, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
@@ -376,18 +413,23 @@ def pc_union(idx1:str, # grid index or hillbert index of the first point cloud
 
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 33
+# %% ../../nbs/CLI/pc.ipynb 36
 @mc_logger
-def pc_intersect(idx1:str, # grid index or hillbert index of the first point cloud
-                 idx2:str, # grid index or hillbert index of the second point cloud
-                 idx:str, # output, grid index or hillbert index of the union point cloud
-                 pc1:str|list=None, # path (in string) or list of path for the first point cloud data
-                 pc2:str|list=None, # path (in string) or list of path for the second point cloud data
-                 pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
-                 shape:tuple=None, # image shape, faster if provided for grid index input
-                 chunks:int=None, # chunk size in output data, same as `idx1` by default
-                 prefer_1=True, # save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
-                ):
+def pc_intersect(
+    idx1:str, # grid index or hillbert index of the first point cloud
+    idx2:str, # grid index or hillbert index of the second point cloud
+    idx:str, # output, grid index or hillbert index of the union point cloud
+    pc1:str|list=None, # path (in string) or list of path for the first point cloud data
+    pc2:str|list=None, # path (in string) or list of path for the second point cloud data
+    pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+    shape:tuple=None, # image shape, faster if provided for grid index input
+    chunks:int=None, # chunk size in output data, same as `idx1` by default
+    prefer_1=True, # save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Get the intersection of two point cloud dataset.
     `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
     If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
@@ -431,7 +473,8 @@ def pc_intersect(idx1:str, # grid index or hillbert index of the first point clo
         pc_input_list = pc_input; pc_list = pc
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
@@ -461,15 +504,20 @@ def pc_intersect(idx1:str, # grid index or hillbert index of the first point clo
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 39
+# %% ../../nbs/CLI/pc.ipynb 42
 @mc_logger
-def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
-            idx2:str, # grid index or hillbert index of the second point cloud
-            idx:str, # output, grid index or hillbert index of the union point cloud
-            pc1:str|list=None, # path (in string) or list of path for the first point cloud data
-            pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
-            shape:tuple=None, # image shape, faster if provided for grid index input
-            chunks:int=None, # chunk size in output data,optional
+def pc_diff(
+    idx1:str, # grid index or hillbert index of the first point cloud
+    idx2:str, # grid index or hillbert index of the second point cloud
+    idx:str, # output, grid index or hillbert index of the union point cloud
+    pc1:str|list=None, # path (in string) or list of path for the first point cloud data
+    pc:str|list=None, #output, path (in string) or list of path for the union point cloud data
+    shape:tuple=None, # image shape, faster if provided for grid index input
+    chunks:int=None, # chunk size in output data,optional
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
            ):
     '''Get the point cloud in `idx1` that are not in `idx2`.
     `pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
@@ -507,7 +555,8 @@ def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
         pc1_list = pc1; pc_list = pc
 
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes,n_workers=n_workers, threads_per_worker=threads_per_worker,
+                     **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
@@ -534,7 +583,7 @@ def pc_diff(idx1:str, # grid index or hillbert index of the first point cloud
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pc.ipynb 45
+# %% ../../nbs/CLI/pc.ipynb 48
 @mc_logger
 def pc_logic_ras(ras, # the raster image used for thresholding
                  gix, # output, grid index of selected pixels
@@ -560,7 +609,7 @@ def pc_logic_ras(ras, # the raster image used for thresholding
     gix_zarr[:] = gix
     logger.info('write done.')
 
-# %% ../../nbs/CLI/pc.ipynb 48
+# %% ../../nbs/CLI/pc.ipynb 51
 @mc_logger
 def pc_logic_pc(idx_in:str,# the grid index or hillbert index of input pc data
                 pc_in:str, # the grid index or hillbert index cloud data used for thresholding
@@ -591,14 +640,24 @@ def pc_logic_pc(idx_in:str,# the grid index or hillbert index of input pc data
     idx_zarr[:] = idx
     logger.info('write done.')
 
-# %% ../../nbs/CLI/pc.ipynb 53
+# %% ../../nbs/CLI/pc.ipynb 56
+def _pc_select_data(pc_in,iidx):
+    return pc_in[iidx]
+
+# %% ../../nbs/CLI/pc.ipynb 57
 @mc_logger
-def pc_select_data(idx_in:str, # the grid index or hillbert index of the input data
-                   idx:str, # the grid index or hillbert index of the output data
-                   pc_in:str|list, # path (in string) or list of path for the input point cloud data
-                   pc:str|list, # output, path (in string) or list of path for the output point cloud data
-                   chunks:int=None, # chunk size in output data, same as chunks of `idx` by default
-                  ):
+def pc_select_data(
+    idx_in:str, # the grid index or hillbert index of the input data
+    idx:str, # the grid index or hillbert index of the output data
+    pc_in:str|list, # path (in string) or list of path for the input point cloud data
+    pc:str|list, # output, path (in string) or list of path for the output point cloud data
+    shape:tuple=None, # shape of the raster data the point cloud from, must be provided if `idx` is hix
+    chunks:int=None, # chunk size in output data, same as chunks of `idx` by default
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''generate point cloud data based on its index and one point cloud data.
     The index of generated point cloud data must in the index of the old one.
     '''
@@ -608,7 +667,13 @@ def pc_select_data(idx_in:str, # the grid index or hillbert index of the input d
     idx_zarr = zarr.open(idx_path,mode='r'); logger.zarr_info(idx_path,idx_zarr)
     logger.info('loading idx_in and idx into memory.')
     idx_in = idx_in_zarr[:]; idx = idx_zarr[:]
-    iidx_in, iidx = mr.pc_intersect(idx_in,idx)[1:]
+    if idx_in.ndim == idx.ndim:
+        iidx_in, iidx = mr.pc_intersect(idx_in,idx,shape)[1:]
+    elif (idx_in.ndim == 2) and (idx.ndim == 1):
+        hix_in_unsorted = mr.pc_hix(idx_in, shape)
+        iidx_in, iidx = np.intersect1d(hix_in_unsorted, idx, assume_unique=True, return_indices=True)[1:]
+    else:
+        raise NotImplementedError('idx_in as hilbert index while idx as grid index have not been supported yet.')
     np.testing.assert_array_equal(iidx,np.arange(iidx.shape[0]),err_msg='idx have points that are not covered by idx_in.')
     n_pc = iidx_in.shape[0]
     if chunks is None: chunks = idx_zarr.chunks[-1] 
@@ -620,19 +685,23 @@ def pc_select_data(idx_in:str, # the grid index or hillbert index of the input d
         assert isinstance(pc_in,list); assert isinstance(pc,list)
         pc_in_list = pc_in; pc_list = pc
 
+    iidx_in_darr = da.from_array(iidx_in,chunks=iidx_in.shape)
+
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
             pc_in_zarr = zarr.open(pc_in_path,'r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = da.from_zarr(pc_in_path); logger.darr_info('pc_in', pc_in)
+            pc_in = da.from_zarr(pc_in_path,chunks=(pc_in_zarr.shape[0],*pc_in_zarr.chunks[1:])); logger.darr_info('pc_in', pc_in)
             logger.info('set up selected pc data dask array.')
-            pc = da.empty((n_pc,*pc_in.shape[1:]),chunks = (n_pc,*pc_in.chunks[1:]), dtype=pc_in.dtype)
+            pc = da.map_blocks(_pc_select_data, pc_in, iidx_in_darr, chunks = (n_pc, *pc_in.chunks[1:]), dtype=pc_in.dtype)
+            # pc = da.empty((n_pc,*pc_in.shape[1:]),chunks = (n_pc,*pc_in.chunks[1:]), dtype=pc_in.dtype)
             logger.darr_info('pc',pc)
-            pc[:] = pc_in[iidx_in]
+            # pc[:] = pc_in[iidx_in]
             logger.info('rechunk dask array for writing.')
             pc = pc.rechunk((chunks,*pc.chunks[1:]))
             logger.darr_info('pc',pc)
@@ -647,3 +716,59 @@ def pc_select_data(idx_in:str, # the grid index or hillbert index of the input d
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
+
+# %% ../../nbs/CLI/pc.ipynb 61
+@mc_logger
+def data_reduce(
+    data_in:str, # path (in string) for the input data
+    out:str, # output, path (in string) for the output data
+    map_func:Callable=None, # elementwise mapping function for input, no mapping by default
+    reduce_func:Callable=np.mean, # reduction function after mapping, np.mean by default
+    axis=0, # axis to be reduced, 0 for point cloud data, (0,1) for raster data
+    post_map_func:Callable=None, # post mapping after reduction, no mapping by default
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
+    '''reduction operation for dataset.
+    '''
+    data_in_path = data_in
+    logger = logging.getLogger(__name__)
+    data_in_zarr = zarr.open(data_in_path,'r'); logger.zarr_info(data_in_path, data_in_zarr)
+    logger.info('starting dask local cluster.')
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
+        logger.info('dask local cluster started.')
+        logger.dask_cluster_info(cluster)
+        data_in = da.from_zarr(data_in_path); logger.darr_info('data_in', data_in)
+        if map_func is not None:
+            map_data_in = da.map_blocks(map_func, data_in)
+        else:
+            map_data_in = data_in
+        logger.darr_info('maped_data_in', map_data_in)
+        reduced_chunks = np.array(map_data_in.chunksize); reduced_chunks[np.array(axis)] = 1
+        reduced_chunks = tuple(reduced_chunks)
+        
+        reduced_data = da.map_blocks(reduce_func, map_data_in, axis=axis, keepdims=True, chunks=reduced_chunks)
+        logger.darr_info('reduced data in every chunk', reduced_data)
+        logger.info('computing graph setted. doing all the computing.')
+        futures = client.persist(reduced_data)
+        progress(futures,notebook=False); time.sleep(0.1)
+        reduced_result = da.compute(futures)[0]
+        logger.info('computing finished.')
+    logger.info('dask cluster closed.')
+    logger.info('continue the reduction on reduced data over every chunk')
+    reduced_result = reduce_func(reduced_result,axis=axis,keepdims=False)
+    logger.info('post mapping')
+    if post_map_func is not None:
+        result = post_map_func(reduced_result)
+    else:
+        result = reduced_result
+    logger.info('writing output.')
+    shape = result.shape
+    if len(shape) == 0:
+        shape = (1,)
+    out_zarr = zarr.open(out,'w',shape=shape,dtype=result.dtype,chunks=shape)
+    out_zarr[:] = result
+    logger.info('done.')

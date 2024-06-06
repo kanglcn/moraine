@@ -4,11 +4,14 @@
 __all__ = ['emperical_co', 'emperical_co_pc', 'isPD', 'nearestPD', 'regularize_spectral']
 
 # %% ../nbs/API/co.ipynb 4
+import math
 import numpy as np
 from .utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
 from typing import Union
+from .utils_ import ngpjit
+from numba import prange
 
 # %% ../nbs/API/co.ipynb 6
 if is_cuda_available():
@@ -91,7 +94,6 @@ def emperical_co(rslc:np.ndarray, # rslc stack, dtype: `cupy.complexfloating`
     return cov,coh
 
 # %% ../nbs/API/co.ipynb 17
-# I is int32* or int64*
 if is_cuda_available():
     _emperical_co_pc_kernel = cp.ElementwiseKernel(
         'raw T rslc, raw I az_idx, raw I r_idx, raw bool pc_is_shp, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win, int32 n_pc',
@@ -109,15 +111,36 @@ if is_cuda_available():
     
         int m,j; // index of each coherence matrix
         int k,l; // index of search window
+        T _co_nume; // covariance/coherence numerator
         T _cov; // covariance
-        float _amp2_m; // sum of amplitude square for image i
+        T _coh; // coherence
+        float _amp2_m; // sum of amplitude square for image m
         float _amp2_j; // sum of amplitude aquare for image j
         int rslc_inx_m, rslc_inx_j;
         int n; // number of shp
     
         for (m = 0; m < nimages; m++) {
             for (j = 0; j < nimages; j++) {
-                _cov = T(0.0, 0.0);
+                if (m < j) { break;}
+                if (m == j) {
+                    _co_nume = T(0.0, 0.0);
+                    n = 0;
+                    for (k = 0; k < az_win; k++) {
+                        for (l = 0; l < r_win; l++) {
+                            sec_az = ref_az-az_half_win+k;
+                            sec_r = ref_r-r_half_win+l;
+                            if (pc_is_shp[i*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
+                                rslc_inx_m = (sec_az*width+sec_r)*nimages+m;
+                                _co_nume += norm(rslc[rslc_inx_m]);
+                                n += 1;
+                            }
+                        }
+                    }
+                    cov[(i*nimages+m)*nimages+j] = _co_nume/(float)n;
+                    coh[(i*nimages+m)*nimages+j] = T(1.0, 0.0);
+                    break;
+                }
+                _co_nume = T(0.0, 0.0);
                 _amp2_m = 0.0;
                 _amp2_j = 0.0;
                 n = 0;
@@ -130,36 +153,193 @@ if is_cuda_available():
                             rslc_inx_j = (sec_az*width+sec_r)*nimages+j;
                             _amp2_m += norm(rslc[rslc_inx_m]);
                             _amp2_j += norm(rslc[rslc_inx_j]);
-                            _cov += rslc[rslc_inx_m]*conj(rslc[rslc_inx_j]);
+                            _co_nume += rslc[rslc_inx_m]*conj(rslc[rslc_inx_j]);
                             n += 1;
-                            //if (i == 0 && m ==3 && j == 1) {
-                            //    printf("%f",_cov.real());
-                            //}
                         }
                     }
                 }
-                cov[(i*nimages+m)*nimages+j] = _cov/(float)n;
-                //if ( i == 0 && m==3 && j ==1 ) printf("%d",((i*nimages+m)*nimages+j));
+                _cov = _co_nume/(float)n;
+                cov[(i*nimages+m)*nimages+j] = _cov;
+                cov[(i*nimages+j)*nimages+m] = conj(_cov);
                 _amp2_m = sqrt(_amp2_m*_amp2_j);
-                coh[(i*nimages+m)*nimages+j] = _cov/_amp2_m;
+                _coh = _co_nume/_amp2_m;
+                coh[(i*nimages+m)*nimages+j] = _coh;
+                coh[(i*nimages+j)*nimages+m] = conj(_coh);
             }
         }
         ''',
         name = 'emperical_co_pc_kernel',reduce_dims = False,no_return=True
     )
+    _emperical_co_pc_no_cov_kernel = cp.ElementwiseKernel(
+        'raw T rslc, raw I az_idx, raw I r_idx, raw bool pc_is_shp, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win, int32 n_pc',
+        'raw T coh',
+        '''
+        if (i >= n_pc) return;
+        int az_win = 2*az_half_win+1;
+        int r_win = 2*r_half_win+1;
+        int win = az_win*r_win;
+        
+        int ref_az = az_idx[i];
+        int ref_r = r_idx[i];
+    
+        int sec_az, sec_r;
+    
+        int m,j; // index of each coherence matrix
+        int k,l; // index of search window
+        T _co_nume; // covariance/coherence numerator
+        T _coh; // coherence
+        float _amp2_m; // sum of amplitude square for image i
+        float _amp2_j; // sum of amplitude aquare for image j
+        int rslc_inx_m, rslc_inx_j;
+        int n; // number of shp
+    
+        for (m = 0; m < nimages; m++) {
+            for (j = 0; j < nimages; j++) {
+                if (m < j) { break;}
+                if (m == j) {
+                    coh[(i*nimages+m)*nimages+j] = T(1.0, 0.0);
+                    break;
+                }
+                _co_nume = T(0.0, 0.0);
+                _amp2_m = 0.0;
+                _amp2_j = 0.0;
+                n = 0;
+                for (k = 0; k < az_win; k++) {
+                    for (l = 0; l < r_win; l++) {
+                        sec_az = ref_az-az_half_win+k;
+                        sec_r = ref_r-r_half_win+l;
+                        if (pc_is_shp[i*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
+                            rslc_inx_m = (sec_az*width+sec_r)*nimages+m;
+                            rslc_inx_j = (sec_az*width+sec_r)*nimages+j;
+                            _amp2_m += norm(rslc[rslc_inx_m]);
+                            _amp2_j += norm(rslc[rslc_inx_j]);
+                            _co_nume += rslc[rslc_inx_m]*conj(rslc[rslc_inx_j]);
+                            n += 1;
+                        }
+                    }
+                }
+                _amp2_m = sqrt(_amp2_m*_amp2_j);
+                _coh = _co_nume/_amp2_m;
+                coh[(i*nimages+m)*nimages+j] = _coh;
+                coh[(i*nimages+j)*nimages+m] = conj(_coh);
+            }
+        }
+        ''',
+        name = 'emperical_co_pc_no_cov_kernel',reduce_dims = False,no_return=True
+    )
 
 # %% ../nbs/API/co.ipynb 18
+@ngpjit
+def _emperical_co_pc_numba(
+    rslc,
+    idx,
+    pc_is_shp,
+):
+    nlines, width, nimages = rslc.shape
+    n_pc = idx.shape[1]
+    az_win, r_win = pc_is_shp.shape[1:]
+    az_half_win, r_half_win = az_win//2, r_win//2
+
+    cov = np.empty((n_pc, nimages, nimages),dtype=rslc.dtype)
+    coh = np.empty_like(cov)
+
+    for i in prange(n_pc):
+        for m in range(nimages):
+            for j in range(nimages):
+                if m < j:
+                    break
+                elif m == j:
+                    _co_nume = 0.0 + 0.0j
+                    n = 0
+                    for k in range(az_win):
+                        for l in range(r_win):
+                            az_idx = idx[0,i] - az_half_win + k
+                            r_idx = idx[1,i] - r_half_win + l
+                            # print(az_idx, r_idx, pc_is_shp[i,k,l],nlines,width)
+                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
+                                # print(az_idx, r_idx)
+                                rslc_ = rslc[az_idx, r_idx, m]
+                                _co_nume += rslc_.real**2 + rslc_.imag**2
+                                n += 1
+                                # print(n)
+                    cov[i,m,j] = _co_nume/n
+                    coh[i,m,j] = 1.0+0.0j
+                else:
+                    _co_nume = 0.0 + 0.0j
+                    _amp2_m = 0.0
+                    _amp2_j = 0.0
+                    n = 0
+                    for k in range(az_win):
+                        for l in range(r_win):
+                            az_idx = idx[0,i] - az_half_win + k
+                            r_idx = idx[1,i] - r_half_win + l
+                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
+                                rslc_m = rslc[az_idx, r_idx, m]
+                                rslc_j = rslc[az_idx, r_idx, j]
+                                _amp2_m += rslc_m.real**2 + rslc_m.imag**2
+                                _amp2_j += rslc_j.real**2 + rslc_j.imag**2
+                                _co_nume += rslc_m*np.conj(rslc_j)
+                                n += 1
+                    _cov = _co_nume/n
+                    cov[i,m,j] = _cov
+                    cov[i,j,m] = np.conj(_cov)
+                    _coh = _co_nume/math.sqrt(_amp2_m*_amp2_j)
+                    coh[i,m,j] = _coh
+                    coh[i,j,m] = np.conj(_coh)
+    return cov, coh
+
+@ngpjit
+def _emperical_co_pc_no_cov_numba(
+    rslc,
+    idx,
+    pc_is_shp,
+):
+    nlines, width, nimages = rslc.shape
+    n_pc = idx.shape[1]
+    az_win, r_win = pc_is_shp.shape[1:]
+    az_half_win, r_half_win = az_win//2, r_win//2
+
+    coh = np.empty((n_pc, nimages, nimages),dtype=rslc.dtype)
+
+    for i in prange(n_pc):
+        for m in range(nimages):
+            for j in range(nimages):
+                if m < j:
+                    break
+                elif m == j:
+                    coh[i,m,j] = 1.0+0.0j
+                else:
+                    _co_nume = 0.0 + 0.0j
+                    _amp2_m = 0.0
+                    _amp2_j = 0.0
+                    n = 0
+                    for k in range(az_win):
+                        for l in range(r_win):
+                            az_idx = idx[0,i] - az_half_win + k
+                            r_idx = idx[1,i] - r_half_win + l
+                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
+                                rslc_m = rslc[az_idx, r_idx, m]
+                                rslc_j = rslc[az_idx, r_idx, j]
+                                _amp2_m += rslc_m.real**2 + rslc_m.imag**2
+                                _amp2_j += rslc_j.real**2 + rslc_j.imag**2
+                                _co_nume += rslc_m*np.conj(rslc_j)
+                                n += 1
+                    _coh = _co_nume/math.sqrt(_amp2_m*_amp2_j)
+                    coh[i,m,j] = _coh
+                    coh[i,j,m] = np.conj(_coh)
+    return coh
+
+# %% ../nbs/API/co.ipynb 19
 def emperical_co_pc(rslc:np.ndarray, # rslc stack, dtype: `cupy.complexfloating`
                     idx:np.ndarray, # index of point target (azimuth_index, range_index), dtype: `cupy.int`, shape: (2,n_sp)
                     pc_is_shp:np.ndarray, # shp bool, dtype: `cupy.bool`
                     block_size:int=128, # the CUDA block size, it only affects the calculation speed
-                   )-> tuple[np.ndarray,np.ndarray]: # the covariance and coherence matrix `cov` and `coh`
+                    return_cov:bool=False, # if return the covariance matrix `cov`
+                   )-> tuple[np.ndarray,np.ndarray]: # if return_cov==True, return the covariance and coherence matrix `cov` and `coh`, otherwise, only `coh` is returned.
     '''
     Maximum likelihood covariance estimator for sparse data.
     '''
     xp = get_array_module(rslc)
-    if xp is np:
-        raise NotImplementedError("Currently only cuda version available.")
     nlines, width, nimages = rslc.shape
     az_win, r_win = pc_is_shp.shape[-2:]
     az_half_win = (az_win-1)//2
@@ -167,15 +347,32 @@ def emperical_co_pc(rslc:np.ndarray, # rslc stack, dtype: `cupy.complexfloating`
     az_idx = idx[0]; r_idx = idx[1]
     n_pc = az_idx.shape[0]
 
+    if xp is np:
+        if return_cov:
+            return _emperical_co_pc_numba(rslc,idx,pc_is_shp)
+        else:
+            return _emperical_co_pc_no_cov_numba(rslc,idx,pc_is_shp)
+    else:
+        if return_cov:
+            cov = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
+            coh = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
     
-    cov = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
-    coh = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
+            _emperical_co_pc_kernel(
+                rslc, az_idx, r_idx, pc_is_shp,
+                cp.int32(nlines),cp.int32(width),cp.int32(nimages),
+                cp.int32(az_half_win),cp.int32(r_half_win),cp.int32(n_pc),cov,coh,size = n_pc,block_size=block_size
+            )
+            return cov,coh
+        else:
+            coh = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
+            _emperical_co_pc_no_cov_kernel(
+                rslc, az_idx, r_idx, pc_is_shp,
+                cp.int32(nlines),cp.int32(width),cp.int32(nimages),
+                cp.int32(az_half_win),cp.int32(r_half_win),cp.int32(n_pc),coh,size = n_pc,block_size=block_size
+            )
+            return coh
 
-    _emperical_co_pc_kernel(rslc, az_idx, r_idx, pc_is_shp, cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                    cp.int32(az_half_win),cp.int32(r_half_win),cp.int32(n_pc),cov,coh,size = n_pc,block_size=block_size)
-    return cov,coh
-
-# %% ../nbs/API/co.ipynb 26
+# %% ../nbs/API/co.ipynb 30
 def isPD(co:np.ndarray, # absolute value of complex coherence/covariance stack
          )-> np.ndarray: # bool array indicating wheather coherence/covariance is positive define
     xp = get_array_module(co)
@@ -183,7 +380,7 @@ def isPD(co:np.ndarray, # absolute value of complex coherence/covariance stack
     is_PD = xp.isfinite(L).all(axis=(-2,-1))
     return is_PD
 
-# %% ../nbs/API/co.ipynb 32
+# %% ../nbs/API/co.ipynb 36
 '''
     The method is presented in [1]. John D'Errico implented it in MATLAB [2] under BSD
     Licence and [3] implented it with Python/Numpy based on [2] also under BSD Licence.
@@ -232,7 +429,7 @@ def nearestPD(co:np.ndarray, # stack of matrix with shape [...,N,N]
     #print(k)
     return A3
 
-# %% ../nbs/API/co.ipynb 34
+# %% ../nbs/API/co.ipynb 38
 def regularize_spectral(coh:np.ndarray, # stack of matrix with shape [...,N,N]
                         beta:Union[float, np.ndarray], # the regularization parameter, a float number or cupy ndarray with shape [...]
                         )-> np.ndarray: # regularized matrix, shape [...,N,N]

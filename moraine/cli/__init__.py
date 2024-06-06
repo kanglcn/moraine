@@ -7,4 +7,4 @@ from .ps import *
 from .shp import *
 from .co import emperical_co_pc
 from .pl import *
-from .plot import ras_pyramid, ras_plot, ras_stack_plot, pc_pyramid, pc_plot, pc_stack_plot
+from .plot import *

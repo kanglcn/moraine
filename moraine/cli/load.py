@@ -87,10 +87,11 @@ def _fetch_slc_par_date(rslc_dir,# str / Path
 # %% ../../nbs/CLI/load.ipynb 10
 def read_gamma_image(imag:str, # gamma raster data
                      width:int, # data width
-                     dtype:str='float', # data format, only 'float' and 'fcomplex' are supported
+                     dtype:str='float', # data format, only 'float', 'fcomplex', 'double' and 'int' are supported.
                      y0:int=0, # line number to start reading
                      ny:int=None, # number of lines to read, default: to the last line
                     ):
+    # zero value in the image is transformed to 
     # gpu:bool=False, # return a cupy array if true 
     # !! nvidia gpu do not support big endian data, so no way to directly read it
     '''read gamma image into numpy array.'''
@@ -126,6 +127,12 @@ def read_gamma_image(imag:str, # gamma raster data
     # else:
     with open(imag,'rb') as datf:
         data = np.fromfile(datf,dtype=dt,offset=offset,count=ny*width)
+    if dt != '>i4':
+        mask = data==0
+        if dt == '>c8':
+            data[mask] = np.nan+1j*np.nan
+        else:
+            data[mask] = np.nan
     data = data.astype(data.dtype.newbyteorder('native'))
     return data.reshape(-1,width)
 
@@ -152,15 +159,21 @@ def _flatten_rslc(sim_orb,rslc):
 
 # %% ../../nbs/CLI/load.ipynb 19
 @mc_logger
-def load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
-                            reference:str, # reference date, eg: '20200202'
-                            hgt:str, # the DEM in radar coordinate
-                            scratch_dir:str, # directory for preserve gamma intermediate files
-                            rslc_zarr:str, # output, the flattened rslcs stack in zarr format
-                            chunks:tuple[int,int]=(1000,1000), # rslc chunk size
-                           ):
+def load_gamma_flatten_rslc(
+    rslc_dir:str, # gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
+    reference:str, # reference date, eg: '20200202'
+    hgt:str, # the DEM in radar coordinate
+    scratch_dir:str, # directory for preserve gamma intermediate files
+    rslc_zarr:str, # output, the flattened rslcs stack in zarr format
+    chunks:tuple[int,int]=(1000,1000), # rslc chunk size
+    processes=False, # use process for dask worker or thread
+    n_workers=2, # number of dask worker
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''Generate flatten rslc data from gamma command and convert them into zarr format.
     The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
+    All data equal to 0 are replaced with nan.
     '''
     logger = logging.getLogger(__name__)
     rslcs = _fetch_slc_par_date(rslc_dir)
@@ -203,7 +216,8 @@ def load_gamma_flatten_rslc(rslc_dir:str, # gamma rslc directory, the name of th
     logger.info('gamma command finished.')
     logger.info('using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.')
     logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False, n_workers=1, threads_per_worker=2) as cluster, Client(cluster) as client:
+    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
+                      **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         read_gamma_image_delayed = delayed(read_gamma_image, pure=True)
@@ -250,6 +264,7 @@ def load_gamma_lat_lon_hgt(diff_par:str, # geocoding diff_par,using the simulate
                           ):
     '''
     Function to load longitude and latitude from gamma binary format to zarr.
+    All data equal to 0 are replaced with nan.
     '''
     logger = logging.getLogger(__name__)
     geo_width = _geo_width_nlines(dem_par)[0]
@@ -309,6 +324,7 @@ def load_gamma_look_vector(theta:str, # elevation angle
     Load look vector (elevation angle and orientation angle) in map geometry
     from gamma binary format to look vector in radar geometry zarr file.
     The two input data should be generated with the `look_vector` gamma command.
+    All data equal to 0 are replaced with nan.
     '''
     logger = logging.getLogger(__name__)
     geo_width = _geo_width_nlines(dem_par)[0]

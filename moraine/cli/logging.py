@@ -22,17 +22,14 @@ class McLogger(logging.getLoggerClass()):
                   path, # string to zarr
                   zarr, # zarr dataset
                  ):
-        self.info(f'{path} zarray shape: '+str(zarr.shape))
-        self.info(f'{path} zarray chunks: '+str(zarr.chunks))
-        self.info(f'{path} zarray dtype: '+str(zarr.dtype))
+        self.info(f'{path} zarray shape, chunks, dtype: {zarr.shape}, {zarr.chunks}, {zarr.dtype}')
     
     def darr_info(self, # logger
                   name, # printing name of the dask array
                   darr, # dask array
                  ):
-        self.info(f'{name} dask array shape: '+str(darr.shape))
-        self.info(f'{name} dask array chunksize: '+str(darr.chunksize))
-        self.info(f'{name} dask array dtype: '+str(darr.dtype))
+        self.info(f'{name} dask array shape, chunksize, dtype: {darr.shape}, {darr.chunksize}, {darr.dtype}')
+
     def dask_cluster_info(
         self,
         cluster,

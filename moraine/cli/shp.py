@@ -7,6 +7,7 @@ __all__ = ['shp_test', 'select_shp']
 from itertools import product
 import math
 import logging
+import time
 
 import zarr
 import numcodecs
@@ -15,24 +16,31 @@ import numpy as np
 import dask
 from dask import array as da
 from dask import delayed
-from dask.distributed import Client, progress
+from dask.distributed import Client, LocalCluster, progress
 from ..utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster
-
+    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
 
 # %% ../../nbs/CLI/shp.ipynb 5
 @mc_logger
-def shp_test(rslc:str, # input: rslc stack
-             pvalue:str, # output: the p value of the test
-             az_half_win:int, # azimuth half window size
-             r_half_win:int, # range half window size
-             method:str=None, # SHP identification method,optional. Default: ks
-             chunks:tuple[int,int]=None, # chunk size, optional. Default: the chunk size in rslc
-            ):
+def shp_test(
+    rslc:str, # input: rslc stack
+    pvalue:str, # output: the p value of the test
+    az_half_win:int, # azimuth half window size
+    r_half_win:int, # range half window size
+    method:str=None, # SHP identification method,optional. Default: ks
+    chunks:tuple[int,int]=None, # chunk size, optional. Default: the chunk size in rslc
+    cuda:bool=False, # if use cuda for processing, false by default
+    processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+    n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
+    threads_per_worker=None, # number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+    rmm_pool_size=0.9, # set the rmm pool size, only applied when cuda==True
+    **dask_cluster_arg, # other dask local/cudalocal cluster args
+):
     '''SHP identification through hypothetic test.'''
     rslc_path = rslc
     pvalue_path = pvalue
@@ -51,13 +59,27 @@ def shp_test(rslc:str, # input: rslc stack
     
     if chunks is None: chunks = rslc_zarr.chunks[:2]
     chunks=(*chunks,*rslc_zarr.shape[2:])
+    if cuda:
+        Cluster = LocalCUDACluster; cluster_args= {
+            'n_workers':n_workers,
+            'rmm_pool_size':rmm_pool_size}
+        cluster_args.update(dask_cluster_arg)
+        xp = cp
+    else:
+        if processes is None: processes = False
+        if n_workers is None: n_workers = 1
+        if threads_per_worker is None: threads_per_worker = 2
+        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
+        cluster_args.update(dask_cluster_arg)
+        xp = np
 
-    logger.info('starting dask CUDA local cluster.')
-    with LocalCUDACluster() as cluster, Client(cluster) as client:
-        logger.info('dask local CUDA cluster started.')
+    logger.info('starting dask local cluster.')
+    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
+        logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
-
+        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
         cpu_rslc = da.from_zarr(rslc_path,chunks=chunks); logger.darr_info('rslc',cpu_rslc)
+        cpu_rmli = da.abs(cpu_rslc)**2
 
         az_win = 2*az_half_win+1
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
@@ -65,46 +87,29 @@ def shp_test(rslc:str, # input: rslc stack
         logger.info(f'range half window size: {r_half_win}; range window size: {r_win}')
 
         depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
-        cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
-        logger.info('setting shared boundaries between rlsc chunks.')
-        logger.darr_info('rslc with overlap', cpu_rslc_overlap)
+        cpu_rmli_overlap = da.overlap.overlap(cpu_rmli,depth=depth, boundary=boundary)
+        logger.info('setting shared boundaries between rmli chunks.')
+        logger.darr_info('rmli with overlap', cpu_rmli_overlap)
 
-        rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
-        rmli_overlap = da.abs(rslc_overlap)**2
-        logger.darr_info('rmli with overlap', rmli_overlap)
-
-        sorted_rmli_overlap = rmli_overlap.map_blocks(cp.sort,axis=-1)
-
-        delayed_ks_test = delayed(mr.ks_test,pure=True,nout=2)
-        rmli_delayed = sorted_rmli_overlap.to_delayed()
-        p_delayed = np.empty_like(rmli_delayed,dtype=object)
-        dist_delayed = np.empty_like(rmli_delayed,dtype=object)
-
-        logger.info('applying test on sorted rmli stack.')
-        with np.nditer(p_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as p_it:
-            for p_block in p_it:
-                idx = p_it.multi_index
-                dist_delayed[idx],p_delayed[idx] = delayed_ks_test(rmli_delayed[idx],az_half_win=az_half_win,r_half_win=r_half_win)
-
-                chunk_shape = (*sorted_rmli_overlap.blocks[idx].shape[:-1],az_win,r_win)
-                dtype = sorted_rmli_overlap.dtype
-                # dist_delayed[idx] = da.from_delayed(dist_delayed[idx],shape=chunk_shape,meta=cp.array((),dtype=dtype))
-                p_delayed[idx] = da.from_delayed(p_delayed[idx],shape=chunk_shape,meta=cp.array((),dtype=dtype))
-
-        p = da.block(p_delayed.reshape(*p_delayed.shape,1).tolist())
-        # dist = da.block(dist_delayed.reshape(*dist_delayed.shape,1).tolist())
-        logger.info('p value generated')
-        logger.darr_info('p value', p)
-
-        depth = {0:az_half_win, 1:r_half_win, 2:0, 3:0}; boundary = {0:'none',1:'none',2:'none',3:'none'}
-        # dist = da.overlap.trim_overlap(dist,depth=depth,boundary=boundary)
+        if cuda:
+            rmli_overlap = cpu_rmli_overlap.map_blocks(xp.asarray)
+        else:
+            rmli_overlap = cpu_rmli_overlap
+        p_chunks = (*rmli_overlap.chunks[:2],(az_win,),(r_win,))
+        logger.info('applying test on rmli stack.')
+        p = rmli_overlap.map_blocks(mr.ks_test,az_half_win=az_half_win,r_half_win=r_half_win,
+                                    new_axis=-1,chunks=p_chunks,meta=xp.array((),dtype=rmli_overlap.dtype))
+        logger.info('trim shared boundaries between p value chunks')
         p = da.overlap.trim_overlap(p,depth=depth,boundary=boundary)
-        p = p.rechunk((*p.chunks[:2],1,1))
-        logger.info('trim shared boundaries between p value chunks and rechunk')
-        logger.darr_info('p value', p)
+        if cuda:
+            cpu_p = p.map_blocks(xp.asnumpy)
+        else:
+            cpu_p = p
+        logger.info('rechunk p')
+        cpu_p = cpu_p.rechunk((*cpu_p.chunks[:2],1,1))
+        logger.darr_info('p value', cpu_p)
 
-        cpu_p = p.map_blocks(cp.asnumpy)
-        _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True,compressor=numcodecs.LZ4(5))
+        _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True)
         # p_zarr = kvikio.zarr.open_cupy_array(pvalue_path,'w',shape=p.shape, chunks=p.chunksize, dtype=p.dtype,compressor=None)
         # _p = da.store(p,p_zarr,compute=False,lock=False)
         logger.info('saving p value.')
@@ -112,18 +117,24 @@ def shp_test(rslc:str, # input: rslc stack
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist(_p)
         progress(futures,notebook=False)
+        time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
 # %% ../../nbs/CLI/shp.ipynb 11
 @mc_logger
-def select_shp(pvalue:str, # input: pvalue of hypothetic test
-               is_shp:str, # output: bool array indicating the SHPs
-               shp_num:str, # output: integer array indicating number of SHPs
-               p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
-               chunks:tuple[int,int]=None, # chunk size, optional. Default: the chunk size in rslc
-              ):
+def select_shp(
+    pvalue:str, # input: pvalue of hypothetic test
+    is_shp:str, # output: bool array indicating the SHPs
+    shp_num:str, # output: integer array indicating number of SHPs
+    p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
+    chunks:tuple[int,int]=None, # chunk size, optional. Default: the chunk size in rslc
+    processes=False, # use process for dask worker over thread, the default is False
+    n_workers=2, # number of dask worker, the default is 1 for cpu
+    threads_per_worker=2, # number of threads per dask worker
+    **dask_cluster_arg, # other dask local cluster args
+):
     '''
     Select SHP based on pvalue of SHP test.
     '''
@@ -137,35 +148,43 @@ def select_shp(pvalue:str, # input: pvalue of hypothetic test
     if chunks is None: chunks = p_zarr.chunks[:2]
     chunks=(*chunks,*p_zarr.shape[2:])
 
-    logger.info('starting dask cuda cluster.')
-    with LocalCUDACluster() as cluster, Client(cluster) as client:
+    logger.info('starting dask cluster.')
+    with LocalCluster(processes=processes,n_workers=n_workers,threads_per_worker=threads_per_worker,**dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
 
-        p_cpu = da.from_zarr(pvalue,chunks=chunks)
-        logger.darr_info('pvalue', p_cpu)
-        p = da.map_blocks(cp.asarray,p_cpu[:])
+        p = da.from_zarr(pvalue,chunks=chunks)
+        logger.darr_info('pvalue', p)
+        p_delayed = p.to_delayed()
+        is_shp_delayed = np.empty_like(p_delayed,dtype=object)
+        shp_num_delayed = np.empty_like(p_delayed, dtype=object)
 
-        is_shp = (p < p_max) & (p >= 0)
+        with np.nditer(p_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as p_it:
+            for p_block in p_it:
+                idx = p_it.multi_index
+                is_shp_delayed[idx], shp_num_delayed[idx] = delayed(mr.select_shp,pure=True,nout=2)(p_delayed[idx],p_max)
+                chunk_shape = p.blocks[idx].shape[:-2]
+                is_shp_delayed[idx] = da.from_delayed(is_shp_delayed[idx], shape = (*chunk_shape, *p.shape[2:]), meta = np.array((),dtype=np.bool_))
+                shp_num_delayed[idx] = da.from_delayed(shp_num_delayed[idx], shape=chunk_shape, meta = np.array((),dtype=np.int32))
+        is_shp = da.block(is_shp_delayed.tolist())
+        shp_num = da.block(shp_num_delayed[:,:,0,0].tolist())
         logger.info('selecting SHPs based on pvalue threshold: '+str(p_max))
         logger.darr_info('is_shp', is_shp)
 
         logger.info('calculate shp_num.')
-        shp_num = da.count_nonzero(is_shp,axis=(-2,-1)).astype(cp.int32)
+        shp_num = da.count_nonzero(is_shp,axis=(-2,-1)).astype(np.int32)
         logger.darr_info('shp_num',shp_num)
 
-        is_shp_cpu = da.map_blocks(cp.asnumpy,is_shp)
-        shp_num_cpu = da.map_blocks(cp.asnumpy,shp_num)
         logger.info('rechunk is_shp')
-        is_shp_cpu = is_shp_cpu.rechunk((*is_shp_cpu.chunksize[0:2],1,1)); logger.darr_info('is_shp', is_shp_cpu)
-        _is_shp = is_shp_cpu.to_zarr(is_shp_path,overwrite=True,compute=False)
+        is_shp = is_shp.rechunk((*is_shp.chunksize[0:2],1,1)); logger.darr_info('is_shp', is_shp)
+        _is_shp = is_shp.to_zarr(is_shp_path,overwrite=True,compute=False)
         logger.info('saving is_shp.')
-        _shp_num = shp_num_cpu.to_zarr(shp_num_path,overwrite=True,compute=False)
+        _shp_num = shp_num.to_zarr(shp_num_path,overwrite=True,compute=False)
         logger.info('saving shp_num.')
         logger.info('computing graph setted. doing all the computing.')
 
         futures = client.persist([_is_shp,_shp_num])
-        progress(futures,notebook=False)
+        progress(futures,notebook=False); time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')

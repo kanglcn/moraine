@@ -5,7 +5,7 @@ __all__ = ['emi', 'ds_temp_coh']
 
 # %% ../../nbs/CLI/pl.ipynb 5
 import logging
-
+import time
 import zarr
 import numpy as np
 
@@ -17,17 +17,25 @@ from ..utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster
+    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
 
 # %% ../../nbs/CLI/pl.ipynb 6
 @mc_logger
-def emi(coh:str, # coherence matrix
-        ph:str, # output, wrapped phase
-        emi_quality:str, #output, pixel quality
-        ref:int=0, # reference image for phase
-        chunks:int=None, # # chunk size of output zarr dataset, optional. Default: same as `coh`.
-       ):
+def emi(
+    coh:str, # coherence matrix
+    ph:str, # output, wrapped phase
+    emi_quality:str, #output, pixel quality
+    ref:int=0, # reference image for phase
+    chunks:int=None, # # chunk size of output zarr dataset, optional. Default: same as `coh`.
+    cuda:bool=False, # if use cuda for processing, false by default
+    processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+    n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
+    threads_per_worker=None, # number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+    rmm_pool_size=0.9, # set the rmm pool size, only applied when cuda==True
+    **dask_cluster_arg, # other dask local/cudalocal cluster args
+):
     '''Phase linking with EMI estimator.
     '''
     coh_path = coh
@@ -39,17 +47,34 @@ def emi(coh:str, # coherence matrix
     logger.zarr_info(coh_path,coh_zarr)
 
     if chunks is None: chunks = coh_zarr.chunks[0] 
+    if cuda:
+        Cluster = LocalCUDACluster; cluster_args= {
+            'n_workers':n_workers,
+            'rmm_pool_size':rmm_pool_size}
+        cluster_args.update(dask_cluster_arg)
+        xp = cp
+    else:
+        if processes is None: processes = False
+        if n_workers is None: n_workers = 1
+        if threads_per_worker is None: threads_per_worker = 2
+        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
+        cluster_args.update(dask_cluster_arg)
+        xp = np
 
-    logger.info('starting dask CUDA local cluster.')
-    with LocalCUDACluster() as cluster, Client(cluster) as client:
-        logger.info('dask local CUDA cluster started.')
+    logger.info('starting dask cluster.')
+    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
+        logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
+        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
         cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
         logger.darr_info('coh', cpu_coh)
 
         logger.info(f'phase linking with EMI.')
-        coh = cpu_coh.map_blocks(cp.asarray)
+        if cuda:
+            coh = cpu_coh.map_blocks(cp.asarray)
+        else:
+            coh = cpu_coh
         coh_delayed = coh.to_delayed()
         coh_delayed = np.squeeze(coh_delayed,axis=(-2,-1))
 
@@ -66,8 +91,11 @@ def emi(coh:str, # coherence matrix
         ph = da.block(ph_delayed[...,None].tolist())
         emi_quality = da.block(emi_quality_delayed.tolist())
 
-        cpu_ph = ph.map_blocks(cp.asnumpy)
-        cpu_emi_quality = emi_quality.map_blocks(cp.asnumpy)
+        if cuda:
+            cpu_ph = ph.map_blocks(cp.asnumpy)
+            cpu_emi_quality = emi_quality.map_blocks(cp.asnumpy)
+        else:
+            cpu_ph = ph; cpu_emi_quality = emi_quality
         logger.info(f'got ph and emi_quality.')
         logger.darr_info('ph', cpu_ph)
         logger.darr_info('emi_quality', cpu_emi_quality)
@@ -82,18 +110,25 @@ def emi(coh:str, # coherence matrix
 
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist([_cpu_ph,_cpu_emi_quality])
-        progress(futures,notebook=False)
+        progress(futures,notebook=False); time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/pl.ipynb 12
+# %% ../../nbs/CLI/pl.ipynb 13
 @mc_logger
-def ds_temp_coh(coh:str, # coherence matrix
-                ph:str, # wrapped phase
-                t_coh:str, # output, temporal coherence
-                chunks:int=None, # number of point cloud chunk, same as coh by default
-               ):
+def ds_temp_coh(
+    coh:str, # coherence matrix
+    ph:str, # wrapped phase
+    t_coh:str, # output, temporal coherence
+    chunks:int=None, # number of point cloud chunk, same as coh by default
+    cuda:bool=False, # if use cuda for processing, false by default
+    processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+    n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
+    threads_per_worker=None, # number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+    rmm_pool_size=0.9, # set the rmm pool size, only applied when cuda==True
+    **dask_cluster_arg, # other dask local/cudalocal cluster args
+):
     '''DS temporal coherence.
     '''
     coh_path = coh
@@ -105,11 +140,25 @@ def ds_temp_coh(coh:str, # coherence matrix
     ph_zarr = zarr.open(ph_path,mode='r'); logger.zarr_info(ph_path,ph_zarr)
 
     if chunks is None: chunks = coh_zarr.chunks[0] 
+    if cuda:
+        Cluster = LocalCUDACluster; cluster_args= {
+            'n_workers':n_workers,
+            'rmm_pool_size':rmm_pool_size}
+        cluster_args.update(dask_cluster_arg)
+        xp = cp
+    else:
+        if processes is None: processes = False
+        if n_workers is None: n_workers = 1
+        if threads_per_worker is None: threads_per_worker = 2
+        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
+        cluster_args.update(dask_cluster_arg)
+        xp = np
 
-    logger.info('starting dask CUDA local cluster.')
-    with LocalCUDACluster() as cluster, Client(cluster) as client:
-        logger.info('dask local CUDA cluster started.')
+    logger.info('starting dask local cluster.')
+    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
+        logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
+        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
         cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
         logger.darr_info('coh', cpu_coh)
@@ -118,8 +167,12 @@ def ds_temp_coh(coh:str, # coherence matrix
         logger.darr_info('ph', cpu_ph)
 
         logger.info(f'Estimate temporal coherence for DS.')
-        coh = cpu_coh.map_blocks(cp.asarray)
-        ph = cpu_ph.map_blocks(cp.asarray)
+        if cuda:
+            coh = cpu_coh.map_blocks(cp.asarray)
+            ph = cpu_ph.map_blocks(cp.asarray)
+        else:
+            coh = cpu_coh
+            ph = cpu_ph
 
         coh_delayed = coh.to_delayed()
         coh_delayed = np.squeeze(coh_delayed,axis=(-2,-1))
@@ -131,11 +184,14 @@ def ds_temp_coh(coh:str, # coherence matrix
             for block in it:
                 idx = it.multi_index
                 t_coh_delayed[idx] = delayed(mr.ds_temp_coh,pure=True,nout=1)(coh_delayed[idx],ph_delayed[idx])
-                t_coh_delayed[idx] = da.from_delayed(t_coh_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=cp.array((),dtype=cp.float32))
+                t_coh_delayed[idx] = da.from_delayed(t_coh_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
             t_coh = da.block(t_coh_delayed.tolist())
     
-        cpu_t_coh = t_coh.map_blocks(cp.asnumpy)
+        if cuda:
+            cpu_t_coh = t_coh.map_blocks(cp.asnumpy)
+        else:
+            cpu_t_coh = t_coh
         logger.info(f'got temporal coherence t_coh.')
         logger.darr_info('t_coh', t_coh)
 
@@ -144,7 +200,7 @@ def ds_temp_coh(coh:str, # coherence matrix
 
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist(_cpu_t_coh)
-        progress(futures,notebook=False)
+        progress(futures,notebook=False); time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')

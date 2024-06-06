@@ -28,6 +28,15 @@ def _ras_dims(gix1:np.ndarray, # int array, grid index of the first point cloud
     return (dims_az,dims_r)
 
 # %% ../nbs/API/pc.ipynb 10
+def _check_idx_sorted(idx,shape=None):
+    xp = get_array_module(idx)
+    if idx.ndim == 2:
+        idx_1d = xp.ravel_multi_idx(idx,dims=shape)
+    else:
+        idx_1d = idx
+    assert (xp.diff(idx_1d)>0).any(), "idx is not sorted or unique!"
+
+# %% ../nbs/API/pc.ipynb 12
 # Some functions adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license,
 # Which is Initially based on https://github.com/galtay/hilbert_curve, but specialized
 # for 2 dimensions with numba acceleration
@@ -155,7 +164,7 @@ def _distances_from_coordinates(p:int, # iterations to use in the hilbert curve
         result[i] = _distance_from_coordinate(p, coord)
     return result
 
-# %% ../nbs/API/pc.ipynb 11
+# %% ../nbs/API/pc.ipynb 13
 def pc_hix(
     gix, # grid index
     shape:tuple, # (nlines, width)
@@ -167,7 +176,7 @@ def pc_hix(
     hix = _distances_from_coordinates(p, gix)
     return hix
 
-# %% ../nbs/API/pc.ipynb 16
+# %% ../nbs/API/pc.ipynb 18
 def pc_gix(
     hix, # hillbert index
     shape:tuple, # (nlines, width)
@@ -179,7 +188,7 @@ def pc_gix(
     gix = _coordinates_from_distances(p, hix)
     return gix
 
-# %% ../nbs/API/pc.ipynb 18
+# %% ../nbs/API/pc.ipynb 20
 def pc_sort(idx:np.ndarray, # unsorted `gix` (2D) or `hix`(1D)
             shape:tuple=None, # (nline, width), faster if provided for grid index input
            )->np.ndarray: # indices that sort input
@@ -197,7 +206,7 @@ def pc_sort(idx:np.ndarray, # unsorted `gix` (2D) or `hix`(1D)
     key = xp.argsort(idx_1d,kind='stable')
     return key
 
-# %% ../nbs/API/pc.ipynb 22
+# %% ../nbs/API/pc.ipynb 24
 def pc2ras(idx:np.ndarray, # gix or hix array
            pc_data:np.ndarray, # data, 1D or more
            shape:tuple, # image shape
@@ -213,54 +222,108 @@ def pc2ras(idx:np.ndarray, # gix or hix array
     raster[gix[0],gix[1]] = pc_data
     return raster
 
-# %% ../nbs/API/pc.ipynb 24
+# %% ../nbs/API/pc.ipynb 26
+@ngjit
+def _pc_union_numba(idx1, idx2):
+    # hand write merge sort
+    size1 = idx1.shape[0]
+    size2 = idx2.shape[0]
+    idx = np.empty(size1+size2,dtype=idx1.dtype)
+    inv_iidx1 = np.empty_like(idx1) # 0:size1 for inv_iidx1, size1: for inv_iidx2
+    inv_iidx2 = np.empty_like(idx2)
+    ninv_iidx2 = np.empty_like(idx2)
+    i1 = 0; i2 = 0; i = 0; inv1_i = 0; inv2_i = 0; ninv2_i = 0;
+    while((i1<size1) and (i2<size2)):
+        if idx1[i1] < idx2[i2]:
+            idx[i] = idx1[i1]
+            inv_iidx1[inv1_i] = i
+            i1 +=1; inv1_i += 1
+        elif idx1[i1] > idx2[i2]:
+            idx[i] = idx2[i2]
+            inv_iidx2[inv2_i] = i
+            ninv_iidx2[ninv2_i] = i2
+            i2 +=1; inv2_i += 1; ninv2_i += 1
+        else:
+            idx[i] = idx1[i1]
+            inv_iidx1[inv1_i] = i
+            i1 += 1; inv1_i += 1; i2 += 1
+        i +=1
+    while(i1<size1):
+        idx[i] = idx1[i1]
+        inv_iidx1[inv1_i] = i
+        i1 += 1; inv1_i += 1; i += 1
+    while(i2<size2):
+            idx[i] = idx2[i2]
+            inv_iidx2[inv2_i] = i
+            ninv_iidx2[ninv2_i] = i2
+            i2 +=1; inv2_i += 1; ninv2_i += 1; i += 1
+
+    return idx[:i], inv_iidx1[:inv1_i], inv_iidx2[:inv2_i], ninv_iidx2[:ninv2_i]
+
+# %% ../nbs/API/pc.ipynb 27
 def pc_union(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
              idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
-             # the union index `idx`; index of the point in output union index that originally in the first point cloud `inv_iidx`;
+             shape:tuple=None, # image shape, faster if provided for grid index input
+             # the union index `idx`; 
+             # index of the point in output union index that originally in the first point cloud `inv_iidx`;
              # index of the point in output union index that only exist in the second point cloud `inv_iidx2`;
              # index of the point in the second input index that are not in the first input point cloud
-             shape:tuple=None, # image shape, faster if provided for grid index input
-            )->tuple: 
-    '''Get the union of two point cloud dataset. For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.'''
-    # this function is modified from np.unique
-
+            )->tuple:
+    '''Get the union of two point cloud dataset. For points at their intersection, prefer idx1 rather than idx2'''
+    assert idx1.ndim == idx2.ndim
     xp = get_array_module(idx1)
     n1 = idx1.shape[-1]; n2 = idx2.shape[-1]
-    idx = xp.concatenate((idx1,idx2),axis=-1)
-    if idx.ndim == 2:
+    if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
-        idx_1d = xp.ravel_multi_index(idx,dims=dims) # automatically the returned 1d index is in int64
+        idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64
+        idx2_1d = xp.ravel_multi_index(idx2,dims=dims)
     else:
-        idx_1d = idx
-    iidx = xp.argsort(idx_1d,kind='stable') # test shows argsort is faster than lexsort, that is why use ravel and unravel index
-    idx_1d = idx_1d[iidx]
+        idx1_1d = idx1; idx2_1d = idx2
+        _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
 
-    inv_iidx = xp.empty_like(iidx)
-    inv_iidx[iidx] = xp.arange(iidx.shape[0]) # idea taken from https://stackoverflow.com/questions/2483696/undo-or-reverse-argsort-python
-
-    mask = xp.empty(idx_1d.shape, dtype=bool)
-    mask[:1] = True
-    mask[1:] = idx_1d[1:] != idx_1d[:-1]
-    
-    idx_1d = idx_1d[mask]
-    
-    _mask = mask[inv_iidx] # the mask in the original cat order
-    mask1 = _mask[:n1]
-    mask2 = _mask[n1:]
-    
-    imask = xp.cumsum(mask) - 1
-    inv_iidx = xp.empty(mask.shape, dtype=np.int64)
-    inv_iidx[iidx] = imask # inverse the mapping
-    inv_iidx = inv_iidx[_mask]
-    
-    if idx.ndim == 2:
-        idx = xp.stack(xp.unravel_index(idx_1d,dims)).astype(idx1.dtype)
+    if xp is np:
+        # on cpu use handwrite merge sort
+        idx_1d, inv_iidx1, inv_iidx2, ninv_iidx2 = _pc_union_numba(idx1_1d,idx2_1d)
+        if idx1.ndim == 2:
+            idx = xp.stack(xp.unravel_index(idx_1d,dims)).astype(idx1.dtype)
+        else:
+            idx = idx_1d
+        return idx, inv_iidx1, inv_iidx2, ninv_iidx2
     else:
-        idx = idx_1d
+        # this part is modified from np.unique
+        idx_1d = xp.concatenate((idx1_1d,idx2_1d),axis=-1)
+    
+        iidx = xp.argsort(idx_1d,kind='stable') # test shows argsort is faster than lexsort, that is why use ravel and unravel index
+        idx_1d = idx_1d[iidx]
+    
+        inv_iidx = xp.empty_like(iidx)
+        inv_iidx[iidx] = xp.arange(iidx.shape[0]) # idea taken from https://stackoverflow.com/questions/2483696/undo-or-reverse-argsort-python
+    
+        mask = xp.empty(idx_1d.shape, dtype=bool)
+        mask[:1] = True
+        mask[1:] = idx_1d[1:] != idx_1d[:-1]
+        
+        idx_1d = idx_1d[mask]
+        
+        _mask = mask[inv_iidx] # the mask in the original cat order
+        mask1 = _mask[:n1]
+        mask2 = _mask[n1:]
+        
+        imask = xp.cumsum(mask) - 1
+        inv_iidx = xp.empty(mask.shape, dtype=np.int64)
+        inv_iidx[iidx] = imask # inverse the mapping
+        inv_iidx = inv_iidx[_mask]
+        
+        inv_iidx1, inv_iidx2, ninv_iidx2 = inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
-    return idx, inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
+        if idx1.ndim == 2:
+            idx = xp.stack(xp.unravel_index(idx_1d,dims)).astype(idx1.dtype)
+        else:
+            idx = idx_1d
+    
+        return idx, inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
-# %% ../nbs/API/pc.ipynb 33
+# %% ../nbs/API/pc.ipynb 38
 def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
                  idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
                  # the intersect index `idx`,
@@ -270,7 +333,7 @@ def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of t
                 )->tuple:
     '''Get the intersection of two point cloud dataset.'''
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
-
+    assert idx1.ndim == idx2.ndim
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
@@ -279,12 +342,13 @@ def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of t
     else:
         idx1_1d = idx1; idx2_1d = idx2
 
+    _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
     idx, iidx1, iidx2 = xp.intersect1d(idx1_1d,idx2_1d,assume_unique=True,return_indices=True)
     if idx1.ndim == 2:
         idx = xp.stack(xp.unravel_index(idx,dims)).astype(idx1.dtype)
     return idx, iidx1, iidx2
 
-# %% ../nbs/API/pc.ipynb 36
+# %% ../nbs/API/pc.ipynb 41
 def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
             idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
             shape:tuple=None, # image shape, faster if provided for grid index input
@@ -292,6 +356,7 @@ def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the fi
             # index of the point in first point cloud index that do not exist in the second point cloud,
            )->tuple:
     '''Get the point cloud in `idx1` that are not in `idx2`.'''
+    assert idx1.ndim == idx2.ndim
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
@@ -299,7 +364,8 @@ def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the fi
         idx2_1d = xp.ravel_multi_index(idx2,dims=dims) # automatically the returned 1d index is in int64
     else:
         idx1_1d = idx1; idx2_1d = idx2
-    
+
+    _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
     mask = xp.in1d(idx1_1d, idx2_1d, assume_unique=True, invert=True)
     idx = idx1_1d[mask]
     

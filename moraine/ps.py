@@ -12,20 +12,21 @@ if is_cuda_available():
     import cupy as cp
 
 # %% ../nbs/API/ps.ipynb 5
+# already robust enough for nan value
 @numba.jit(nopython=True, cache=True,parallel=True)
 def _amp_disp_numba(rslc):
-    epsilon = np.float32(1e-30)
     nlines, width = rslc.shape[:-1]
     amp_disp = np.empty((nlines,width),dtype=np.float32)
     for j in numba.prange(nlines):
         for i in range(width):
             amp = np.abs(rslc[j,i,:])
-            mean = np.mean(amp)+epsilon
+            mean = np.mean(amp)
             std = np.std(amp)
             amp_disp[j,i] = std/mean
     return amp_disp
 
 # %% ../nbs/API/ps.ipynb 6
+# already robust enough for nan value
 if is_cuda_available():
     _amp_disp_kernel = cp.ElementwiseKernel(
         'raw T rmli_stack, int32 nlines, int32 width, int32 nimages',
@@ -37,7 +38,6 @@ if is_cuda_available():
         for (k=0;k<nimages;k++) {
             mean += rmli_stack[i*nimages+k];
         }
-        mean += 1e-30;
         mean /= f_nimages;
         float std = 0;
         for (k=0;k<nimages;k++) {
