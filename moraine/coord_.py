@@ -81,12 +81,12 @@ class Coord(object):
     def coords2gixs(self,coords):
         '''inputs are 2d arrays. Assume zoom level is 0.'''
         out = np.empty_like(coords,dtype=np.int32)
-        _coords2gixs(coords[1], self.x0, self.dx, self.nx, out[1])
-        _coords2gixs(coords[0], self.y0, self.dy, self.ny, out[0])
+        _coords2gixs(coords[:,1], self.x0, self.dx, self.nx, out[:,1])
+        _coords2gixs(coords[:,0], self.y0, self.dy, self.ny, out[:,0])
         return out
     def rasterize_iidx(self,gix):
         iidx = np.full((self.ny,self.nx),fill_value=-1,dtype=np.int64)
-        iidx[gix[0],gix[1]] = np.arange(gix.shape[1])
+        iidx[gix[:,0],gix[:,1]] = np.arange(gix.shape[0])
         return iidx
     def rasterize(self,pc, # point cloud data, can be a stack, shape (n_pc,...)
                   gix, # 2D grid index of the pc, value within (0,0,im,jm), shape (2,n_pc)
@@ -94,5 +94,5 @@ class Coord(object):
                  )->np.ndarray: # the raster data, the index of the original point cloud list 
         # the fill_value can not be np.nan if pc is integer
         ras = np.full((self.ny,self.nx,*pc.shape[1:]),fill_value=fill_value,dtype=pc.dtype)
-        ras[gix[0],gix[1]] = pc
+        ras[gix[:,0],gix[:,1]] = pc
         return ras

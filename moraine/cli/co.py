@@ -76,7 +76,7 @@ def emperical_co_pc(
 
     n_az_chunk = int(np.ceil(nlines/az_chunks))
     j_chunk_boundary = np.arange(n_az_chunk+1)*az_chunks; j_chunk_boundary[-1] = nlines
-    point_boundary = np.searchsorted(gix[0],j_chunk_boundary)
+    point_boundary = np.searchsorted(gix[:,0],j_chunk_boundary)
     process_pc_chunk_size = np.diff(point_boundary)
     process_pc_chunk_size = tuple(process_pc_chunk_size.tolist())
     logger.info(f'number of point in each chunk: {process_pc_chunk_size}')
@@ -129,10 +129,10 @@ def emperical_co_pc(
         for j in range(n_az_chunk):
             jstart = j*az_chunks; jend = jstart + az_chunks
             if jend>=nlines: jend = nlines
-            gix_local_j = gix[0,point_boundary[j]:point_boundary[j+1]]-jstart
+            gix_local_j = gix[point_boundary[j]:point_boundary[j+1],0]-jstart
             if j!= 0: gix_local_j += az_half_win
-            gix_local_i = gix[1,point_boundary[j]:point_boundary[j+1]]
-            gix_local = np.stack((gix_local_j,gix_local_i))
+            gix_local_i = gix[point_boundary[j]:point_boundary[j+1],1]
+            gix_local = np.stack((gix_local_j,gix_local_i),axis=-1)
             gix_local_delayed = da.from_array(gix_local)
             if cuda:
                 gix_local_delayed = gix_local_delayed.map_blocks(cp.asarray)

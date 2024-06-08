@@ -334,9 +334,10 @@ def _next_ras(ras,yi,xi):
 @mc_logger
 def pc_pyramid(
     pc:str, # path to point cloud data, 1D array (one single pc image) or 2D zarr array (a stack of pc images)
-    x:str, # path to x coordinate, e.g., longitude or web mercator x
-    y:str, # path to y coordinate, e.g., latitude or web mercator y
     out_dir:str, # output directory to store rendered data
+    x:str=None, # path to x coordinate, e.g., longitude or web mercator x
+    y:str=None, # path to y coordinate, e.g., latitude or web mercator y
+    yx:str=None, # path to x and y coordinates. this coordinates should have shape [n_points,2]. e.g., gix
     ras_resolution:float=20, # minimum resolution of rendered raster data,
     ras_chunks:tuple[int,int]=(256,256), # output raster tile size
     pc_chunks:int=65536, # output pc tile size
@@ -354,7 +355,14 @@ def pc_pyramid(
     n_pc = pc_zarr.shape[0]
     channel_chunks = (1,)*(pc_zarr.ndim-1)
     logger.info(f'rendering point cloud data coordinates:')
-    x, y = zarr.open(x,'r')[:], zarr.open(y,'r')[:]
+    if x is None and y is None:
+        yx = zarr.open(yx,'r')[:]
+    else:
+        y_zarr = zarr.open(y,'r')
+        yx = np.empty((y_zarr.shape[0],2),dtype=y_zarr.dtype)
+        yx[:,0] = zarr.open(y,'r')[:]
+        yx[:,1] = zarr.open(x,'r')[:]
+    x, y = yx[:,1], yx[:,0]
 
     x0, xm, y0, ym = x.min(), x.max(), y.min(), y.max()
     nx, ny = math.ceil((xm-x0)/ras_resolution), math.ceil((ym-y0)/ras_resolution)
@@ -364,7 +372,7 @@ def pc_pyramid(
     with open(out_dir/'bounds.toml','w') as f:
         toml.dump(bounds, f, encoder=toml.TomlNumpyEncoder())
 
-    gix = coord.coords2gixs((y,x))
+    gix = coord.coords2gixs(yx)
     maxlevel = coord.maxlevel
 
     with LocalCluster(processes=processes,

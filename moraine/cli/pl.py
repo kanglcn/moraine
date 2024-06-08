@@ -85,8 +85,8 @@ def emi(
             for block in it:
                 idx = it.multi_index
                 ph_delayed[idx], emi_quality_delayed[idx] = delayed(mr.emi,pure=True,nout=2)(coh_delayed[idx])
-                ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=coh.blocks[idx].shape[0:2],meta=cp.array((),dtype=coh.dtype))
-                emi_quality_delayed[idx] = da.from_delayed(emi_quality_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=cp.array((),dtype=cp.float32))
+                ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=coh.blocks[idx].shape[0:2],meta=xp.array((),dtype=coh.dtype))
+                emi_quality_delayed[idx] = da.from_delayed(emi_quality_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
         ph = da.block(ph_delayed[...,None].tolist())
         emi_quality = da.block(emi_quality_delayed.tolist())

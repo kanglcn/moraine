@@ -14,29 +14,40 @@ from .utils_ import ngjit, ngpjit
 from .coord_ import Coord
 
 # %% ../nbs/API/pc.ipynb 9
-def _ras_dims(gix1:np.ndarray, # int array, grid index of the first point cloud
-              gix2:np.ndarray=None, # int array, grid index of the second point cloud
-             )->tuple: # the shape of the original raster image
+def _ras_dims(
+    gix1:np.ndarray, # int array, grid index of the first point cloud
+    gix2:np.ndarray=None, # int array, grid index of the second point cloud
+)->tuple: # the shape of the original raster image
     '''Get the shape of the original raster image from two index, the shape could be smaller than the truth but it doesn't matter.'''
     xp = get_array_module(gix1)
     if gix2 is None:
-        dims_az = gix1[0,-1]+1
-        dims_r = int(xp.max(gix1[1,:]))+1
+        dims_az = gix1[-1,0]+1
+        dims_r = int(xp.max(gix1[:,1]))+1
     else:
-        dims_az = max(int(gix1[0,-1]),int(gix2[0,-1]))+1
-        dims_r = max(int(xp.max(gix1[1,:])),int(xp.max(gix2[1,:])))+1
+        dims_az = max(int(gix1[-1,0]),int(gix2[-1,0]))+1
+        dims_r = max(int(xp.max(gix1[:,1])),int(xp.max(gix2[:,1])))+1
     return (dims_az,dims_r)
 
 # %% ../nbs/API/pc.ipynb 10
+def _ravel_gix(gix,dims):
+    xp = get_array_module(gix)
+    return xp.ravel_multi_index((gix[:,0],gix[:,1]),dims=dims)
+
+# %% ../nbs/API/pc.ipynb 11
+def _unravel_gix(gix_1d,dims):
+    xp = get_array_module(gix_1d)
+    return xp.stack(xp.unravel_index(gix_1d,dims),axis=-1).astype(xp.int32)
+
+# %% ../nbs/API/pc.ipynb 13
 def _check_idx_sorted(idx,shape=None):
     xp = get_array_module(idx)
     if idx.ndim == 2:
-        idx_1d = xp.ravel_multi_idx(idx,dims=shape)
+        idx_1d = _ravel_gix(idx,dims=shape)
     else:
         idx_1d = idx
     assert (xp.diff(idx_1d)>0).any(), "idx is not sorted or unique!"
 
-# %% ../nbs/API/pc.ipynb 12
+# %% ../nbs/API/pc.ipynb 15
 # Some functions adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license,
 # Which is Initially based on https://github.com/galtay/hilbert_curve, but specialized
 # for 2 dimensions with numba acceleration
@@ -148,9 +159,9 @@ def _coordinates_from_distances(p:int, # iterations to use in the hilbert curve
                                 h:np.ndarray, # 1d array of integer distances along hilbert curve
                                )->np.ndarray: # 2d array of coordinate, each row a coordinate corresponding to associated distance value in input.
     # Return the coordinates for an array of hilbert distances.
-    result = np.zeros((2, len(h)), dtype=np.int64)
+    result = np.zeros((len(h), 2), dtype=np.int32)
     for i in prange(len(h)):
-        result[:, i] = _coordinate_from_distance(p, h[i])
+        result[i] = _coordinate_from_distance(p, h[i])
     return result
 @ngpjit
 def _distances_from_coordinates(p:int, # iterations to use in the hilbert curve
@@ -158,13 +169,13 @@ def _distances_from_coordinates(p:int, # iterations to use in the hilbert curve
                                )->np.ndarray: # 1d array of distances
     # Return the hilbert distances for a given set of coordinates.
     coords = np.atleast_2d(coords).copy()
-    result = np.zeros(coords.shape[1], dtype=np.int64)
-    for i in prange(coords.shape[1]):
-        coord = coords[:, i]
+    result = np.zeros(coords.shape[0], dtype=np.int64)
+    for i in prange(coords.shape[0]):
+        coord = coords[i]
         result[i] = _distance_from_coordinate(p, coord)
     return result
 
-# %% ../nbs/API/pc.ipynb 13
+# %% ../nbs/API/pc.ipynb 16
 def pc_hix(
     gix, # grid index
     shape:tuple, # (nlines, width)
@@ -176,7 +187,7 @@ def pc_hix(
     hix = _distances_from_coordinates(p, gix)
     return hix
 
-# %% ../nbs/API/pc.ipynb 18
+# %% ../nbs/API/pc.ipynb 21
 def pc_gix(
     hix, # hillbert index
     shape:tuple, # (nlines, width)
@@ -188,7 +199,7 @@ def pc_gix(
     gix = _coordinates_from_distances(p, hix)
     return gix
 
-# %% ../nbs/API/pc.ipynb 20
+# %% ../nbs/API/pc.ipynb 23
 def pc_sort(idx:np.ndarray, # unsorted `gix` (2D) or `hix`(1D)
             shape:tuple=None, # (nline, width), faster if provided for grid index input
            )->np.ndarray: # indices that sort input
@@ -198,15 +209,15 @@ def pc_sort(idx:np.ndarray, # unsorted `gix` (2D) or `hix`(1D)
         if shape is not None:
             dims_az, dims_r = shape
         else:
-            dims_az = int(xp.max(idx[0,:]))+1
-            dims_r = int(xp.max(idx[1,:]))+1
-        idx_1d = xp.ravel_multi_index(idx,dims=(dims_az,dims_r))
+            dims_az = int(xp.max(idx[:,0]))+1
+            dims_r = int(xp.max(idx[:,1]))+1
+        idx_1d = xp.ravel_multi_index((idx[:,0],idx[:,1]),dims=(dims_az,dims_r))
     else:
         idx_1d = idx
     key = xp.argsort(idx_1d,kind='stable')
     return key
 
-# %% ../nbs/API/pc.ipynb 24
+# %% ../nbs/API/pc.ipynb 27
 def pc2ras(idx:np.ndarray, # gix or hix array
            pc_data:np.ndarray, # data, 1D or more
            shape:tuple, # image shape
@@ -219,10 +230,10 @@ def pc2ras(idx:np.ndarray, # gix or hix array
         gix = idx
     else:
         gix = pc_gix(idx, shape)
-    raster[gix[0],gix[1]] = pc_data
+    raster[gix[:,0],gix[:,1]] = pc_data
     return raster
 
-# %% ../nbs/API/pc.ipynb 26
+# %% ../nbs/API/pc.ipynb 29
 @ngjit
 def _pc_union_numba(idx1, idx2):
     # hand write merge sort
@@ -260,7 +271,7 @@ def _pc_union_numba(idx1, idx2):
 
     return idx[:i], inv_iidx1[:inv1_i], inv_iidx2[:inv2_i], ninv_iidx2[:ninv2_i]
 
-# %% ../nbs/API/pc.ipynb 27
+# %% ../nbs/API/pc.ipynb 30
 def pc_union(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
              idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
              shape:tuple=None, # image shape, faster if provided for grid index input
@@ -272,20 +283,20 @@ def pc_union(idx1:np.ndarray, # int array, grid index or hillbert index of the f
     '''Get the union of two point cloud dataset. For points at their intersection, prefer idx1 rather than idx2'''
     assert idx1.ndim == idx2.ndim
     xp = get_array_module(idx1)
-    n1 = idx1.shape[-1]; n2 = idx2.shape[-1]
+    n1 = idx1.shape[0]; n2 = idx2.shape[0]
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
-        idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64
-        idx2_1d = xp.ravel_multi_index(idx2,dims=dims)
+        idx1_1d = _ravel_gix(idx1,dims=dims) # automatically the returned 1d index is in int64
+        idx2_1d = _ravel_gix(idx2,dims=dims)
     else:
         idx1_1d = idx1; idx2_1d = idx2
-        _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
+    _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
 
     if xp is np:
         # on cpu use handwrite merge sort
         idx_1d, inv_iidx1, inv_iidx2, ninv_iidx2 = _pc_union_numba(idx1_1d,idx2_1d)
         if idx1.ndim == 2:
-            idx = xp.stack(xp.unravel_index(idx_1d,dims)).astype(idx1.dtype)
+            idx = _unravel_gix(idx_1d,dims)
         else:
             idx = idx_1d
         return idx, inv_iidx1, inv_iidx2, ninv_iidx2
@@ -317,13 +328,13 @@ def pc_union(idx1:np.ndarray, # int array, grid index or hillbert index of the f
         inv_iidx1, inv_iidx2, ninv_iidx2 = inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
         if idx1.ndim == 2:
-            idx = xp.stack(xp.unravel_index(idx_1d,dims)).astype(idx1.dtype)
+            idx = _unravel_gix(idx_1d,dims)
         else:
             idx = idx_1d
     
         return idx, inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
-# %% ../nbs/API/pc.ipynb 38
+# %% ../nbs/API/pc.ipynb 41
 def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
                  idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
                  # the intersect index `idx`,
@@ -337,18 +348,18 @@ def pc_intersect(idx1:np.ndarray, # int array, grid index or hillbert index of t
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
-        idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64
-        idx2_1d = xp.ravel_multi_index(idx2,dims=dims) # automatically the returned 1d index is in int64
+        idx1_1d = _ravel_gix(idx1,dims=dims) # automatically the returned 1d index is in int64
+        idx2_1d = _ravel_gix(idx2,dims=dims) # automatically the returned 1d index is in int64
     else:
         idx1_1d = idx1; idx2_1d = idx2
 
     _check_idx_sorted(idx1_1d); _check_idx_sorted(idx2_1d)
     idx, iidx1, iidx2 = xp.intersect1d(idx1_1d,idx2_1d,assume_unique=True,return_indices=True)
     if idx1.ndim == 2:
-        idx = xp.stack(xp.unravel_index(idx,dims)).astype(idx1.dtype)
+        idx = _unravel_gix(idx,dims)
     return idx, iidx1, iidx2
 
-# %% ../nbs/API/pc.ipynb 41
+# %% ../nbs/API/pc.ipynb 44
 def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the first point cloud
             idx2:np.ndarray, # int array, grid index or hillbert index of the second point cloud
             shape:tuple=None, # image shape, faster if provided for grid index input
@@ -360,8 +371,8 @@ def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the fi
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
-        idx1_1d = xp.ravel_multi_index(idx1,dims=dims) # automatically the returned 1d index is in int64
-        idx2_1d = xp.ravel_multi_index(idx2,dims=dims) # automatically the returned 1d index is in int64
+        idx1_1d = _ravel_gix(idx1,dims) # automatically the returned 1d index is in int64
+        idx2_1d = _ravel_gix(idx2,dims) # automatically the returned 1d index is in int64
     else:
         idx1_1d = idx1; idx2_1d = idx2
 
@@ -370,6 +381,6 @@ def pc_diff(idx1:np.ndarray, # int array, grid index or hillbert index of the fi
     idx = idx1_1d[mask]
     
     if idx1.ndim == 2:
-        idx = xp.stack(xp.unravel_index(idx,dims)).astype(idx1.dtype)
+        idx = _unravel_gix(idx,dims)
         
     return idx, xp.where(mask)[0]

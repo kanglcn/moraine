@@ -232,11 +232,12 @@ if is_cuda_available():
 @ngpjit
 def _emperical_co_pc_numba(
     rslc,
-    idx,
+    az_idx,
+    r_idx,
     pc_is_shp,
 ):
     nlines, width, nimages = rslc.shape
-    n_pc = idx.shape[1]
+    n_pc = az_idx.shape[0]
     az_win, r_win = pc_is_shp.shape[1:]
     az_half_win, r_half_win = az_win//2, r_win//2
 
@@ -253,12 +254,12 @@ def _emperical_co_pc_numba(
                     n = 0
                     for k in range(az_win):
                         for l in range(r_win):
-                            az_idx = idx[0,i] - az_half_win + k
-                            r_idx = idx[1,i] - r_half_win + l
+                            az_idx_ = az_idx[i] - az_half_win + k
+                            r_idx_ = r_idx[i] - r_half_win + l
                             # print(az_idx, r_idx, pc_is_shp[i,k,l],nlines,width)
-                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
+                            if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
                                 # print(az_idx, r_idx)
-                                rslc_ = rslc[az_idx, r_idx, m]
+                                rslc_ = rslc[az_idx_, r_idx_, m]
                                 _co_nume += rslc_.real**2 + rslc_.imag**2
                                 n += 1
                                 # print(n)
@@ -271,11 +272,11 @@ def _emperical_co_pc_numba(
                     n = 0
                     for k in range(az_win):
                         for l in range(r_win):
-                            az_idx = idx[0,i] - az_half_win + k
-                            r_idx = idx[1,i] - r_half_win + l
-                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
-                                rslc_m = rslc[az_idx, r_idx, m]
-                                rslc_j = rslc[az_idx, r_idx, j]
+                            az_idx_ = az_idx[i] - az_half_win + k
+                            r_idx_ = r_idx[i] - r_half_win + l
+                            if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
+                                rslc_m = rslc[az_idx_, r_idx_, m]
+                                rslc_j = rslc[az_idx_, r_idx_, j]
                                 _amp2_m += rslc_m.real**2 + rslc_m.imag**2
                                 _amp2_j += rslc_j.real**2 + rslc_j.imag**2
                                 _co_nume += rslc_m*np.conj(rslc_j)
@@ -291,11 +292,12 @@ def _emperical_co_pc_numba(
 @ngpjit
 def _emperical_co_pc_no_cov_numba(
     rslc,
-    idx,
+    az_idx,
+    r_idx,
     pc_is_shp,
 ):
     nlines, width, nimages = rslc.shape
-    n_pc = idx.shape[1]
+    n_pc = az_idx.shape[0]
     az_win, r_win = pc_is_shp.shape[1:]
     az_half_win, r_half_win = az_win//2, r_win//2
 
@@ -315,11 +317,11 @@ def _emperical_co_pc_no_cov_numba(
                     n = 0
                     for k in range(az_win):
                         for l in range(r_win):
-                            az_idx = idx[0,i] - az_half_win + k
-                            r_idx = idx[1,i] - r_half_win + l
-                            if (az_idx >= 0) and (az_idx < nlines) and (r_idx >= 0) and (r_idx < width) and pc_is_shp[i,k,l]:
-                                rslc_m = rslc[az_idx, r_idx, m]
-                                rslc_j = rslc[az_idx, r_idx, j]
+                            az_idx_ = az_idx[i] - az_half_win + k
+                            r_idx_ = r_idx[i] - r_half_win + l
+                            if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
+                                rslc_m = rslc[az_idx_, r_idx_, m]
+                                rslc_j = rslc[az_idx_, r_idx_, j]
                                 _amp2_m += rslc_m.real**2 + rslc_m.imag**2
                                 _amp2_j += rslc_j.real**2 + rslc_j.imag**2
                                 _co_nume += rslc_m*np.conj(rslc_j)
@@ -344,14 +346,14 @@ def emperical_co_pc(rslc:np.ndarray, # rslc stack, dtype: `cupy.complexfloating`
     az_win, r_win = pc_is_shp.shape[-2:]
     az_half_win = (az_win-1)//2
     r_half_win = (r_win-1)//2
-    az_idx = idx[0]; r_idx = idx[1]
+    az_idx = idx[:,0]; r_idx = idx[:,1]
     n_pc = az_idx.shape[0]
 
     if xp is np:
         if return_cov:
-            return _emperical_co_pc_numba(rslc,idx,pc_is_shp)
+            return _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp)
         else:
-            return _emperical_co_pc_no_cov_numba(rslc,idx,pc_is_shp)
+            return _emperical_co_pc_no_cov_numba(rslc,az_idx,r_idx,pc_is_shp)
     else:
         if return_cov:
             cov = cp.empty((n_pc,nimages,nimages),dtype=rslc.dtype)
