@@ -51,7 +51,7 @@ def _ks_test_no_dist_numba(
     n_az, n_r,n_imag = rmli.shape
     p = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
     for i in prange(n_az):
-        for j in range(n_r):
+        for j in prange(n_r):
             ref_rmli = rmli[i,j]
             if math.isnan(ref_rmli[-1]):
                 for l in range(-az_half_win, az_half_win+1):
@@ -84,7 +84,7 @@ def _ks_test_numba(
     dist = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
     p = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
     for i in prange(n_az):
-        for j in range(n_r):
+        for j in prange(n_r):
             ref_rmli = rmli[i,j]
             if math.isnan(ref_rmli[-1]):
                 for l in range(-az_half_win, az_half_win+1):
@@ -118,7 +118,7 @@ def _sort_numba(
     n_az, n_r,n_imag = rmli.shape
     sorted_rmli = np.empty_like(rmli)
     for i in prange(n_az):
-        for j in range(n_r):
+        for j in prange(n_r):
             sorted_rmli[i,j] = np.sort(rmli[i,j])
     return sorted_rmli
 

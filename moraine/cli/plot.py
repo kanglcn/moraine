@@ -433,6 +433,8 @@ def _is_nan_range(x_range):
         return True
     if np.isnan(x_range[0]):
         return True
+    if abs(x_range[1]-x_range[0]) == 0:
+        return True
     return False
 
 # %% ../../nbs/CLI/plot.ipynb 61

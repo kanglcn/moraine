@@ -15,15 +15,16 @@ if is_cuda_available():
 # already robust enough for nan value
 @numba.jit(nopython=True, cache=True,parallel=True)
 def _amp_disp_numba(rslc):
-    nlines, width = rslc.shape[:-1]
-    amp_disp = np.empty((nlines,width),dtype=np.float32)
-    for j in numba.prange(nlines):
-        for i in range(width):
-            amp = np.abs(rslc[j,i,:])
-            mean = np.mean(amp)
-            std = np.std(amp)
-            amp_disp[j,i] = std/mean
-    return amp_disp
+    nlines, width, nimages = rslc.shape
+    npixels = nlines*width
+    rslc = rslc.reshape(npixels,nimages)
+    amp_disp = np.empty(npixels,dtype=np.float32)
+    for i in numba.prange(npixels):
+        amp = np.abs(rslc[i,:])
+        mean = np.mean(amp)
+        std = np.std(amp)
+        amp_disp[i] = std/mean
+    return amp_disp.reshape(nlines,width)
 
 # %% ../nbs/API/ps.ipynb 6
 # already robust enough for nan value
