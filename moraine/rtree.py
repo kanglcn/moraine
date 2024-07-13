@@ -335,13 +335,13 @@ class HilbertRtree:
         bounds_tree = _build_hillbert_rtree(x.astype(np.float64), y.astype(np.float64), page_size)
         return cls(bounds_tree,x.shape[0], page_size)
 
-    def save(path:str, # zarr path
+    def save(self,path:str, # zarr path
             ):
         '''Save the HilbertRtree.'''
-        zarr.open(path,'w',shape=self._bounds_tree.shape,dtype=self._bounds_tree.shape)
-        zarr[:] = self._bounds_tree[:]
-        zarr.attrs['page_size'] = self._page_size
-        zarr.attres['n_points'] = self._n_points
+        bounds_tree_zarr = zarr.open(path,'w',shape=self._bounds_tree.shape,dtype=self._bounds_tree.dtype)
+        bounds_tree_zarr[:] = self._bounds_tree[:]
+        bounds_tree_zarr.attrs['page_size'] = self._page_size
+        bounds_tree_zarr.attrs['n_points'] = self._n_points
 
     @classmethod
     def load(cls, zarr_path:str, # zarr path

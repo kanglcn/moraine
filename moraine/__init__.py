@@ -4,6 +4,9 @@ __version__ = "0.8.0"
 from .pc import *
 from .rtree import *
 
+# amplitude and calibration
+from .calamp import *
+
 # PS
 from .ps import *
 

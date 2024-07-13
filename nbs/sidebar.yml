@@ -7,6 +7,7 @@ website:
           - Introduction/software_architecture.ipynb
       - section: API
         contents:
+          - API/calamp.ipynb
           - API/pc.ipynb
           - API/rtree.ipynb
           - API/ps.ipynb

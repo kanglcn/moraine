@@ -25,7 +25,7 @@ if is_cuda_available():
 import moraine as mr
 from .logging import mc_logger
 
-# %% ../../nbs/CLI/shp.ipynb 5
+# %% ../../nbs/CLI/shp.ipynb 6
 @mc_logger
 def shp_test(
     rslc:str, # input: rslc stack
@@ -79,7 +79,6 @@ def shp_test(
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
         cpu_rslc = da.from_zarr(rslc_path,chunks=chunks); logger.darr_info('rslc',cpu_rslc)
-        cpu_rmli = da.abs(cpu_rslc)**2
 
         az_win = 2*az_half_win+1
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
@@ -87,14 +86,15 @@ def shp_test(
         logger.info(f'range half window size: {r_half_win}; range window size: {r_win}')
 
         depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
-        cpu_rmli_overlap = da.overlap.overlap(cpu_rmli,depth=depth, boundary=boundary)
-        logger.info('setting shared boundaries between rmli chunks.')
-        logger.darr_info('rmli with overlap', cpu_rmli_overlap)
+        cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
+        logger.info('setting shared boundaries between rslc chunks.')
+        logger.darr_info('rslc with overlap', cpu_rslc_overlap)
 
         if cuda:
-            rmli_overlap = cpu_rmli_overlap.map_blocks(xp.asarray)
+            rslc_overlap = cpu_rslc_overlap.map_blocks(xp.asarray)
         else:
-            rmli_overlap = cpu_rmli_overlap
+            rslc_overlap = cpu_rslc_overlap
+        rmli_overlap = rslc_overlap.map_blocks(mr.rslc2amp)
         p_chunks = (*rmli_overlap.chunks[:2],(az_win,),(r_win,))
         logger.info('applying test on rmli stack.')
         p = rmli_overlap.map_blocks(mr.ks_test,az_half_win=az_half_win,r_half_win=r_half_win,
@@ -122,7 +122,7 @@ def shp_test(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/shp.ipynb 11
+# %% ../../nbs/CLI/shp.ipynb 12
 @mc_logger
 def select_shp(
     pvalue:str, # input: pvalue of hypothetic test
