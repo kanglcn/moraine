@@ -165,9 +165,9 @@ def load_gamma_flatten_rslc(
     hgt:str, # the DEM in radar coordinate
     scratch_dir:str, # directory for preserve gamma intermediate files
     rslc_zarr:str, # output, the flattened rslcs stack in zarr format
-    chunks:tuple[int,int]=(1000,1000), # rslc chunk size
+    chunks:tuple[int,int]=(50,-1), # rslc chunk size
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -260,7 +260,7 @@ def load_gamma_lat_lon_hgt(diff_par:str, # geocoding diff_par,using the simulate
                            lat_zarr:str, # output, latitude zarr
                            lon_zarr:str, # output, longitude zarr
                            hgt_zarr:str, # output, height zarr
-                           chunks:tuple[int,int]=(1000,1000), # rslc chunk size
+                           chunks:tuple[int,int]=(50,-1), # rslc chunk size
                           ):
     '''
     Function to load longitude and latitude from gamma binary format to zarr.
@@ -318,7 +318,7 @@ def load_gamma_look_vector(theta:str, # elevation angle
                            scratch_dir:str, # directory for preserve gamma intermediate files
                            theta_zarr:str, # output, elevation angle zarr
                            phi_zarr:str, # output, orientation angle zarr
-                           chunks:tuple[int,int]=(1000,1000), # rslc chunk size
+                           chunks:tuple[int,int]=(50,-1), # rslc chunk size
                           ):
     '''
     Load look vector (elevation angle and orientation angle) in map geometry
@@ -366,7 +366,7 @@ def load_gamma_look_vector(theta:str, # elevation angle
 @mc_logger
 def load_gamma_range(rslc_par:str, # par file of one rslc
                      range_zarr:str, # output, range distance zarr
-                     chunks:tuple[int,int]=(1000,1000), # rslc chunk size
+                     chunks:tuple[int,int]=(50,-1), # rslc chunk size
                     ):
     '''
     Generate slant range distance and save to zarr.

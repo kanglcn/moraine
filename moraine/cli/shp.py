@@ -25,7 +25,7 @@ if is_cuda_available():
 import moraine as mr
 from .logging import mc_logger
 
-# %% ../../nbs/CLI/shp.ipynb 6
+# %% ../../nbs/CLI/shp.ipynb 5
 @mc_logger
 def shp_test(
     rslc:str, # input: rslc stack
@@ -78,7 +78,7 @@ def shp_test(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        cpu_rslc = da.from_zarr(rslc_path,chunks=chunks); logger.darr_info('rslc',cpu_rslc)
+        cpu_rslc = da.from_zarr(rslc_path,chunks=chunks,inline_array=True); logger.darr_info('rslc',cpu_rslc)
 
         az_win = 2*az_half_win+1
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
@@ -115,14 +115,16 @@ def shp_test(
         logger.info('saving p value.')
 
         logger.info('computing graph setted. doing all the computing.')
+        #_p.visualize(filename='_p.svg',color='order',cmap="autumn",optimize_graph=True)
         futures = client.persist(_p)
+        
         progress(futures,notebook=False)
         time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/shp.ipynb 12
+# %% ../../nbs/CLI/shp.ipynb 11
 @mc_logger
 def select_shp(
     pvalue:str, # input: pvalue of hypothetic test
@@ -153,7 +155,7 @@ def select_shp(
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
 
-        p = da.from_zarr(pvalue,chunks=chunks)
+        p = da.from_zarr(pvalue,chunks=chunks,inline_array=True)
         logger.darr_info('pvalue', p)
         p_delayed = p.to_delayed()
         is_shp_delayed = np.empty_like(p_delayed,dtype=object)

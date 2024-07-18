@@ -10,6 +10,7 @@ website:
           - API/calamp.ipynb
           - API/pc.ipynb
           - API/rtree.ipynb
+          - API/tnet.ipynb
           - API/ps.ipynb
           - API/shp.ipynb
           - API/co.ipynb

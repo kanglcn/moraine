@@ -44,6 +44,7 @@ def emi(
 
     logger = logging.getLogger(__name__)
     coh_zarr = zarr.open(coh_path,mode='r')
+    n_image = mr.nimage_from_npair(coh_zarr.shape[-1])
     logger.zarr_info(coh_path,coh_zarr)
 
     if chunks is None: chunks = coh_zarr.chunks[0] 
@@ -67,7 +68,7 @@ def emi(
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
-        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
+        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]), inline_array=True)
         logger.darr_info('coh', cpu_coh)
 
         logger.info(f'phase linking with EMI.')
@@ -76,7 +77,7 @@ def emi(
         else:
             coh = cpu_coh
         coh_delayed = coh.to_delayed()
-        coh_delayed = np.squeeze(coh_delayed,axis=(-2,-1))
+        coh_delayed = np.squeeze(coh_delayed,axis=-1)
 
         ph_delayed = np.empty_like(coh_delayed,dtype=object)
         emi_quality_delayed = np.empty_like(coh_delayed,dtype=object)
@@ -85,7 +86,7 @@ def emi(
             for block in it:
                 idx = it.multi_index
                 ph_delayed[idx], emi_quality_delayed[idx] = delayed(mr.emi,pure=True,nout=2)(coh_delayed[idx])
-                ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=coh.blocks[idx].shape[0:2],meta=xp.array((),dtype=coh.dtype))
+                ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=(coh.blocks[idx].shape[0],n_image),meta=xp.array((),dtype=coh.dtype))
                 emi_quality_delayed[idx] = da.from_delayed(emi_quality_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
         ph = da.block(ph_delayed[...,None].tolist())
@@ -101,7 +102,7 @@ def emi(
         logger.darr_info('emi_quality', cpu_emi_quality)
 
         logger.info(f'rechunk ph')
-        cpu_ph.rechunk((cpu_ph.chunksize[0],1,1))
+        cpu_ph = cpu_ph.rechunk((cpu_ph.chunksize[0],1))
         logger.darr_info('ph', cpu_ph)
 
         logger.info('saving ph and emi_quality.')
@@ -120,7 +121,8 @@ def emi(
 def ds_temp_coh(
     coh:str, # coherence matrix
     ph:str, # wrapped phase
-    t_coh:str, # output, temporal coherence
+    t_coh:str=None, # output, temporal coherence
+    tnet:str=None, # temporal network
     chunks:int=None, # number of point cloud chunk, same as coh by default
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
@@ -138,6 +140,7 @@ def ds_temp_coh(
     logger = logging.getLogger(__name__)
     coh_zarr = zarr.open(coh_path,mode='r'); logger.zarr_info(coh_path,coh_zarr)
     ph_zarr = zarr.open(ph_path,mode='r'); logger.zarr_info(ph_path,ph_zarr)
+    nimage = ph_zarr.shape[-1]
 
     if chunks is None: chunks = coh_zarr.chunks[0] 
     if cuda:
@@ -153,17 +156,23 @@ def ds_temp_coh(
         Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
         cluster_args.update(dask_cluster_arg)
         xp = np
-
+        
+    if tnet is not None:
+        tnet = mr.TempNet.load(tnet)
+    else:
+        tnet = mr.TempNet.from_bandwidth(nimage)
+    image_pairs = tnet.image_pairs
+    
     logger.info('starting dask local cluster.')
     with Cluster(**cluster_args) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
-        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]))
+        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]),inline_array=True)
         logger.darr_info('coh', cpu_coh)
         
-        cpu_ph = da.from_zarr(ph_path, chunks=(chunks,*ph_zarr.shape[1:]))
+        cpu_ph = da.from_zarr(ph_path, chunks=(chunks,*ph_zarr.shape[1:]),inline_array=True)
         logger.darr_info('ph', cpu_ph)
 
         logger.info(f'Estimate temporal coherence for DS.')
@@ -175,7 +184,7 @@ def ds_temp_coh(
             ph = cpu_ph
 
         coh_delayed = coh.to_delayed()
-        coh_delayed = np.squeeze(coh_delayed,axis=(-2,-1))
+        coh_delayed = np.squeeze(coh_delayed,axis=-1)
         ph_delayed = ph.to_delayed()
         ph_delayed = np.squeeze(ph_delayed,axis=-1)
         t_coh_delayed = np.empty_like(coh_delayed,dtype=object)
@@ -183,7 +192,7 @@ def ds_temp_coh(
         with np.nditer(coh_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
             for block in it:
                 idx = it.multi_index
-                t_coh_delayed[idx] = delayed(mr.ds_temp_coh,pure=True,nout=1)(coh_delayed[idx],ph_delayed[idx])
+                t_coh_delayed[idx] = delayed(mr.ds_temp_coh,pure=True,nout=1)(coh_delayed[idx],ph_delayed[idx],image_pairs=image_pairs)
                 t_coh_delayed[idx] = da.from_delayed(t_coh_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
             t_coh = da.block(t_coh_delayed.tolist())

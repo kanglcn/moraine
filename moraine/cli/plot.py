@@ -79,7 +79,7 @@ def ras_pyramid(
                       **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
-        ras_data = da.from_zarr(ras,chunks=(ny,nx,*channel_chunks))
+        ras_data = da.from_zarr(ras,chunks=(ny,nx,*channel_chunks),inline_array=True)
         output_futures = []
         for level in range(maxlevel+1):
             if level == 0: # no downsampling, just copy
@@ -387,7 +387,7 @@ def pc_pyramid(
         output_futures.append(da.to_zarr(y_darr, out_dir/f'y.zarr', compute=False, overwrite=True))
         logger.info('pc data coordinates rendering ends.')
 
-        pc_darr = da.from_zarr(pc,chunks=(n_pc,*channel_chunks))
+        pc_darr = da.from_zarr(pc,chunks=(n_pc,*channel_chunks),inline_array=True)
         out_pc_darr = pc_darr.rechunk((pc_chunks,*channel_chunks))
         output_futures.append(da.to_zarr(out_pc_darr, out_dir/f'pc.zarr', compute=False, overwrite=True))
         logger.info('pc data rendering ends.')

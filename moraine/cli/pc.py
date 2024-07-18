@@ -84,7 +84,7 @@ def ras2pc(
     pc:str|list, # output, path (in string) or list of path for point cloud data
     chunks:int=None, # output point chunk size, same as gix by default
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -123,7 +123,7 @@ def ras2pc(
         for ras_path, pc_path in zip(ras_list,pc_list):
             logger.info(f'start to slice on {ras_path}')
             ras_zarr = zarr.open(ras_path,'r'); logger.zarr_info(ras_path, ras_zarr)
-            ras = da.from_zarr(ras_path,chunks=(*ras_zarr.shape[:2],*ras_zarr.chunks[2:])); logger.darr_info('ras',ras)
+            ras = da.from_zarr(ras_path,chunks=(*ras_zarr.shape[:2],*ras_zarr.chunks[2:]),inline_array=True); logger.darr_info('ras',ras)
             pc = da.map_blocks(_ras2pc, ras, gix_darr, dtype=ras.dtype, chunks=(n_pc,*ras.chunks[2:]),drop_axis=0)
             logger.darr_info('pc', pc)
             logger.info('rechunk pc data:')
@@ -163,7 +163,7 @@ def pc2ras(
     shape:tuple[int], # shape of one image (nlines,width)
     chunks:tuple[int]=(1000,1000), # output chunk size
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -202,7 +202,7 @@ def pc2ras(
             pc_zarr = zarr.open(pc_path,'r')
             logger.zarr_info(pc_path,pc_zarr)
 
-            pc = da.from_zarr(pc_path, chunks=(pc_zarr.shape[0],*pc_zarr.chunks[1:]))
+            pc = da.from_zarr(pc_path, chunks=(pc_zarr.shape[0],*pc_zarr.chunks[1:]),inline_array=True)
             logger.darr_info('pc', pc)
             logger.info('create ras dask array')
             ras = da.map_blocks(_pc2ras, pc, gix_darr, shape, dtype=pc.dtype, chunks=(*shape,*pc_zarr.chunks[1:]))
@@ -272,7 +272,7 @@ def pc_sort(
     shape:tuple=None, # (nline, width), faster if provided for grid index input
     chunks:int=None, # chunk size in output data, same as `idx_in` by default
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -310,7 +310,7 @@ def pc_sort(
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
             pc_in_zarr = zarr.open(pc_in_path,'r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = da.from_zarr(pc_in_zarr,chunks=(n_pc,*pc_in_zarr.chunks[1:]))
+            pc_in = da.from_zarr(pc_in_zarr,chunks=(n_pc,*pc_in_zarr.chunks[1:]),inline_array=True)
             logger.darr_info('pc_in', pc_in)
             logger.info('set up sorted pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc_in, iidx, chunks=pc_in.chunks, dtype=pc_in.dtype)
@@ -350,7 +350,7 @@ def pc_union(
     shape:tuple=None, # image shape, faster if provided for grid index input
     chunks:int=None, # chunk size in output data, same as `idx1` by default
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -400,8 +400,8 @@ def pc_union(
         for pc1_path, pc2_path, pc_path in zip(pc1_list,pc2_list,pc_list):
             pc1_zarr = zarr.open(pc1_path,'r'); pc2_zarr = zarr.open(pc2_path,'r')
             logger.zarr_info(pc1_path, pc1_zarr); logger.zarr_info(pc2_path, pc2_zarr);
-            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:]))
-            pc2 = da.from_zarr(pc2_path,chunks=(pc2_zarr.shape[0],*pc2_zarr.chunks[1:]))
+            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:]),inline_array=True)
+            pc2 = da.from_zarr(pc2_path,chunks=(pc2_zarr.shape[0],*pc2_zarr.chunks[1:]),inline_array=True)
             logger.darr_info('pc1', pc1); logger.darr_info('pc2',pc2)
             logger.info('set up union pc data dask array.')
             # pc = da.empty((n_pc,*pc1.shape[1:]),chunks = (n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
@@ -438,7 +438,7 @@ def pc_intersect(
     chunks:int=None, # chunk size in output data, same as `idx1` by default
     prefer_1=True, # save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -495,7 +495,7 @@ def pc_intersect(
         for pc_input_path, pc_path in zip(pc_input_list,pc_list):
             pc_input_zarr = zarr.open(pc_input_path,'r')
             logger.zarr_info(pc_input_path,pc_input_zarr)
-            pc_input = da.from_zarr(pc_input_path,chunks=(pc_input_zarr.shape[0],*pc_input_zarr.chunks[1:]))
+            pc_input = da.from_zarr(pc_input_path,chunks=(pc_input_zarr.shape[0],*pc_input_zarr.chunks[1:]),inline_array=True)
             logger.darr_info('pc_input', pc_input)
 
             logger.info('set up intersect pc data dask array.')
@@ -530,7 +530,7 @@ def pc_diff(
     shape:tuple=None, # image shape, faster if provided for grid index input
     chunks:int=None, # chunk size in output data,optional
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
            ):
@@ -580,7 +580,7 @@ def pc_diff(
         _pc_list = ()
         for pc1_path, pc_path in zip(pc1_list,pc_list):
             pc1_zarr = zarr.open(pc1_path,'r'); logger.zarr_info(pc1_path, pc1_zarr)
-            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:])); logger.darr_info('pc1', pc1)
+            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:]),inline_array=True); logger.darr_info('pc1', pc1)
             logger.info('set up diff pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc1, iidx1_darr, chunks = (n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
             logger.darr_info('pc',pc)
@@ -667,7 +667,7 @@ def pc_select_data(
     shape:tuple=None, # shape of the raster data the point cloud from, must be provided if `idx` is hix
     chunks:int=None, # chunk size in output data, same as chunks of `idx` by default
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -709,7 +709,7 @@ def pc_select_data(
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
             pc_in_zarr = zarr.open(pc_in_path,'r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = da.from_zarr(pc_in_path,chunks=(pc_in_zarr.shape[0],*pc_in_zarr.chunks[1:])); logger.darr_info('pc_in', pc_in)
+            pc_in = da.from_zarr(pc_in_path,chunks=(pc_in_zarr.shape[0],*pc_in_zarr.chunks[1:]),inline_array=True); logger.darr_info('pc_in', pc_in)
             logger.info('set up selected pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc_in, iidx_in_darr, chunks = (n_pc, *pc_in.chunks[1:]), dtype=pc_in.dtype)
             # pc = da.empty((n_pc,*pc_in.shape[1:]),chunks = (n_pc,*pc_in.chunks[1:]), dtype=pc_in.dtype)
@@ -740,7 +740,7 @@ def data_reduce(
     axis=0, # axis to be reduced, 0 for point cloud data, (0,1) for raster data
     post_map_func:Callable=None, # post mapping after reduction, no mapping by default
     processes=False, # use process for dask worker or thread
-    n_workers=2, # number of dask worker
+    n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
@@ -754,7 +754,7 @@ def data_reduce(
                       **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
-        data_in = da.from_zarr(data_in_path); logger.darr_info('data_in', data_in)
+        data_in = da.from_zarr(data_in_path,inline_array=True); logger.darr_info('data_in', data_in)
         if map_func is not None:
             map_data_in = da.map_blocks(map_func, data_in)
         else:

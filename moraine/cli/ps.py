@@ -64,7 +64,7 @@ def amp_disp(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
-        cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]))
+        cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]), inline_array=True)
         logger.darr_info('rslc', cpu_rslc)
         logger.info(f'calculate amplitude dispersion index.')
         rslc = cpu_rslc.map_blocks(cp.asarray) if cuda else cpu_rslc

@@ -41,7 +41,7 @@ def math(output:str, # path to output
         
         for name, path in data.items():
             names.append(name)
-            darr = da.from_zarr(path); logger.darr_info(name,darr)
+            darr = da.from_zarr(path,inline_array=True); logger.darr_info(name,darr)
             darrs.append(darr)
         darr0 = darrs[0]
         darrs = [darr.to_delayed() for darr in darrs]

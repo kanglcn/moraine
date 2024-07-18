@@ -3,6 +3,7 @@ __version__ = "0.8.0"
 # infrastructure
 from .pc import *
 from .rtree import *
+from .tnet import *
 
 # amplitude and calibration
 from .calamp import *
