@@ -20,6 +20,7 @@ if is_cuda_available():
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/ps.ipynb 5
 @mc_logger
@@ -64,7 +65,9 @@ def amp_disp(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
-        cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]), inline_array=True)
+        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=2)
+        cpu_rslc = cpu_rslc.rechunk((*chunks,*rslc_zarr.shape[2:]))
+        #cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]), inline_array=True)
         logger.darr_info('rslc', cpu_rslc)
         logger.info(f'calculate amplitude dispersion index.')
         rslc = cpu_rslc.map_blocks(cp.asarray) if cuda else cpu_rslc

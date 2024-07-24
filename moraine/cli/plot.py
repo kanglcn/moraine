@@ -30,6 +30,7 @@ from ..utils_ import ngpjit
 from ..rtree import HilbertRtree
 from .logging import mc_logger
 from ..coord_ import Coord
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/plot.ipynb 5
 def _zarr_stack_info(
@@ -79,7 +80,9 @@ def ras_pyramid(
                       **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
-        ras_data = da.from_zarr(ras,chunks=(ny,nx,*channel_chunks),inline_array=True)
+        ras_data = dask_from_zarr(ras,parallel_dims=(0,1))
+        ras_data = ras_data.rechunk((ny,nx,*channel_chunks))
+        #ras_data = da.from_zarr(ras,chunks=(ny,nx,*channel_chunks),inline_array=True)
         output_futures = []
         for level in range(maxlevel+1):
             if level == 0: # no downsampling, just copy
@@ -88,9 +91,14 @@ def ras_pyramid(
                 chunks = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)), *channel_chunks)
                 downsampled_ras = last_downsampled_ras.map_blocks(_ras_downsample,dtype=ras_data.dtype,chunks=chunks)
             last_downsampled_ras = downsampled_ras
-            out_downsampled_ras = downsampled_ras.rechunk((*out_chunks,*channel_chunks))
-            logger.darr_info(f'downsampled ras in level {level}',out_downsampled_ras)
-            output_future = da.to_zarr(out_downsampled_ras, zarr.NestedDirectoryStore(out_dir/f'{level}.zarr'), compute=False,overwrite=True)
+            #out_downsampled_ras = downsampled_ras.rechunk((*out_chunks,*channel_chunks))
+            logger.darr_info(f'downsampled ras dask array in level {level}',downsampled_ras)
+            downsampled_ras_store = zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')
+            downsampled_ras_zarr = zarr.zeros(downsampled_ras.shape,
+                                              dtype=downsampled_ras.dtype,chunks=(*out_chunks,*channel_chunks),
+                                              store=downsampled_ras_store,overwrite=True)
+            output_future = dask_to_zarr(downsampled_ras,downsampled_ras_zarr,chunks=(*out_chunks,*channel_chunks),path=out_dir/f'{level}.zarr')
+            #output_future = da.to_zarr(out_downsampled_ras, zarr.NestedDirectoryStore(out_dir/f'{level}.zarr'), compute=False,overwrite=True)
             output_futures.append(output_future)
             # output_futures.append(downsampled_ras.rechunk((*out_chunks,*channel_chunks)).to_zarr(zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')))
         logger.info('computing graph setted. doing all the computing.')
@@ -387,9 +395,12 @@ def pc_pyramid(
         output_futures.append(da.to_zarr(y_darr, out_dir/f'y.zarr', compute=False, overwrite=True))
         logger.info('pc data coordinates rendering ends.')
 
-        pc_darr = da.from_zarr(pc,chunks=(n_pc,*channel_chunks),inline_array=True)
-        out_pc_darr = pc_darr.rechunk((pc_chunks,*channel_chunks))
-        output_futures.append(da.to_zarr(out_pc_darr, out_dir/f'pc.zarr', compute=False, overwrite=True))
+        pc_darr = dask_from_zarr(pc,parallel_dims=0)
+        pc_darr = pc_darr.rechunk((n_pc,*channel_chunks))
+        #pc_darr = da.from_zarr(pc,chunks=(n_pc,*channel_chunks),inline_array=True)
+        #out_pc_darr = pc_darr.rechunk((pc_chunks,*channel_chunks))
+        #output_futures.append(da.to_zarr(out_pc_darr, out_dir/f'pc.zarr', compute=False, overwrite=True))
+        output_futures.append(dask_to_zarr(pc_darr, out_dir/f'pc.zarr', chunks=(pc_chunks,*channel_chunks)))
         logger.info('pc data rendering ends.')
 
         delayed_next_idx = delayed(_next_level_idx_from_raster_of_integer,pure=True,nout=2)
@@ -410,12 +421,14 @@ def pc_pyramid(
                 current_ras = last_ras.map_blocks(_next_ras, yi, xi, dtype=last_ras.dtype, chunks=(*shape, *channel_chunks))
                 current_idx = last_idx.map_blocks(_next_ras, yi, xi, dtype=last_idx.dtype, chunks=shape)
 
-            out_current_ras = current_ras.rechunk((*ras_chunks, *channel_chunks))
-            out_current_idx = current_idx.rechunk(ras_chunks)
-            logger.darr_info(f'rasterized pc data at level {level}', out_current_ras)
-            logger.darr_info(f'rasterized pc index at level {level}', out_current_idx)
-            output_futures.append(da.to_zarr(out_current_ras, out_dir/f'{level}.zarr', compute=False, overwrite=True))
-            output_futures.append(da.to_zarr(out_current_idx, out_dir/f'idx_{level}.zarr', compute=False, overwrite=True))
+            # out_current_ras = current_ras.rechunk((*ras_chunks, *channel_chunks))
+            # out_current_idx = current_idx.rechunk(ras_chunks)
+            logger.darr_info(f'rasterized pc data at level {level}', current_ras)
+            logger.darr_info(f'rasterized pc index at level {level}', current_idx)
+            output_futures.append(dask_to_zarr(current_ras, out_dir/f'{level}.zarr', chunks=(*ras_chunks, *channel_chunks)))
+            output_futures.append(dask_to_zarr(current_idx, out_dir/f'idx_{level}.zarr', chunks=ras_chunks))
+            #output_futures.append(da.to_zarr(out_current_ras, out_dir/f'{level}.zarr', compute=False, overwrite=True))
+            #output_futures.append(da.to_zarr(out_current_idx, out_dir/f'idx_{level}.zarr', compute=False, overwrite=True))
             last_ras = current_ras
             last_idx = current_idx
 

@@ -19,6 +19,7 @@ from dask.distributed import Client, LocalCluster, progress
 from .logging import mc_logger
 import moraine as mr
 from ..utils_ import ngjit
+from . import dask_to_zarr, dask_from_zarr
 
 # %% ../../nbs/CLI/pc.ipynb 5
 @mc_logger
@@ -123,15 +124,12 @@ def ras2pc(
         for ras_path, pc_path in zip(ras_list,pc_list):
             logger.info(f'start to slice on {ras_path}')
             ras_zarr = zarr.open(ras_path,'r'); logger.zarr_info(ras_path, ras_zarr)
-            ras = da.from_zarr(ras_path,chunks=(*ras_zarr.shape[:2],*ras_zarr.chunks[2:]),inline_array=True); logger.darr_info('ras',ras)
+            ras = dask_from_zarr(ras_path,parallel_dims=(0,1)); logger.darr_info('ras',ras)
             pc = da.map_blocks(_ras2pc, ras, gix_darr, dtype=ras.dtype, chunks=(n_pc,*ras.chunks[2:]),drop_axis=0)
             logger.darr_info('pc', pc)
-            logger.info('rechunk pc data:')
-            pc = pc.rechunk((chunks,*pc.chunksize[1:]))
-            logger.darr_info('pc', pc)
-            _pc = pc.to_zarr(pc_path,overwrite=True,compute=False)
-            #_pc.visualize(filename=f'_pc.svg')
             logger.info(f'saving to {pc_path}.')
+            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
+            #_pc.visualize(filename=f'_pc.svg')
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -161,7 +159,7 @@ def pc2ras(
     pc:str|list, # path (in string) or list of path for point cloud data
     ras:str|list, # output, path (in string) or list of path for raster data
     shape:tuple[int], # shape of one image (nlines,width)
-    chunks:tuple[int]=(1000,1000), # output chunk size
+    chunks:tuple[int]=(1000,-1), # output chunk size
     processes=False, # use process for dask worker or thread
     n_workers=1, # number of dask worker
     threads_per_worker=2, # number of threads per dask worker
@@ -202,13 +200,13 @@ def pc2ras(
             pc_zarr = zarr.open(pc_path,'r')
             logger.zarr_info(pc_path,pc_zarr)
 
-            pc = da.from_zarr(pc_path, chunks=(pc_zarr.shape[0],*pc_zarr.chunks[1:]),inline_array=True)
+            pc = dask_from_zarr(pc_path,parallel_dims=0)
             logger.darr_info('pc', pc)
             logger.info('create ras dask array')
             ras = da.map_blocks(_pc2ras, pc, gix_darr, shape, dtype=pc.dtype, chunks=(*shape,*pc_zarr.chunks[1:]))
-            ras = ras.rechunk((*chunks,*pc_zarr.chunks[1:]))
             logger.darr_info('ras', ras)
-            _ras = ras.to_zarr(ras_path,overwrite=True,compute=False)
+            logger.info(f'save ras to {ras_path}')
+            _ras = dask_to_zarr(ras,ras_path,chunks=(*chunks,*pc_zarr.chunks[1:]))
             _ras_list += (_ras,)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -310,16 +308,13 @@ def pc_sort(
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
             pc_in_zarr = zarr.open(pc_in_path,'r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = da.from_zarr(pc_in_zarr,chunks=(n_pc,*pc_in_zarr.chunks[1:]),inline_array=True)
+            pc_in = dask_from_zarr(pc_in_path,parallel_dims=0)
             logger.darr_info('pc_in', pc_in)
             logger.info('set up sorted pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc_in, iidx, chunks=pc_in.chunks, dtype=pc_in.dtype)
             logger.darr_info('pc',pc)
-            logger.info('rechunk dask array for writing.')
-            pc = pc.rechunk((chunks,*pc.chunks[1:]))
-            logger.darr_info('pc',pc)
-            logger.info('write')
-            _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+            logger.info(f'write pc to {pc_path}')
+            _pc = dask_to_zarr(pc, pc_path, chunks=(chunks,*pc.chunksize[1:]))
             # _pc.visualize(filename=f'_pc.svg')
             _pc_list += (_pc,)
 
@@ -400,21 +395,15 @@ def pc_union(
         for pc1_path, pc2_path, pc_path in zip(pc1_list,pc2_list,pc_list):
             pc1_zarr = zarr.open(pc1_path,'r'); pc2_zarr = zarr.open(pc2_path,'r')
             logger.zarr_info(pc1_path, pc1_zarr); logger.zarr_info(pc2_path, pc2_zarr);
-            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:]),inline_array=True)
-            pc2 = da.from_zarr(pc2_path,chunks=(pc2_zarr.shape[0],*pc2_zarr.chunks[1:]),inline_array=True)
+            pc1 = dask_from_zarr(pc1_path,parallel_dims=0)
+            pc2 = dask_from_zarr(pc2_path,parallel_dims=0)
             logger.darr_info('pc1', pc1); logger.darr_info('pc2',pc2)
             logger.info('set up union pc data dask array.')
-            # pc = da.empty((n_pc,*pc1.shape[1:]),chunks = (n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
             pc = da.map_blocks(_pc_union, pc1,pc2,inv_iidx1,inv_iidx2,iidx2,n_pc, chunks=(n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
             logger.darr_info('pc',pc)
-            pc[inv_iidx1] = pc1
-            pc[inv_iidx2] = pc2[iidx2]
-            logger.info('rechunk dask array for writing.')
-            pc = pc.rechunk((chunks,*pc.chunks[1:]))
-            logger.darr_info('pc',pc)
-            logger.info('write')
+            logger.info(f'write pc to {pc_path}')
+            _pc = dask_to_zarr(pc, pc_path, chunks=(chunks,*pc.chunksize[1:]))
             # pc.visualize(filename=f'pc.svg')
-            _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -495,21 +484,15 @@ def pc_intersect(
         for pc_input_path, pc_path in zip(pc_input_list,pc_list):
             pc_input_zarr = zarr.open(pc_input_path,'r')
             logger.zarr_info(pc_input_path,pc_input_zarr)
-            pc_input = da.from_zarr(pc_input_path,chunks=(pc_input_zarr.shape[0],*pc_input_zarr.chunks[1:]),inline_array=True)
+            pc_input = dask_from_zarr(pc_input_path,parallel_dims=0)
             logger.darr_info('pc_input', pc_input)
 
             logger.info('set up intersect pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc_input, iidx_darr, chunks = (n_pc,*pc_input.chunks[1:]), dtype=pc_input.dtype)
-            
-            # pc = da.empty((n_pc,*pc_input.shape[1:]),chunks = (n_pc,*pc_input.chunks[1:]), dtype=pc_input.dtype)
             logger.darr_info('pc',pc)
-            # pc[:] = pc_input[iidx]
-            logger.info('rechunk dask array for writing.')
-            pc = pc.rechunk((chunks,*pc.chunks[1:]))
-            logger.darr_info('pc',pc)
-            logger.info('write')
-            # pc.visualize(filename=f'pc.svg')
-            _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+            logger.info(f'write pc to {pc_path}')
+            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
+            #pc.visualize(filename=f'pc.svg')
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -580,17 +563,14 @@ def pc_diff(
         _pc_list = ()
         for pc1_path, pc_path in zip(pc1_list,pc_list):
             pc1_zarr = zarr.open(pc1_path,'r'); logger.zarr_info(pc1_path, pc1_zarr)
-            pc1 = da.from_zarr(pc1_path,chunks=(pc1_zarr.shape[0],*pc1_zarr.chunks[1:]),inline_array=True); logger.darr_info('pc1', pc1)
+            pc1 = dask_from_zarr(pc1_path,parallel_dims=0); logger.darr_info('pc1', pc1)
             logger.info('set up diff pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc1, iidx1_darr, chunks = (n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
             logger.darr_info('pc',pc)
 
-            logger.info('rechunk dask array for writing.')
-            pc = pc.rechunk((chunks,*pc.chunks[1:]))
-            logger.darr_info('pc',pc)
-            logger.info('write')
+            logger.info(f'write pc to {pc_path}')
+            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
             # pc.visualize(filename=f'pc.svg',optimize_graph=True)
-            _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -709,18 +689,12 @@ def pc_select_data(
         _pc_list = ()
         for pc_in_path, pc_path in zip(pc_in_list,pc_list):
             pc_in_zarr = zarr.open(pc_in_path,'r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = da.from_zarr(pc_in_path,chunks=(pc_in_zarr.shape[0],*pc_in_zarr.chunks[1:]),inline_array=True); logger.darr_info('pc_in', pc_in)
+            pc_in = dask_from_zarr(pc_in_path,parallel_dims=0); logger.darr_info('pc_in', pc_in)
             logger.info('set up selected pc data dask array.')
             pc = da.map_blocks(_indexing_pc_data, pc_in, iidx_in_darr, chunks = (n_pc, *pc_in.chunks[1:]), dtype=pc_in.dtype)
-            # pc = da.empty((n_pc,*pc_in.shape[1:]),chunks = (n_pc,*pc_in.chunks[1:]), dtype=pc_in.dtype)
             logger.darr_info('pc',pc)
-            # pc[:] = pc_in[iidx_in]
-            logger.info('rechunk dask array for writing.')
-            pc = pc.rechunk((chunks,*pc.chunks[1:]))
-            logger.darr_info('pc',pc)
-            logger.info('write')
-            # pc.visualize(filename=f'pc.svg',optimize_graph=True)
-            _pc = pc.to_zarr(pc_path, overwrite=True,compute=False)
+            logger.info(f'write pc to {pc_path}')
+            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
             _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')

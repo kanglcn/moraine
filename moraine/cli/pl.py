@@ -20,6 +20,7 @@ if is_cuda_available():
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/pl.ipynb 6
 @mc_logger
@@ -68,7 +69,9 @@ def emi(
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
-        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]), inline_array=True)
+        cpu_coh = dask_from_zarr(coh_path, parallel_dims=1)
+        cpu_coh = cpu_coh.rechunk((chunks,*coh_zarr.shape[1:]))
+        #cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]), inline_array=True)
         logger.darr_info('coh', cpu_coh)
 
         logger.info(f'phase linking with EMI.')
@@ -101,12 +104,13 @@ def emi(
         logger.darr_info('ph', cpu_ph)
         logger.darr_info('emi_quality', cpu_emi_quality)
 
-        logger.info(f'rechunk ph')
-        cpu_ph = cpu_ph.rechunk((cpu_ph.chunksize[0],1))
-        logger.darr_info('ph', cpu_ph)
+        # logger.info(f'rechunk ph')
+        # cpu_ph = cpu_ph.rechunk((cpu_ph.chunksize[0],1))
+        # logger.darr_info('ph', cpu_ph)
 
         logger.info('saving ph and emi_quality.')
-        _cpu_ph = cpu_ph.to_zarr(ph_path,compute=False,overwrite=True)
+        _cpu_ph = dask_to_zarr(cpu_ph,ph_path,chunks=(cpu_ph.chunksize[0],1))
+        #_cpu_ph = cpu_ph.to_zarr(ph_path,compute=False,overwrite=True)
         _cpu_emi_quality = cpu_emi_quality.to_zarr(emi_quality_path,compute=False,overwrite=True)
 
         logger.info('computing graph setted. doing all the computing.')
@@ -123,7 +127,7 @@ def ds_temp_coh(
     ph:str, # wrapped phase
     t_coh:str=None, # output, temporal coherence
     tnet:str=None, # temporal network
-    chunks:int=None, # number of point cloud chunk, same as coh by default
+    chunks:int=None, # point cloud chunk size, same as coh by default
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
@@ -169,10 +173,14 @@ def ds_temp_coh(
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
 
-        cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]),inline_array=True)
+        cpu_coh = dask_from_zarr(coh_path,parallel_dims=1)
+        cpu_coh = cpu_coh.rechunk((chunks,*coh_zarr.shape[1:]))
+        #cpu_coh = da.from_zarr(coh_path, chunks=(chunks,*coh_zarr.shape[1:]),inline_array=True)
         logger.darr_info('coh', cpu_coh)
         
-        cpu_ph = da.from_zarr(ph_path, chunks=(chunks,*ph_zarr.shape[1:]),inline_array=True)
+        cpu_ph = dask_from_zarr(ph_path,parallel_dims=1)
+        cpu_ph = cpu_ph.rechunk((chunks,*ph_zarr.shape[1:]))
+        #cpu_ph = da.from_zarr(ph_path, chunks=(chunks,*ph_zarr.shape[1:]),inline_array=True)
         logger.darr_info('ph', cpu_ph)
 
         logger.info(f'Estimate temporal coherence for DS.')

@@ -24,6 +24,7 @@ if is_cuda_available():
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/shp.ipynb 5
 @mc_logger
@@ -68,7 +69,7 @@ def shp_test(
     else:
         if processes is None: processes = False
         if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 2
+        if threads_per_worker is None: threads_per_worker = 1
         Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
         cluster_args.update(dask_cluster_arg)
         xp = np
@@ -78,7 +79,9 @@ def shp_test(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        cpu_rslc = da.from_zarr(rslc_path,chunks=chunks,inline_array=True); logger.darr_info('rslc',cpu_rslc)
+        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=2)
+        cpu_rslc = cpu_rslc.rechunk(chunks); logger.darr_info('rslc',cpu_rslc)
+        # cpu_rslc = da.from_zarr(rslc_path,chunks=chunks,inline_array=True); logger.darr_info('rslc',cpu_rslc)
 
         az_win = 2*az_half_win+1
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
@@ -105,14 +108,13 @@ def shp_test(
             cpu_p = p.map_blocks(xp.asnumpy)
         else:
             cpu_p = p
-        logger.info('rechunk p')
-        cpu_p = cpu_p.rechunk((*cpu_p.chunks[:2],1,1))
         logger.darr_info('p value', cpu_p)
 
-        _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True)
+        logger.info('saving p value.')
+        _p = dask_to_zarr(cpu_p,pvalue_path,chunks=(*cpu_p.chunksize[:2],1,1))
+        # _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True)
         # p_zarr = kvikio.zarr.open_cupy_array(pvalue_path,'w',shape=p.shape, chunks=p.chunksize, dtype=p.dtype,compressor=None)
         # _p = da.store(p,p_zarr,compute=False,lock=False)
-        logger.info('saving p value.')
 
         logger.info('computing graph setted. doing all the computing.')
         #_p.visualize(filename='_p.svg',color='order',cmap="autumn",optimize_graph=True)
@@ -155,7 +157,8 @@ def select_shp(
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
 
-        p = da.from_zarr(pvalue,chunks=chunks,inline_array=True)
+        p = dask_from_zarr(pvalue,parallel_dims=(2,3))
+        p = p.rechunk(chunks)
         logger.darr_info('pvalue', p)
         p_delayed = p.to_delayed()
         is_shp_delayed = np.empty_like(p_delayed,dtype=object)
@@ -177,12 +180,11 @@ def select_shp(
         shp_num = da.count_nonzero(is_shp,axis=(-2,-1)).astype(np.int32)
         logger.darr_info('shp_num',shp_num)
 
-        logger.info('rechunk is_shp')
-        is_shp = is_shp.rechunk((*is_shp.chunksize[0:2],1,1)); logger.darr_info('is_shp', is_shp)
-        _is_shp = is_shp.to_zarr(is_shp_path,overwrite=True,compute=False)
         logger.info('saving is_shp.')
-        _shp_num = shp_num.to_zarr(shp_num_path,overwrite=True,compute=False)
+        _is_shp = dask_to_zarr(is_shp, is_shp_path, chunks=(*is_shp.chunksize[0:2],1,1))
+
         logger.info('saving shp_num.')
+        _shp_num = shp_num.to_zarr(shp_num_path,overwrite=True,compute=False)
         logger.info('computing graph setted. doing all the computing.')
 
         futures = client.persist([_is_shp,_shp_num])

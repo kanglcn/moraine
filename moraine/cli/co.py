@@ -9,6 +9,7 @@ import time
 
 import zarr
 import numpy as np
+import math
 
 import dask
 from dask import array as da
@@ -21,6 +22,7 @@ if is_cuda_available():
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/co.ipynb 5
 @mc_logger
@@ -110,7 +112,9 @@ def emperical_co_pc(
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
         emperical_co_pc_delayed = delayed(mr.emperical_co_pc,pure=True,nout=1)
 
-        cpu_is_shp = da.from_zarr(is_shp_path,chunks=(process_pc_chunk_size,(az_win,),(r_win,)),inline_array=True)
+        cpu_is_shp = dask_from_zarr(is_shp_path,parallel_dims=(1,2))
+        cpu_is_shp = cpu_is_shp.rechunk((process_pc_chunk_size,(az_win,),(r_win,)))
+        #cpu_is_shp = da.from_zarr(is_shp_path,chunks=(process_pc_chunk_size,(az_win,),(r_win,)),inline_array=True)
         logger.darr_info('is_shp', cpu_is_shp)
         if cuda:
             is_shp = cpu_is_shp.map_blocks(cp.asarray)
@@ -119,7 +123,9 @@ def emperical_co_pc(
         is_shp_delayed = is_shp.to_delayed()
         is_shp_delayed = np.squeeze(is_shp_delayed,axis=(-2,-1))
 
-        cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunks,*rslc_zarr.shape[1:]),inline_array=True)
+        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=(1,2))
+        cpu_rslc = cpu_rslc.rechunk((az_chunks,*rslc_zarr.shape[1:]))
+        #cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunks,*rslc_zarr.shape[1:]),inline_array=True)
         logger.darr_info('rslc', cpu_rslc)
         depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
         cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
@@ -154,13 +160,14 @@ def emperical_co_pc(
             cpu_coh = coh
         logger.info('get coherence matrix.'); logger.darr_info('coh', cpu_coh)
 
-        if chunks is None: chunks = is_shp_zarr.chunks[0] 
-        cpu_coh = cpu_coh.rechunk((chunks,1))
-        logger.info('rechunking coh to chunk size (for saving with zarr): '+str(cpu_coh.chunksize))
+        if chunks is None: chunks = is_shp_zarr.chunks[0]
+        logger.info(f'rechunking coh to chunk size (for saving with zarr): {chunks}')
+        cpu_coh = cpu_coh.rechunk((chunks,cpu_coh.shape[1]))
         logger.darr_info('coh', cpu_coh)
 
         logger.info('saving coh.')
-        _cpu_coh = cpu_coh.to_zarr(coh_path,overwrite=True,compute=False)
+        _cpu_coh = dask_to_zarr(cpu_coh,coh_path,chunks=(chunks,1))
+        #_cpu_coh = cpu_coh.to_zarr(coh_path,overwrite=True,compute=False)
 
         logger.info('computing graph setted. doing all the computing.')
         #This function is really slow just because the coherence is very big and rechunk and saving takes too much time.
