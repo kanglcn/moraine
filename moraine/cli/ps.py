@@ -53,7 +53,7 @@ def amp_disp(
     else:
         if processes is None: processes = False
         if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 2
+        if threads_per_worker is None: threads_per_worker = 1
         Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
         cluster_args.update(dask_cluster_arg)
         xp = np
@@ -65,9 +65,7 @@ def amp_disp(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
 
-        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=2)
-        cpu_rslc = cpu_rslc.rechunk((*chunks,*rslc_zarr.shape[2:]))
-        #cpu_rslc = da.from_array(rslc_zarr, chunks=(*chunks,*rslc_zarr.shape[2:]), inline_array=True)
+        cpu_rslc = dask_from_zarr(rslc_path,chunks=(*chunks,*rslc_zarr.shape[2:]))
         logger.darr_info('rslc', cpu_rslc)
         logger.info(f'calculate amplitude dispersion index.')
         rslc = cpu_rslc.map_blocks(cp.asarray) if cuda else cpu_rslc
@@ -80,7 +78,6 @@ def amp_disp(
                 adi_delayed[idx] =da.from_delayed(adi_delayed[idx],shape=rslc.blocks[idx].shape[0:2],meta=xp.array((),dtype=xp.float32))
         adi = da.block(adi_delayed[...,0].tolist())
         
-        # cpu_adi = adi.map_blocks(cp.asnumpy)
         logger.info(f'got amplitude dispersion index.')
         logger.darr_info('adi', adi)
 

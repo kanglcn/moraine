@@ -24,7 +24,7 @@ if is_cuda_available():
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr
+from . import dask_from_zarr,dask_from_zarr_overlap, dask_to_zarr
 
 # %% ../../nbs/CLI/shp.ipynb 5
 @mc_logger
@@ -79,18 +79,14 @@ def shp_test(
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=2)
-        cpu_rslc = cpu_rslc.rechunk(chunks); logger.darr_info('rslc',cpu_rslc)
-        # cpu_rslc = da.from_zarr(rslc_path,chunks=chunks,inline_array=True); logger.darr_info('rslc',cpu_rslc)
 
         az_win = 2*az_half_win+1
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
         r_win = 2*r_half_win+1
         logger.info(f'range half window size: {r_half_win}; range window size: {r_win}')
-
         depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
-        cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
-        logger.info('setting shared boundaries between rslc chunks.')
+
+        cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path,chunks=chunks,depth=depth)
         logger.darr_info('rslc with overlap', cpu_rslc_overlap)
 
         if cuda:
@@ -135,8 +131,8 @@ def select_shp(
     p_max:float=0.05, # threshold of p value to select SHP,optional. Default: 0.05
     chunks:tuple[int,int]=None, # chunk size, optional. Default: the chunk size in rslc
     processes=False, # use process for dask worker over thread, the default is False
-    n_workers=2, # number of dask worker, the default is 1 for cpu
-    threads_per_worker=2, # number of threads per dask worker
+    n_workers=1, # number of dask worker, the default is 1
+    threads_per_worker=1, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
     '''
@@ -157,8 +153,7 @@ def select_shp(
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
 
-        p = dask_from_zarr(pvalue,parallel_dims=(2,3))
-        p = p.rechunk(chunks)
+        p = dask_from_zarr(pvalue,chunks=chunks)
         logger.darr_info('pvalue', p)
         p_delayed = p.to_delayed()
         is_shp_delayed = np.empty_like(p_delayed,dtype=object)

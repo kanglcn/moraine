@@ -25,6 +25,7 @@ from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
 
 from .logging import mc_logger
+from . import dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/load.ipynb 6
 def _rdc_width_nlines(image_par):
@@ -164,11 +165,11 @@ def load_gamma_flatten_rslc(
     reference:str, # reference date, eg: '20200202'
     hgt:str, # the DEM in radar coordinate
     scratch_dir:str, # directory for preserve gamma intermediate files
-    rslc_zarr:str, # output, the flattened rslcs stack in zarr format
-    chunks:tuple[int,int]=(50,-1), # rslc chunk size
+    rslc:str, # output, the flattened rslcs stack in zarr format
+    chunks:tuple[int,int]=(1000,1000), # rslc chunk size
     processes=False, # use process for dask worker or thread
     n_workers=1, # number of dask worker
-    threads_per_worker=2, # number of threads per dask worker
+    threads_per_worker=1, # number of threads per dask worker
     **dask_cluster_arg, # other dask local cluster args
 ):
     '''Generate flatten rslc data from gamma command and convert them into zarr format.
@@ -176,6 +177,7 @@ def load_gamma_flatten_rslc(
     All data equal to 0 are replaced with nan.
     '''
     logger = logging.getLogger(__name__)
+    rslc_path = rslc
     rslcs = _fetch_slc_par_date(rslc_dir)
     with pd.option_context('display.max_colwidth', 0):
         logger.info('rslc found: \n'+str(rslcs))
@@ -222,23 +224,33 @@ def load_gamma_flatten_rslc(
         logger.dask_cluster_info(cluster)
         read_gamma_image_delayed = delayed(read_gamma_image, pure=True)
 
-        n_az_chunk = math.ceil(nlines/az_chunk_size)
-        lazy_rslcs = np.empty((n_az_chunk,1,n_image),dtype=object)
-        lazy_sim_orbs = np.empty((n_az_chunk,1,n_image),dtype=object)
+        # n_az_chunk = math.ceil(nlines/az_chunk_size)
+        # lazy_rslcs = np.empty((n_az_chunk,1,n_image),dtype=object)
+        # lazy_sim_orbs = np.empty((n_az_chunk,1,n_image),dtype=object)
+        # lazy_flatten_rslcs = np.empty_like(lazy_rslcs)
+        # for k, rslc in enumerate(rslcs):
+        #     for i in range(n_az_chunk):
+        #         y0 = i*az_chunk_size
+        #         ny =  nlines-y0 if (i == n_az_chunk-1) else az_chunk_size 
+        #         lazy_rslcs[i,0,k] = read_gamma_image_delayed(rslc,width,dtype='fcomplex',y0=y0,ny=ny)
+        #         lazy_sim_orbs[i,0,k] = read_gamma_image_delayed(sim_orbs[k],width, dtype='float',y0=y0,ny=ny)
+        #         lazy_flatten_rslcs[i,0,k] = delayed(_flatten_rslc,pure=True,nout=1)(lazy_sim_orbs[i,0,k],lazy_rslcs[i,0,k])
+        #         lazy_flatten_rslcs[i,0,k] = (da.from_delayed(lazy_flatten_rslcs[i,0,k],shape=(ny,width),meta=np.array((),dtype=np.complex64))).reshape(ny,width,1)
+        # flatten_rslcs_data = da.block(lazy_flatten_rslcs.tolist())
+
+        lazy_rslcs = np.empty((1,1,n_image),dtype=object)
+        lazy_sim_orbs = np.empty((1,1,n_image),dtype=object)
         lazy_flatten_rslcs = np.empty_like(lazy_rslcs)
         for k, rslc in enumerate(rslcs):
-            for i in range(n_az_chunk):
-                y0 = i*az_chunk_size
-                ny =  nlines-y0 if (i == n_az_chunk-1) else az_chunk_size 
-                lazy_rslcs[i,0,k] = read_gamma_image_delayed(rslc,width,dtype='fcomplex',y0=y0,ny=ny)
-                lazy_sim_orbs[i,0,k] = read_gamma_image_delayed(sim_orbs[k],width, dtype='float',y0=y0,ny=ny)
-                lazy_flatten_rslcs[i,0,k] = delayed(_flatten_rslc,pure=True,nout=1)(lazy_sim_orbs[i,0,k],lazy_rslcs[i,0,k])
-                lazy_flatten_rslcs[i,0,k] = (da.from_delayed(lazy_flatten_rslcs[i,0,k],shape=(ny,width),meta=np.array((),dtype=np.complex64))).reshape(ny,width,1)
+            lazy_rslcs[0,0,k] = read_gamma_image_delayed(rslc,width,dtype='fcomplex')
+            lazy_sim_orbs[0,0,k] = read_gamma_image_delayed(sim_orbs[k],width, dtype='float')
+            lazy_flatten_rslcs[0,0,k] = delayed(_flatten_rslc,pure=True,nout=1)(lazy_sim_orbs[0,0,k],lazy_rslcs[0,0,k])
+            lazy_flatten_rslcs[0,0,k] = (da.from_delayed(lazy_flatten_rslcs[0,0,k],shape=(nlines,width),meta=np.array((),dtype=np.complex64))).reshape(nlines,width,1)
         flatten_rslcs_data = da.block(lazy_flatten_rslcs.tolist())
 
-        flatten_rslcs_data = flatten_rslcs_data.rechunk((az_chunk_size,r_chunk_size,1))
-        logger.darr_info('flattened rslc', flatten_rslcs_data) 
-        _flatten_rslcs_data = flatten_rslcs_data.to_zarr(rslc_zarr,overwrite=True,compute=False)
+        logger.darr_info('flattened rslc', flatten_rslcs_data)
+        _flatten_rslcs_data = dask_to_zarr(flatten_rslcs_data,rslc_path,chunks=(*chunks,1))
+        #_flatten_rslcs_data = flatten_rslcs_data.to_zarr(rslc_zarr,overwrite=True,compute=False)
 
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist(_flatten_rslcs_data)
@@ -260,7 +272,7 @@ def load_gamma_lat_lon_hgt(diff_par:str, # geocoding diff_par,using the simulate
                            lat_zarr:str, # output, latitude zarr
                            lon_zarr:str, # output, longitude zarr
                            hgt_zarr:str, # output, height zarr
-                           chunks:tuple[int,int]=(50,-1), # rslc chunk size
+                           chunks:tuple[int,int]=(1000,1000), # rslc chunk size
                           ):
     '''
     Function to load longitude and latitude from gamma binary format to zarr.
@@ -318,7 +330,7 @@ def load_gamma_look_vector(theta:str, # elevation angle
                            scratch_dir:str, # directory for preserve gamma intermediate files
                            theta_zarr:str, # output, elevation angle zarr
                            phi_zarr:str, # output, orientation angle zarr
-                           chunks:tuple[int,int]=(50,-1), # rslc chunk size
+                           chunks:tuple[int,int]=(1000,1000), # rslc chunk size
                           ):
     '''
     Load look vector (elevation angle and orientation angle) in map geometry
@@ -366,7 +378,7 @@ def load_gamma_look_vector(theta:str, # elevation angle
 @mc_logger
 def load_gamma_range(rslc_par:str, # par file of one rslc
                      range_zarr:str, # output, range distance zarr
-                     chunks:tuple[int,int]=(50,-1), # rslc chunk size
+                     chunks:tuple[int,int]=(1000,1000), # rslc chunk size
                     ):
     '''
     Generate slant range distance and save to zarr.

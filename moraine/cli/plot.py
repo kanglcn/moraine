@@ -9,6 +9,7 @@ import zarr
 import numpy as np
 import math
 from pathlib import Path
+import shutil
 import pandas as pd
 from tqdm import tqdm
 import sys
@@ -30,7 +31,7 @@ from ..utils_ import ngpjit
 from ..rtree import HilbertRtree
 from .logging import mc_logger
 from ..coord_ import Coord
-from . import dask_from_zarr, dask_to_zarr
+from . import mk_clean_dir, dask_from_zarr, dask_to_zarr
 
 # %% ../../nbs/CLI/plot.ipynb 5
 def _zarr_stack_info(
@@ -62,7 +63,8 @@ def ras_pyramid(
 ):
     '''render raster data to pyramid of difference zoom levels.'''
     logger = logging.getLogger(__name__)
-    out_dir = Path(out_dir); out_dir.mkdir(exist_ok=True)
+    out_dir = Path(out_dir); mk_clean_dir(out_dir)
+
     ras_zarr = zarr.open(ras,'r')
     logger.zarr_info(ras, ras_zarr)
     
@@ -89,8 +91,9 @@ def ras_pyramid(
                 downsampled_ras = ras_data.map_blocks(_ras_downsample,down_level=0,dtype=ras_data.dtype,chunks=ras_data.chunks)
             else:
                 chunks = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)), *channel_chunks)
-                downsampled_ras = last_downsampled_ras.map_blocks(_ras_downsample,dtype=ras_data.dtype,chunks=chunks)
-            last_downsampled_ras = downsampled_ras
+                downsampled_ras = ras_data.map_blocks(_ras_downsample,down_level=level,dtype=ras_data.dtype,chunks=chunks)
+                #downsampled_ras = last_downsampled_ras.map_blocks(_ras_downsample,dtype=ras_data.dtype,chunks=chunks)
+            #last_downsampled_ras = downsampled_ras
             #out_downsampled_ras = downsampled_ras.rechunk((*out_chunks,*channel_chunks))
             logger.darr_info(f'downsampled ras dask array in level {level}',downsampled_ras)
             downsampled_ras_store = zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')
@@ -102,6 +105,7 @@ def ras_pyramid(
             output_futures.append(output_future)
             # output_futures.append(downsampled_ras.rechunk((*out_chunks,*channel_chunks)).to_zarr(zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')))
         logger.info('computing graph setted. doing all the computing.')
+        #dask.visualize(output_futures,filename="ras_pyramid.svg", optimize_graph=True, color='order')
         futures = client.persist(output_futures)
         progress(futures,notebook=False)
         time.sleep(0.1)
@@ -356,7 +360,8 @@ def pc_pyramid(
 ):
     '''render point cloud data to pyramid of difference zoom levels.'''
     logger = logging.getLogger(__name__)
-    out_dir = Path(out_dir); out_dir.mkdir(exist_ok=True)
+    out_dir = Path(out_dir); mk_clean_dir(out_dir)
+
     pc_zarr = zarr.open(pc,'r')
     logger.zarr_info(pc, pc_zarr)
     

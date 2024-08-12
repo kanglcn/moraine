@@ -6,6 +6,7 @@ __all__ = ['emperical_co_pc']
 # %% ../../nbs/CLI/co.ipynb 4
 import logging
 import time
+from pathlib import Path
 
 import zarr
 import numpy as np
@@ -21,19 +22,19 @@ if is_cuda_available():
     from dask_cuda import LocalCUDACluster
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
+import moraine.cli as mc
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr
+from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
 # %% ../../nbs/CLI/co.ipynb 5
 @mc_logger
 def emperical_co_pc(
     rslc:str, # input: rslc stack, shape (nlines, width, nimages)
-    is_shp:str, # input: bool array indicating the SHPs of pc, shape (n_points, az_win, r_win)
+    is_shp_dir:str, # input: directory for bool array indicating the SHPs of pc
     gix:str, # input: bool array indicating pc, shape (2, n_points)
-    coh:str, # output: complex coherence matrix for pc
+    coh_dir:str, # output: directory that hold complex coherence matrix for pc
     tnet:str=None, # input: temporal network
-    az_chunks:int=None, # processing azimuth chunk size, optional. Default: the azimuth chunk size in rslc stack
-    chunks:int=None, # chunk size of output zarr dataset, optional. Default: same as is_shp
+    chunks:int=None, # parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
@@ -42,47 +43,44 @@ def emperical_co_pc(
     **dask_cluster_arg, # other dask local/cudalocal cluster args
 ):
     '''estimate emperical coherence matrix on point cloud data.
-    Due to the data locality problem. r_chunk_size for the processing have to be one.
     '''
     rslc_path = rslc
-    is_shp_path = is_shp
+    is_shp_dir_path = Path(is_shp_dir)
     gix_path = gix
-    coh_path = coh
+    coh_dir = Path(coh_dir); mk_clean_dir(coh_dir)
     logger = logging.getLogger(__name__)
 
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path, rslc_zarr)
     assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
     nlines, width, nimage = rslc_zarr.shape
+    if chunks is None: chunks = rslc_zarr.chunks[:2]
 
-    is_shp_zarr = zarr.open(is_shp_path,mode='r')
-    logger.zarr_info(is_shp_path, is_shp_zarr)
-    assert is_shp_zarr.ndim == 3, "is_shp dimentation is not 3."
+    is_shp0 = sorted(is_shp_dir_path.glob('*.zarr'))[0]
+    is_shp0_zarr = zarr.open(is_shp0,'r')
+    az_win, r_win = is_shp0_zarr.shape[1:]
+    az_half_win = int((az_win-1)/2)
+    r_half_win = int((r_win-1)/2)
+    logger.info(f'''azimuth window size and half azimuth window size: {az_win}, {az_half_win}''')
+    logger.info(f'''range window size and half range window size: {r_win}, {r_half_win}''')
 
+    az_chunk, r_chunk = chunks
+    n_az_chunk = math.ceil(nlines/az_chunk)
+    n_r_chunk = math.ceil(width/r_chunk)
+    logger.info(f'parallel processing azimuth chunk size: {az_chunk}')
+    logger.info(f'parallel processing range chunk size: {r_chunk}')
+
+    depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
     gix_zarr = zarr.open(gix_path,mode='r')
     logger.zarr_info(gix_path, gix_zarr)
     assert gix_zarr.ndim == 2, "gix dimentation is not 2."
     logger.info('loading gix into memory.')
-    gix = zarr.open(gix_path,mode='r')[:]
-
-    az_win, r_win = is_shp_zarr.shape[1:]
-    az_half_win = int((az_win-1)/2)
-    r_half_win = int((r_win-1)/2)
-    logger.info(f'''got azimuth window size and half azimuth window size
-    from is_shp shape: {az_win}, {az_half_win}''')
-    logger.info(f'''got range window size and half range window size
-    from is_shp shape: {r_win}, {r_half_win}''')
-
-    if az_chunks is None: az_chunks = rslc_zarr.chunks[0]
-    logger.info('parallel processing azimuth chunk size: '+str(az_chunks))
-    logger.info(f'parallel processing range chunk size: {width}')
-
-    n_az_chunk = int(np.ceil(nlines/az_chunks))
-    j_chunk_boundary = np.arange(n_az_chunk+1)*az_chunks; j_chunk_boundary[-1] = nlines
-    point_boundary = np.searchsorted(gix[:,0],j_chunk_boundary)
-    process_pc_chunk_size = np.diff(point_boundary)
-    process_pc_chunk_size = tuple(process_pc_chunk_size.tolist())
-    logger.info(f'number of point in each chunk: {process_pc_chunk_size}')
+    gix = mc.parallel_read_zarr(gix_zarr,(slice(None),slice(None)))
+    logger.info('convert gix to the order of ras chunk')
+    chunk_idx, chunk_bounds = mr.pc._pc_split_by_chunk(gix,chunks,(nlines,width))[:2]
+    pc_chunksize = tuple(np.diff(chunk_bounds))
+    sorted_gix = gix[chunk_idx]
+    ras_chunk_order_gix = mr.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, (nlines,width),overlap=(az_half_win,r_half_win))
 
     if cuda:
         Cluster = LocalCUDACluster; cluster_args= {
@@ -112,70 +110,47 @@ def emperical_co_pc(
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
         emperical_co_pc_delayed = delayed(mr.emperical_co_pc,pure=True,nout=1)
 
-        cpu_is_shp = dask_from_zarr(is_shp_path,parallel_dims=(1,2))
-        cpu_is_shp = cpu_is_shp.rechunk((process_pc_chunk_size,(az_win,),(r_win,)))
-        #cpu_is_shp = da.from_zarr(is_shp_path,chunks=(process_pc_chunk_size,(az_win,),(r_win,)),inline_array=True)
-        logger.darr_info('is_shp', cpu_is_shp)
-        if cuda:
-            is_shp = cpu_is_shp.map_blocks(cp.asarray)
-        else:
-            is_shp = cpu_is_shp
-        is_shp_delayed = is_shp.to_delayed()
-        is_shp_delayed = np.squeeze(is_shp_delayed,axis=(-2,-1))
-
-        cpu_rslc = dask_from_zarr(rslc_path,parallel_dims=(1,2))
-        cpu_rslc = cpu_rslc.rechunk((az_chunks,*rslc_zarr.shape[1:]))
-        #cpu_rslc = da.from_zarr(rslc_path,chunks=(az_chunks,*rslc_zarr.shape[1:]),inline_array=True)
-        logger.darr_info('rslc', cpu_rslc)
-        depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
-        cpu_rslc_overlap = da.overlap.overlap(cpu_rslc,depth=depth, boundary=boundary)
-        logger.info('setting shared boundaries between rlsc chunks.')
+        cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path, (*chunks, rslc_zarr.shape[2]), depth)
         logger.darr_info('rslc_overlap', cpu_rslc_overlap)
+        cpu_gix_darr = da.from_array(ras_chunk_order_gix,chunks=(pc_chunksize,(2,)))
+        logger.darr_info('gix in ras chunk order', cpu_gix_darr)
         if cuda:
             rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
+            gix_darr = cpu_gix_darr.map_blocks(cp.asarray)
         else:
             rslc_overlap = cpu_rslc_overlap
-        rslc_overlap_delayed = np.squeeze(rslc_overlap.to_delayed(),axis=(-2,-1))
+            gix_darr = cpu_gix_darr
+        rslc_overlap_delayed = rslc_overlap.to_delayed().reshape(-1)
+        gix_delayed = gix_darr.to_delayed().reshape(-1)
 
-        coh_delayed = np.empty(n_az_chunk,dtype=object)
-        logger.info(f'estimating coherence matrix.')
-        for j in range(n_az_chunk):
-            jstart = j*az_chunks; jend = jstart + az_chunks
-            if jend>=nlines: jend = nlines
-            gix_local_j = gix[point_boundary[j]:point_boundary[j+1],0]-jstart
-            if j!= 0: gix_local_j += az_half_win
-            gix_local_i = gix[point_boundary[j]:point_boundary[j+1],1]
-            gix_local = np.stack((gix_local_j,gix_local_i),axis=-1)
-            gix_local_delayed = da.from_array(gix_local)
-            if cuda:
-                gix_local_delayed = gix_local_delayed.map_blocks(cp.asarray)
-
-            coh_delayed[j] = emperical_co_pc_delayed(rslc_overlap_delayed[j],gix_local_delayed,is_shp_delayed[j],image_pairs=image_pairs)
-            coh_delayed[j] = da.from_delayed(coh_delayed[j],shape=(process_pc_chunk_size[j],n_image_pairs),meta=xp.array((),dtype=xp.complex64))
-
-        coh = da.block(coh_delayed[...,None].tolist())
-        if cuda:
-            cpu_coh = coh.map_blocks(cp.asnumpy)
-        else:
-            cpu_coh = coh
-        logger.info('get coherence matrix.'); logger.darr_info('coh', cpu_coh)
-
-        if chunks is None: chunks = is_shp_zarr.chunks[0]
-        logger.info(f'rechunking coh to chunk size (for saving with zarr): {chunks}')
-        cpu_coh = cpu_coh.rechunk((chunks,cpu_coh.shape[1]))
-        logger.darr_info('coh', cpu_coh)
-
-        logger.info('saving coh.')
-        _cpu_coh = dask_to_zarr(cpu_coh,coh_path,chunks=(chunks,1))
-        #_cpu_coh = cpu_coh.to_zarr(coh_path,overwrite=True,compute=False)
+        logger.info(f'estimating coherence matrix chunk by chunk.')
+        futures = []
+        for j in range(n_az_chunk*n_r_chunk):
+            do_log = j%math.ceil(n_az_chunk*n_r_chunk/10) == 0
+            # az_chunk_idx = j//n_az_chunk; r_chunk_idx = j%n_az_chunk
+            if pc_chunksize[j] > 0:
+                cpu_is_shp = mc.dask_from_zarr(is_shp_dir_path/f'{j}.zarr',chunks=(-1,-1,-1))
+                if do_log: logger.darr_info(f'is_shp for chunk {j}',cpu_is_shp)
+                if cuda:
+                    is_shp = cpu_is_shp.map_blocks(cp.asarray)
+                else:
+                    is_shp = cpu_is_shp
+                is_shp_delayed = is_shp.to_delayed()[0,0,0]
+                coh_delayed = emperical_co_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,image_pairs=image_pairs)
+                coh = da.from_delayed(coh_delayed,shape=(pc_chunksize[j],n_image_pairs),meta=xp.array((),dtype=xp.complex64))
+                if cuda:
+                    cpu_coh = coh.map_blocks(cp.asnumpy)
+                else:
+                    cpu_coh = coh
+                if do_log: logger.darr_info(f'coh for chunk {j}',cpu_coh)
+                if do_log: logger.info(f'saving coh for chunk {j}')
+                _coh = dask_to_zarr(cpu_coh,coh_dir/f'{j}.zarr',chunks=(coh.shape[0],1),log_zarr=do_log)
+                futures.append(_coh)
 
         logger.info('computing graph setted. doing all the computing.')
-        #This function is really slow just because the coherence is very big and rechunk and saving takes too much time.
-        # I do not find any solution to it.
-        futures = client.persist([_cpu_coh,])
+        futures = client.persist(futures)
         progress(futures,notebook=False)
         time.sleep(0.1)
         da.compute(futures)
-        # pdb.set_trace()
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
