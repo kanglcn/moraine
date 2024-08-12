@@ -2,6 +2,19 @@
 
 <!-- do not remove -->
 
+## 0.8.1
+
+implement parallel zarr io
+
+modify `emperical_co_pc` and necessary utils
+for independent ras chunkwise processing 
+
+add `emperical_co_emi_temp_coh_pc` to 
+- only processing a small batch in one chunk to prevent
+holding the coherence matrix for all chunk which may exceed
+memory limit;
+- prevent writing coherence matrix which may exceed disk space limit.
+
 ## 0.8.0
 
 - add cpu version of all functions and make use cpu as default
