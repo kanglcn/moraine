@@ -258,6 +258,10 @@ def ras2pc_ras_chunk(
     ras0_zarr = zarr.open(ras_list[0],'r')
     shape = ras0_zarr.shape[:2]
     if chunks is None: chunks = ras0_zarr.chunks[:2]
+    chunks = list(chunks)
+    for i in range(len(chunks)):
+        if chunks[i] == -1: chunks[i] = ras0_zarr.shape[i]
+    chunks = tuple(chunks)
 
     gix_zarr = zarr.open(gix,mode='r'); logger.zarr_info(gix,gix_zarr)
     logger.info('loading gix into memory.')

@@ -172,14 +172,13 @@ def select_shp(
         logger.darr_info('is_shp', is_shp)
 
         logger.info('calculate shp_num.')
-        shp_num = da.count_nonzero(is_shp,axis=(-2,-1)).astype(np.int32)
         logger.darr_info('shp_num',shp_num)
 
         logger.info('saving is_shp.')
         _is_shp = dask_to_zarr(is_shp, is_shp_path, chunks=(*is_shp.chunksize[0:2],1,1))
 
         logger.info('saving shp_num.')
-        _shp_num = shp_num.to_zarr(shp_num_path,overwrite=True,compute=False)
+        _shp_num = dask_to_zarr(shp_num, shp_num_path, chunks=is_shp.chunksize[0:2])
         logger.info('computing graph setted. doing all the computing.')
 
         futures = client.persist([_is_shp,_shp_num])

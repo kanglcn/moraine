@@ -28,7 +28,7 @@ def amp_disp(
     rslc:str, # rslc stack
     adi:str, #output, amplitude dispersion index
     chunks:tuple[int,int]=None, # data processing chunk size, same as rslc by default
-    out_chunks:tuple[int,int]=None, # output data chunk size, same as rslc by default
+    out_chunks:tuple[int,int]=None, # output data chunk size, same as chunks by default
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
@@ -43,7 +43,7 @@ def amp_disp(
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path,rslc_zarr)
     if chunks is None: chunks = rslc_zarr.chunks[:2]
-    if out_chunks is None: out_chunks = rslc_zarr.chunks[:2]
+    if out_chunks is None: out_chunks = chunks
     if cuda:
         Cluster = LocalCUDACluster; cluster_args= {
             'n_workers':n_workers,
@@ -82,13 +82,10 @@ def amp_disp(
         logger.darr_info('adi', adi)
 
         cpu_adi = adi.map_blocks(cp.asnumpy) if cuda else adi
-        logger.info(f'rechunking')
-        cpu_adi = cpu_adi.rechunk(out_chunks)
         logger.darr_info('adi', cpu_adi)
         logger.info('saving adi.')
-        _adi = da.to_zarr(cpu_adi,adi_path,compute=False,overwrite=True)
-        # adi_zarr = kvikio.zarr.open_cupy_array(adi_path,'w',shape=adi.shape, chunks=adi.chunksize, dtype=adi.dtype,compressor=kvikio.zarr.CompatCompressor.lz4())
-        # _adi = da.store(adi,adi_zarr,compute=False,lock=False)
+        _adi = dask_to_zarr(cpu_adi,adi_path,chunks=out_chunks)
+        # _adi = da.to_zarr(cpu_adi,adi_path,compute=False,overwrite=True)
 
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist(_adi)

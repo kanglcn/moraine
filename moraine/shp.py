@@ -312,7 +312,7 @@ def select_shp(
     is_shp = np.empty(p_shape, dtype=np.bool_)
     shp_num = np.zeros(p_shape[:2], dtype=np.int32)
     for i in prange(p_shape[0]):
-        for j in range(p_shape[1]):
+        for j in prange(p_shape[1]):
             for k in range(p_shape[2]):
                 for l in range(p_shape[3]):
                     is_shp[i,j,k,l] = p[i,j,k,l] < p_max
