@@ -31,7 +31,7 @@ from ..utils_ import ngpjit
 from ..rtree import HilbertRtree
 from .logging import mc_logger
 from ..coord_ import Coord
-from . import mk_clean_dir, dask_from_zarr, dask_to_zarr
+from . import mk_clean_dir, dask_from_zarr, dask_to_zarr, parallel_write_zarr
 
 # %% ../../nbs/CLI/plot.ipynb 5
 def _zarr_stack_info(
@@ -51,6 +51,18 @@ def _ras_downsample(ras,down_level=1):
     return ras[::2**down_level,::2**down_level]
 
 # %% ../../nbs/CLI/plot.ipynb 8
+def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
+    slices = [slice(None),slice(None)]
+    if len(channel_idx) != 0:
+        for idx in channel_idx:
+            slices.append(slice(idx,idx+1))
+    slices = tuple(slices)
+
+    for level in range(len(zarrs)):
+        ras_ = ras[::2**level,::2**level]
+        parallel_write_zarr(ras_,zarrs[level],slices)
+
+# %% ../../nbs/CLI/plot.ipynb 9
 @mc_logger
 def ras_pyramid(
     ras:str, # path to input data, 2D zarr array (one single raster) or 3D zarr array (a stack of rasters)
@@ -82,38 +94,40 @@ def ras_pyramid(
                       **dask_cluster_arg) as cluster, Client(cluster) as client:
         logger.info('dask local cluster started.')
         logger.dask_cluster_info(cluster)
-        ras_data = dask_from_zarr(ras,parallel_dims=(0,1))
-        ras_data = ras_data.rechunk((ny,nx,*channel_chunks))
-        #ras_data = da.from_zarr(ras,chunks=(ny,nx,*channel_chunks),inline_array=True)
-        output_futures = []
+        ras_data = dask_from_zarr(ras,chunks=(ny,nx,*channel_chunks))
+
+        downsampled_ras_zarrs = []
         for level in range(maxlevel+1):
-            if level == 0: # no downsampling, just copy
-                downsampled_ras = ras_data.map_blocks(_ras_downsample,down_level=0,dtype=ras_data.dtype,chunks=ras_data.chunks)
-            else:
-                chunks = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)), *channel_chunks)
-                downsampled_ras = ras_data.map_blocks(_ras_downsample,down_level=level,dtype=ras_data.dtype,chunks=chunks)
-                #downsampled_ras = last_downsampled_ras.map_blocks(_ras_downsample,dtype=ras_data.dtype,chunks=chunks)
-            #last_downsampled_ras = downsampled_ras
-            #out_downsampled_ras = downsampled_ras.rechunk((*out_chunks,*channel_chunks))
-            logger.darr_info(f'downsampled ras dask array in level {level}',downsampled_ras)
+            shape = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)))
             downsampled_ras_store = zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')
-            downsampled_ras_zarr = zarr.zeros(downsampled_ras.shape,
-                                              dtype=downsampled_ras.dtype,chunks=(*out_chunks,*channel_chunks),
-                                              store=downsampled_ras_store,overwrite=True)
-            output_future = dask_to_zarr(downsampled_ras,downsampled_ras_zarr,chunks=(*out_chunks,*channel_chunks),path=out_dir/f'{level}.zarr')
-            #output_future = da.to_zarr(out_downsampled_ras, zarr.NestedDirectoryStore(out_dir/f'{level}.zarr'), compute=False,overwrite=True)
-            output_futures.append(output_future)
-            # output_futures.append(downsampled_ras.rechunk((*out_chunks,*channel_chunks)).to_zarr(zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')))
+            downsampled_ras_zarr = zarr.open(
+                downsampled_ras_store,'w',
+                shape=(*shape,*ras_zarr.shape[2:]),
+                dtype=ras_data.dtype,
+                chunks=(*out_chunks,*channel_chunks),)
+            logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
+            downsampled_ras_zarrs.append(downsampled_ras_zarr)
+
+        ras_data_delayed = ras_data.to_delayed().reshape(ras_zarr.shape[2:])
+        out_delayed = np.empty_like(ras_data_delayed,dtype=object)
+        downsample_save_delayed = delayed(_ras_downsample_all_and_save,pure=True,nout=0)
+        
+        with np.nditer(out_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as arr_it:
+            for arr_block in arr_it:
+                idx = arr_it.multi_index
+                out_delayed[idx] = downsample_save_delayed(ras_data_delayed[idx],downsampled_ras_zarrs,idx)
+                out_delayed[idx] = da.from_delayed(out_delayed[idx],shape=(1,),dtype=int)
+        out = da.block(out_delayed.tolist())
         logger.info('computing graph setted. doing all the computing.')
-        #dask.visualize(output_futures,filename="ras_pyramid.svg", optimize_graph=True, color='order')
-        futures = client.persist(output_futures)
+        # dask.visualize(out,filename="ras_pyramid.svg", optimize_graph=True, color='order')
+        futures = client.persist(out)
         progress(futures,notebook=False)
         time.sleep(0.1)
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/plot.ipynb 14
+# %% ../../nbs/CLI/plot.ipynb 15
 # there should be better way to achieve variable kdims, but I don't find that.
 def _hv_ras_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase):
     # start = time.time()
@@ -185,7 +199,7 @@ def _hv_ras_callback_2(x_range,y_range,width,height,scale,data_dir,post_proc,coo
     data = post_proc(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i,j)
     return hv.Image(data[::-1,:],bounds=coord_bbox)
 
-# %% ../../nbs/CLI/plot.ipynb 15
+# %% ../../nbs/CLI/plot.ipynb 16
 def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
     assert len(kdims) == data_n_kdim
@@ -195,7 +209,7 @@ def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
     else:
         return data_zarr[yslice,xslice,kdims]
 
-# %% ../../nbs/CLI/plot.ipynb 16
+# %% ../../nbs/CLI/plot.ipynb 17
 def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
     assert len(kdims) == 1
@@ -243,7 +257,7 @@ def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
         else:
             return data_zarr[yslice,xslice,i,j]
 
-# %% ../../nbs/CLI/plot.ipynb 17
+# %% ../../nbs/CLI/plot.ipynb 18
 def ras_plot(
     pyramid_dir:str, # directory to the rendered ras pyramid
     post_proc:Callable=None, # function for the post processing, can be None, 'intf_0', 'intf_seq', 'intf_all' or user-defined function
@@ -291,7 +305,7 @@ def ras_plot(
                                    post_proc=post_proc,coord=coord,level_increase=level_increase),streams=[rangexy,plotsize],kdims=kdims)
     return images
 
-# %% ../../nbs/CLI/plot.ipynb 51
+# %% ../../nbs/CLI/plot.ipynb 52
 @ngpjit
 def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
     '''return the raster indices to the next level of raster'''
@@ -314,7 +328,7 @@ def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
                 xi[i,j] = idx_[0,1] + j*2
     return yi, xi
 
-# %% ../../nbs/CLI/plot.ipynb 52
+# %% ../../nbs/CLI/plot.ipynb 53
 # currently not used
 @ngpjit
 def _next_level_idx_from_raster_of_noninteger(pc_data):
@@ -338,11 +352,11 @@ def _next_level_idx_from_raster_of_noninteger(pc_data):
                 xi[i,j] = idx_[0,1] + j*2
     return yi, xi
 
-# %% ../../nbs/CLI/plot.ipynb 54
+# %% ../../nbs/CLI/plot.ipynb 55
 def _next_ras(ras,yi,xi):
     return ras[yi,xi]
 
-# %% ../../nbs/CLI/plot.ipynb 55
+# %% ../../nbs/CLI/plot.ipynb 56
 @mc_logger
 def pc_pyramid(
     pc:str, # path to point cloud data, 1D array (one single pc image) or 2D zarr array (a stack of pc images)
@@ -445,7 +459,7 @@ def pc_pyramid(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/plot.ipynb 60
+# %% ../../nbs/CLI/plot.ipynb 61
 def _is_nan_range(x_range):
     if x_range is None:
         return True
@@ -455,7 +469,7 @@ def _is_nan_range(x_range):
         return True
     return False
 
-# %% ../../nbs/CLI/plot.ipynb 61
+# %% ../../nbs/CLI/plot.ipynb 62
 def _hv_pc_Image_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,level_increase):
     if _is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
@@ -539,7 +553,7 @@ def _hv_pc_Image_callback_2(x_range,y_range,width,height,scale,data_dir,post_pro
     else:
         return hv.Image([],vdims=['z','idx'])
 
-# %% ../../nbs/CLI/plot.ipynb 62
+# %% ../../nbs/CLI/plot.ipynb 63
 def _hv_pc_Points_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,level_increase):
     if _is_nan_range(x_range):
         x0 = coord.x0; xm = coord.xm
@@ -618,7 +632,7 @@ def _hv_pc_Points_callback_2(x_range,y_range,width,height,scale,data_dir,post_pr
         data = post_proc_pc(data_zarr,idx,i,j)
         return hv.Points((x,y,data,idx),vdims=['z','idx'])
 
-# %% ../../nbs/CLI/plot.ipynb 63
+# %% ../../nbs/CLI/plot.ipynb 64
 def _default_pc_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
     assert len(kdims) == data_n_kdim
@@ -627,7 +641,7 @@ def _default_pc_post_proc(data_zarr, idx_array, *kdims):
     else:
         return data_zarr[idx_array,kdims]
 
-# %% ../../nbs/CLI/plot.ipynb 64
+# %% ../../nbs/CLI/plot.ipynb 65
 def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
     assert len(kdims) == 1
@@ -676,7 +690,7 @@ def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
         else:
             return data_zarr[idx_array,i,j]
 
-# %% ../../nbs/CLI/plot.ipynb 65
+# %% ../../nbs/CLI/plot.ipynb 66
 def pc_plot(
     pyramid_dir:str, # directory to the rendered point cloud pyramid
     post_proc_ras:Callable=None, # function for the post processing
