@@ -1,5 +1,6 @@
-    decorrelation, an InSAR postprocessing tool
-    Copyright (C) 2022  Kang Liang email: kangl@smu.edu
+    moraine, Modern Radar Interferometry Environment
+    A simple, stupid InSAR postprocessing tool in big data era
+    Copyright (C) 2022-2024  Kang Liang email: kangl@smu.edu
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

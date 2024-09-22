@@ -15,34 +15,14 @@ from dask import array as da
 from dask import delayed
 import zarr
 
+from ..chunk_ import fill_slice as _fill_slice
+from ..chunk_ import all_chunk_slices, all_chunk_slices_with_overlap
 from .logging import mc_logger_
 
 # %% ../../nbs/CLI/dask_.ipynb 4
-def _fill_slice(data_zarr,slices):
-    out_slices = []
-    for i in range(len(slices)):
-        slice_i = slices[i]
-        if slice_i.start is None:
-            start = 0
-        else:
-            start = slice_i.start
-        assert start>=0
-        assert start<data_zarr.shape[i]
-        #assert start%data_zarr.chunks[i] == 0
-        if slice_i.stop is None:
-            stop = data_zarr.shape[i]
-        else:
-            stop = slice_i.stop
-        assert stop > start
-        assert stop <=data_zarr.shape[i]
-            #assert stop%data_zarr.chunks[i] == 0
-        assert (slice_i.step is None) or (slice_i.step == 1)
-        step = 1
-        out_slices.append(slice(start,stop,step))
-    return tuple(out_slices)
-
-# %% ../../nbs/CLI/dask_.ipynb 5
 def _one_chunk_slices_and_out_shape(data_zarr,slices):
+    '''divide input slices into slices of every zarr chunk
+    and return the shape of subdata to be reade'''
     zarr_1chunk_slice = []
     out_1chunk_slice = []
     out_shape = []
@@ -74,14 +54,14 @@ def _one_chunk_slices_and_out_shape(data_zarr,slices):
 
     return zarr_1chunk_slice, out_1chunk_slice, tuple(out_shape)
 
-# %% ../../nbs/CLI/dask_.ipynb 6
+# %% ../../nbs/CLI/dask_.ipynb 5
 def _read_one_chunk(data_zarr,out,zarr_slices,out_slices):
     out[out_slices] = data_zarr[zarr_slices]
 
-# %% ../../nbs/CLI/dask_.ipynb 7
+# %% ../../nbs/CLI/dask_.ipynb 6
 def parallel_read_zarr(data_zarr,slices,thread_pool_size=None,fill_slice=True):
     if fill_slice:
-        slices = _fill_slice(data_zarr,slices)
+        slices = _fill_slice(data_zarr.shape,slices)
     zarr_1chunk_slices, out_1chunk_slices, out_shape = \
     _one_chunk_slices_and_out_shape(data_zarr,slices)
     # global out
@@ -92,24 +72,7 @@ def parallel_read_zarr(data_zarr,slices,thread_pool_size=None,fill_slice=True):
             future = executor.submit(_read_one_chunk,data_zarr,out,zarr_1chunk_slice,out_1chunk_slice)
     return out
 
-# %% ../../nbs/CLI/dask_.ipynb 14
-def _all_chunk_slices(data_zarr, chunks):
-    out_slices = []
-    for i in range(data_zarr.ndim):
-        shape = data_zarr.shape[i]
-        chunk = chunks[i]
-        if chunk <0: chunk=shape
-        bound_1dim = np.arange(0,shape+chunk,chunk)
-        if bound_1dim[-1] > shape: bound_1dim[-1] = shape
-
-        slice_1dim = []
-        for j in range(bound_1dim.shape[0]-1):
-            slice_1dim.append(slice(bound_1dim[j],bound_1dim[j+1]))
-        out_slices.append(slice_1dim)
-    out_slices = list(itertools.product(*out_slices))
-    return out_slices
-
-# %% ../../nbs/CLI/dask_.ipynb 15
+# %% ../../nbs/CLI/dask_.ipynb 13
 def dask_from_zarr(
     data_path:str,
     parallel_dims:int|tuple=None,
@@ -129,12 +92,12 @@ def dask_from_zarr(
         if chunks[i] <0: chunks[i] = data_zarr.shape[i]
     chunks = tuple(chunks)
 
-    slices = _all_chunk_slices(data_zarr,chunks)
+    slices = all_chunk_slices(data_zarr.shape,chunks)
 
     _p_read_zarr_delayed = delayed(parallel_read_zarr,pure=True,nout=1)
     out_delayed = np.empty(len(slices),dtype=object)
     for i in range(len(slices)):
-        slices_i = _fill_slice(data_zarr,slices[i])
+        slices_i = _fill_slice(data_zarr.shape,slices[i])
         out_delayed[i] = _p_read_zarr_delayed(data_zarr,slices_i,fill_slice=False)
         shape = []
         for slice_ in slices_i:
@@ -147,27 +110,7 @@ def dask_from_zarr(
     data_darr = da.block(out_delayed.tolist())
     return data_darr
 
-# %% ../../nbs/CLI/dask_.ipynb 20
-def _all_chunk_slices_with_overlap(data_zarr, chunks, depths):
-    out_slices = []
-    for i in range(data_zarr.ndim):
-        shape = data_zarr.shape[i]
-        chunk = chunks[i]
-        if chunk <0: chunk=shape
-        depth = depths[i]
-        starts_1dim = np.arange(-depth,shape-depth,chunk)
-        starts_1dim[starts_1dim<0] = 0
-        ends_1dim = np.arange(chunk+depth,shape+chunk+depth,chunk)
-        ends_1dim[ends_1dim>shape] = shape
-
-        slice_1dim = []
-        for j in range(starts_1dim.shape[0]):
-            slice_1dim.append(slice(starts_1dim[j],ends_1dim[j]))
-        out_slices.append(slice_1dim)
-    out_slices = list(itertools.product(*out_slices))
-    return out_slices
-
-# %% ../../nbs/CLI/dask_.ipynb 22
+# %% ../../nbs/CLI/dask_.ipynb 18
 def dask_from_zarr_overlap(
     data_path:str,
     chunks:tuple,
@@ -181,12 +124,12 @@ def dask_from_zarr_overlap(
         if chunks[i] <0: chunks[i] = data_zarr.shape[i]
     chunks = tuple(chunks)
 
-    slices = _all_chunk_slices_with_overlap(data_zarr,chunks,depth)
+    slices = all_chunk_slices_with_overlap(data_zarr.shape,chunks,depth)
 
     _p_read_zarr_delayed = delayed(parallel_read_zarr,pure=True,nout=1)
     out_delayed = np.empty(len(slices),dtype=object)
     for i in range(len(slices)):
-        slices_i = _fill_slice(data_zarr,slices[i])
+        slices_i = _fill_slice(data_zarr.shape,slices[i])
         out_delayed[i] = _p_read_zarr_delayed(data_zarr,slices_i,fill_slice=False)
         shape = []
         for slice_ in slices_i:
@@ -199,7 +142,7 @@ def dask_from_zarr_overlap(
     data_darr = da.block(out_delayed.tolist())
     return data_darr
 
-# %% ../../nbs/CLI/dask_.ipynb 25
+# %% ../../nbs/CLI/dask_.ipynb 21
 class ZarrDir():
     def __init__(self,zarr_path_list:list):
         self.zarr_path_list = zarr_path_list
@@ -225,7 +168,7 @@ class ZarrDir():
         zarr_path_list = sorted(zarr_dir.glob('*.zarr'),key=lambda path: int(path.stem)) # if one chunk is missing, it is ok
         return cls(zarr_path_list)
 
-# %% ../../nbs/CLI/dask_.ipynb 26
+# %% ../../nbs/CLI/dask_.ipynb 22
 def _parallel_read_pc_dir(
     zarr_dir, # zarr_dir object
     idx, # index for dim 1,2,...
@@ -251,7 +194,7 @@ def _parallel_read_pc_dir(
             future = executor.submit(_read_one_zarr_one_chunk,zarr_path,out,idx,out_slice)
     return out
 
-# %% ../../nbs/CLI/dask_.ipynb 29
+# %% ../../nbs/CLI/dask_.ipynb 25
 def _dask_from_pc_zarr_dir(zarrs):
     if isinstance(zarrs,list):
         zarr_dir = ZarrDir(zarrs)
@@ -269,14 +212,14 @@ def _dask_from_pc_zarr_dir(zarrs):
             out_delayed[idx] = out_delayed[idx].reshape((zarr_dir.shape[0],*out_chunk_shape))
     return da.block(out_delayed.tolist())
 
-# %% ../../nbs/CLI/dask_.ipynb 31
+# %% ../../nbs/CLI/dask_.ipynb 27
 def _write_one_chunk(data_zarr,data,zarr_slices,data_slices):
     data_zarr[zarr_slices] = data[data_slices]
 
-# %% ../../nbs/CLI/dask_.ipynb 32
+# %% ../../nbs/CLI/dask_.ipynb 28
 def parallel_write_zarr(data,data_zarr,slices,thread_pool_size=None,fill_slice=True):
     if fill_slice:
-        slices = _fill_slice(data_zarr,slices)
+        slices = _fill_slice(data_zarr.shape,slices)
     zarr_1chunk_slices, data_1chunk_slices = \
     _one_chunk_slices_and_out_shape(data_zarr,slices)[:2]
 
@@ -284,7 +227,7 @@ def parallel_write_zarr(data,data_zarr,slices,thread_pool_size=None,fill_slice=T
         for zarr_1chunk_slice,data_1chunk_slice in zip(zarr_1chunk_slices,data_1chunk_slices):
             future = executor.submit(_write_one_chunk,data_zarr,data,zarr_1chunk_slice,data_1chunk_slice)
 
-# %% ../../nbs/CLI/dask_.ipynb 37
+# %% ../../nbs/CLI/dask_.ipynb 33
 def _all_chunk_slices_except_pdims(data_zarr, pdims):
     out_slices = []
     for i in range(data_zarr.ndim):
@@ -305,7 +248,7 @@ def _all_chunk_slices_except_pdims(data_zarr, pdims):
     out_slices = list(itertools.product(*out_slices))
     return out_slices
 
-# %% ../../nbs/CLI/dask_.ipynb 38
+# %% ../../nbs/CLI/dask_.ipynb 34
 @mc_logger_
 def dask_to_zarr(data_darr,url,chunks,path=None,log_zarr=True):
     logger = logging.getLogger(__name__)
@@ -331,7 +274,7 @@ def dask_to_zarr(data_darr,url,chunks,path=None,log_zarr=True):
     data_darr_delayed = data_darr.to_delayed()
     data_darr_delayed = data_darr_delayed.reshape(n_slices)
     for i in range(n_slices):
-        slices_i = _fill_slice(data_zarr,slices[i])
+        slices_i = _fill_slice(data_zarr.shape,slices[i])
         out_delayed[i] = _p_write_zarr_delayed(data_darr_delayed[i],data_zarr,slices_i,fill_slice=False)
         out_delayed[i] = da.from_delayed(out_delayed[i],shape=(1,),dtype=int)
 
