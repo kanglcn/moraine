@@ -15,6 +15,7 @@ website:
           - API/shp.ipynb
           - API/co.ipynb
           - API/pl.ipynb
+          - API/dl.ipynb
           - API/plot.ipynb
       - section: CLI
         contents:
