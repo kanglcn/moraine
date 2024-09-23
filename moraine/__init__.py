@@ -16,5 +16,8 @@ from .shp import *
 from .co import *
 from .pl import *
 
+# DL
+from .dl import *
+
 # Plot
 from .plot import *
