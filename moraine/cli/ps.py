@@ -32,7 +32,7 @@ def amp_disp(
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPU for cuda
-    threads_per_worker=None, # number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+    threads_per_worker=None, # number of threads per dask worker, the default is 1 for cpu, only applied if cuda==False
     rmm_pool_size=0.9, # set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg, # other dask local/cudalocal cluster args
 ):

@@ -143,7 +143,7 @@ def ds_temp_coh(coh:np.ndarray,# complex coherence metrix, np.complex64 or cp.co
         _ds_temp_coh_kernel(coh, ph, image_pairs, cp.int32(n_points),cp.int32(nimages),cp.int32(n_image_pairs), temp_coh, size=n_points, block_size=block_size)
         return temp_coh
 
-# %% ../nbs/API/pl.ipynb 33
+# %% ../nbs/API/pl.ipynb 34
 def emperical_co_emi_temp_coh_pc(
     rslc:np.ndarray, # rslc stack, dtype:'np.complex64'
     idx:np.ndarray, # index of point target (azimuth_index, range_index), dtype: `np.int32`, shape: (n_pc, 2)

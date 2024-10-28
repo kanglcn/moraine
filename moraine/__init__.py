@@ -19,5 +19,7 @@ from .pl import *
 # DL
 from .dl import *
 
+from .tcoh import *
+
 # Plot
 from .plot import *

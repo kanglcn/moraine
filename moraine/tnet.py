@@ -6,6 +6,7 @@ __all__ = ['TempNet', 'nimage_from_npair']
 # %% ../nbs/API/tnet.ipynb 3
 import math
 import numpy as np
+import zarr
 from .utils_ import ngjit
 
 # %% ../nbs/API/tnet.ipynb 4
@@ -113,7 +114,7 @@ class TempNet(object):
     def load(cls, zarr_path:str, # zarr path
             ):
         '''classmethod to load the saved HilbertRtree.'''
-        tempnet_zarr = zarr.open(path,'r')
+        tempnet_zarr = zarr.open(zarr_path,'r')
         return cls(tempnet_zarr[:], check_if_valid=False)
 
 # %% ../nbs/API/tnet.ipynb 17
