@@ -16,6 +16,7 @@ website:
           - API/co.ipynb
           - API/pl.ipynb
           - API/dl.ipynb
+          - API/pqm.ipynb
           - API/plot.ipynb
       - section: CLI
         contents:

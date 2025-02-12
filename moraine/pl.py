@@ -88,14 +88,13 @@ def _ds_temp_coh_numba(
     for i in prange(n_points):
         _ph = ph[i]
         _coh = coh[i]
-        _t_coh = np.float32(0.0)
+        _t_coh = np.complex64(0.0)
         for j in range(n_image_pairs):
             n, k = image_pairs[j,0],image_pairs[j,1]
             int_conj_ph = np.conjugate(_ph[n])*_ph[k]
             diff_ph = _coh[j]*int_conj_ph/np.abs(_coh[j])
-            _t_coh += diff_ph.real
-        _t_coh = _t_coh/n_image_pairs
-        temp_coh[i] = _t_coh
+            _t_coh += diff_ph
+        temp_coh[i] = np.abs(_t_coh)/n_image_pairs
     return temp_coh
 
 # %% ../nbs/API/pl.ipynb 25
@@ -105,7 +104,7 @@ if is_cuda_available():
         'raw float32 temp_coh',
         '''
         if (i >= n_points) return;
-        float _t_coh = 0;
+        T _t_coh = T(0.0,0.0);
         int j; int n; int k;
         int coh_idx; int ph_n_idx; int ph_k_idx;
         for (j = 0; j< n_image_pairs; j++){
@@ -114,9 +113,9 @@ if is_cuda_available():
             coh_idx = i*n_image_pairs+j;
             ph_n_idx = i*nimages+n;
             ph_k_idx = i*nimages+k;
-            _t_coh += real(coh[coh_idx]/sqrt(norm(coh[coh_idx]))*conj(ph[ph_n_idx])*ph[ph_k_idx]);
+            _t_coh += coh[coh_idx]/sqrt(norm(coh[coh_idx]))*conj(ph[ph_n_idx])*ph[ph_k_idx];
         }
-        temp_coh[i] = _t_coh/n_image_pairs;
+        temp_coh[i] = abs(_t_coh)/n_image_pairs;
         ''',
         name = 'ds_temp_coh_kernel',no_return=True,
     )
