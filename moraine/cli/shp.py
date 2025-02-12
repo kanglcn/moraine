@@ -84,7 +84,7 @@ def shp_test(
         logger.info(f'azimuth half window size: {az_half_win}; azimuth window size: {az_win}')
         r_win = 2*r_half_win+1
         logger.info(f'range half window size: {r_half_win}; range window size: {r_win}')
-        depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
+        depth = (az_half_win, r_half_win, 0); boundary = {0:'none',1:'none',2:'none'}
 
         cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path,chunks=chunks,depth=depth)
         logger.darr_info('rslc with overlap', cpu_rslc_overlap)

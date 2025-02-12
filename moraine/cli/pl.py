@@ -265,7 +265,7 @@ def emperical_co_emi_temp_coh_pc(
     logger.info(f'parallel processing azimuth chunk size: {az_chunk}')
     logger.info(f'parallel processing range chunk size: {r_chunk}')
 
-    depth = {0:az_half_win, 1:r_half_win, 2:0}; boundary = {0:'none',1:'none',2:'none'}
+    depth = [az_half_win, r_half_win, 0]; boundary = {0:'none',1:'none',2:'none'}
     gix_zarr = zarr.open(gix_path,mode='r')
     logger.zarr_info(gix_path, gix_zarr)
     assert gix_zarr.ndim == 2, "gix dimentation is not 2."

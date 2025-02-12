@@ -10,4 +10,5 @@ from .shp import *
 from .co import *
 from .pl import *
 from .dl import *
+from .pqm import *
 from .plot import *

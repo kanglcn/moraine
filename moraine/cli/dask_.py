@@ -114,7 +114,7 @@ def dask_from_zarr(
 def dask_from_zarr_overlap(
     data_path:str,
     chunks:tuple,
-    depth:dict|tuple,
+    depth:tuple,
 ):
     # chunks provide more control of chunking compared with parallel_dims
     data_zarr = zarr.open(data_path,'r')
