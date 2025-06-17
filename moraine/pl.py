@@ -156,6 +156,7 @@ def emperical_co_emi_temp_coh_pc(
     emi_quality = xp.empty(n_pc,dtype=np.float32)
     t_coh = xp.empty(n_pc,dtype=np.float32)
     batch_bounds = np.arange(0,n_pc+batch_size,batch_size)
+    # I forgot why I have to split data into batches, probably due to memory issue.
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
     for i in range(batch_bounds.shape[0]-1):
         start = batch_bounds[i]; stop = batch_bounds[i+1]

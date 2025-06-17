@@ -53,6 +53,7 @@ def ras_pyramid(
     **dask_cluster_arg, # other dask local cluster args
 ):
     '''render raster data to pyramid of difference zoom levels.'''
+    # I forget why threads_per_worker set to 2, maybe because one for data read and write and another one for process
     logger = logging.getLogger(__name__)
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)

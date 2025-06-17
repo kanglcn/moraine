@@ -2,6 +2,40 @@
 
 <!-- do not remove -->
 
+## 0.8.2
+
+bug fixed for cli.emperical_co_pc
+
+### Bugs Squashed
+
+- Data format scomplex is not supported. ([#20](https://github.com/kanglcn/moraine/issues/20))
+  - ### Description of the problem
+
+The package doesn't support scomplex data, so if the preprocessed rslc data is saved as scomplex, you are supposed to convert it to fcomplex and then process it with this package. 
+
+### Minimal Complete Verifiable Example
+
+_No response_
+
+### Full error message
+
+_No response_
+
+### System information
+
+```bash
+numpy version 1.22.4
+```
+
+
+### Are you willing to help fix this bug?
+
+No
+
+
+
+
+
 ## 0.8.1
 
 implement parallel zarr io
