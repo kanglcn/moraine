@@ -188,7 +188,8 @@ def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
         # zarr do not support empty tuple as input
         return data_zarr[yslice,xslice]
     else:
-        return data_zarr[yslice,xslice,kdims]
+        index_tuple = (yslice, xslice, *kdims)
+        return data_zarr[index_tuple]
 
 # %% ../../nbs/CLI/plot.ipynb 15
 def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
@@ -197,15 +198,15 @@ def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i]*data_zarr[yslice,xslice,0].conj())
+            return np.angle(data_zarr[yslice,xslice,0]*data_zarr[yslice,xslice,i].conj())
         else:
-            return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,0]
+            return data_zarr[yslice,xslice,0]-data_zarr[yslice,xslice,i]
     else:
         assert data_n_kdim == 2
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i,0])
+            return np.angle(data_zarr[yslice,xslice,0,i])
         else:
-            return data_zarr[yslice,xslice,i,0]
+            return data_zarr[yslice,xslice,0,i]
 
 def _ras_inf_seq_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
@@ -213,15 +214,15 @@ def _ras_inf_seq_post_proc(data_zarr, xslice, yslice, *kdims):
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i]*data_zarr[yslice,xslice,i-1].conj())
+            return np.angle(data_zarr[yslice,xslice,i]*data_zarr[yslice,xslice,i+1].conj())
         else:
-            return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,i-1]
+            return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,i+1]
     else:
         assert data_n_kdim == 2
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i,i-1])
+            return np.angle(data_zarr[yslice,xslice,i,i+1])
         else:
-            return data_zarr[yslice,xslice,i,i-1]
+            return data_zarr[yslice,xslice,i,i+1]
 def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
     assert len(kdims) == 2
@@ -622,7 +623,8 @@ def _default_pc_post_proc(data_zarr, idx_array, *kdims):
     if len(kdims) == 0:
         return data_zarr[idx_array]
     else:
-        return data_zarr[idx_array,kdims]
+        index_tuple = (idx_array, *kdims)
+        return data_zarr[index_tuple]
 
 # %% ../../nbs/CLI/plot.ipynb 62
 def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
@@ -631,15 +633,15 @@ def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i]*data_zarr[idx_array,0].conj())
+            return np.angle(data_zarr[idx_array,0]*data_zarr[idx_array,i].conj())
         else:
-            return data_zarr[idx_array,i]-data_zarr[idx_array,0]
+            return data_zarr[idx_array,0]-data_zarr[idx_array,i]
     else:
         assert data_n_kdim == 2
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i,0])
+            return np.angle(data_zarr[idx_array,0,i])
         else:
-            return data_zarr[idx_array,i,0]
+            return data_zarr[idx_array,0,i]
 
 def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
@@ -647,15 +649,15 @@ def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i]*data_zarr[idx_array,i-1].conj())
+            return np.angle(data_zarr[idx_array,i]*data_zarr[idx_array,i+1].conj())
         else:
-            return data_zarr[idx_array,i]-data_zarr[idx_array,i-1]
+            return data_zarr[idx_array,i]-data_zarr[idx_array,i+1]
     else:
         assert data_n_kdim == 2
         if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i,i-1])
+            return np.angle(data_zarr[idx_array,i,i+1])
         else:
-            return data_zarr[idx_array,i,i-1]
+            return data_zarr[idx_array,i,i+1]
 
 def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1

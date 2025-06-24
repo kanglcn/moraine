@@ -33,7 +33,7 @@ def emperical_co_pc(
     is_shp_dir:str, # input: directory for bool array indicating the SHPs of pc
     gix:str, # input: bool array indicating pc, shape (2, n_points)
     coh_dir:str, # output: directory that hold complex coherence matrix for pc
-    tnet:str=None, # input: temporal network
+    image_pairs:np.ndarray=None, # input: image pairs (element in the coherence matrix) to be calculated, all image pairs by default
     chunks:int=None, # parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
@@ -96,11 +96,10 @@ def emperical_co_pc(
         cluster_args.update(dask_cluster_arg)
         xp = np
 
-    if tnet is not None:
-        tnet = mr.TempNet.load(tnet)
-    else:
+    if image_pairs is None:
         tnet = mr.TempNet.from_bandwidth(nimage)
-    image_pairs = tnet.image_pairs
+        image_pairs = tnet.image_pairs
+
     n_image_pairs = image_pairs.shape[0]
     
     logger.info('starting dask cluster.')

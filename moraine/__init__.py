@@ -19,7 +19,11 @@ from .pl import *
 # DL
 from .dl import *
 
+# pixel quality control
 from .pqm import *
+
+# phase unwrapping
+from .pu import *
 
 # Plot
 from .plot import *

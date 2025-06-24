@@ -17,6 +17,7 @@ website:
           - API/pl.ipynb
           - API/dl.ipynb
           - API/pqm.ipynb
+          - API/pu.ipynb
           - API/plot.ipynb
       - section: CLI
         contents:
@@ -29,6 +30,9 @@ website:
           - CLI/shp.ipynb
           - CLI/co.ipynb
           - CLI/pl.ipynb
+          - CLI/dl.ipynb
+          - CLI/pqm.ipynb
+          - CLI/pu.ipynb
           - CLI/plot.ipynb
       - section: Tutorials
         contents:
