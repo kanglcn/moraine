@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['gamma_mcf_pt']
 
-# %% ../../nbs/CLI/pu.ipynb 4
+# %% ../../nbs/CLI/pu.ipynb 5
 import logging
 import zarr
 import time
@@ -17,7 +17,7 @@ import moraine as mr
 from .logging import mc_logger
 from . import dask_from_zarr, dask_to_zarr, parallel_read_zarr
 
-# %% ../../nbs/CLI/pu.ipynb 5
+# %% ../../nbs/CLI/pu.ipynb 6
 @mc_logger
 def gamma_mcf_pt(
     pc_x:str, # x coordinate, shape of (N,)

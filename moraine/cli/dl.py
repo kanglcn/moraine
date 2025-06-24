@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['n2f']
 
-# %% ../../nbs/CLI/dl.ipynb 4
+# %% ../../nbs/CLI/dl.ipynb 5
 import logging
 import zarr
 import numpy as np
@@ -30,7 +30,7 @@ import moraine.cli as mc
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
-# %% ../../nbs/CLI/dl.ipynb 5
+# %% ../../nbs/CLI/dl.ipynb 6
 def _ort_session(
     path:str, # path to the model in onnx format
     cuda:bool=False, # if use cuda or not
@@ -42,7 +42,7 @@ def _ort_session(
     ort_session = onnxruntime.InferenceSession(path, providers=providers)
     return ort_session
 
-# %% ../../nbs/CLI/dl.ipynb 6
+# %% ../../nbs/CLI/dl.ipynb 7
 @ngpjit
 def _cli_pre_infer_n2f_numba(
     ref, # reference rslc
@@ -66,7 +66,7 @@ def _cli_pre_infer_n2f_numba(
                 out[0,1,i,j] = intf_i_j.imag/amp
     return out, mask
 
-# %% ../../nbs/CLI/dl.ipynb 7
+# %% ../../nbs/CLI/dl.ipynb 8
 if is_cuda_available():
     _cli_pre_infer_n2f_kernel = cp.ElementwiseKernel(
             'raw T ref_, raw T sec_, int32 nlines, int32 width',
@@ -90,7 +90,7 @@ if is_cuda_available():
             # I do not find an easy way to generate random number with cupy kernel
             name = 'cli_pre_infer_n2f_kernel',reduce_dims=False,no_return=True)
 
-# %% ../../nbs/CLI/dl.ipynb 8
+# %% ../../nbs/CLI/dl.ipynb 9
 if is_cuda_available():
     def _cli_pre_infer_n2f_cp(ref,sec):
         nlines, width = ref.shape
@@ -104,7 +104,7 @@ if is_cuda_available():
         out[0,1,nan_pos[0],nan_pos[1]] = cp.sin(random_phase)
         return out, mask
 
-# %% ../../nbs/CLI/dl.ipynb 12
+# %% ../../nbs/CLI/dl.ipynb 13
 def _cli_n2f_cpu(
     ref,
     sec,
@@ -126,7 +126,7 @@ def _cli_n2f_cpu(
         out[out_slice] = mr.dl._after_infer_n2f_numba(infer_out_slice,mask_slice)[map_slice]
     return out
 
-# %% ../../nbs/CLI/dl.ipynb 13
+# %% ../../nbs/CLI/dl.ipynb 14
 def _cli_n2f_np_in_gpu(
     ref,
     sec,
