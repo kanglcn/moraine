@@ -2,6 +2,20 @@
 
 <!-- do not remove -->
 
+## 0.8.3
+
+Move two deep learning models out of the package to prevent too big pypi package
+
+update cli.co use image_pairs in memory rather than tnet file;
+
+fix plot bugs in functions for general read zarr file, and change seq_intf from (i, i-1) to (i,i+1);
+
+add multilook and intf to api.co;
+
+finish gamma phase wrapping API and CLI;
+
+move read/write gamma file to a seperate module from cli.load
+
 ## 0.8.2
 
 bug fixed for cli.emperical_co_pc
