@@ -164,5 +164,6 @@ mydask.png
 scratch/
 
 nbs/CLI/*.png
+moraine/dl_model/*.onnx
 
 base.out

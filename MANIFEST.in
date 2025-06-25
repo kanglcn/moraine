@@ -2,5 +2,4 @@ include settings.ini
 include LICENSE
 include CONTRIBUTING.md
 include README.md
-recursive-include moraine/dl_model *.onnx
 recursive-exclude * __pycache__
