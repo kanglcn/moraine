@@ -27,7 +27,7 @@ def _coords2gixs(coords, x0, dx, nx, out):
 
 # %% ../nbs/API/coord_.ipynb 4
 class Coord(object):
-    '''utils for digitize raster and point cloud data.
+    '''utils for digitize raster and point cloud data, in a pyramid.
     The coord is defined as the continuous coordinates, e.g., longitude & latitude.
     The index is defined as the digitized index, (0,0,nx-1,ny-1).
     '''
@@ -61,6 +61,7 @@ class Coord(object):
         return xi*2**level*self.dx+self.x0, yi*2**level*self.dy+self.y0
 
     def hv_bbox2gix_bbox(self,coord_bbox,level):
+        # holoview bounding box is always in continous coordinates
         # index always truncated to include more data
         x0, y0, xm, ym = coord_bbox
         xi0 = math.floor((x0-self.x0)/self.dx/2**level+0.5)
@@ -78,13 +79,22 @@ class Coord(object):
         xi0, yi0, xim, yim = sorted((0,xi0,xi_max))[1], sorted((0,yi0,yi_max))[1], sorted((0,xim,xi_max))[1], sorted((0,yim,yi_max))[1]
         return (xi0-0.5)*2**level*self.dx+self.x0, (yi0-0.5)*2**level*self.dy+self.y0, (xim+0.5)*2**level*self.dx+self.x0, (yim+0.5)*2**level*self.dy+self.y0
     
-    def coords2gixs(self,coords):
-        '''inputs are 2d arrays. Assume zoom level is 0.'''
+    def coords2gixs(
+        self,
+        coords, # shape [N, 2], first column: y coordinates, secondary column, x coordinates
+    ):
+        '''inputs are 2d arrays. Only zoom level = 0 supported.'''
         out = np.empty_like(coords,dtype=np.int32)
         _coords2gixs(coords[:,1], self.x0, self.dx, self.nx, out[:,1])
         _coords2gixs(coords[:,0], self.y0, self.dy, self.ny, out[:,0])
         return out
-    def rasterize_iidx(self,gix):
+    def rasterize_iidx(
+        self,
+        gix
+    ):
+        # the output is the inverse index (2D, same shape with ras), i.e., rasterized_ras = pc[iidx]
+        # but the nan value in rasterized ras is not filled
+        # it should be updated as rasterized_ras[iidx==-1] = np.nan
         iidx = np.full((self.ny,self.nx),fill_value=-1,dtype=np.int64)
         iidx[gix[:,0],gix[:,1]] = np.arange(gix.shape[0])
         return iidx
