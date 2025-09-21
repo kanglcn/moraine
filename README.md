@@ -121,6 +121,7 @@ you can install the needed `cudatoolkit`, `cupy`, `dask_cuda` by:
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy cuda-version=11.8
 conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
+pip install onnxruntime # or onnxruntime-gpu
 ```
 
 Then
