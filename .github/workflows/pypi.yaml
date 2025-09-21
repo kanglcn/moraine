@@ -32,10 +32,11 @@ jobs:
         python -m pip install --upgrade pip
           pip install -Uq nbdev
         pip install -e ".[dev]"
+        pip install build
 
     - name: Build source and wheel distributions
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
         echo ""
         echo "Generated files:"
         ls -lh dist/
