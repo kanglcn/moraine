@@ -2,6 +2,12 @@
 
 <!-- do not remove -->
 
+## 0.8.4
+
+Add n2ft model
+
+Add API for plot
+
 ## 0.8.3
 
 Move two deep learning models out of the package to prevent too big pypi package
