@@ -244,6 +244,7 @@ def n2f(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = xp.empty_like(intf)
+    intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
         session = _ort_session(model,cuda=False)
@@ -270,6 +271,7 @@ def _n2f_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
+    intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     session = _ort_session(model,cuda=True)
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
@@ -399,6 +401,7 @@ def n2fs3d(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = xp.empty_like(intf)
+    intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
         session = _ort_session(model,cuda=False)
@@ -426,6 +429,7 @@ def _n2fs3d_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
+    intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     session = _ort_session(model,cuda=True)
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):

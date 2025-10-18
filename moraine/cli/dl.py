@@ -112,7 +112,9 @@ def _cli_n2f_cpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(ref)
-    
+    ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
+    sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
+
     session = mr.dl._ort_session(model,cuda=False)
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_numba(ref[in_slice],sec[in_slice])
@@ -134,7 +136,9 @@ def _cli_n2f_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(ref)
-    
+    ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
+    sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
+
     session = _ort_session(model,cuda=True)
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         ref_slice = cp.asarray(ref[in_slice])
@@ -165,7 +169,7 @@ def _cli_n2f_np_in_gpu(
         out[out_slice] = (mr.dl._after_infer_n2f_cp(output_intf_slice,mask_slice)[map_slice]).get()
     return out
 
-# %% ../../nbs/CLI/dl.ipynb 17
+# %% ../../nbs/CLI/dl.ipynb 16
 @mc_logger
 def n2f(
     rslc:str, # input: rslc stack, shape (nlines, width, nimages)
@@ -245,7 +249,7 @@ def n2f(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/dl.ipynb 24
+# %% ../../nbs/CLI/dl.ipynb 23
 def _cli_n2ft(
     x:np.ndarray, # x coordinate, e.g., longitude, shape (n,) np.floating
     y:np.ndarray, # y coordinate, e.g., latitude, shape (n,) np.floating
@@ -278,7 +282,7 @@ def _cli_n2ft(
 
     return out
 
-# %% ../../nbs/CLI/dl.ipynb 25
+# %% ../../nbs/CLI/dl.ipynb 24
 @mc_logger
 def n2ft(
     x:str, # input: x coordinate, e.g., longitude, shape (n,)
