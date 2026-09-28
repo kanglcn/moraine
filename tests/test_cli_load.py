@@ -27,7 +27,8 @@ def test_load_gamma_range(gamma, tmp_path):
     assert np.all(np.diff(r, axis=1) > 0)          # slant range increases with the range index
 
 
-def test_load_gamma_metadata(gamma, tmp_path):
+def test_load_gamma_metadata(gamma, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)   # base_calc writes base.out / base_calc.log to the working directory
     mc.load_gamma_metadata(str(gamma / 'rslc'), str(gamma / 'DEM' / 'dem_seg_par'), REF, str(tmp_path / 'meta.toml'))
     meta = toml.load(tmp_path / 'meta.toml')
     assert len(meta['dates']) == NIMAGES

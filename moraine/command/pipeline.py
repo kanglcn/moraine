@@ -4,7 +4,7 @@ Example ``pipeline.toml``::
 
     [pipeline]
     workdir = "."          # relative paths are relative to this directory (default: the TOML directory)
-    quicklook = true       # save a quicklook PNG of every output (default: true)
+    quicklook = true       # save a PNG of every pyramid made by a step (default: true)
 
     [defaults]             # applied to every step whose command has these arguments
     cuda = true
@@ -17,7 +17,7 @@ Example ``pipeline.toml``::
     [step.kw]              # optional: extra keyword arguments, e.g. dask cluster options
     memory_limit = "20GB"
 
-State, logs, summaries and quicklooks are written to ``<workdir>/.moraine/``. A step is skipped when it
+State, logs, output metadata and quicklooks of pyramids are written to ``<workdir>/.moraine/``. A step is skipped when it
 finished before with the same arguments and all its outputs still exist.
 """
 
@@ -226,7 +226,7 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
                 if s['quicklook'] and quicklook:
                     rec['quicklooks'] = []
                     for summ in out['summaries']:
-                        if summ.get('kind') != 'array':
+                        if not summ.get('kind', '').endswith('pyramid'):   # only pyramids are drawn
                             continue
                         png = Path('.moraine') / 'quicklook' / f'{s["name"]}__{Path(summ["path"].rstrip("/")).name}.png'
                         try:

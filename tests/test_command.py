@@ -90,28 +90,21 @@ def test_bind_args():
 
 # ---------------------------------------------------------------- summary / quicklook
 
-def test_summarize(tmp_path, rng):
-    _zarr(tmp_path / 'f.zarr', np.where(rng.random((300, 200)) < 0.1, np.nan, 1.0).astype(np.float32))
-    s = summarize(str(tmp_path / 'f.zarr'))
-    assert s['kind'] == 'array' and s['shape'] == [300, 200] and 0.05 < s['nan_fraction'] < 0.15
-    _zarr(tmp_path / 'c.zarr', (rng.random((50, 3)) * np.exp(1j * rng.random((50, 3)))).astype(np.complex64))
-    assert 'amplitude_mean' in summarize(str(tmp_path / 'c.zarr'))
-    _zarr(tmp_path / 'b.zarr', np.ones((10, 10), bool))
-    assert summarize(str(tmp_path / 'b.zarr'))['true_fraction'] == 1.0
-    big = summarize(str(tmp_path / 'f.zarr'), max_elements=1000)
-    assert 'sampled_step' in big
+def test_summarize_is_metadata_only(tmp_path, rng):
+    _zarr(tmp_path / 'f.zarr', rng.random((300, 200)).astype(np.float32), (100, 100))
+    assert summarize(str(tmp_path / 'f.zarr')) == {'path': str(tmp_path / 'f.zarr'), 'kind': 'array',
+                                                   'shape': [300, 200], 'dtype': 'float32', 'chunks': [100, 100]}
+    (tmp_path / 'd').mkdir(); _zarr(tmp_path / 'd' / '0.zarr', np.ones(3))
+    (tmp_path / 'd' / '1.zarr').mkdir()
+    assert summarize(str(tmp_path / 'd'))['kind'] == 'raster pyramid'   # 0.zarr, 1.zarr ... is a pyramid
     with pytest.raises(FileNotFoundError):
         summarize(str(tmp_path / 'missing.zarr'))
 
 
-def test_quicklook(tmp_path, rng):
-    _zarr(tmp_path / 'ras.zarr', rng.random((100, 80, 3)).astype(np.float32))
-    _zarr(tmp_path / 'pc.zarr', np.exp(1j * rng.random(50)).astype(np.complex64))
-    _zarr(tmp_path / 'gix.zarr', np.stack(np.unravel_index(rng.choice(400, 50, replace=False), (20, 20)), -1).astype(np.int32))
-    for args in [('ras.zarr', {}), ('pc.zarr', {'gix': str(tmp_path / 'gix.zarr')}), ('pc.zarr', {})]:
-        quicklook(str(tmp_path / args[0]), str(tmp_path / 'q.png'), **args[1])
-        assert (tmp_path / 'q.png').stat().st_size > 1000
-        (tmp_path / 'q.png').unlink()
+def test_quicklook_needs_a_pyramid(tmp_path, rng):
+    _zarr(tmp_path / 'f.zarr', rng.random((30, 20)).astype(np.float32))
+    with pytest.raises(ValueError, match='moraine ras-pyramid'):
+        quicklook(str(tmp_path / 'f.zarr'), str(tmp_path / 'q.png'))
 
 
 # ---------------------------------------------------------------- command line
@@ -193,7 +186,7 @@ def test_pipeline_run_resume_and_invalidate(pipe):
     assert res['ok'] and _actions(res) == ['run'] * 3
     a = zarr.open(str(d / 'a.zarr'), mode='r')[:]
     np.testing.assert_array_equal(zarr.open(str(d / 'pc.zarr'), mode='r')[:], (2 * a)[2 * a > 1])
-    assert (d / '.moraine' / 'quicklook' / 'scale__b.zarr.png').exists()
+    assert not (d / '.moraine' / 'quicklook').exists()      # quicklooks are only made of pyramids
     # nothing changed: everything is skipped
     assert _actions(run_pipeline(path, echo=lambda *a: None)) == ['skip'] * 3
     # a changed argument reruns that step and every step reading its outputs
@@ -281,3 +274,58 @@ def test_tuple_in_pipeline_file(tmp_path):
     (tmp_path / 'p.toml').write_text('[[step]]\nname="a"\nrun="amp-disp"\nrslc="r"\nadi="a"\nchunks=[100, 100, 1]\n')
     with pytest.raises(UsageError, match="step 'a'.*--chunks needs 2 integers"):
         run_pipeline(str(tmp_path / 'p.toml'), dry_run=True, echo=lambda *a: None)
+
+
+def test_pyramids(tmp_path, rng):
+    import moraine.cli as mc
+    from moraine.command.summary import pyramid_levels
+    ras = (rng.random((300, 200, 3)) * np.exp(1j * rng.random((300, 200, 3)))).astype(np.complex64)
+    _zarr(tmp_path / 'ras.zarr', ras, (100, 100, 1))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'ras_pyramid'))
+    assert pyramid_levels(tmp_path / 'ras_pyramid')[:2] == [0, 1] and pyramid_levels(tmp_path / 'ras.zarr') == []
+    s = summarize(str(tmp_path / 'ras_pyramid'))
+    assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1
+    assert s['stats_level'] == 0 and abs(s['amplitude_mean'] - np.abs(ras).mean()) < 1e-3 and 'warnings' not in s
+    assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000)['stats_level'] > 0     # coarser level
+    for kw in [{}, {'index': (2,)}, {'post_proc': 'intf_seq', 'index': (1,)}, {'post_proc': 'intf_all', 'index': (0, 2)}]:
+        out = tmp_path / 'r.png'
+        quicklook(str(tmp_path / 'ras_pyramid'), str(out), width=200, **kw)
+        assert out.stat().st_size > 1000
+        out.unlink()
+
+    n = 500
+    g = np.stack(np.unravel_index(np.sort(rng.choice(300 * 200, n, replace=False)), (300, 200)), -1)
+    for name, a in [('x.zarr', g[:, 1].astype(float)), ('y.zarr', g[:, 0].astype(float)),
+                    ('pc.zarr', rng.random(n).astype(np.float32))]:
+        _zarr(tmp_path / name, a)
+    mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pc_pyramid'), x=str(tmp_path / 'x.zarr'),
+                  y=str(tmp_path / 'y.zarr'), ras_resolution=1)
+    s = summarize(str(tmp_path / 'pc_pyramid'))
+    assert s['kind'] == 'point cloud pyramid'
+    assert s['nan_fraction'] == 0.0            # cells without points are not counted as nan
+    for width in (1000, 50):       # points layer (fine) and image layer (coarse) of pc_plot
+        quicklook(str(tmp_path / 'pc_pyramid'), str(tmp_path / f'p{width}.png'), width=width)
+        assert (tmp_path / f'p{width}.png').stat().st_size > 1000
+
+
+def test_quicklook_command(tmp_path, capsys, rng):
+    import moraine.cli as mc
+    _zarr(tmp_path / 'ras.zarr', rng.random((64, 48)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
+    capsys.readouterr()                  # drop the dask progress bar of ras_pyramid
+    assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
+    assert _json_out(capsys)['png'] == str(tmp_path / 'q.png')
+    assert main(['quicklook', str(tmp_path / 'ras.zarr'), '--json']) == 1
+    assert 'not a pyramid' in _json_out(capsys)['error']
+
+
+@pytest.mark.parametrize('data,warning', [
+    (np.full((60, 40), np.nan, np.float32), 'all values are nan'),
+    (np.where(np.arange(2400).reshape(60, 40) % 97 == 0, np.inf, 1.5).astype(np.float32), 'infinite values'),
+    (np.zeros((60, 40), np.float32), 'all values are 0.0'),
+])
+def test_pyramid_warnings(tmp_path, data, warning):
+    import moraine.cli as mc
+    _zarr(tmp_path / 'a.zarr', data, (20, 20))
+    mc.ras_pyramid(str(tmp_path / 'a.zarr'), str(tmp_path / 'pyr'))
+    assert any(warning in w for w in summarize(str(tmp_path / 'pyr'))['warnings'])

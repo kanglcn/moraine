@@ -6,8 +6,9 @@ function signature and numpy docstring::
     moraine list                                  # all commands
     moraine amp-disp --help                       # options of one command
     moraine amp-disp --rslc raw/rslc.zarr --adi ps/adi.zarr --cuda
-    moraine info ps/adi.zarr                      # shape, dtype and statistics of a result
-    moraine quicklook ps/adi.zarr -o adi.png      # quicklook image of a result
+    moraine info ps/adi.zarr                      # shape, dtype and chunks of a result
+    moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
+    moraine quicklook ps/adi_pyramid -o adi.png   # PNG of a pyramid, drawn with moraine's holoviews plots
     moraine tnet --nimages 17 --bandwidth 1 -o pairs.txt
     moraine run pipeline.toml                     # run (or resume) a processing pipeline
     moraine status pipeline.toml
@@ -351,14 +352,17 @@ def _setup_logging(args):
 def _print_summary(s):
     if 'error' in s:
         print(f'  {s["path"]}: summary failed ({s["error"]})'); return
-    if s.get('kind') != 'array':
+    if 'shape' not in s:
         rest = {k: v for k, v in s.items() if k not in ('path', 'kind')}
         print(f'  {s["path"]}: {s.get("kind")} {rest}'); return
-    head = f'  {s["path"]}: {s["dtype"]} {tuple(s["shape"])} chunks {tuple(s["chunks"])}'
-    stats = {k: v for k, v in s.items() if k not in ('path', 'kind', 'shape', 'dtype', 'chunks')}
+    head = f'  {s["path"]}: {s["dtype"]} {tuple(s["shape"])}'
+    head += f' chunks {tuple(s["chunks"])}' if 'chunks' in s else f' {s["kind"]}, {s["levels"]} levels'
+    stats = {k: v for k, v in s.items() if k not in ('path', 'kind', 'shape', 'dtype', 'chunks', 'levels', 'warnings')}
     print(head)
     if stats:
         print('    ' + ', '.join(f'{k}={v}' for k, v in stats.items()))
+    for w in s.get('warnings', []):
+        print(f'    WARNING: {w}')
 
 
 def _emit(args, result, text=None):
@@ -414,14 +418,16 @@ def _build_parser(with_commands=True):
                                      epilog='Run `moraine list` for all processing commands.')
     sub = parser.add_subparsers(dest='_sub', metavar='COMMAND')
     p = sub.add_parser('list', help='list the processing commands'); _add_global(p)
-    p = sub.add_parser('info', help='shape, dtype and statistics of zarr arrays')
+    p = sub.add_parser('info', help='shape, dtype and chunks of zarr arrays and pyramids')
     p.add_argument('paths', nargs='+'); _add_global(p)
-    p = sub.add_parser('quicklook', help='save a quicklook PNG of a zarr array')
-    p.add_argument('path'); p.add_argument('-o', '--out', help='output PNG (default: <name>.png)')
-    p.add_argument('--index', type=int, default=0, help='index along the last axis (default: 0)')
-    p.add_argument('--gix', help='grid index zarr (n, 2) of a point cloud')
-    p.add_argument('--x', help='x coordinate zarr of a point cloud')
-    p.add_argument('--y', help='y coordinate zarr of a point cloud')
+    p = sub.add_parser('quicklook', help='save a PNG of a pyramid (made by ras-pyramid / pc-pyramid)')
+    p.add_argument('pyramid', help='pyramid directory made by `moraine ras-pyramid` or `moraine pc-pyramid`')
+    p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
+    p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
+                   help='image (i) of a stack, or two images (i j) with --post_proc intf_all (default: 0)')
+    p.add_argument('--post_proc', choices=['phase', 'intf_0', 'intf_seq', 'intf_all'],
+                   help='how to show a stack, see moraine.cli.ras_plot (default: the phase for complex data)')
+    p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     _add_global(p)
     p = sub.add_parser('tnet', help='write image pairs of a temporal network to a text file')
     p.add_argument('--nimages', type=int, required=True)
@@ -466,8 +472,8 @@ def _run(args):
         return _emit(args, result, lambda: [_print_summary(s) for s in result['summaries']])
     if sub == 'quicklook':
         from .summary import quicklook
-        out = args.out or Path(args.path.rstrip('/')).stem + '.png'
-        quicklook(args.path, out, index=args.index, gix=args.gix, x=args.x, y=args.y)
+        out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
+        quicklook(args.pyramid, out, index=tuple(args.index), post_proc=args.post_proc, width=args.width)
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
     if sub == 'tnet':
         from ..tnet import TempNet

@@ -507,6 +507,22 @@ def pc_pyramid(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
+class _LazyRtree:
+    '''HilbertRtree of the pyramid points, built when the points are first queried.
+
+    The points are only drawn when zoomed in to the finest level, so an overview (or a quicklook) of a large
+    point cloud does not need to read all coordinates.'''
+    def __init__(self, pyramid_dir):
+        self.pyramid_dir = Path(pyramid_dir)
+        self._rtree = None
+
+    def bbox_query(self, bounds, x, y):
+        if self._rtree is None:
+            x_ = zarr.open(self.pyramid_dir/'x.zarr',mode='r')[:]
+            y_ = zarr.open(self.pyramid_dir/'y.zarr',mode='r')[:]
+            self._rtree = HilbertRtree.build(x_,y_,page_size=512)
+        return self._rtree.bbox_query(bounds, x, y)
+
 def _is_nan_range(x_range):
     if x_range is None:
         return True
@@ -805,9 +821,7 @@ def pc_plot(
     coord = Coord(x0,dx,nx,y0,dy,ny)
 
     if rtree is None:
-        x = zarr.open(pyramid_dir/'x.zarr',mode='r')[:]
-        y = zarr.open(pyramid_dir/'y.zarr',mode='r')[:]
-        rtree = HilbertRtree.build(x,y,page_size=512)
+        rtree = _LazyRtree(pyramid_dir)
 
     if len(kdims) == 0:
         hv_pc_Image_callback = _hv_pc_Image_callback_0

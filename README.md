@@ -177,8 +177,10 @@ with its options and help generated from the function docstring:
 moraine list                                   # all commands
 moraine amp-disp --help
 moraine amp-disp --rslc raw/rslc.zarr --adi ps/adi.zarr --cuda
-moraine info ps/adi.zarr                       # shape, dtype and statistics of a result
-moraine quicklook ps/adi.zarr -o adi.png       # quicklook image of a result
+moraine info ps/adi.zarr                       # shape, dtype and chunks of a result
+moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
+moraine info ps/adi_pyramid                    # + statistics and anomaly warnings, from a coarse level
+moraine quicklook ps/adi_pyramid -o adi.png    # PNG of the whole scene, drawn from the pyramid
 moraine tnet --nimages 17 --bandwidth 1 -o pairs.txt
 ```
 
@@ -186,7 +188,8 @@ A whole processing chain can be written in a TOML file and run with
 `moraine run pipeline.toml`. Finished steps are skipped when their
 arguments and inputs did not change, so a failed or modified pipeline is
 resumed where needed; `moraine status pipeline.toml` shows the state,
-and logs, result summaries and quicklooks are kept in `.moraine/`:
+and logs, output metadata and PNGs of the pyramids made by `ras-pyramid`
+/ `pc-pyramid` steps are kept in `.moraine/`:
 
 ``` toml
 [defaults]

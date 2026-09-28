@@ -172,3 +172,6 @@ moraine/dl_model/*.onnx.data
 base.out
 
 nbs/_deprecation/
+
+# local test output
+moraine_test/
