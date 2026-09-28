@@ -1,0 +1,72 @@
+# Load GAMMA results into zarr (tutorial: nbs/Tutorials/CLI/load_data.ipynb).
+# Needs the GAMMA software on PATH.
+#
+#   moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20220620
+#
+# Outputs in WORK/raw/: rslc, lat/lon/hgt, look vector, slant range, metadata, web mercator e/n.
+
+[vars]
+gamma = "/path/to/gamma"          # directory with rslc/, geocoding/ and DEM/
+reference = "20220620"            # reference date of the flattened rslc stack
+geo = "20210802"                  # date prefix of the geocoding files (hgt, diff_par, lt_fine, lv_theta, lv_phi)
+
+[[step]]
+name = "rslc"
+run = "load-gamma-flatten-rslc"
+rslc_dir = "${gamma}/rslc"
+reference = "${reference}"
+hgt = "${gamma}/geocoding/${geo}.hgt"
+scratch_dir = "raw/scratch"
+rslc = "raw/rslc.zarr"
+
+[[step]]
+name = "lat_lon_hgt"
+run = "load-gamma-lat-lon-hgt"
+diff_par = "${gamma}/geocoding/${geo}.diff_par"
+rslc_par = "${gamma}/rslc/${reference}.rslc.par"
+dem_par = "${gamma}/DEM/dem_seg_par"
+hgt = "${gamma}/geocoding/${geo}.hgt"
+scratch_dir = "raw/scratch"
+lat_zarr = "raw/lat.zarr"
+lon_zarr = "raw/lon.zarr"
+hgt_zarr = "raw/hgt.zarr"
+
+[[step]]
+name = "look_vector"
+run = "load-gamma-look-vector"
+theta = "${gamma}/geocoding/${geo}.lv_theta"
+phi = "${gamma}/geocoding/${geo}.lv_phi"
+lt = "${gamma}/geocoding/${geo}.lt_fine"
+rslc_par = "${gamma}/rslc/${reference}.rslc.par"
+dem_par = "${gamma}/DEM/dem_seg_par"
+scratch_dir = "raw/scratch"
+theta_zarr = "raw/theta.zarr"
+phi_zarr = "raw/phi.zarr"
+
+[[step]]
+name = "range"
+run = "load-gamma-range"
+rslc_par = "${gamma}/rslc/${reference}.rslc.par"
+range_zarr = "raw/range.zarr"
+
+[[step]]
+name = "metadata"
+run = "load-gamma-metadata"
+rslc_dir = "${gamma}/rslc"
+dem_par = "${gamma}/DEM/dem_seg_par"
+reference = "${reference}"
+meta_file = "raw/meta.toml"
+
+[[step]]
+name = "web_mercator"             # e/n coordinates, used to plot point clouds on a map
+run = "transform"
+xx_in = "raw/lon.zarr"
+yy_in = "raw/lat.zarr"
+xx_out = "raw/e.zarr"
+yy_out = "raw/n.zarr"
+
+[[step]]
+name = "rslc_pyramid"             # to check the interferograms: moraine quicklook raw/rslc_pyramid --post_proc intf_seq
+run = "ras-pyramid"
+ras = "raw/rslc.zarr"
+out_dir = "raw/rslc_pyramid"

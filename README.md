@@ -181,7 +181,7 @@ moraine info ps/adi.zarr                       # shape, dtype and chunks of a re
 moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
 moraine info ps/adi_pyramid                    # + statistics and anomaly warnings, from a coarse level
 moraine quicklook ps/adi_pyramid -o adi.png    # PNG of the whole scene, drawn from the pyramid
-moraine tnet --nimages 17 --bandwidth 1 -o pairs.txt
+moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
 ```
 
 A whole processing chain can be written in a TOML file and run with

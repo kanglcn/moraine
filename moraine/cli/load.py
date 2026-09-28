@@ -158,7 +158,7 @@ def load_gamma_flatten_rslc(
     logger.info('run gamma command to generate required data for flattened rslcs:')
 
     scratch_dir = Path(scratch_dir)
-    scratch_dir.mkdir(exist_ok=True)
+    scratch_dir.mkdir(parents=True, exist_ok=True)
     sim_orbs = []
     for i,(date,rslc,rslc_par) in enumerate(zip(dates,rslcs,rslc_pars)):
         off_par = scratch_dir/(reference+'_'+date+'.off')
@@ -265,7 +265,7 @@ def load_gamma_lat_lon_hgt(diff_par:str,
     hgt_data = zarr.open(hgt_zarr,mode='w',shape=(rdc_nlines,rdc_width),chunks = chunks, dtype=np.float32)
 
     scratch_dir = Path(scratch_dir)
-    scratch_dir.mkdir(exist_ok=True)
+    scratch_dir.mkdir(parents=True, exist_ok=True)
     logger.info('run gamma command to generate longitude, latitude and height:')
 
     plist = scratch_dir/'plist'
@@ -343,7 +343,7 @@ def load_gamma_look_vector(theta:str,
     phi_data = zarr.open(phi_zarr,mode='w',shape=(rdc_nlines,rdc_width),chunks = chunks, dtype=np.float32)
 
     scratch_dir = Path(scratch_dir)
-    scratch_dir.mkdir(exist_ok=True)
+    scratch_dir.mkdir(parents=True, exist_ok=True)
 
     theta_rdc = scratch_dir/'theta_rdc'
     command = f'geocode {lt} {theta} {geo_width} {str(theta_rdc)} {rdc_width} {rdc_nlines} >> {scratch_dir/"gamma.log"}'
@@ -488,6 +488,7 @@ def load_gamma_metadata(rslc_dir:str,
 
     meta['perpendicular_baseline'] = base
 
+    Path(meta_file).parent.mkdir(parents=True, exist_ok=True)
     with open(meta_file,'w') as f:
         a = toml.dump(meta,f,encoder=toml.TomlNumpyEncoder())
     logger.info('All meta data: \n'+a)

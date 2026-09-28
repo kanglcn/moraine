@@ -1,0 +1,156 @@
+# DS processing (tutorial: nbs/Tutorials/CLI/ds_processing.ipynb). Needs 01_load.toml.
+#
+#   moraine run examples/03_ds.toml --workdir WORK
+#
+# Statistically homogeneous pixels (SHP) -> DS candidates -> coherence matrix, EMI phase linking and
+# temporal coherence (fused, per raster chunk) -> DS refinement by EMI quality and temporal coherence.
+# Outputs in WORK/ds/: ds_can_* (all candidates, hilbert order) and ds_hix, ds_ph, ds_gix, ds_e, ds_n
+# (refined DS).
+
+[vars]
+shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+
+[defaults]
+cuda = true                       # set to false without a GPU
+
+# ---- SHP and DS candidates
+[[step]]
+name = "shp_test"                 # two sample KS test in an 11 x 11 window
+run = "shp-test"
+rslc = "raw/rslc.zarr"
+pvalue = "ds/ras_pvalue.zarr"
+az_half_win = 5
+r_half_win = 5
+
+[[step]]
+name = "select_shp"
+run = "select-shp"
+pvalue = "ds/ras_pvalue.zarr"
+is_shp = "ds/ras_is_shp.zarr"
+shp_num = "ds/ras_shp_num.zarr"
+p_max = 0.05
+
+[[step]]
+name = "shp_num_pyramid"
+run = "ras-pyramid"
+ras = "ds/ras_shp_num.zarr"
+out_dir = "ds/ras_shp_num_pyramid"
+
+[[step]]
+name = "ds_can"                   # DS candidates: at least 50 SHPs
+run = "pc-logic-ras"
+ras = "ds/ras_shp_num.zarr"
+gix = "ds/ds_can_gix_ras_order.zarr"
+operation = "ras>=50"
+chunks = 200000
+
+# ---- coherence, phase linking and temporal coherence per raster chunk
+[[step]]
+name = "ds_can_is_shp"            # SHPs of the candidates, one zarr per raster chunk
+run = "ras2pc-ras-chunk"
+gix = "ds/ds_can_gix_ras_order.zarr"
+ras = "ds/ras_is_shp.zarr"
+pc = "ds/chunks/ds_can_is_shp"
+key = "ds/chunks/ds_can_key.zarr"
+chunks = [1000, 1000]
+
+[[step]]
+name = "phase_linking"
+run = "emperical-co-emi-temp-coh-pc"
+rslc = "raw/rslc.zarr"
+is_shp_dir = "ds/chunks/ds_can_is_shp"
+gix = "ds/ds_can_gix_ras_order.zarr"
+ph_dir = "ds/chunks/ds_can_ph"
+emi_quality_dir = "ds/chunks/ds_can_emi_quality"
+t_coh_dir = "ds/chunks/ds_can_t_coh"
+chunks = [1000, 1000]
+
+# ---- hilbert order
+[[step]]
+name = "ds_can_hix"
+run = "pc-hix"
+gix = "ds/ds_can_gix_ras_order.zarr"
+hix = "ds/ds_can_hix_unsorted.zarr"
+shape = "${shape}"
+
+[[step]]
+name = "ds_can_sort"              # hilbert index and grid index in hilbert order + the sorting key
+run = "pc-sort"
+idx_in = "ds/ds_can_hix_unsorted.zarr"
+idx = "ds/ds_can_hix.zarr"
+pc_in = "ds/ds_can_gix_ras_order.zarr"
+pc = "ds/ds_can_gix.zarr"
+shape = "${shape}"
+key = "ds/chunks/gix2hix_key.zarr"
+
+[[step]]
+name = "ds_can_concat"            # chunks -> one array each, in hilbert order
+run = "pc-concat"
+pcs = ["ds/chunks/ds_can_ph", "ds/chunks/ds_can_emi_quality", "ds/chunks/ds_can_t_coh"]
+pc = ["ds/ds_can_ph.zarr", "ds/ds_can_emi_quality.zarr", "ds/ds_can_t_coh.zarr"]
+key = ["ds/chunks/ds_can_key.zarr", "ds/chunks/gix2hix_key.zarr"]
+chunks = 200000
+
+[[step]]
+name = "ds_can_t_coh_pyramid"
+run = "pc-pyramid"
+pc = "ds/ds_can_t_coh.zarr"
+out_dir = "ds/ds_can_t_coh_pyramid"
+yx = "ds/ds_can_gix.zarr"
+ras_resolution = 2
+
+[[step]]
+name = "ds_can_emi_quality_pyramid"
+run = "pc-pyramid"
+pc = "ds/ds_can_emi_quality.zarr"
+out_dir = "ds/ds_can_emi_quality_pyramid"
+yx = "ds/ds_can_gix.zarr"
+ras_resolution = 2
+
+# ---- DS refinement
+[[step]]
+name = "ds_r1"                    # good EMI fit
+run = "pc-logic-pc"
+idx_in = "ds/ds_can_hix.zarr"
+pc_in = "ds/ds_can_emi_quality.zarr"
+idx = "ds/ds_r1_hix.zarr"
+operation = "(pc_in>=1.0)&(pc_in<=1.05)"
+
+[[step]]
+name = "ds_r2"                    # high temporal coherence
+run = "pc-logic-pc"
+idx_in = "ds/ds_can_hix.zarr"
+pc_in = "ds/ds_can_t_coh.zarr"
+idx = "ds/ds_r2_hix.zarr"
+operation = "(pc_in>=0.8)&(pc_in<=1.0)"
+
+[[step]]
+name = "ds"                       # both (use pc-union if too few points are left)
+run = "pc-intersect"
+idx1 = "ds/ds_r1_hix.zarr"
+idx2 = "ds/ds_r2_hix.zarr"
+idx = "ds/ds_hix.zarr"
+
+[[step]]
+name = "ds_data"
+run = "pc-select-data"
+idx_in = "ds/ds_can_hix.zarr"
+idx = "ds/ds_hix.zarr"
+pc_in = ["ds/ds_can_ph.zarr", "ds/ds_can_gix.zarr"]
+pc = ["ds/ds_ph.zarr", "ds/ds_gix.zarr"]
+
+[[step]]
+name = "ds_en"
+run = "ras2pc"
+idx = "ds/ds_hix.zarr"
+ras = ["raw/e.zarr", "raw/n.zarr"]
+pc = ["ds/ds_e.zarr", "ds/ds_n.zarr"]
+
+[[step]]
+name = "ds_ph_pyramid"            # phase history of the refined DS on the map
+run = "pc-pyramid"
+pc = "ds/ds_ph.zarr"
+out_dir = "ds/ds_ph_pyramid"
+x = "ds/ds_e.zarr"
+y = "ds/ds_n.zarr"
+ras_resolution = 20

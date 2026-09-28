@@ -94,9 +94,8 @@ def test_summarize_is_metadata_only(tmp_path, rng):
     _zarr(tmp_path / 'f.zarr', rng.random((300, 200)).astype(np.float32), (100, 100))
     assert summarize(str(tmp_path / 'f.zarr')) == {'path': str(tmp_path / 'f.zarr'), 'kind': 'array',
                                                    'shape': [300, 200], 'dtype': 'float32', 'chunks': [100, 100]}
-    (tmp_path / 'd').mkdir(); _zarr(tmp_path / 'd' / '0.zarr', np.ones(3))
-    (tmp_path / 'd' / '1.zarr').mkdir()
-    assert summarize(str(tmp_path / 'd'))['kind'] == 'raster pyramid'   # 0.zarr, 1.zarr ... is a pyramid
+    _zarr(tmp_path / 'd' / '0.zarr', np.ones((6, 8), np.float32)); _zarr(tmp_path / 'd' / '1.zarr', np.ones((3, 4), np.float32))
+    assert summarize(str(tmp_path / 'd'))['kind'] == 'raster pyramid'   # levels halving in size
     with pytest.raises(FileNotFoundError):
         summarize(str(tmp_path / 'missing.zarr'))
 
@@ -109,15 +108,12 @@ def test_quicklook_needs_a_pyramid(tmp_path, rng):
 
 # ---------------------------------------------------------------- command line
 
-def test_main_list_info_tnet(tmp_path, capsys, rng):
+def test_main_list_info(tmp_path, capsys, rng):
     assert main(['list', '--json']) == 0
     assert any(c['name'] == 'amp-disp' for c in _json_out(capsys)['commands'])
     _zarr(tmp_path / 'a.zarr', rng.random((20, 20)).astype(np.float32))
     assert main(['info', str(tmp_path / 'a.zarr'), '--json']) == 0
     assert _json_out(capsys)['summaries'][0]['shape'] == [20, 20]
-    assert main(['tnet', '--nimages', '5', '--bandwidth', '1', '-o', str(tmp_path / 'p.txt'), '--json']) == 0
-    assert _json_out(capsys)['n_pairs'] == 4
-    np.testing.assert_array_equal(np.loadtxt(tmp_path / 'p.txt', dtype=int), [[0, 1], [1, 2], [2, 3], [3, 4]])
 
 
 def test_main_runs_a_command(tmp_path, capsys, rng):
@@ -186,7 +182,7 @@ def test_pipeline_run_resume_and_invalidate(pipe):
     assert res['ok'] and _actions(res) == ['run'] * 3
     a = zarr.open(str(d / 'a.zarr'), mode='r')[:]
     np.testing.assert_array_equal(zarr.open(str(d / 'pc.zarr'), mode='r')[:], (2 * a)[2 * a > 1])
-    assert not (d / '.moraine' / 'quicklook').exists()      # quicklooks are only made of pyramids
+    assert not (d / '.moraine' / 'pipeline' / 'quicklook').exists()   # quicklooks are only made of pyramids
     # nothing changed: everything is skipped
     assert _actions(run_pipeline(path, echo=lambda *a: None)) == ['skip'] * 3
     # a changed argument reruns that step and every step reading its outputs
@@ -218,7 +214,7 @@ def test_pipeline_failure_and_resume(pipe):
     (d / 'a.zarr').rename(d / 'a_hidden.zarr')
     res = run_pipeline(path, echo=lambda *a: None)
     assert not res['ok'] and res['steps'][0]['status'] == 'failed' and 'a.zarr' in res['steps'][0]['error']
-    assert (d / '.moraine' / 'logs' / 'scale.log').exists()
+    assert (d / '.moraine' / 'pipeline' / 'logs' / 'scale.log').exists()
     assert pipeline_status(path)['steps'][0]['status'] == 'failed'
     (d / 'a_hidden.zarr').rename(d / 'a.zarr')
     assert run_pipeline(path, echo=lambda *a: None)['ok']
@@ -329,3 +325,74 @@ def test_pyramid_warnings(tmp_path, data, warning):
     _zarr(tmp_path / 'a.zarr', data, (20, 20))
     mc.ras_pyramid(str(tmp_path / 'a.zarr'), str(tmp_path / 'pyr'))
     assert any(warning in w for w in summarize(str(tmp_path / 'pyr'))['warnings'])
+
+
+def test_pipeline_vars_and_workdir(tmp_path, rng, capsys):
+    data = tmp_path / 'data'; work = tmp_path / 'work'
+    data.mkdir()
+    _zarr(data / 'a.zarr', rng.random((30, 40)).astype(np.float32), (10, 40))
+    (tmp_path / 'p.toml').write_text('''
+[vars]
+data = "/nowhere"
+thr = "0.5"
+
+[[step]]
+name = "select"
+run = "pc-logic-ras"
+ras = "${data}/a.zarr"
+gix = "out/gix.zarr"
+operation = "ras>${thr}"
+''')
+    res = run_pipeline(str(tmp_path / 'p.toml'), workdir=str(work), variables={'data': str(data)}, echo=lambda *a: None)
+    assert res['ok'] and (work / 'out' / 'gix.zarr').exists()
+    assert (work / '.moraine' / 'p' / 'state.json').exists()
+    # a changed variable changes the arguments
+    plan = run_pipeline(str(tmp_path / 'p.toml'), workdir=str(work), dry_run=True, echo=lambda *a: None,
+                        variables={'data': str(data), 'thr': '0.6'})['plan']
+    assert plan[0]['action'] == 'run (arguments changed)'
+    # command line: --workdir / --var, and a clear error for an unknown variable
+    assert main(['status', str(tmp_path / 'p.toml'), '--workdir', str(work), '--var', f'data={data}', '--json']) == 0
+    assert _json_out(capsys)['steps'][0]['status'] == 'done'
+    (tmp_path / 'q.toml').write_text('[[step]]\nname="a"\nrun="amp-disp"\nrslc="${gamma}/r"\nadi="a"\n')
+    with pytest.raises(UsageError, match=r'unknown variable \$\{gamma\}'):
+        run_pipeline(str(tmp_path / 'q.toml'), dry_run=True, echo=lambda *a: None)
+
+
+def test_image_pairs_command(tmp_path, capsys):
+    _zarr(tmp_path / 'rslc.zarr', np.zeros((4, 5, 6), np.complex64))
+    assert main(['image-pairs', '--rslc', str(tmp_path / 'rslc.zarr'), '--bandwidth', '2', '--out',
+                 str(tmp_path / 'p.txt'), '-q', '--json']) == 0
+    capsys.readouterr()
+    np.testing.assert_array_equal(image_pairs(str(tmp_path / 'p.txt')), [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]])
+
+
+def test_chunk_directories_are_not_pyramids(tmp_path, rng):
+    from moraine.command.summary import pyramid_levels
+    for i, n in enumerate([500, 320, 410]):      # per-chunk arrays of ras2pc_ras_chunk: 0.zarr, 1.zarr, ...
+        _zarr(tmp_path / 'chunks' / f'{i}.zarr', rng.random((n, 11, 11)).astype(np.float32))
+    assert pyramid_levels(tmp_path / 'chunks') == []
+    assert summarize(str(tmp_path / 'chunks'))['kind'] == 'directory'
+
+
+def test_pipeline_makes_missing_parent_directories(tmp_path, capsys):
+    # the image pair file of a later step is made by an earlier step, in a directory that does not exist yet
+    _zarr(tmp_path / 'rslc.zarr', np.ones((20, 30, 4), np.complex64), (10, 30, 1))
+    (tmp_path / 'p.toml').write_text('''
+[[step]]
+name = "pairs"
+run = "image-pairs"
+rslc = "rslc.zarr"
+bandwidth = 1
+out = "new/dir/pairs.txt"
+
+[[step]]
+name = "t_coh"
+run = "temp-coh"
+intf = "intf.zarr"
+rslc = "rslc.zarr"
+t_coh = "t_coh.zarr"
+image_pairs = "new/dir/pairs.txt"
+''')
+    _zarr(tmp_path / 'intf.zarr', np.ones((20, 30, 3), np.complex64), (10, 30, 1))
+    assert run_pipeline(str(tmp_path / 'p.toml'), echo=lambda *a: None)['ok']
+    np.testing.assert_allclose(zarr.open(str(tmp_path / 't_coh.zarr'), mode='r')[:], 1, rtol=1e-5)

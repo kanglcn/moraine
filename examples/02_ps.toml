@@ -1,0 +1,107 @@
+# PS candidates (tutorial: nbs/Tutorials/CLI/ps_processing.ipynb). Needs 01_load.toml.
+#
+#   moraine run examples/02_ps.toml --workdir WORK
+#
+# Two candidate sets are merged: a low amplitude dispersion index (ADI) and a high temporal coherence of
+# Noise2Fringe filtered interferograms. The candidates are sorted in hilbert order (close points are close
+# in the arrays) and their rslc and coordinates are taken from the rasters.
+# Outputs in WORK/ps/: ps_can_hix, ps_can_rslc, ps_can_{e,n,lon,lat,adi}.
+
+[vars]
+shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+
+[defaults]
+cuda = true                       # set to false without a GPU
+
+[[step]]
+name = "adi"
+run = "amp-disp"
+rslc = "raw/rslc.zarr"
+adi = "ps/ras_adi.zarr"
+
+[[step]]
+name = "adi_pyramid"
+run = "ras-pyramid"
+ras = "ps/ras_adi.zarr"
+out_dir = "ps/ras_adi_pyramid"
+
+[[step]]
+name = "ps_can_adi"               # candidates 1: ADI below 0.4
+run = "pc-logic-ras"
+ras = "ps/ras_adi.zarr"
+gix = "ps/ps_can_1_gix.zarr"
+operation = "ras<0.4"
+chunks = 200000
+
+[[step]]
+name = "pairs_seq"                # sequential image pairs (bandwidth 1)
+run = "image-pairs"
+rslc = "raw/rslc.zarr"
+bandwidth = 1
+out = "ps/pairs_seq.txt"
+
+[[step]]
+name = "n2f"                      # Noise2Fringe filtering of the sequential interferograms
+run = "n2f"
+rslc = "raw/rslc.zarr"
+intf = "ps/ras_n2f_intf.zarr"
+image_pairs = "ps/pairs_seq.txt"
+
+[[step]]
+name = "n2f_temp_coh"
+run = "temp-coh"
+intf = "ps/ras_n2f_intf.zarr"
+rslc = "raw/rslc.zarr"
+t_coh = "ps/ras_temp_coh.zarr"
+image_pairs = "ps/pairs_seq.txt"
+
+[[step]]
+name = "temp_coh_pyramid"
+run = "ras-pyramid"
+ras = "ps/ras_temp_coh.zarr"
+out_dir = "ps/ras_temp_coh_pyramid"
+
+[[step]]
+name = "ps_can_n2f"               # candidates 2: temporal coherence above 0.58
+run = "pc-logic-ras"
+ras = "ps/ras_temp_coh.zarr"
+gix = "ps/ps_can_2_gix.zarr"
+operation = "ras>0.58"
+chunks = 20000
+
+[[step]]
+name = "ps_can"                   # union of both candidate sets
+run = "pc-union"
+idx1 = "ps/ps_can_1_gix.zarr"
+idx2 = "ps/ps_can_2_gix.zarr"
+idx = "ps/ps_can_gix.zarr"
+shape = "${shape}"
+
+[[step]]
+name = "ps_can_hix"
+run = "pc-hix"
+gix = "ps/ps_can_gix.zarr"
+hix = "ps/ps_can_hix_unsorted.zarr"
+shape = "${shape}"
+
+[[step]]
+name = "ps_can_sort"              # hilbert order
+run = "pc-sort"
+idx_in = "ps/ps_can_hix_unsorted.zarr"
+idx = "ps/ps_can_hix.zarr"
+
+[[step]]
+name = "ps_can_data"
+run = "ras2pc"
+idx = "ps/ps_can_hix.zarr"
+ras = ["raw/rslc.zarr", "raw/e.zarr", "raw/n.zarr", "raw/lon.zarr", "raw/lat.zarr", "ps/ras_adi.zarr"]
+pc = ["ps/ps_can_rslc.zarr", "ps/ps_can_e.zarr", "ps/ps_can_n.zarr", "ps/ps_can_lon.zarr", "ps/ps_can_lat.zarr", "ps/ps_can_adi.zarr"]
+
+[[step]]
+name = "ps_can_pyramid"           # ADI of the candidates on the map
+run = "pc-pyramid"
+pc = "ps/ps_can_adi.zarr"
+out_dir = "ps/ps_can_adi_pyramid"
+x = "ps/ps_can_e.zarr"
+y = "ps/ps_can_n.zarr"
+ras_resolution = 20

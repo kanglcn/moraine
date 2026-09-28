@@ -195,8 +195,8 @@ def n2f(
         output: filtered interferograms, complex64 with unit amplitude (nan where the input is nan),
         shape (nlines, width, n_image_pairs)
     image_pairs : np.ndarray
-        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with `moraine
-        tnet`
+        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with
+        `moraine image-pairs`
     chunks : tuple[int, int], optional
         (azimuth, range) processing chunk size, same as rslc by default
     out_chunks : tuple[int, int], optional
@@ -361,8 +361,8 @@ def n2ft(
     intf : str
         output: filtered interferograms, complex64 with unit amplitude, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
-        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with `moraine
-        tnet`
+        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with
+        `moraine image-pairs`
     chunks : int, optional
         number of points per processing chunk, same as rslc by default
     out_chunks : int, optional

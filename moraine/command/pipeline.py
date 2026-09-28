@@ -3,8 +3,12 @@
 Example ``pipeline.toml``::
 
     [pipeline]
-    workdir = "."          # relative paths are relative to this directory (default: the TOML directory)
+    workdir = "."          # relative paths are relative to this directory (default: the TOML directory);
+                           # `moraine run --workdir DIR` overrides it
     quicklook = true       # save a PNG of every pyramid made by a step (default: true)
+
+    [vars]                 # ${name} in any value is replaced; `moraine run --var gamma=/data/gamma` overrides
+    gamma = "/path/to/gamma"
 
     [defaults]             # applied to every step whose command has these arguments
     cuda = true
@@ -17,7 +21,8 @@ Example ``pipeline.toml``::
     [step.kw]              # optional: extra keyword arguments, e.g. dask cluster options
     memory_limit = "20GB"
 
-State, logs, output metadata and quicklooks of pyramids are written to ``<workdir>/.moraine/``. A step is skipped when it
+State, logs, output metadata and quicklooks of pyramids are written to ``<workdir>/.moraine/<file name>/``,
+so several pipeline files can share a working directory. A step is skipped when it
 finished before with the same arguments and all its outputs still exist.
 """
 
@@ -28,6 +33,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import sys
 import time
 import tomllib
@@ -39,8 +45,28 @@ from . import UsageError, get_command, bind_args, execute, _print_summary, _stri
 _RESERVED = {'name', 'run', 'quicklook', 'kw'}
 
 
-def load_pipeline(path:str)->dict:
-    """Read and check a pipeline file. Returns {'workdir', 'quicklook', 'steps': [...]}."""
+def _substitute(value, variables, where):
+    """Replace ${name} in strings (also inside lists and tables)."""
+    if isinstance(value, str):
+        def sub(m):
+            if m.group(1) not in variables:
+                known = ', '.join(sorted(variables)) or 'none'
+                raise UsageError(f'{where}: unknown variable ${{{m.group(1)}}}; defined: {known} '
+                                 '(add it to [vars] or pass --var NAME=VALUE)')
+            return str(variables[m.group(1)])
+        return re.sub(r'\$\{(\w+)\}', sub, value)
+    if isinstance(value, list):
+        return [_substitute(v, variables, where) for v in value]
+    if isinstance(value, dict):
+        return {k: _substitute(v, variables, where) for k, v in value.items()}
+    return value
+
+
+def load_pipeline(path:str, workdir:str=None, variables:dict=None)->dict:
+    """Read and check a pipeline file. Returns {'file', 'name', 'workdir', 'steps': [...]}.
+
+    `workdir` overrides [pipeline] workdir and `variables` override [vars].
+    """
     path = Path(path)
     if not path.is_file():
         raise UsageError(f'pipeline file {path} not found')
@@ -48,12 +74,13 @@ def load_pipeline(path:str)->dict:
         cfg = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as e:
         raise UsageError(f'{path}: invalid TOML: {e}')
-    unknown = set(cfg) - {'pipeline', 'defaults', 'step'}
+    unknown = set(cfg) - {'pipeline', 'vars', 'defaults', 'step'}
     if unknown:
-        raise UsageError(f'{path}: unknown table(s) {sorted(unknown)}; expected [pipeline], [defaults], [[step]]')
+        raise UsageError(f'{path}: unknown table(s) {sorted(unknown)}; expected [pipeline], [vars], [defaults], [[step]]')
     meta = cfg.get('pipeline', {})
-    workdir = (path.parent / meta.get('workdir', '.')).resolve()
-    defaults = cfg.get('defaults', {})
+    variables = {**cfg.get('vars', {}), **(variables or {})}
+    workdir = Path(workdir).resolve() if workdir else (path.parent / meta.get('workdir', '.')).resolve()
+    defaults = _substitute(cfg.get('defaults', {}), variables, f'{path}: [defaults]')
     steps, names = [], set()
     for i, raw in enumerate(cfg.get('step', []), 1):
         name = raw.get('name')
@@ -65,6 +92,8 @@ def load_pipeline(path:str)->dict:
         if 'run' not in raw:
             raise UsageError(f'{path}: step {name!r} has no `run = "<command>"`')
         cmd = get_command(raw['run'])
+        raw = {k: (v if k in ('name', 'run') else _substitute(v, variables, f'{path}: step {name!r}'))
+               for k, v in raw.items()}
         values = {k: v for k, v in defaults.items() if any(p.name == k for p in cmd.params)}
         values.update({k: v for k, v in raw.items() if k not in _RESERVED})
         try:
@@ -78,20 +107,21 @@ def load_pipeline(path:str)->dict:
                       'hash': hashlib.sha1(json.dumps([cmd.name, values], sort_keys=True, default=str).encode()).hexdigest()[:12]})
     if not steps:
         raise UsageError(f'{path}: no [[step]] defined')
-    return {'file': str(path), 'workdir': workdir, 'steps': steps}
+    return {'file': str(path), 'name': path.stem, 'workdir': workdir, 'steps': steps}
 
 
-def _state_file(workdir):
-    return Path(workdir) / '.moraine' / 'state.json'
+def _home(pipe):
+    """Directory of the state, logs and quicklooks of a pipeline: <workdir>/.moraine/<file name>/."""
+    return Path(pipe['workdir']) / '.moraine' / pipe['name']
 
 
-def _load_state(workdir):
-    f = _state_file(workdir)
+def _load_state(pipe):
+    f = _home(pipe) / 'state.json'
     return json.loads(f.read_text()) if f.exists() else {}
 
 
-def _save_state(workdir, state):
-    f = _state_file(workdir)
+def _save_state(pipe, state):
+    f = _home(pipe) / 'state.json'
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix('.tmp')
     tmp.write_text(json.dumps(state, indent=1, default=str))
@@ -159,10 +189,10 @@ def _plan(pipe, state, only=None, from_step=None, force=False):
     return plan
 
 
-def pipeline_status(path:str)->dict:
+def pipeline_status(path:str, workdir:str=None, variables:dict=None)->dict:
     """State of every step of a pipeline: done / failed / changed / pending."""
-    pipe = load_pipeline(path)
-    state = _load_state(pipe['workdir'])
+    pipe = load_pipeline(path, workdir, variables)
+    state = _load_state(pipe)
     steps = []
     for s, action in _plan(pipe, state):
         rec = state.get(s['name'])
@@ -183,12 +213,12 @@ def pipeline_status(path:str)->dict:
 
 
 def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
-                 dry_run:bool=False, quicklook:bool=True, echo=print)->dict:
+                 dry_run:bool=False, quicklook:bool=True, echo=print, workdir:str=None, variables:dict=None)->dict:
     """Run the steps of a pipeline file that are not done yet. Stops at the first failing step."""
     from .summary import quicklook as _quicklook
-    pipe = load_pipeline(path)
+    pipe = load_pipeline(path, workdir, variables)
     workdir = pipe['workdir']
-    state = _load_state(workdir)
+    state = _load_state(pipe)
     plan = _plan(pipe, state, only, from_step, force)
     result = {'pipeline': pipe['file'], 'workdir': str(workdir), 'ok': True,
               'plan': [{'name': s['name'], 'command': s['command'].name, 'action': a} for s, a in plan], 'steps': []}
@@ -197,7 +227,7 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
             echo(f'{s["name"]:24s} {s["command"].name:28s} {a}')
         return result
     workdir.mkdir(parents=True, exist_ok=True)
-    logdir = workdir / '.moraine' / 'logs'
+    logdir = _home(pipe) / 'logs'
     logdir.mkdir(parents=True, exist_ok=True)
     root = logging.getLogger()
     for s, action in plan:
@@ -228,7 +258,7 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
                     for summ in out['summaries']:
                         if not summ.get('kind', '').endswith('pyramid'):   # only pyramids are drawn
                             continue
-                        png = Path('.moraine') / 'quicklook' / f'{s["name"]}__{Path(summ["path"].rstrip("/")).name}.png'
+                        png = _home(pipe).relative_to(workdir) / 'quicklook' / f'{s["name"]}__{Path(summ["path"].rstrip("/")).name}.png'
                         try:
                             rec['quicklooks'].append(_quicklook(summ['path'], str(png)))
                         except Exception as e:
@@ -241,7 +271,7 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
             rec['finished'] = time.strftime('%Y-%m-%d %H:%M:%S')
             root.removeHandler(handler); handler.close(); root.setLevel(old_level)
             state[s['name']] = rec
-            _save_state(workdir, state)
+            _save_state(pipe, state)
         result['steps'].append({'name': s['name'], **{k: v for k, v in rec.items() if k != 'traceback'}})
         if rec['status'] == 'failed':
             result['ok'] = False
@@ -251,14 +281,24 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
             break
         echo(f'[{s["name"]}] done in {rec["seconds"]} s')
         for summ in rec['summaries']:
-            _print_summary(summ)
+            _print_summary(summ, echo)
     return result
+
+
+def _vars(args):
+    out = {}
+    for item in args.var or []:
+        name, sep, value = item.partition('=')
+        if not sep or not name:
+            raise UsageError(f'--var expects NAME=VALUE, got {item!r}')
+        out[name] = value
+    return out
 
 
 def cli(args, emit):
     """`moraine run` and `moraine status`."""
     if args._sub == 'status':
-        st = pipeline_status(args.pipeline)
+        st = pipeline_status(args.pipeline, args.workdir, _vars(args))
         def text():
             print(f'workdir: {st["workdir"]}')
             for s in st['steps']:
@@ -269,7 +309,8 @@ def cli(args, emit):
         return emit(args, st, text)
     echo = (lambda *a, **k: print(*a, file=sys.stderr, **k)) if args.json else print
     result = run_pipeline(args.pipeline, only=args.only, from_step=args.from_step, force=args.force,
-                          dry_run=args.dry_run, quicklook=not args.no_quicklook, echo=echo)
+                          dry_run=args.dry_run, quicklook=not args.no_quicklook, echo=echo,
+                          workdir=args.workdir, variables=_vars(args))
     emit(args, result)
     if not result['ok']:
         raise SystemExit(1)

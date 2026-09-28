@@ -162,6 +162,7 @@ mydask.png
 *.zarr
 *.toml
 !pyproject.toml
+!examples/*.toml
 scratch/
 
 nbs/CLI/*.png

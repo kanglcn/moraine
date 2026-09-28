@@ -10,9 +10,20 @@ import zarr
 
 
 def pyramid_levels(path)->list:
-    """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one."""
+    """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one.
+
+    Each level halves the (nlines, width) of the previous one; this tells a pyramid apart from the
+    directories of per-chunk zarr arrays (also named 0.zarr, 1.zarr, ...) made by `ras2pc_ras_chunk`.
+    """
     p = Path(path)
-    if not p.is_dir() or not (p / '0.zarr').exists():
+    if not p.is_dir() or not (p / '0.zarr').exists() or not (p / '1.zarr').exists():
+        return []
+    try:
+        z0, z1 = (zarr.open(str(p / f'{i}.zarr'), mode='r') for i in (0, 1))
+    except Exception:
+        return []
+    if z0.ndim < 2 or z1.ndim != z0.ndim or \
+       tuple(z1.shape[:2]) != tuple(-(-n // 2) for n in z0.shape[:2]):
         return []
     return sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
 

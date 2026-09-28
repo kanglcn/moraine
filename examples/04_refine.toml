@@ -1,0 +1,85 @@
+# Merge PS candidates and DS, refine them with Noise2Fringe Transformer (tutorial:
+# nbs/Tutorials/CLI/pixel_refinement.ipynb). Needs 02_ps.toml and 03_ds.toml.
+#
+#   moraine run examples/04_refine.toml --workdir WORK
+#
+# Outputs in WORK/pc/: pc_can_* (merged candidates) and pc_hix, pc_ph, pc_e, pc_n (refined points).
+
+[defaults]
+cuda = true                       # set to false without a GPU
+
+[[step]]
+name = "merge"                    # PS candidates (rslc) + DS (phase history), hilbert order
+run = "pc-union"
+idx1 = "ps/ps_can_hix.zarr"
+idx2 = "ds/ds_hix.zarr"
+idx = "pc/pc_can_hix.zarr"
+pc1 = ["ps/ps_can_rslc.zarr", "ps/ps_can_e.zarr", "ps/ps_can_n.zarr"]
+pc2 = ["ds/ds_ph.zarr", "ds/ds_e.zarr", "ds/ds_n.zarr"]
+pc = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr"]
+
+[[step]]
+name = "lon_lat"
+run = "ras2pc"
+idx = "pc/pc_can_hix.zarr"
+ras = ["raw/lon.zarr", "raw/lat.zarr"]
+pc = ["pc/pc_can_lon.zarr", "pc/pc_can_lat.zarr"]
+
+[[step]]
+name = "pairs_seq"
+run = "image-pairs"
+rslc = "pc/pc_can_ph.zarr"
+bandwidth = 1
+out = "pc/pairs_seq.txt"
+
+[[step]]
+name = "n2ft"                     # Noise2Fringe Transformer filtering of the sequential interferograms
+run = "n2ft"
+x = "pc/pc_can_lon.zarr"
+y = "pc/pc_can_lat.zarr"
+rslc = "pc/pc_can_ph.zarr"
+intf = "pc/pc_can_n2ft_intf.zarr"
+image_pairs = "pc/pairs_seq.txt"
+chunks = 20000
+
+[[step]]
+name = "temp_coh"
+run = "temp-coh"
+intf = "pc/pc_can_n2ft_intf.zarr"
+rslc = "pc/pc_can_ph.zarr"
+t_coh = "pc/pc_can_temp_coh.zarr"
+image_pairs = "pc/pairs_seq.txt"
+
+[[step]]
+name = "temp_coh_pyramid"
+run = "pc-pyramid"
+pc = "pc/pc_can_temp_coh.zarr"
+out_dir = "pc/pc_can_temp_coh_pyramid"
+x = "pc/pc_can_e.zarr"
+y = "pc/pc_can_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "select"                   # keep points with temporal coherence above 0.8
+run = "pc-logic-pc"
+idx_in = "pc/pc_can_hix.zarr"
+pc_in = "pc/pc_can_temp_coh.zarr"
+idx = "pc/pc_hix.zarr"
+operation = "pc_in>0.8"
+
+[[step]]
+name = "select_data"
+run = "pc-select-data"
+idx_in = "pc/pc_can_hix.zarr"
+idx = "pc/pc_hix.zarr"
+pc_in = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr"]
+pc = ["pc/pc_ph.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr"]
+
+[[step]]
+name = "pc_ph_pyramid"
+run = "pc-pyramid"
+pc = "pc/pc_ph.zarr"
+out_dir = "pc/pc_ph_pyramid"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20

@@ -9,7 +9,7 @@ function signature and numpy docstring::
     moraine info ps/adi.zarr                      # shape, dtype and chunks of a result
     moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
     moraine quicklook ps/adi_pyramid -o adi.png   # PNG of a pyramid, drawn with moraine's holoviews plots
-    moraine tnet --nimages 17 --bandwidth 1 -o pairs.txt
+    moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
     moraine run pipeline.toml                     # run (or resume) a processing pipeline
     moraine status pipeline.toml
 
@@ -36,7 +36,7 @@ from pathlib import Path
 import numpy as np
 
 # modules of moraine.cli whose logged functions become commands
-_MODULES = ['load', 'transform', 'math', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'plot']
+_MODULES = ['load', 'transform', 'tnet', 'math', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'plot']
 # functions that need python callables as input
 _EXCLUDE = {'data_reduce'}
 # options added to every command
@@ -101,7 +101,7 @@ def image_pairs(value):
             parsed = literal(text)
             if isinstance(parsed, str):
                 raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
-                                 'make a file with `moraine tnet`')
+                                 'make a file with `moraine image-pairs`')
             pairs = np.asarray(parsed)
     pairs = np.asarray(pairs, dtype=np.int64)
     if pairs.ndim != 2 or pairs.shape[1] != 2:
@@ -178,6 +178,8 @@ class Command:
         if value is None:
             return None
         if p.kind == 'pairs':
+            if isinstance(value, str) and isinstance(literal(value), str):
+                return value            # a file, read in `execute`: it may be made by an earlier pipeline step
             return image_pairs(value)
         if p.kind == 'list':
             if isinstance(value, (list, tuple)):
@@ -313,9 +315,13 @@ def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
     from .summary import summarize
     candidates = [s for s in _strings(kwargs.values()) if '/' in s or '.' in s]
     before = {s: _mtime(s) for s in candidates}
+    call = dict(kwargs)
+    for p in cmd.params:              # image pair files are read now, relative to the working directory
+        if p.kind == 'pairs' and isinstance(call.get(p.name), str):
+            call[p.name] = image_pairs(call[p.name])
     t0 = time.time()
     with contextlib.redirect_stdout(sys.stderr):  # dask progress bars print to stdout
-        cmd.func(**kwargs)
+        cmd.func(**call)
     record = {'command': cmd.name, 'seconds': round(time.time() - t0, 1), 'outputs': [], 'inputs': {}}
     for s in candidates:
         after = _mtime(s)
@@ -349,20 +355,20 @@ def _setup_logging(args):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
-def _print_summary(s):
+def _print_summary(s, echo=print):
     if 'error' in s:
-        print(f'  {s["path"]}: summary failed ({s["error"]})'); return
+        echo(f'  {s["path"]}: summary failed ({s["error"]})'); return
     if 'shape' not in s:
         rest = {k: v for k, v in s.items() if k not in ('path', 'kind')}
-        print(f'  {s["path"]}: {s.get("kind")} {rest}'); return
+        echo(f'  {s["path"]}: {s.get("kind")} {rest}'); return
     head = f'  {s["path"]}: {s["dtype"]} {tuple(s["shape"])}'
     head += f' chunks {tuple(s["chunks"])}' if 'chunks' in s else f' {s["kind"]}, {s["levels"]} levels'
     stats = {k: v for k, v in s.items() if k not in ('path', 'kind', 'shape', 'dtype', 'chunks', 'levels', 'warnings')}
-    print(head)
+    echo(head)
     if stats:
-        print('    ' + ', '.join(f'{k}={v}' for k, v in stats.items()))
+        echo('    ' + ', '.join(f'{k}={v}' for k, v in stats.items()))
     for w in s.get('warnings', []):
-        print(f'    WARNING: {w}')
+        echo(f'    WARNING: {w}')
 
 
 def _emit(args, result, text=None):
@@ -413,6 +419,11 @@ def _add_command_parser(sub, cmd:Command):
     return p
 
 
+def _add_pipeline_options(p):
+    p.add_argument('--workdir', metavar='DIR', help='working directory, overrides [pipeline] workdir')
+    p.add_argument('--var', action='append', metavar='NAME=VALUE', help='set a variable used as ${NAME} (repeatable)')
+
+
 def _build_parser(with_commands=True):
     parser = argparse.ArgumentParser(prog='moraine', description=__doc__.split('\n\n')[0],
                                      epilog='Run `moraine list` for all processing commands.')
@@ -429,11 +440,6 @@ def _build_parser(with_commands=True):
                    help='how to show a stack, see moraine.cli.ras_plot (default: the phase for complex data)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     _add_global(p)
-    p = sub.add_parser('tnet', help='write image pairs of a temporal network to a text file')
-    p.add_argument('--nimages', type=int, required=True)
-    p.add_argument('--bandwidth', type=int, help='connect each image to the next BANDWIDTH images (default: all pairs)')
-    p.add_argument('-o', '--out', required=True, help='output text file with two columns: reference, secondary')
-    _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
     p.add_argument('pipeline')
     p.add_argument('--dry-run', action='store_true', help='check the file and print the plan only')
@@ -441,9 +447,10 @@ def _build_parser(with_commands=True):
     p.add_argument('--only', metavar='STEP', action='append', help='run only this step (repeatable)')
     p.add_argument('--force', action='store_true', help='rerun steps that are already done')
     p.add_argument('--no-quicklook', action='store_true', help='do not save quicklook images')
+    _add_pipeline_options(p)
     _add_global(p)
     p = sub.add_parser('status', help='show the state of a pipeline')
-    p.add_argument('pipeline'); _add_global(p)
+    p.add_argument('pipeline'); _add_pipeline_options(p); _add_global(p)
     if with_commands:
         for cmd in commands().values():
             _add_command_parser(sub, cmd)
@@ -464,7 +471,7 @@ def _run(args):
                     print(f'{mod}:')
                     for c in group:
                         print(f'  {c.name:32s} {c.summary.split(". ")[0][:90]}')
-            print('\nOther: info, quicklook, tnet, run, status.  `moraine COMMAND --help` for details.')
+            print('\nOther: info, quicklook, run, status.  `moraine COMMAND --help` for details.')
         return _emit(args, result, text)
     if sub == 'info':
         from .summary import summarize
@@ -475,15 +482,6 @@ def _run(args):
         out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
         quicklook(args.pyramid, out, index=tuple(args.index), post_proc=args.post_proc, width=args.width)
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
-    if sub == 'tnet':
-        from ..tnet import TempNet
-        n = args.nimages
-        if args.bandwidth:
-            pairs = TempNet.from_bandwidth(n, args.bandwidth).image_pairs
-        else:
-            pairs = np.stack(np.triu_indices(n, 1), axis=-1)
-        np.savetxt(args.out, pairs, fmt='%d', header='reference secondary')
-        return _emit(args, {'out': args.out, 'n_pairs': len(pairs)}, lambda: print(f'{len(pairs)} image pairs saved to {args.out}'))
     if sub in ('run', 'status'):
         from . import pipeline
         return pipeline.cli(args, _emit)
@@ -506,7 +504,7 @@ def _run(args):
 
 def _normalize_options(argv):
     """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands."""
-    if not argv or argv[0] in ('list', 'info', 'quicklook', 'tnet', 'run', 'status'):
+    if not argv or argv[0] in ('list', 'info', 'quicklook', 'run', 'status'):
         return argv
     out = []
     for tok in argv:
@@ -523,7 +521,7 @@ def main(argv=None):
     """Entry point of the ``moraine`` command."""
     argv = _normalize_options(sys.argv[1:] if argv is None else list(argv))
     # the processing commands import the whole library; skip that for --help of the top level
-    needs_commands = not argv or argv[0] not in ('info', 'quicklook', 'tnet', 'status') or '--help' in argv
+    needs_commands = not argv or argv[0] not in ('info', 'quicklook', 'status') or '--help' in argv
     parser = _build_parser(with_commands=needs_commands or argv[0] == 'run')
     args = parser.parse_args(argv)
     if not args._sub:

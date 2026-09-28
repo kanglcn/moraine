@@ -1,0 +1,41 @@
+# Phase unwrapping of the refined points (tutorial: nbs/Tutorials/CLI/phase_unwrapping.ipynb).
+# Needs 04_refine.toml. Uses moraine's own minimum cost flow (no GAMMA needed); `gamma-mcf-pt` is the
+# GAMMA alternative.
+#
+#   moraine run examples/05_unwrap.toml --workdir WORK
+#
+# Outputs in WORK/unw/: pc_unw (unwrapped sequential interferograms, shape (n_points, n_pairs)).
+
+[vars]
+shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+
+[[step]]
+name = "gix"                      # mcf-pc needs the grid index of the points
+run = "pc-gix"
+hix = "pc/pc_hix.zarr"
+gix = "unw/pc_gix.zarr"
+shape = "${shape}"
+
+[[step]]
+name = "pairs_seq"
+run = "image-pairs"
+rslc = "pc/pc_ph.zarr"
+bandwidth = 1
+out = "unw/pairs_seq.txt"
+
+[[step]]
+name = "unwrap"
+run = "mcf-pc"
+gix = "unw/pc_gix.zarr"
+ph = "pc/pc_ph.zarr"
+unw_ph = "unw/pc_unw.zarr"
+image_pairs = "unw/pairs_seq.txt"
+
+[[step]]
+name = "unw_pyramid"
+run = "pc-pyramid"
+pc = "unw/pc_unw.zarr"
+out_dir = "unw/pc_unw_pyramid"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
