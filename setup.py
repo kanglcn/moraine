@@ -14,13 +14,14 @@ for o in expected: assert o in cfg, "missing expected setting: {}".format(o)
 setup_cfg = {o:cfg[o] for o in cfg_keys}
 
 licenses = {
-    'apache2': ('Apache Software License 2.0','OSI Approved :: Apache Software License'),
-    'mit': ('MIT License', 'OSI Approved :: MIT License'),
-    'gpl2': ('GNU General Public License v2', 'OSI Approved :: GNU General Public License v2 (GPLv2)'),
-    'gpl3': ('GNU General Public License v3', 'OSI Approved :: GNU General Public License v3 (GPLv3)'),
-    'agpl3': ('GNU Affero General Public License v3', 'OSI Approved :: GNU Affero General Public License (AGPLv3)'),
-    'bsd3': ('BSD License', 'OSI Approved :: BSD License'),
+    'apache2': ('Apache-2.0', 'OSI Approved :: Apache Software License'),
+    'mit': ('MIT', 'OSI Approved :: MIT License'),
+    'gpl2': ('GPL-2.0-only', 'OSI Approved :: GNU General Public License v2 (GPLv2)'),
+    'gpl3': ('GPL-3.0-only', 'OSI Approved :: GNU General Public License v3 (GPLv3)'),
+    'agpl3': ('AGPL-3.0-only', 'OSI Approved :: GNU Affero General Public License v3 (AGPLv3)'),
+    'bsd3': ('BSD-3-Clause', 'OSI Approved :: BSD License'),
 }
+
 statuses = [ '0 - Pre-Planning', '1 - Planning', '2 - Pre-Alpha', '3 - Alpha',
     '4 - Beta', '5 - Production/Stable', '6 - Mature', '7 - Inactive' ]
 py_versions = '3.7 3.8 3.9 3.10 3.11 3.12 3.13'.split()
@@ -31,6 +32,7 @@ if cfg.get('pip_requirements'): requirements += shlex.split(cfg.get('pip_require
 min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
 dev_requirements = (cfg.get('dev_requirements') or '').split()
+dl_requirements = (cfg.get('dl_requirements') or '').split()
 project_urls = {}
 if cfg.get('doc_host'): project_urls["Documentation"] = cfg['doc_host'] + cfg.get('doc_baseurl', '')
 
@@ -46,7 +48,7 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     include_package_data = True,
     install_requires = requirements,
-    extras_require={ 'dev': dev_requirements },
+    extras_require={ 'dev': dev_requirements, 'dl': dl_requirements },
     dependency_links = cfg.get('dep_links','').split(),
     python_requires  = '>=' + cfg['min_python'],
     long_description = open('README.md', encoding="utf8").read(),

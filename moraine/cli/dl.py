@@ -12,7 +12,6 @@ from pathlib import Path
 import math
 import cmath
 import importlib
-import onnxruntime
 from ..utils_ import ngjit, ngpjit
 
 import dask
@@ -30,11 +29,17 @@ from ..utils_ import get_array_module
 from ..chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
 from ..co import intf as intf_func
 from .dask_ import parallel_read_zarr
-from ..dl import _ort_session, _infer_n2ft
+from ..dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
 # %% ../../nbs/CLI/dl.ipynb 6
+def _torch_use_rmm():
+    '''let torch allocate gpu memory from the rmm pool, run it in every dask cuda worker before torch uses the gpu'''
+    import torch
+    from rmm.allocators.torch import rmm_torch_allocator
+    torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
+
 @ngpjit
 def _cli_pre_infer_n2f_numba(
     ref, # reference rslc
@@ -102,10 +107,8 @@ def _cli_n2f_cpu(
     sec,
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2f.onnx'
     shape = ref.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
@@ -113,10 +116,10 @@ def _cli_n2f_cpu(
     ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
     sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
-    session = mr.dl._ort_session(model,cuda=False)
+    model = _get_model('n2f', model, 'cpu')
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_numba(ref[in_slice],sec[in_slice])
-        infer_out_slice = session.run([session.get_outputs()[0].name,],{session.get_inputs()[0].name: input_intf_slice})[0]
+        infer_out_slice = _infer_unet(model, input_intf_slice)
         out[out_slice] = mr.dl._after_infer_n2f_numba(infer_out_slice,mask_slice)[map_slice]
     return out
 
@@ -126,10 +129,8 @@ def _cli_n2f_np_in_gpu(
     sec,
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2f.onnx'
     shape = ref.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
@@ -137,33 +138,12 @@ def _cli_n2f_np_in_gpu(
     ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
     sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
-    session = _ort_session(model,cuda=True)
+    model = _get_model('n2f', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         ref_slice = cp.asarray(ref[in_slice])
         sec_slice = cp.asarray(sec[in_slice])
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_cp(ref_slice,sec_slice)
-        
-        input_intf_slice = cp.ascontiguousarray(input_intf_slice)
-        output_intf_slice = cp.ascontiguousarray(cp.empty_like(input_intf_slice))
-        io_binding = session.io_binding()
-        io_binding.bind_input(
-                name=session.get_inputs()[0].name,
-                device_type='cuda',
-                device_id=input_intf_slice.device.id,
-                element_type=input_intf_slice.dtype,
-                shape=list(input_intf_slice.shape),
-                buffer_ptr=input_intf_slice.data.ptr,
-        )
-        io_binding.bind_output(
-                name=session.get_outputs()[0].name,
-                device_type='cuda',
-                device_id=output_intf_slice.device.id,
-                element_type=output_intf_slice.dtype,
-                shape=list(output_intf_slice.shape),
-                buffer_ptr=output_intf_slice.data.ptr,
-        )
-        io_binding.synchronize_inputs()
-        session.run_with_iobinding(io_binding)
+        output_intf_slice = _infer_unet(model, input_intf_slice)
         out[out_slice] = (mr.dl._after_infer_n2f_cp(output_intf_slice,mask_slice)[map_slice]).get()
     return out
 
@@ -176,7 +156,7 @@ def n2f(
     chunks:tuple=None, # parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
     out_chunks:tuple=None, # output chunks
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is True for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPUs for cuda
@@ -220,6 +200,7 @@ def n2f(
         logger.dask_cluster_info(cluster)
         if cuda:
             client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
+            client.run(_torch_use_rmm)
             n2f_delayed = delayed(_cli_n2f_np_in_gpu,pure=True,nout=1)
         else:
             n2f_delayed = delayed(_cli_n2f_cpu,pure=True,nout=1)
@@ -247,7 +228,7 @@ def n2f(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# %% ../../nbs/CLI/dl.ipynb 23
+# %% ../../nbs/CLI/dl.ipynb 24
 def _cli_n2ft(
     x:np.ndarray, # x coordinate, e.g., longitude, shape (n,) np.floating
     y:np.ndarray, # y coordinate, e.g., latitude, shape (n,) np.floating
@@ -258,29 +239,24 @@ def _cli_n2ft(
     map_indices,
     chunks:int=None, # chunksize, intf.shape[0] by default 
     k:int=128, # halo size for chunkwise processing
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
     cuda:bool=False # use gpu for inference
 ):
-    xp = np #mr.utils_.get_array_module(intf) # probability will add support for input and output with cupy array
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2ft.onnx'
-    if cuda:
-        session = _ort_session(model,cuda=True)
-    else:
-        session = _ort_session(model,cuda=False)
+    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu')
 
-    intf = intf_func(ref, sec)
+    intf = intf_func(ref, sec)[:,None]
     n = intf.shape[0]
     if (chunks is None) or (chunks >= n):
-        out = _infer_n2ft(x, y, intf, session)
+        out = _infer_n2ft(x, y, intf, model)
     else:
-        out = xp.empty_like(intf)
+        out = np.empty_like(intf)
         for in_idx, out_slice, map_idx in zip(in_indices, out_slices, map_indices):
-            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],session)[map_idx]
+            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],model)[map_idx]
+    out = out[:,0]
 
     return out
 
-# %% ../../nbs/CLI/dl.ipynb 24
+# %% ../../nbs/CLI/dl.ipynb 25
 @mc_logger
 def n2ft(
     x:str, # input: x coordinate, e.g., longitude, shape (n,)
@@ -291,7 +267,7 @@ def n2ft(
     chunks:int=None, # parallel processing point chunk size, optional. Default: rslc.chunks[0]
     out_chunks:int=None, # output point chunk size, Default: rslc.chunks[0]
     k:int=128, # halo size for chunkwise processing
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
     cuda:bool=False, # if use cuda for processing, false by default
     processes=None, # use process for dask worker over thread, the default is True for cpu, only applied if cuda==False
     n_workers=None, # number of dask worker, the default is 1 for cpu, number of GPUs for cuda
@@ -342,7 +318,9 @@ def n2ft(
     with Cluster(**cluster_args) as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
-        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
+        if cuda:
+            client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
+            client.run(_torch_use_rmm)
         n2ft_delayed = delayed(_cli_n2ft,pure=True,nout=1)
 
         ref_cpu_rslc = dask_from_zarr(rslc_path, chunks=(npoint,1))

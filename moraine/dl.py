@@ -9,8 +9,8 @@ from numba import prange
 from scipy.spatial import KDTree
 import fpsample
 import os
+import functools
 
-import onnxruntime
 import importlib
 from pathlib import Path
 import requests
@@ -61,31 +61,65 @@ def download_dl_model(
         path = Path(path)
 
     if 'n2f' in models:
-        _fetch_github_file('kanglcn','n2f','main','n2f.onnx',str(path/'n2f.onnx'))
+        _fetch_github_file('kanglcn','n2f','main','n2f.pth',str(path/'n2f.pth'))
     if 'n2fs3d' in models:
-        _fetch_github_file('kanglcn','n2f','main','n2fs3d.onnx',str(path/'n2fs3d.onnx'))
+        _fetch_github_file('kanglcn','n2f','main','n2fs3d.pth',str(path/'n2fs3d.pth'))
     if 'n2ft' in models:
-        _fetch_github_file('kanglcn','n2ft','main','n2ft.onnx',str(path/'n2ft.onnx'))
-        _fetch_github_file('kanglcn','n2ft','main','n2ft.onnx.data',str(path/'n2ft.onnx.data'))
+        _fetch_github_file('kanglcn','n2ft','main','n2ft.pth',str(path/'n2ft.pth'))
 
 # %% ../nbs/API/dl.ipynb 9
-def _ort_session(
-    path:str, # path to the model in onnx format
-    cuda:bool=False, # if use cuda or not
-):
-    session_options = onnxruntime.SessionOptions()
-    n_cpu = get_n_cpus_avail()
-    
-    session_options.intra_op_num_threads = n_cpu
-    session_options.inter_op_num_threads = n_cpu
+def _import_torch():
+    try:
+        import torch
+    except ImportError as e:
+        raise ImportError('PyTorch is required by the deep learning models, '
+                          'install it with `pip install torch` or `pip install moraine[dl]`.') from e
+    return torch
 
-    if cuda:
-        import cupy as cp
-        providers = [("CUDAExecutionProvider", {"device_id": cp.cuda.runtime.getDevice()}),'CPUExecutionProvider']
+_model_files = {'n2f':'n2f.pth', 'n2fs3d':'n2fs3d.pth', 'n2ft':'n2ft.pth'}
+
+@functools.lru_cache(maxsize=None)
+def _load_model(
+    name:str, # model name, 'n2f', 'n2fs3d' or 'n2ft'
+    path:str=None, # path to the model weights, use the model comes with this package by default
+    device:str='cpu', # torch device
+    compile:bool=False, # compile the model with torch.compile
+):
+    '''load a deep learning model for inference. Loaded models are cached.'''
+    torch = _import_torch()
+    if path is None:
+        path = importlib.resources.files('moraine')/'dl_model'/_model_files[name]
+    if not Path(path).exists():
+        raise FileNotFoundError(f'{path} does not exist, download the models with `moraine.download_dl_model()`.')
+    if name == 'n2ft':
+        from .n2ft_torch_ import N2FT, PointTransformerBlock
+        model = N2FT(PointTransformerBlock,[1,1,1,1,1])
     else:
-        providers = ['CPUExecutionProvider']
-    ort_session = onnxruntime.InferenceSession(path, sess_options=session_options, providers=providers)
-    return ort_session
+        from .unet_torch_ import UNet
+        model = UNet(2 if name == 'n2f' else 3, 2, depth=4, bilinear=True)
+    model.load_state_dict(torch.load(path, map_location='cpu', weights_only=True))
+    model.eval().to(device)
+    if compile:
+        model = torch.compile(model)
+    return model
+
+def _get_model(name, path=None, device='cpu', compile=False):
+    return _load_model(name, None if path is None else str(path), device, compile)
+
+def _cuda_device():
+    return f'cuda:{cp.cuda.runtime.getDevice()}'
+
+def _infer_unet(
+    model,
+    x, # model input, np.ndarray or cp.ndarray, shape (1, in_channels, nlines, width)
+):
+    '''run the unet model, output is the same kind of array as the input'''
+    torch = _import_torch()
+    with torch.inference_mode():
+        if isinstance(x, np.ndarray):
+            device = next(model.parameters()).device
+            return model(torch.from_numpy(x).to(device)).cpu().numpy()
+        return cp.from_dlpack(model(torch.from_dlpack(cp.ascontiguousarray(x))))
 
 # %% ../nbs/API/dl.ipynb 10
 @ngpjit
@@ -193,51 +227,29 @@ if is_cuda_available():
 # %% ../nbs/API/dl.ipynb 23
 def _infer_n2f_cpu(
     intf,
-    session,
+    model,
 ):
     input_intf, mask = _pre_infer_n2f_numba(intf)
-    infer_out = session.run([session.get_outputs()[0].name,],{session.get_inputs()[0].name: input_intf})[0]
+    infer_out = _infer_unet(model, input_intf)
     return _after_infer_n2f_numba(infer_out,mask)
 
 # %% ../nbs/API/dl.ipynb 24
 def _infer_n2f_gpu(
     intf,
-    session,
+    model,
 ):
     input_intf, mask = _pre_infer_n2f_cp(intf)
-    input_intf = cp.ascontiguousarray(input_intf)
-    out = cp.ascontiguousarray(cp.empty_like(input_intf))
-    io_binding = session.io_binding()
-    io_binding.bind_input(
-            name=session.get_inputs()[0].name,
-            device_type='cuda',
-            device_id=input_intf.device.id,
-            element_type=input_intf.dtype,
-            shape=list(input_intf.shape),
-            buffer_ptr=input_intf.data.ptr,
-    )
-    io_binding.bind_output(
-            name=session.get_outputs()[0].name,
-            device_type='cuda',
-            device_id=out.device.id,
-            element_type=out.dtype,
-            shape=list(out.shape),
-            buffer_ptr=out.data.ptr,
-    )
-    io_binding.synchronize_inputs()
-    session.run_with_iobinding(io_binding)
-    return _after_infer_n2f_cp(out,mask)
+    infer_out = _infer_unet(model, input_intf)
+    return _after_infer_n2f_cp(infer_out,mask)
 
 # %% ../nbs/API/dl.ipynb 25
 def n2f(
     intf:np.ndarray, # interferogram, 2d np.complex64 or cp.complex64
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
     xp = mr.utils_.get_array_module(intf)
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2f.onnx'
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
@@ -245,13 +257,13 @@ def n2f(
     intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
-        session = _ort_session(model,cuda=False)
+        model = _get_model('n2f', model, 'cpu')
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2f_cpu(intf[in_slice],session)[map_slice]
+            out[out_slice] = _infer_n2f_cpu(intf[in_slice],model)[map_slice]
     else:
-        session = _ort_session(model,cuda=True)
+        model = _get_model('n2f', model, _cuda_device())
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2f_gpu(intf[in_slice],session)[map_slice]
+            out[out_slice] = _infer_n2f_gpu(intf[in_slice],model)[map_slice]
 
     return out
 
@@ -260,22 +272,18 @@ def _n2f_np_in_gpu(
     intf:np.ndarray, # interferogram, 2d np.complex64 or cp.complex64
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
     '''compare with n2f, input and output are np.ndarray but use gpu for inference'''
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2f.onnx'
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
     intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
-    session = _ort_session(model,cuda=True)
+    model = _get_model('n2f', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        #out[out_slice] = _infer_n2f_cpu(intf[in_slice],session)[map_slice]
-
-        out[out_slice] = _infer_n2f_gpu(cp.asarray(intf[in_slice]),session)[map_slice].get()
+        out[out_slice] = _infer_n2f_gpu(cp.asarray(intf[in_slice]),model)[map_slice].get()
     return out
 
 # %% ../nbs/API/dl.ipynb 34
@@ -348,41 +356,21 @@ if is_cuda_available():
 def _infer_n2fs3d_cpu(
     adi,
     intf,
-    session,
+    model,
 ):
     input_intf, mask = _pre_infer_n2fs3d_numba(adi,intf)
-    infer_out = session.run([session.get_outputs()[0].name,],{session.get_inputs()[0].name: input_intf})[0]
+    infer_out = _infer_unet(model, input_intf)
     return _after_infer_n2f_numba(infer_out,mask)
 
 # %% ../nbs/API/dl.ipynb 45
 def _infer_n2fs3d_gpu(
     adi,
     intf,
-    session,
+    model,
 ):
     input_intf, mask = _pre_infer_n2fs3d_cp(adi,intf)
-    input_intf = cp.ascontiguousarray(input_intf)
-    out = cp.ascontiguousarray(cp.empty((1,2,*mask.shape),dtype=input_intf.dtype))
-    io_binding = session.io_binding()
-    io_binding.bind_input(
-            name=session.get_inputs()[0].name,
-            device_type='cuda',
-            device_id=input_intf.device.id,
-            element_type=input_intf.dtype,
-            shape=list(input_intf.shape),
-            buffer_ptr=input_intf.data.ptr,
-    )
-    io_binding.bind_output(
-            name=session.get_outputs()[0].name,
-            device_type='cuda',
-            device_id=out.device.id,
-            element_type=out.dtype,
-            shape=list(out.shape),
-            buffer_ptr=out.data.ptr,
-    )
-    io_binding.synchronize_inputs()
-    session.run_with_iobinding(io_binding)
-    return _after_infer_n2f_cp(out,mask)
+    infer_out = _infer_unet(model, input_intf)
+    return _after_infer_n2f_cp(infer_out,mask)
 
 # %% ../nbs/API/dl.ipynb 46
 def n2fs3d(
@@ -390,11 +378,9 @@ def n2fs3d(
     intf:np.ndarray, # interferogram, 2d np.complex64 or cp.complex64
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
     xp = mr.utils_.get_array_module(intf)
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2fs3d.onnx'
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
@@ -402,13 +388,13 @@ def n2fs3d(
     intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
-        session = _ort_session(model,cuda=False)
+        model = _get_model('n2fs3d', model, 'cpu')
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2fs3d_cpu(adi[in_slice],intf[in_slice],session)[map_slice]
+            out[out_slice] = _infer_n2fs3d_cpu(adi[in_slice],intf[in_slice],model)[map_slice]
     else:
-        session = _ort_session(model,cuda=True)
+        model = _get_model('n2fs3d', model, _cuda_device())
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2fs3d_gpu(adi[in_slice],intf[in_slice],session)[map_slice]
+            out[out_slice] = _infer_n2fs3d_gpu(adi[in_slice],intf[in_slice],model)[map_slice]
 
     return out
 
@@ -418,20 +404,18 @@ def _n2fs3d_np_in_gpu(
     intf:np.ndarray, # interferogram, 2d np.complex64 or cp.complex64
     chunks:tuple=None, # chunksize, intf.shape by default 
     depths:tuple=(0,0), # width of the boundary
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
 ):
     '''compare with n2f, input and output are np.ndarray but use gpu for inference'''
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2fs3d.onnx'
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
     intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
-    session = _ort_session(model,cuda=True)
+    model = _get_model('n2fs3d', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        out[out_slice] = _infer_n2fs3d_gpu(cp.asarray(adi[in_slice]),cp.asarray(intf[in_slice]),session)[map_slice].get()
+        out[out_slice] = _infer_n2fs3d_gpu(cp.asarray(adi[in_slice]),cp.asarray(intf[in_slice]),model)[map_slice].get()
     return out
 
 # %% ../nbs/API/dl.ipynb 56
@@ -450,17 +434,18 @@ def _weights(dd):
 
 # %% ../nbs/API/dl.ipynb 57
 def _sample_and_knn(pos, k=16, workers=-1):  # (N, 2)
+    # fixed start_idx makes the farthest point sampling, hence the n2ft result, reproducible
     N0 = pos.shape[0]
     N1 = N0 // 4
     N2 = N1 // 4
     N3 = N2 // 4
 
     p0 = pos  # [N0, 2]
-    idx01 = fpsample.bucket_fps_kdtree_sampling(p0, N1)
+    idx01 = fpsample.bucket_fps_kdtree_sampling(p0, N1, start_idx=0)
     p1 = p0[idx01]
-    idx12 = fpsample.bucket_fps_kdtree_sampling(p1, N2)
+    idx12 = fpsample.bucket_fps_kdtree_sampling(p1, N2, start_idx=0)
     p2 = p1[idx12]
-    idx23 = fpsample.bucket_fps_kdtree_sampling(p2, N3)
+    idx23 = fpsample.bucket_fps_kdtree_sampling(p2, N3, start_idx=0)
     p3 = p2[idx23]
 
     tree0 = KDTree(p0)
@@ -504,73 +489,80 @@ def _pos_norm(x, y): # (N,), (N,)
 
 # %% ../nbs/API/dl.ipynb 59
 @ngpjit
-def _complex2channel(intf):
-    # convert 1d complex array to 2 column
-    n = intf.shape[0]
-    out = np.empty((n,2),dtype=np.float32)
+def _intf_redim2torch(intf):
+    # convert (n, m) complex intf to (m, n, 2)
+    n, m = intf.shape
+    out = np.empty((m, n, 2),dtype=np.float32)
     for i in prange(n):
-        amp_i = abs(intf[i])
-        out[i,0] = intf[i].real/amp_i
-        out[i,1] = intf[i].imag/amp_i
+        for j in range(m):
+            intf_i_j = intf[i,j]
+            amp_ = abs(intf_i_j)
+            out[j,i,0] = intf_i_j.real/amp_
+            out[j,i,1] = intf_i_j.imag/amp_
     return out
 
 # %% ../nbs/API/dl.ipynb 60
 @ngpjit
-def _2channel2complex(intf):
-    # convert (n,2) to (n,) complex array
-    n = intf.shape[0]
-    out = np.empty(n,dtype=np.complex64)
+def _intf_redim_back(intf):
+    # convert (m, n, 2) to (n, m) complex array
+    m, n = intf.shape[:2]
+    out = np.empty((n, m),dtype=np.complex64)
     for i in prange(n):
-        out[i] = intf[i,0]+intf[i,1]*1j
+        for j in range(m):
+            out[i, j] = intf[j,i,0]+intf[j,i,1]*1j
     return out
 
 # %% ../nbs/API/dl.ipynb 61
 def _infer_n2ft(
-    x,
-    y,
-    intf,
-    session,
+    x, #(n,)
+    y, #(n,)
+    intf, #(n,m)
+    model,
 ):
+    torch = _import_torch()
+    device = next(model.parameters()).device
+
     pos = _pos_norm(x,y)
     keys = _sample_and_knn(pos)
+    intf = _intf_redim2torch(intf)
+    out = np.empty_like(intf)
 
-    pos = pos[None,...]
-    keys = tuple(key[None,...] for key in keys)
-    intf = _complex2channel(intf)[None,...]
+    with torch.inference_mode():
+        intf = torch.from_numpy(intf).to(device)
+        pos = torch.from_numpy(pos).to(device).unsqueeze(0)
+        keys = tuple(torch.from_numpy(key).to(device).unsqueeze(0) for key in keys)
+        for i in range(intf.shape[0]):
+            out[i] = model(pos, intf[i:i+1], *keys).cpu().numpy()[0]
+    out = _intf_redim_back(out)
+    return out
 
-    inputs = (pos, intf) + keys
-    input_names = [input.name for input in session.get_inputs()]
-    inputs = dict(zip(input_names, inputs))
-    infer_out = session.run([session.get_outputs()[0].name,], inputs)[0][0]
-
-    filt_intf = _2channel2complex(infer_out)
-    return filt_intf
-
-# %% ../nbs/API/dl.ipynb 62
+# %% ../nbs/API/dl.ipynb 63
 def n2ft(
     x:np.ndarray, # x coordinate, e.g., longitude, shape (n,) np.floating
     y:np.ndarray, # y coordinate, e.g., latitude, shape (n,) np.floating
-    intf:np.ndarray, # interferogram, shape(n,) np.complex64
+    intf:np.ndarray, # interferogram, shape(n,) or shape(n,m) np.complex64
     chunks:int=None, # chunksize, intf.shape[0] by default 
     k:int=128, # halo size for chunkwise processing
-    model:str=None, # path to the model in onnx format, use the model comes with this package by default
-    cuda:bool=False # use gpu for inference
+    model:str=None, # path to the model weights (.pth), use the model comes with this package by default
+    cuda:bool=False, # use gpu for inference
+    compile:bool=False, # compile the model with torch.compile, faster on gpu but the first call takes tens of seconds
 ):
-    xp = np #mr.utils_.get_array_module(intf) # probability will add support for input and output with cupy array
-    if model is None:
-        model = importlib.resources.files('moraine')/'dl_model/n2ft.onnx'
-    if cuda:
-        session = _ort_session(model,cuda=True)
-    else:
-        session = _ort_session(model,cuda=False)
-    
+    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu', compile)
+
+    single_intf = False
+    if len(intf.shape) == 1:
+        single_intf = True
+        intf = intf[:,None]
+
     n = intf.shape[0]
     if (chunks is None) or (chunks >= n):
-        out = _infer_n2ft(x, y, intf, session)
+        out = _infer_n2ft(x, y, intf, model)
     else:
-        out = xp.empty_like(intf)
+        out = np.empty_like(intf)
         in_indices, out_slices, map_indices = chunkwise_knn_mapping(x, y, chunks, k=k)
         for in_idx, out_slice, map_idx in zip(in_indices, out_slices, map_indices):
-            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],session)[map_idx]
+            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],model)[map_idx]
 
+    if single_intf:
+        out = out[:,0]
     return out

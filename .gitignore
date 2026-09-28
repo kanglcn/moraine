@@ -165,6 +165,7 @@ scratch/
 
 nbs/CLI/*.png
 moraine/dl_model/*.onnx
+moraine/dl_model/*.pth
 
 base.out
 
