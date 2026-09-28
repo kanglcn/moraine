@@ -313,7 +313,7 @@ def _strings(values):
 def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
     """Run `cmd` and return a record with the outputs it created or modified and their summaries."""
     from .summary import summarize
-    candidates = [s for s in _strings(kwargs.values()) if '/' in s or '.' in s]
+    candidates = list(dict.fromkeys(_strings(kwargs.values())))   # any string may be a path, e.g. out_dir='pyr'
     before = {s: _mtime(s) for s in candidates}
     call = dict(kwargs)
     for p in cmd.params:              # image pair files are read now, relative to the working directory
@@ -528,8 +528,7 @@ def main(argv=None):
         parser.print_help(); return 0
     _setup_logging(args)
     try:
-        _run(args)
-        return 0
+        return _run(args) or 0
     except Exception as e:
         if getattr(args, 'traceback', False):
             import traceback; traceback.print_exc()

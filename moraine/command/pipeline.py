@@ -312,5 +312,4 @@ def cli(args, emit):
                           dry_run=args.dry_run, quicklook=not args.no_quicklook, echo=echo,
                           workdir=args.workdir, variables=_vars(args))
     emit(args, result)
-    if not result['ok']:
-        raise SystemExit(1)
+    return 0 if result['ok'] else 1

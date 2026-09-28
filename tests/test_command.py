@@ -396,3 +396,11 @@ image_pairs = "new/dir/pairs.txt"
     _zarr(tmp_path / 'intf.zarr', np.ones((20, 30, 3), np.complex64), (10, 30, 1))
     assert run_pipeline(str(tmp_path / 'p.toml'), echo=lambda *a: None)['ok']
     np.testing.assert_allclose(zarr.open(str(tmp_path / 't_coh.zarr'), mode='r')[:], 1, rtol=1e-5)
+
+
+def test_outputs_without_slash_or_dot(tmp_path, capsys, rng, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    _zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
+    assert main(['ras-pyramid', '--ras', 'ras.zarr', '--out_dir', 'pyr', '--json', '-q']) == 0
+    out = _json_out(capsys)
+    assert out['outputs'] == ['pyr'] and out['inputs'].keys() == {'ras.zarr'}
