@@ -2,6 +2,16 @@
 
 <!-- do not remove -->
 
+## Unreleased
+
+Deep learning models run on PyTorch instead of ONNX Runtime; torch is an optional dependency (`pip install moraine[dl]`) and the models are downloaded as `.pth` files by `download_dl_model()`
+
+`n2ft` results are reproducible (fixed farthest point sampling start)
+
+Development moved from nbdev notebooks to plain python: packaging in `pyproject.toml`, numpy style docstrings, pytest tests in `tests/`; the nbdev documentation site is removed
+
+Bugs squashed: CPU `ad_intf_pc` (undefined name), `isPD`/`nearestPD` on numpy arrays, `HilbertRtree.save`/`load` with zarr 3
+
 ## 0.9.0
 
 Add mcf_pc API and CLI

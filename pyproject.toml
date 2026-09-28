@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moraine"
+dynamic = ["version"]
+description = "Modern Radar Interferometry Environment, A simple, stupid InSAR postprocessing tool in big data era"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Kang Liang", email = "kanglcn@gmail.com" }]
+keywords = ["InSAR", "PS", "DS", "CUDA", "Deep-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "colorcet",
+    "zarr",
+    "numcodecs",
+    "toml",
+    "numba>=0.59",
+    "numexpr",
+    "bokeh>=3.4.1",
+    "holoviews>=1.18.3",
+    "pyproj>=3.0",
+    "dask[complete]",
+    "joblib",
+    "requests",
+    "fpsample",
+    "ortools",
+]
+
+[project.optional-dependencies]
+# deep learning models (n2f, n2fs3d, n2ft)
+dl = ["torch"]
+dev = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/kanglcn/moraine"
+Repository = "https://github.com/kanglcn/moraine"
+
+[tool.setuptools.dynamic]
+version = { attr = "moraine.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["moraine*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: needs a CUDA GPU with cupy (skipped otherwise)",
+    "data: needs the local test data set (skipped otherwise)",
+    "slow: slow tests",
+]

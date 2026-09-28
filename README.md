@@ -121,7 +121,6 @@ you can install the needed `cudatoolkit`, `cupy`, `dask_cuda` by:
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy cuda-version=11.8
 conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
-pip install onnxruntime # or onnxruntime-gpu
 ```
 
 Then
@@ -138,21 +137,36 @@ Or with pip:
 pip install moraine
 ```
 
+The deep learning filters (`n2f`, `n2fs3d`, `n2ft`) additionally need
+[PyTorch](https://pytorch.org/get-started/locally/) and the trained
+models:
+
+``` bash
+pip install 'moraine[dl]'   # or install torch following the PyTorch guide for your CUDA version
+python -c "import moraine; moraine.download_dl_model()"
+```
+
 In development mode:
 
 ``` bash
 git clone git@github.com:kanglcn/moraine.git ./moraine
 cd ./moraine
-pip install -e '.[dev]'
+pip install -e '.[dev,dl]'
+pytest                      # or `pytest -m "not slow"` for a quick run
 ```
+
+Tests that need the sample data set, a GPU, GAMMA or the deep learning
+models are skipped when these are not available. Point
+`MORAINE_TEST_DATA` to the sample data directory (default: `./data`,
+containing `rslc.zarr` and the GAMMA output `gamma/`) to run them.
 
 ## How to use
 
 Read the [software
-architecture](./Introduction/software_architecture.ipynb) for an
-overview of the software design. Refer to [Tutorials](./Tutorials) for
-the examples. Refer to [API](./API/) and [CLI](./CLI) for the detailed
-usage of every functions.
+architecture](./nbs/Introduction/software_architecture.ipynb) for an
+overview of the software design. Refer to [Tutorials](./nbs/Tutorials)
+for the examples. Every function is documented by its docstring, e.g.
+`help(moraine.emi)` or `help(moraine.cli.emi)`.
 
 ## Contact us
 
@@ -192,16 +206,15 @@ What should be included in a PR
 
 How to write and submit a PR
 
-- This package is developed with the [nbdev](https://nbdev.fast.ai/), a
-  notebook-driven development platform. Developers should write or edit
-  the notebooks rather than the `.py` files. After than, run
-  `nbdev_export` to export the code in the notebooks to `.py` files and
-  run `nbdev_clean` to clean the notebooks.
+- The source code is the `.py` files in `moraine/`. Document new
+  functions with [numpy style
+  docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and
+  add tests in `tests/`; run `pytest` before submitting.
 
-- The github bot to generate docs do not support GPU, so all GPU related
-  packages (`dask_cuda`) should be prevented in import cells and export
-  cells. `cupy` v13 now allow `import cupy` on a cpu-only machine. So it
-  can be used now.
+- The CI runs on machines without GPU, so GPU related packages (`cupy`,
+  `dask_cuda`, `rmm`) must only be imported behind
+  `moraine.utils_.is_cuda_available()`, and GPU tests are marked with
+  `@pytest.mark.gpu`.
 
 - Describe what your PR changes and why this is a good thing. Be as
   specific as you can. The PR description is how we keep track of the
