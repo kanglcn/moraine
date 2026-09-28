@@ -50,24 +50,24 @@ def transform(xx_in,
               epsg_out=3857,
              ):
     """Coordinate transformation.
-By default, the input should be longitude (xx_in) and latitude (yy_in) (in degree) and outputs 
-are x (east) and y (south) coordinate in web mercator projection (for plot with google earth map).
-The chunks, shape and dtype of output are same as `xx_in`.
+    By default, the input should be longitude (xx_in) and latitude (yy_in) (in degree) and outputs 
+    are x (east) and y (south) coordinate in web mercator projection (for plot with google earth map).
+    The chunks, shape and dtype of output are same as `xx_in`.
 
     Parameters
     ----------
     xx_in
-        input x coordinate
+        input: x coordinate (longitude in degree for the default epsg_in)
     yy_in
-        input y coordinate
+        input: y coordinate (latitude in degree for the default epsg_in)
     xx_out
-        output x coordinate
+        output: x coordinate in `epsg_out`, same shape and chunks as `xx_in`
     yy_out
-        output y coordinate
-    epsg_in : default: 4326
-        input epsg
-    epsg_out : default: 3857
-        output epsg
+        output: y coordinate in `epsg_out`, same shape and chunks as `xx_in`
+    epsg_in : int, default: 4326
+        EPSG code of the input coordinates (4326: WGS84 longitude/latitude)
+    epsg_out : int, default: 3857
+        EPSG code of the output coordinates (3857: web mercator)
     """
     logger = logging.getLogger(__name__)
     xx_in_path = xx_in; yy_in_path = yy_in; xx_out_path = xx_out; yy_out_path = yy_out

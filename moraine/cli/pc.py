@@ -25,20 +25,20 @@ from . import mk_clean_dir, dask_to_zarr, dask_from_zarr
 @mc_logger
 def gix2bool(gix:str,
              is_pc:str,
-             shape:tuple[int],
-             chunks:tuple[int]= (1000,1000),
+             shape:tuple[int,int],
+             chunks:tuple[int,int]= (1000,1000),
             ):
     """Convert pc grid index to bool 2d array
 
     Parameters
     ----------
     gix : str
-        point cloud grid index
+        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int
     is_pc : str
-        output, output bool array
-    shape : tuple[int]
-        shape of one image (nlines,width)
-    chunks : tuple[int], default: (1000, 1000)
+        output: bool raster, True at the points, shape (nlines, width)
+    shape : tuple[int, int]
+        raster shape (nlines, width)
+    chunks : tuple[int, int], default: (1000, 1000)
         output chunk size
     """
     logger = logging.getLogger(__name__)
@@ -110,13 +110,13 @@ def ras2pc(
     Parameters
     ----------
     idx : str
-        point cloud grid index or hillbert index
+        input: grid index or hillbert index of the point cloud
     ras : str | list
-        path (in string) or list of path for raster data
+        input: path or list of paths of raster data, shape (nlines, width, ...)
     pc : str | list
         output, path (in string) or list of path for point cloud data
     chunks : int, optional
-        output point chunk size, same as gix by default
+        point chunk size of the output data, same as `idx` by default
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -200,7 +200,8 @@ def pc_concat(
     pc : list | str
         output, path of output or a list of that
     key : list | str, optional
-        keys that sort the pc data, no sort by default
+        input: key(s) that sort the concatenated data (e.g. from `ras2pc_ras_chunk`); no sorting by
+        default
     chunks : int, optional
         pc chunk size in output data, optional, same as first pc in pcs by default
     processes : default: False
@@ -292,7 +293,7 @@ def ras2pc_ras_chunk(
     ras:str|list,
     pc:str|list,
     key:str,
-    chunks:tuple=None,
+    chunks:tuple[int,int]=None,
     processes=False,
     n_workers=1,
     threads_per_worker=1,
@@ -303,15 +304,15 @@ def ras2pc_ras_chunk(
     Parameters
     ----------
     gix : str
-        point cloud grid index
+        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int
     ras : str | list
-        path (in string) or list of path for raster data
+        input: path or list of paths of raster data, shape (nlines, width, ...)
     pc : str | list
         output, path (directory) or list of path for point cloud data
     key : str
         output, path for the key to sort generated pc in the directory back to gix order
-    chunks : tuple, optional
-        ras chunks, same as the first ras by default
+    chunks : tuple[int, int], optional
+        (azimuth, range) raster chunk size used to split the points, same as the first `ras` by default
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -415,8 +416,8 @@ def pc2ras(
     idx:str,
     pc:str|list,
     ras:str|list,
-    shape:tuple[int],
-    chunks:tuple[int]=(1000,1000),
+    shape:tuple[int,int],
+    chunks:tuple[int,int]=(1000,1000),
     processes=False,
     n_workers=1,
     threads_per_worker=1,
@@ -427,14 +428,14 @@ def pc2ras(
     Parameters
     ----------
     idx : str
-        point cloud grid index or hillbert index
+        input: grid index or hillbert index of the point cloud
     pc : str | list
-        path (in string) or list of path for point cloud data
+        input: path or list of paths of point cloud data, shape (n_points, ...)
     ras : str | list
         output, path (in string) or list of path for raster data
-    shape : tuple[int]
+    shape : tuple[int, int]
         shape of one image (nlines,width)
-    chunks : tuple[int], default: (1000, 1000)
+    chunks : tuple[int, int], default: (1000, 1000)
         output chunk size
     processes : default: False
         use process for dask worker or thread
@@ -501,18 +502,18 @@ def pc2ras(
 def pc_hix(
     gix:str,
     hix:str,
-    shape:tuple,
+    shape:tuple[int,int],
 ):
     """Compute the hillbert index from grid index for point cloud data.
 
     Parameters
     ----------
     gix : str
-        grid index
+        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int
     hix : str
-        output, path
-    shape : tuple
-        (nlines, width)
+        output: hillbert index of the point cloud, shape (n_points,), int64
+    shape : tuple[int, int]
+        raster shape (nlines, width)
     """
     logger = logging.getLogger(__name__)
     gix_zarr = zarr.open(gix,mode='r'); logger.zarr_info(gix, gix_zarr)
@@ -528,18 +529,18 @@ def pc_hix(
 def pc_gix(
     hix:str,
     gix:str,
-    shape:tuple,
+    shape:tuple[int,int],
 ):
     """Compute the grid index from hillbert index for point cloud data.
 
     Parameters
     ----------
     hix : str
-        grid index
+        input: hillbert index of the point cloud, shape (n_points,), int64
     gix : str
-        output, path
-    shape : tuple
-        (nlines, width)
+        output: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int
+    shape : tuple[int, int]
+        raster shape (nlines, width)
     """
     logger = logging.getLogger(__name__)
     hix_zarr = zarr.open(hix,mode='r'); logger.zarr_info(hix, hix_zarr)
@@ -557,7 +558,7 @@ def pc_sort(
     idx:str,
     pc_in:str|list=None,
     pc:str|list=None,
-    shape:tuple=None,
+    shape:tuple[int,int]=None,
     chunks:int=None,
     key:str=None,
     processes=False,
@@ -570,14 +571,14 @@ def pc_sort(
     Parameters
     ----------
     idx_in : str
-        the unsorted grid index or hillbert index of the input data
+        input: unsorted grid index or hillbert index of the input data
     idx : str
         output, the sorted grid index or hillbert index
     pc_in : str | list, optional
-        path (in string) or list of path for the input point cloud data
+        input: path or list of paths of the input point cloud data
     pc : str | list, optional
         output, path (in string) or list of path for the output point cloud data
-    shape : tuple, optional
+    shape : tuple[int, int], optional
         (nline, width), faster if provided for grid index input
     chunks : int, optional
         chunk size in output data, same as `idx_in` by default
@@ -661,36 +662,34 @@ def pc_union(
     pc1:str|list=None,
     pc2:str|list=None,
     pc:str|list=None,
-    shape:tuple=None,
+    shape:tuple[int,int]=None,
     chunks:int=None,
     processes=False,
     n_workers=1,
     threads_per_worker=1,
     **dask_cluster_arg,
 ):
-    """Get the union of two point cloud dataset.
-For points at their intersection, pc_data1 rather than pc_data2 is copied to the result pc_data.
-`pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
-If non of them are provided, the pc_chunk_size is setted as it in idx1.
+    """Get the union of two point cloud datasets. Points in both keep the data of the first point
+    cloud.
 
     Parameters
     ----------
     idx1 : str
-        grid index or hillbert index of the first point cloud
+        input: grid index or hillbert index of the first point cloud, sorted
     idx2 : str
-        grid index or hillbert index of the second point cloud
+        input: grid index or hillbert index of the second point cloud, sorted
     idx : str
-        output, grid index or hillbert index of the union point cloud
+        output: grid index or hillbert index of the union
     pc1 : str | list, optional
-        path (in string) or list of path for the first point cloud data
+        input: path or list of paths of the first point cloud data
     pc2 : str | list, optional
-        path (in string) or list of path for the second point cloud data
+        input: path or list of paths of the second point cloud data
     pc : str | list, optional
-        output, path (in string) or list of path for the union point cloud data
-    shape : tuple, optional
+        output: path or list of paths of the point cloud data of the union
+    shape : tuple[int, int], optional
         image shape, faster if provided for grid index input
     chunks : int, optional
-        chunk size in output data, same as `idx1` by default
+        point chunk size of the output data, same as `idx1` by default
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -768,7 +767,7 @@ def pc_intersect(
     pc1:str|list=None,
     pc2:str|list=None,
     pc:str|list=None,
-    shape:tuple=None,
+    shape:tuple[int,int]=None,
     chunks:int=None,
     prefer_1=True,
     processes=False,
@@ -776,30 +775,29 @@ def pc_intersect(
     threads_per_worker=1,
     **dask_cluster_arg,
 ):
-    """Get the intersection of two point cloud dataset.
-`pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
-If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
+    """Get the intersection of two point cloud datasets.
 
     Parameters
     ----------
     idx1 : str
-        grid index or hillbert index of the first point cloud
+        input: grid index or hillbert index of the first point cloud, sorted
     idx2 : str
-        grid index or hillbert index of the second point cloud
+        input: grid index or hillbert index of the second point cloud, sorted
     idx : str
-        output, grid index or hillbert index of the union point cloud
+        output: grid index or hillbert index of the intersection
     pc1 : str | list, optional
-        path (in string) or list of path for the first point cloud data
+        input: path or list of paths of the first point cloud data
     pc2 : str | list, optional
-        path (in string) or list of path for the second point cloud data
+        input: path or list of paths of the second point cloud data
     pc : str | list, optional
-        output, path (in string) or list of path for the union point cloud data
-    shape : tuple, optional
+        output: path or list of paths of the point cloud data of the intersection, taken from `pc1` or
+        `pc2` (see `prefer_1`)
+    shape : tuple[int, int], optional
         image shape, faster if provided for grid index input
     chunks : int, optional
-        chunk size in output data, same as `idx1` by default
-    prefer_1 : default: True
-        save pc1 on intersection to output pc dataset by default `True`. Otherwise, save data from pc2
+        point chunk size of the output data, same as `idx1` by default
+    prefer_1 : bool, default: True
+        take the output data from `pc1` (True) or from `pc2` (False)
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -883,33 +881,31 @@ def pc_diff(
     idx:str,
     pc1:str|list=None,
     pc:str|list=None,
-    shape:tuple=None,
+    shape:tuple[int,int]=None,
     chunks:int=None,
     processes=False,
     n_workers=1,
     threads_per_worker=1,
     **dask_cluster_arg,
            ):
-    """Get the point cloud in `idx1` that are not in `idx2`.
-`pc_chunk_size` and `n_pc_chunk` are used to determine the final pc_chunk_size.
-If non of them are provided, the n_pc_chunk is set to n_chunk in idx1.
+    """Get the points of the first point cloud dataset that are not in the second one.
 
     Parameters
     ----------
     idx1 : str
-        grid index or hillbert index of the first point cloud
+        input: grid index or hillbert index of the first point cloud, sorted
     idx2 : str
-        grid index or hillbert index of the second point cloud
+        input: grid index or hillbert index of the second point cloud, sorted
     idx : str
-        output, grid index or hillbert index of the union point cloud
+        output: grid index or hillbert index of the points in `idx1` but not in `idx2`
     pc1 : str | list, optional
-        path (in string) or list of path for the first point cloud data
+        input: path or list of paths of the first point cloud data
     pc : str | list, optional
-        output, path (in string) or list of path for the union point cloud data
-    shape : tuple, optional
+        output: path or list of paths of the point cloud data of these points, taken from `pc1`
+    shape : tuple[int, int], optional
         image shape, faster if provided for grid index input
     chunks : int, optional
-        chunk size in output data,optional
+        point chunk size of the output data, same as `idx1` by default
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -989,11 +985,12 @@ def pc_logic_ras(ras,
     Parameters
     ----------
     ras
-        the raster image used for thresholding
+        input: raster used in `operation`, shape (nlines, width)
     gix
-        output, grid index of selected pixels
+        output: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int, of the pixels
+        where `operation` is True
     operation : str
-        logical operation on input ras
+        numexpr expression on the raster, which is named `ras`, e.g. '(ras>=0)&(ras<=0.3)'
     chunks : int, default: 100000
         chunk size in output data, optional
     """
@@ -1026,15 +1023,16 @@ def pc_logic_pc(idx_in:str,
     Parameters
     ----------
     idx_in : str
-        the grid index or hillbert index of input pc data
+        input: grid index or hillbert index of the input point cloud
     pc_in : str
-        the grid index or hillbert index cloud data used for thresholding
+        input: point cloud data used in `operation`, shape (n_points,)
     idx : str
-        output, grid index or hillbert index of selected pixels
+        output: grid index or hillbert index of the points where `operation` is True
     operation : str
-        operator
+        numexpr expression on the point cloud data, which is named `pc_in`, e.g.
+        '(pc_in>=0.1)&(pc_in<=0.5)'
     chunks : int, optional
-        chunk size in output data,optional
+        point chunk size of the output data, same as `idx_in` by default
     """
     idx_path = idx
     logger = logging.getLogger(__name__)
@@ -1063,7 +1061,7 @@ def pc_select_data(
     idx:str,
     pc_in:str|list,
     pc:str|list,
-    shape:tuple=None,
+    shape:tuple[int,int]=None,
     chunks:int=None,
     processes=False,
     n_workers=1,
@@ -1071,22 +1069,22 @@ def pc_select_data(
     **dask_cluster_arg,
 ):
     """generate point cloud data based on its index and one point cloud data.
-The index of generated point cloud data must in the index of the old one.
+    The index of generated point cloud data must in the index of the old one.
 
     Parameters
     ----------
     idx_in : str
-        the grid index or hillbert index of the input data
+        input: grid index or hillbert index of the input point cloud
     idx : str
-        the grid index or hillbert index of the output data
+        input: grid index or hillbert index of the points to select, a subset of `idx_in`
     pc_in : str | list
-        path (in string) or list of path for the input point cloud data
+        input: path or list of paths of the input point cloud data
     pc : str | list
         output, path (in string) or list of path for the output point cloud data
-    shape : tuple, optional
+    shape : tuple[int, int], optional
         shape of the raster data the point cloud from, must be provided if `idx` is hix
     chunks : int, optional
-        chunk size in output data, same as chunks of `idx` by default
+        point chunk size of the output data, same as `idx` by default
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1

@@ -42,23 +42,26 @@ def emi(
     Parameters
     ----------
     coh : str
-        coherence matrix
+        input: complex coherence of the points (upper triangle of the coherence matrix), shape
+        (n_points, n_image_pairs)
     ph : str
-        output, wrapped phase
+        output: phase history of the points, complex, shape (n_points, nimages)
     emi_quality : str
-        output, pixel quality
+        output: EMI quality (minimum eigenvalue) of the points, shape (n_points,); close to 1 means a
+        good fit, the tutorials keep 1.0 <= quality < 1.2
     ref : int, default: 0
-        reference image for phase
+        index of the reference image, its phase is set to 0
     chunks : int, optional
-        # chunk size of output zarr dataset, optional. Default: same as `coh`.
+        point chunk size of the output data, same as `coh` by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 2
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg
@@ -158,23 +161,25 @@ def ds_temp_coh(
     Parameters
     ----------
     coh : str
-        coherence matrix
+        input: complex coherence of the points (upper triangle of the coherence matrix), shape
+        (n_points, n_image_pairs)
     ph : str
-        wrapped phase
+        input: phase history of the points, complex, shape (n_points, nimages)
     t_coh : str, optional
-        output, temporal coherence
+        output: temporal coherence of the points, shape (n_points,)
     tnet : str, optional
-        temporal network
+        input: path of a saved `TempNet` with the image pairs of `coh`; all image pairs by default
     chunks : int, optional
         point cloud chunk size, same as coh by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 2
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg
@@ -286,27 +291,32 @@ def emperical_co_emi_temp_coh_pc(
     rslc : str
         input: rslc stack, shape (nlines, width, nimages)
     is_shp_dir : str
-        input: directory for bool array indicating the SHPs of pc
+        input: directory with the SHP bool arrays of the points, one zarr per raster chunk, made by
+        `ras2pc_ras_chunk`
     gix : str
         input: grid index of the point cloud (azimuth, range), shape (n_points, 2), int
     ph_dir : str
-        output: directory that hold the phase history of pc (complex, shape (n_points, nimages)), one zarr per chunk
+        output: directory with the phase history of the points, complex, shape (n_points, nimages), one
+        zarr per raster chunk; merge with `pc_concat` and the key of `ras2pc_ras_chunk`
     emi_quality_dir : str
-        output: directory that hold emi quality
+        output: directory with the EMI quality of the points, shape (n_points,), one zarr per raster
+        chunk
     t_coh_dir : str
-        output: directory that hold temporal coherence
+        output: directory with the temporal coherence of the points, shape (n_points,), one zarr per
+        raster chunk
     batch_size : int, default: 1000
-        input, batch size
+        number of points processed at once, limits the memory use
     chunks : tuple[int, int], optional
         parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 2
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg

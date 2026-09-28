@@ -39,9 +39,9 @@ def amp_disp(
     Parameters
     ----------
     rslc : str
-        rslc stack
+        input: rslc stack, shape (nlines, width, nimages)
     adi : str
-        output, amplitude dispersion index
+        output: amplitude dispersion index, shape (nlines, width), float32
     chunks : tuple[int, int], optional
         data processing chunk size, same as rslc by default
     out_chunks : tuple[int, int], optional
@@ -49,11 +49,12 @@ def amp_disp(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 1 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 1
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg

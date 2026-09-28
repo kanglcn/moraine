@@ -56,7 +56,7 @@ def ras_pyramid(
     Parameters
     ----------
     ras : str
-        path to input data, 2D zarr array (one single raster) or 3D zarr array (a stack of rasters)
+        input: 2D raster (nlines, width) or raster stack (nlines, width, n)
     out_dir : str
         output directory to store rendered data
     chunks : tuple[int, int], default: (256, 256)
@@ -385,15 +385,16 @@ def pc_pyramid(
     Parameters
     ----------
     pc : str
-        path to point cloud data, 1D array (one single pc image) or 2D zarr array (a stack of pc images)
+        input: point cloud data, shape (n_points,) or (n_points, n)
     out_dir : str
         output directory to store rendered data
     x : str, optional
-        path to x coordinate, e.g., longitude or web mercator x
+        input: x coordinate of the points, e.g. longitude or web mercator x
     y : str, optional
-        path to y coordinate, e.g., latitude or web mercator y
+        input: y coordinate of the points, e.g. latitude or web mercator y
     yx : str, optional
-        path to x and y coordinates. this coordinates should have shape [n_points,2]. e.g., gix
+        input: (y, x) coordinates of the points, shape (n_points, 2), e.g. gix; alternative to `x` and
+        `y`
     ras_resolution : float, default: 20
         minimum resolution of rendered raster data,
     ras_chunks : tuple[int, int], default: (256, 256)

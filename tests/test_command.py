@@ -42,6 +42,18 @@ def test_parse_docstring():
     assert params == {'a': ('int, default: 1', 'first second line'), 'kw': ('', 'extra')}
 
 
+def test_parse_docstring_badly_indented_summary():
+    doc = 'Summary.\nsecond summary line at column 0\n\n    Parameters\n    ----------\n    a : str\n        first\n    b : int\n        second\n'
+    summary, params = parse_docstring(doc)
+    assert summary == 'Summary. second summary line at column 0'
+    assert params == {'a': ('str', 'first'), 'b': ('int', 'second')}
+
+
+def test_every_command_documents_its_parameters():
+    missing = [f'{c.name}.{p.name}' for c in commands().values() for p in c.params if not p.help]
+    assert not missing, missing
+
+
 def test_literal_and_image_pairs(tmp_path):
     assert literal('1000,1000') == (1000, 1000)
     assert literal('None') is None
@@ -236,3 +248,36 @@ def test_dashed_option_spelling():
     assert _normalize_options(['shp-test', '--az-half-win', '5', '--no-cuda', '--r-half-win=5']) == \
         ['shp-test', '--az_half_win', '5', '--no-cuda', '--r_half_win=5']
     assert _normalize_options(['run', 'p.toml', '--dry-run']) == ['run', 'p.toml', '--dry-run']
+
+
+@pytest.mark.parametrize('tokens', [['40', '30'], ['40,30'], ['(40,30)'], ['40,', '30']])
+def test_tuple_option_spellings(tmp_path, capsys, rng, tokens):
+    gix = np.stack(np.unravel_index(np.sort(rng.choice(1200, 50, replace=False)), (40, 30)), -1).astype(np.int32)
+    _zarr(tmp_path / 'gix.zarr', gix)
+    _zarr(tmp_path / 'pc.zarr', rng.random(50).astype(np.float32))
+    assert main(['pc2ras', '--idx', str(tmp_path / 'gix.zarr'), '--pc', str(tmp_path / 'pc.zarr'),
+                 '--ras', str(tmp_path / 'ras.zarr'), '--shape', *tokens, '--chunks', '20', '30', '--json', '-q']) == 0
+    assert _json_out(capsys)['summaries'][0]['shape'] == [40, 30]
+
+
+@pytest.mark.parametrize('tokens,msg', [(['2500'], 'needs 2 integers'), (['1', '2', '3'], 'needs 2 integers'),
+                                        (['abc'], 'needs 2 integers'), (['2500.5', '1834'], 'needs 2 integers')])
+def test_tuple_option_errors(tmp_path, capsys, tokens, msg):
+    code = main(['pc2ras', '--idx', 'g.zarr', '--pc', 'p.zarr', '--ras', 'r.zarr', '--shape', *tokens, '--json'])
+    assert code == 2
+    out = _json_out(capsys)
+    assert not out['ok'] and msg in out['error'] and '--shape 1000 1000' in out['error']
+
+
+def test_int_or_tuple_option():
+    cmd = get_command('temp-coh')
+    assert cmd.convert('chunks', ['200']) == 200
+    assert cmd.convert('chunks', ['200', '100']) == (200, 100)
+    with pytest.raises(UsageError, match='an integer or 2 integers'):
+        cmd.convert('chunks', ['1', '2', '3'])
+
+
+def test_tuple_in_pipeline_file(tmp_path):
+    (tmp_path / 'p.toml').write_text('[[step]]\nname="a"\nrun="amp-disp"\nrslc="r"\nadi="a"\nchunks=[100, 100, 1]\n')
+    with pytest.raises(UsageError, match="step 'a'.*--chunks needs 2 integers"):
+        run_pipeline(str(tmp_path / 'p.toml'), dry_run=True, echo=lambda *a: None)

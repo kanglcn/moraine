@@ -46,11 +46,14 @@ def emperical_co_pc(
     rslc : str
         input: rslc stack, shape (nlines, width, nimages)
     is_shp_dir : str
-        input: directory for bool array indicating the SHPs of pc
+        input: directory with the SHP bool arrays of the points, one zarr per raster chunk, made by
+        `ras2pc_ras_chunk`
     gix : str
         input: grid index of the point cloud (azimuth, range), shape (n_points, 2), int
     coh_dir : str
-        output: directory that hold complex coherence matrix for pc
+        output: directory with the complex coherence of the image pairs of the points, shape (n_points,
+        n_image_pairs), one zarr per raster chunk; merge with `pc_concat` and the key of
+        `ras2pc_ras_chunk`
     image_pairs : np.ndarray, optional
         input: image pairs (element in the coherence matrix) to be calculated, all image pairs by default
     chunks : tuple[int, int], optional
@@ -58,11 +61,12 @@ def emperical_co_pc(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 2
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg

@@ -303,7 +303,7 @@ class HilbertRtree:
                  page_size=512,
                 ):
         """Note that HilbertRtree should not be instantiated directly, 
-but always through the module-level function `build` and `load`.
+        but always through the module-level function `build` and `load`.
 
         Parameters
         ----------

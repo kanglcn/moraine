@@ -26,6 +26,7 @@ import importlib
 import inspect
 import json
 import logging
+import re
 import sys
 import time
 from dataclasses import dataclass, field
@@ -59,9 +60,12 @@ def parse_docstring(doc:str)->tuple:
         while i < len(lines) and not (i + 1 < len(lines) and set(lines[i + 1].strip()) == {'-'} and lines[i + 1].strip()):
             body.append(lines[i]); i += 1
         if header == 'Parameters':
+            # parameter names are indented like the section header, descriptions deeper
+            base = len(lines[i - len(body) - 2]) - len(lines[i - len(body) - 2].lstrip())
             name = None
             for line in body:
-                if line and not line.startswith(' '):
+                indent = len(line) - len(line.lstrip())
+                if line.strip() and indent <= base:
                     name, _, typ = line.partition(' : ')
                     name = name.lstrip('*').strip()
                     params[name] = [typ.strip(), '']
@@ -104,6 +108,45 @@ def image_pairs(value):
     return pairs
 
 
+def _tuple_spec(annotation:str)->tuple:
+    """(number of integers or None, single int accepted) from e.g. 'tuple[int, int]' or 'int | tuple[int, int]'."""
+    m = re.search(r'tuple\[([^\]]*)\]', annotation)
+    n = None if not m or '...' in m.group(1) else len([t for t in m.group(1).split(',') if t.strip()])
+    scalar = bool(re.search(r'(^|\|)\s*int\s*(\||$)', annotation))
+    return n, scalar
+
+
+def _int_tuple(p, value):
+    """Parse '2500 1834' (two tokens), '2500,1834', '(2500,1834)', [2500, 1834] or 2500 and check it against `p`."""
+    raw = value
+    if isinstance(value, (list, tuple)) and value and all(isinstance(v, str) for v in value):
+        tokens = [t for v in value for t in v.replace('(', ' ').replace(')', ' ').replace('[', ' ').replace(']', ' ')
+                  .replace(',', ' ').split()]                    # command line tokens
+        value = None if tokens in (['None'], []) else tuple(literal(t) for t in tokens)
+        if value is not None and len(value) == 1 and p.scalar:
+            value = value[0]
+    elif isinstance(value, str):
+        value = literal(value)
+    if value is None:
+        return None
+    if isinstance(value, list):
+        value = tuple(value)
+    what = f'{p.n} integers' if p.n else 'integers'
+    if p.scalar:
+        what = f'an integer or {what}'
+    hint = f' ({p.help})' if p.help else ''
+    if isinstance(value, int) and not isinstance(value, bool):
+        if p.scalar:
+            return value
+        value = (value,)
+    if not isinstance(value, tuple) or not all(isinstance(v, int) and not isinstance(v, bool) for v in value) \
+       or (p.n and len(value) != p.n):
+        shown = ' '.join(raw) if isinstance(raw, (list, tuple)) and all(isinstance(v, str) for v in raw) else raw
+        raise UsageError(f'--{p.name} needs {what}{hint}, got {shown!r}; write e.g. --{p.name} '
+                         + ' '.join(['1000'] * (p.n or 2)))
+    return value
+
+
 # ---------------------------------------------------------------- commands
 
 @dataclass
@@ -114,6 +157,8 @@ class Param:
     default: object
     type_doc: str
     help: str
+    n: int = None          # 'tuple': required number of integers (None: any)
+    scalar: bool = False   # 'tuple': a single integer is accepted too (int | tuple[...])
 
 
 @dataclass
@@ -139,6 +184,8 @@ class Command:
             return value
         if p.kind == 'str':
             return str(value)
+        if p.kind == 'tuple':
+            return _int_tuple(p, value)
         if p.kind == 'bool':
             return bool(value)
         value = literal(value)
@@ -149,14 +196,20 @@ class Command:
 
 def _kind(p):
     a = p.annotation
-    text = a if isinstance(a, str) else getattr(a, '__name__', str(a))
-    text = str(text)
+    if isinstance(a, str):
+        text = a
+    elif hasattr(a, '__args__'):            # tuple[int, int], int | tuple[int, int], str | list
+        text = str(a).replace('typing.', '')
+    else:
+        text = getattr(a, '__name__', str(a))
     if 'ndarray' in text:
         return 'pairs', text
     if text == 'bool' or isinstance(p.default, bool):
         return 'bool', text
     if 'list' in text and 'str' in text:
         return 'list', text
+    if 'tuple' in text:
+        return 'tuple', text
     if text == 'str':
         return 'str', text
     return 'value', text if a is not inspect.Parameter.empty else ''
@@ -188,7 +241,9 @@ def commands()->dict:
                         skip = True
                     continue
                 typ, desc = docs.get(p.name, (text, ''))
-                cmd.params.append(Param(p.name, kind, required, None if required else p.default, typ or text, desc))
+                n, scalar = _tuple_spec(text) if kind == 'tuple' else (None, False)
+                cmd.params.append(Param(p.name, kind, required, None if required else p.default, typ or text, desc,
+                                        n, scalar))
             if not skip:
                 out[cmd.name] = cmd
     return out
@@ -340,6 +395,9 @@ def _add_command_parser(sub, cmd:Command):
         elif q.kind == 'list':
             group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
                                metavar='PATH', help=help_ + ' (one or more)')
+        elif q.kind == 'tuple':
+            group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
+                               metavar='INT', help=help_ + ' (e.g. ' + ' '.join(['1000'] * (q.n or 2)) + ')')
         else:
             group.add_argument(*flags, dest=q.name, required=q.required, default=argparse.SUPPRESS,
                                metavar=q.kind.upper() if q.kind != 'value' else 'VALUE', help=help_)

@@ -28,10 +28,12 @@ def math(output:str,
     Parameters
     ----------
     output : str
-        path to output
+        output: path of the result, same shape and chunks as the inputs
     operation : str
-        operation
+        numexpr expression of the input arrays, e.g. 'sin(a)*exp(b)/2'
     **data
+        input: the arrays used in `operation` as NAME=zarr path, e.g. a='a.zarr' (on the command line:
+        --kw a=a.zarr)
     """
     output_path = output
     logger = logging.getLogger(__name__)

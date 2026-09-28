@@ -174,9 +174,9 @@ def n2f(
     rslc:str,
     intf:str,
     image_pairs:np.ndarray,
-    chunks:tuple=None,
-    out_chunks:tuple=None,
-    depths:tuple=(0,0),
+    chunks:tuple[int,int]=None,
+    out_chunks:tuple[int,int]=None,
+    depths:tuple[int,int]=(0,0),
     model:str=None,
     cuda:bool=False,
     processes=None,
@@ -192,25 +192,28 @@ def n2f(
     rslc : str
         input: rslc stack, shape (nlines, width, nimages)
     intf : str
-        output: filtered intfergrams stack, shape (nlines, width, nimage_pairs )
+        output: filtered interferograms, complex64 with unit amplitude (nan where the input is nan),
+        shape (nlines, width, n_image_pairs)
     image_pairs : np.ndarray
-        input: image pairs
-    chunks : tuple, optional
-        parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
-    out_chunks : tuple, optional
-        output chunks
-    depths : tuple, default: (0, 0)
-        width of the boundary
+        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with `moraine
+        tnet`
+    chunks : tuple[int, int], optional
+        (azimuth, range) processing chunk size, same as rslc by default
+    out_chunks : tuple[int, int], optional
+        (azimuth, range) chunk size of the output, same as rslc by default
+    depths : tuple[int, int], default: (0, 0)
+        (azimuth, range) overlap in pixels between processing chunks, reduces chunk border effects
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is True for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        True
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPUs for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 1 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 1
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg
@@ -350,31 +353,33 @@ def n2ft(
     Parameters
     ----------
     x : str
-        input: x coordinate, e.g., longitude, shape (n,)
+        input: x coordinate of the points (e.g. longitude or easting), shape (n_points,)
     y : str
-        input: y coordinate, e.g., latitude, shape (n,)
+        input: y coordinate of the points (e.g. latitude or northing), shape (n_points,)
     rslc : str
-        input: rslc stack, shape (n, nimages)
+        input: rslc of the points, shape (n_points, nimages)
     intf : str
-        output: filtered intfergrams stack, shape (n, nimage_pairs )
+        output: filtered interferograms, complex64 with unit amplitude, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
-        input: image pairs
+        input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with `moraine
+        tnet`
     chunks : int, optional
-        parallel processing point chunk size, optional. Default: rslc.chunks[0]
+        number of points per processing chunk, same as rslc by default
     out_chunks : int, optional
-        output point chunk size, Default: rslc.chunks[0]
+        point chunk size of the output, same as rslc by default
     k : int, default: 128
-        halo size for chunkwise processing
+        number of nearest neighbours of the chunk border points added as halo to each chunk
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is True for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        True
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPUs for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 1 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 1
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg

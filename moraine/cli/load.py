@@ -108,21 +108,21 @@ def load_gamma_flatten_rslc(
     **dask_cluster_arg,
 ):
     """Generate flatten rslc data from gamma command and convert them into zarr format.
-The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
-All data equal to 0 are replaced with nan.
+    The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
+    All data equal to 0 are replaced with nan.
 
     Parameters
     ----------
     rslc_dir : str
-        gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
+        input: GAMMA rslc directory with '????????.rslc' and '????????.rslc.par' files
     reference : str
         reference date, eg: '20200202'
     hgt : str
-        the DEM in radar coordinate
+        input: DEM height in radar coordinates (GAMMA float), same size as one rslc
     scratch_dir : str
         directory for preserve gamma intermediate files
     rslc : str
-        output, the flattened rslcs stack in zarr format
+        output: flattened rslc stack, shape (nlines, width, nimages), complex64
     chunks : tuple[int, int], default: (1000, 1000)
         rslc chunk size
     processes : default: False
@@ -232,18 +232,18 @@ def load_gamma_lat_lon_hgt(diff_par:str,
                            chunks:tuple[int,int]=(1000,1000),
                           ):
     """Function to load longitude and latitude from gamma binary format to zarr.
-All data equal to 0 are replaced with nan.
+    All data equal to 0 are replaced with nan.
 
     Parameters
     ----------
     diff_par : str
-        geocoding diff_par,using the simulated image as reference
+        input: geocoding diff_par, using the simulated image as reference
     rslc_par : str
-        par file of the reference rslc
+        input: par file of the reference rslc
     dem_par : str
-        dem par
+        input: DEM par file
     hgt : str
-        DEM in radar coordinate
+        input: DEM height in radar coordinates (GAMMA float)
     scratch_dir : str
         directory for preserve gamma intermediate files
     lat_zarr : str
@@ -309,22 +309,22 @@ def load_gamma_look_vector(theta:str,
                            chunks:tuple[int,int]=(1000,1000),
                           ):
     """Load look vector (elevation angle and orientation angle) in map geometry
-from gamma binary format to look vector in radar geometry zarr file.
-The two input data should be generated with the `look_vector` gamma command.
-All data equal to 0 are replaced with nan.
+    from gamma binary format to look vector in radar geometry zarr file.
+    The two input data should be generated with the `look_vector` gamma command.
+    All data equal to 0 are replaced with nan.
 
     Parameters
     ----------
     theta : str
-        elevation angle
+        input: elevation angle in map geometry (GAMMA lv_theta)
     phi : str
-        orientation angle
+        input: orientation angle in map geometry (GAMMA lv_phi)
     lt : str
-        lookup table
+        input: lookup table (GAMMA lt_fine)
     rslc_par : str
-        par file of the reference rslc
+        input: par file of the reference rslc
     dem_par : str
-        dem par
+        input: DEM par file
     scratch_dir : str
         directory for preserve gamma intermediate files
     theta_zarr : str
@@ -380,7 +380,7 @@ def load_gamma_range(rslc_par:str,
     Parameters
     ----------
     rslc_par : str
-        par file of one rslc
+        input: par file of one rslc
     range_zarr : str
         output, range distance zarr
     chunks : tuple[int, int], default: (1000, 1000)
@@ -415,9 +415,9 @@ def load_gamma_metadata(rslc_dir:str,
     Parameters
     ----------
     rslc_dir : str
-        gamma rslc directory, the name of the rslc and their par files should be '????????.rslc' and '????????.rslc.par'
+        input: GAMMA rslc directory with '????????.rslc' and '????????.rslc.par' files
     dem_par : str
-        dem par
+        input: DEM par file
     reference : str
         reference date, eg: '20200202'
     meta_file : str

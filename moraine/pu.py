@@ -233,7 +233,7 @@ def mcf_pc(
     ph:np.ndarray,
 )-> np.ndarray:
     """Minimum cost flow phase unwrapping solver.
-Note that the coordinates (pc_x, pc_y) must be unique.
+    Note that the coordinates (pc_x, pc_y) must be unique.
 
     Parameters
     ----------

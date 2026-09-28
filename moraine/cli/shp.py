@@ -45,25 +45,27 @@ def shp_test(
     Parameters
     ----------
     rslc : str
-        input: rslc stack
+        input: rslc stack, shape (nlines, width, nimages)
     pvalue : str
-        output: the p value of the test
+        output: p value of the test between each pixel and the pixels in its window, shape (nlines,
+        width, 2*az_half_win+1, 2*r_half_win+1)
     az_half_win : int
         azimuth half window size
     r_half_win : int
         range half window size
     method : str, optional
-        SHP identification method,optional. Default: ks
+        test method, only 'ks' (two-sample Kolmogorov-Smirnov) is implemented. Default: 'ks'
     chunks : tuple[int, int], optional
-        chunk size, optional. Default: the chunk size in rslc
+        (azimuth, range) processing chunk size, same as rslc by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 1
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg
@@ -167,13 +169,13 @@ def select_shp(
     pvalue : str
         input: pvalue of hypothetic test
     is_shp : str
-        output: bool array indicating the SHPs
+        output: bool array, True for SHPs, same shape as `pvalue`
     shp_num : str
-        output: integer array indicating number of SHPs
+        output: number of SHPs of each pixel, shape (nlines, width), int32
     p_max : float, default: 0.05
-        threshold of p value to select SHP,optional. Default: 0.05
+        pixels with p value below `p_max` are SHPs
     chunks : tuple[int, int], optional
-        chunk size, optional. Default: the chunk size in rslc
+        (azimuth, range) processing chunk size, same as `pvalue` by default
     processes : default: False
         use process for dask worker over thread, the default is False
     n_workers : default: 1

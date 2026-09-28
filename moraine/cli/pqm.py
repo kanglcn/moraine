@@ -39,23 +39,27 @@ def temp_coh(
     Parameters
     ----------
     intf : str
-        complex interferograms/coherence metrix, dtype complex64, shape 2D(pc) or 3D(ras)
+        input: (filtered) interferograms or coherence, complex64, shape (n_points, n_image_pairs) or
+        (nlines, width, n_image_pairs)
     rslc : str
-        complex rslc/phase history, dtype complex64, shape 2D(pc) or 3D(ras)
+        input: rslc stack or phase history, complex64, shape (n_points, nimages) or (nlines, width,
+        nimages)
     t_coh : str, optional
-        output, temporal coherence
+        output: temporal coherence, shape (n_points,) or (nlines, width)
     image_pairs : np.ndarray, optional
-        image pairs
+        image pairs (reference, secondary) of `intf`, shape (n_image_pairs, 2); all image pairs by
+        default
     chunks : int | tuple[int, int], optional
-        ras/pc chunk size, same as intf by default
+        point chunk size or (azimuth, range) chunk size, same as `intf` by default
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use process for dask worker over thread, the default is False for cpu, only applied if cuda==False
+        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
+        False
     n_workers : optional
-        number of dask worker, the default is 1 for cpu, number of GPU for cuda
+        number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, the default is 2 for cpu, only applied if cuda==False
+        number of threads per dask worker, only for cpu processing. Default: 1
     rmm_pool_size : default: 0.9
         set the rmm pool size, only applied when cuda==True
     **dask_cluster_arg

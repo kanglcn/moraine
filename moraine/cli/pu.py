@@ -34,19 +34,19 @@ def gamma_mcf_pt(
     Parameters
     ----------
     pc_x : str
-        x coordinate, shape of (N,)
+        input: x coordinate of the points, shape (n_points,)
     pc_y : str
-        y coordinate, shape of (N,)
+        input: y coordinate of the points, shape (n_points,)
     ph : str
-        stack of wrapped phase, shape of (N,M)
+        input: wrapped phase history (complex), shape (n_points, nimages)
     unw_ph : str
-        output, unwrapped phase, shape of (N,L)
+        output: unwrapped phase of the interferograms, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
-        image pairs to construct interferograms for unwrapping
+        image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
     ref_point : int, default: 1
         reference point, the first point by default
     out_chunks : int, optional
-        unw_ph point cloud chunk size, same as ph by default
+        point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
         number of dask worker, number of interferograms to be unwrapped in the same time
     threads_per_worker : default: 2
@@ -130,15 +130,16 @@ def mcf_pc(
     Parameters
     ----------
     gix : str
-        grid index, shape of (N, 2), int
+        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int; the points must
+        be unique
     ph : str
-        stack of wrapped phase, shape of (N,M)
+        input: wrapped phase history (complex), shape (n_points, nimages)
     unw_ph : str
-        output, unwrapped phase, shape of (N,L)
+        output: unwrapped phase of the interferograms, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
-        image pairs to construct interferograms for unwrapping
+        image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
     out_chunks : int, optional
-        unw_ph point cloud chunk size, same as ph by default
+        point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
         number of dask worker, number of interferograms to be unwrapped in the same time
     threads_per_worker : default: 2
