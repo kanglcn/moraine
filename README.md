@@ -212,6 +212,19 @@ operation = "(ras>=0)&(ras<=0.3)"
 Add `--json` to any command for machine readable output (logs go to
 stderr), which makes moraine easy to drive from scripts and AI agents.
 
+The whole processing chain is available as verified example pipelines
+in [examples](./examples) (load GAMMA data, PS, DS, PS+DS refinement,
+unwrapping), each with a guide in [docs/workflows](./docs/workflows):
+parameters, expected result ranges and checks.
+
+## Processing with an AI agent
+
+[AGENTS.md](./AGENTS.md) tells coding agents (Claude Code, Codex,
+Cursor, ...) how to run and check moraine processing; `CLAUDE.md` and
+`.claude/skills/` point Claude Code to it. Prepare the input data, then
+ask the agent in plain words, e.g. "process the GAMMA data in
+/data/site_a (reference 20220620) up to unwrapping in /work/site_a".
+
 ## Contact us
 
 - Most discussion happens on
