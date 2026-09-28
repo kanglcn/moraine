@@ -31,7 +31,7 @@ def emperical_co_pc(
     gix:str,
     coh_dir:str,
     image_pairs:np.ndarray=None,
-    chunks:int=None,
+    chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
     n_workers=None,
@@ -48,13 +48,13 @@ def emperical_co_pc(
     is_shp_dir : str
         input: directory for bool array indicating the SHPs of pc
     gix : str
-        input: bool array indicating pc, shape (2, n_points)
+        input: grid index of the point cloud (azimuth, range), shape (n_points, 2), int
     coh_dir : str
         output: directory that hold complex coherence matrix for pc
     image_pairs : np.ndarray, optional
         input: image pairs (element in the coherence matrix) to be calculated, all image pairs by default
-    chunks : int, optional
-        parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
+    chunks : tuple[int, int], optional
+        parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional

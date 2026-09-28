@@ -29,7 +29,7 @@ def emi(
     ph:str,
     emi_quality:str,
     ref:int=0,
-    chunks:int=None,
+    chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
     n_workers=None,
@@ -145,7 +145,7 @@ def ds_temp_coh(
     ph:str,
     t_coh:str=None,
     tnet:str=None,
-    chunks:int=None,
+    chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
     n_workers=None,
@@ -271,7 +271,7 @@ def emperical_co_emi_temp_coh_pc(
     emi_quality_dir:str,
     t_coh_dir:str,
     batch_size:int=1000,
-    chunks:int=None,
+    chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
     n_workers=None,
@@ -288,17 +288,17 @@ def emperical_co_emi_temp_coh_pc(
     is_shp_dir : str
         input: directory for bool array indicating the SHPs of pc
     gix : str
-        input: bool array indicating pc, shape (2, n_points)
+        input: grid index of the point cloud (azimuth, range), shape (n_points, 2), int
     ph_dir : str
-        output: directory that hold complex coherence matrix for pc
+        output: directory that hold the phase history of pc (complex, shape (n_points, nimages)), one zarr per chunk
     emi_quality_dir : str
         output: directory that hold emi quality
     t_coh_dir : str
         output: directory that hold temporal coherence
     batch_size : int, default: 1000
         input, batch size
-    chunks : int, optional
-        parallel processing azimuth/range chunk size, optional. Default: rslc.chunks[:2]
+    chunks : tuple[int, int], optional
+        parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional

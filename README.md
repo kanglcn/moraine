@@ -168,6 +168,47 @@ overview of the software design. Refer to [Tutorials](./nbs/Tutorials)
 for the examples. Every function is documented by its docstring, e.g.
 `help(moraine.emi)` or `help(moraine.cli.emi)`.
 
+## Command line and pipelines
+
+Every processing function of `moraine.cli` is also a `moraine` command,
+with its options and help generated from the function docstring:
+
+``` bash
+moraine list                                   # all commands
+moraine amp-disp --help
+moraine amp-disp --rslc raw/rslc.zarr --adi ps/adi.zarr --cuda
+moraine info ps/adi.zarr                       # shape, dtype and statistics of a result
+moraine quicklook ps/adi.zarr -o adi.png       # quicklook image of a result
+moraine tnet --nimages 17 --bandwidth 1 -o pairs.txt
+```
+
+A whole processing chain can be written in a TOML file and run with
+`moraine run pipeline.toml`. Finished steps are skipped when their
+arguments and inputs did not change, so a failed or modified pipeline is
+resumed where needed; `moraine status pipeline.toml` shows the state,
+and logs, result summaries and quicklooks are kept in `.moraine/`:
+
+``` toml
+[defaults]
+cuda = true
+
+[[step]]
+name = "adi"
+run = "amp-disp"
+rslc = "raw/rslc.zarr"
+adi = "ps/adi.zarr"
+
+[[step]]
+name = "ps_can"
+run = "pc-logic-ras"
+ras = "ps/adi.zarr"
+gix = "ps/ps_can_gix.zarr"
+operation = "(ras>=0)&(ras<=0.3)"
+```
+
+Add `--json` to any command for machine readable output (logs go to
+stderr), which makes moraine easy to drive from scripts and AI agents.
+
 ## Contact us
 
 - Most discussion happens on

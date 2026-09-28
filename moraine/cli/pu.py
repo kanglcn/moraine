@@ -125,7 +125,7 @@ def mcf_pc(
     threads_per_worker=2,
     **dask_cluster_arg,
 ):
-    """A wrapper for mcf_pt in GAMMA software.
+    """Minimum cost flow phase unwrapping of point cloud interferograms (own implementation, GAMMA not needed).
 
     Parameters
     ----------

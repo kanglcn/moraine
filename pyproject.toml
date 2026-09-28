@@ -33,6 +33,7 @@ dependencies = [
     "numexpr",
     "bokeh>=3.4.1",
     "holoviews>=1.18.3",
+    "jupyter_bokeh",  # interactive holoviews/panel plots in VS Code and Jupyter notebooks
     "pyproj>=3.0",
     "dask[complete]",
     "joblib",
@@ -45,6 +46,9 @@ dependencies = [
 # deep learning models (n2f, n2fs3d, n2ft)
 dl = ["torch"]
 dev = ["pytest"]
+
+[project.scripts]
+moraine = "moraine.command:main"
 
 [project.urls]
 Homepage = "https://github.com/kanglcn/moraine"

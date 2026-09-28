@@ -185,7 +185,7 @@ def n2f(
     rmm_pool_size=0.9,
     **dask_cluster_arg,
 ):
-    """Noise2Fringe interferogram filtering.
+    """Noise2Fringe (n2f) filtering of raster interferograms.
 
     Parameters
     ----------
@@ -345,7 +345,7 @@ def n2ft(
     rmm_pool_size=0.9,
     **dask_cluster_arg,
 ):
-    """Noise2Fringe interferogram filtering.
+    """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
 
     Parameters
     ----------

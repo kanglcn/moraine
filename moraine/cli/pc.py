@@ -530,7 +530,7 @@ def pc_gix(
     gix:str,
     shape:tuple,
 ):
-    """Compute the hillbert index from grid index for point cloud data.
+    """Compute the grid index from hillbert index for point cloud data.
 
     Parameters
     ----------
