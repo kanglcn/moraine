@@ -16,7 +16,8 @@ request before running anything.
   `python -c "import moraine; moraine.download_dl_model()"`.
 - GPU processing (`--cuda`, `cuda = true`) needs cupy, dask-cuda and rmm, installed with conda for the
   local CUDA version (see README). moraine treats a GPU as available only when `CUDA_VISIBLE_DEVICES`
-  is set to a non-empty value; without it, run with `cuda = false`.
+  is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all GPUs listed
+  there (one dask worker per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
 - Loading GAMMA results (`load-gamma-*`) runs GAMMA programs (`phase_sim_orb`, `create_offset`,
   `geocode`, `base_calc`); check with `which base_calc` first.
 - Everything else runs on CPU with numba.

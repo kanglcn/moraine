@@ -4,7 +4,8 @@ Tests marked ``gpu`` run only when cupy and a CUDA device are available.
 Tests that read the sample data set are skipped when it is missing. The data
 root defaults to ``<repo>/data`` and can be set with ``MORAINE_TEST_DATA``;
 it should contain ``rslc.zarr`` (nlines, width, nimages) and the GAMMA
-output directory ``gamma/``.
+output directory ``gamma/``. ``gamma/sim_orb/`` (simulated orbital phases, made by GAMMA's
+``phase_sim_orb``) is optional; without it the GAMMA loading test takes ~15 min instead of seconds.
 """
 import os
 from pathlib import Path

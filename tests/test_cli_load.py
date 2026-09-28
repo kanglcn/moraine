@@ -56,6 +56,11 @@ def test_load_gamma_look_vector(gamma, tmp_path):
 
 @pytest.mark.slow
 def test_load_gamma_flatten_rslc(gamma, tmp_path):
+    # phase_sim_orb takes ~50 s per image; reuse the simulated orbital phases of the sample data
+    # (data/gamma/sim_orb/<ref>_<date>.sim_orb), which load_gamma_flatten_rslc skips if present
+    (tmp_path / 'scratch').mkdir()
+    for f in sorted((gamma / 'sim_orb').glob('*.sim_orb')):
+        (tmp_path / 'scratch' / f.name).symlink_to(f)
     mc.load_gamma_flatten_rslc(str(gamma / 'rslc'), REF, str(gamma / 'geocoding' / '20210802.hgt'),
                                str(tmp_path / 'scratch'), str(tmp_path / 'rslc.zarr'), chunks=(1000, 1000))
     z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='r')

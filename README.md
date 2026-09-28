@@ -158,7 +158,9 @@ pytest                      # or `pytest -m "not slow"` for a quick run
 Tests that need the sample data set, a GPU, GAMMA or the deep learning
 models are skipped when these are not available. Point
 `MORAINE_TEST_DATA` to the sample data directory (default: `./data`,
-containing `rslc.zarr` and the GAMMA output `gamma/`) to run them.
+containing `rslc.zarr` and the GAMMA output `gamma/`; `gamma/sim_orb/` with the
+precomputed simulated orbital phases makes the GAMMA loading test take seconds
+instead of ~15 min) to run them.
 
 ## How to use
 

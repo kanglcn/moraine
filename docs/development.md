@@ -41,7 +41,7 @@ Run the layers that the change can affect, from cheap to expensive:
 ```bash
 pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
 pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
-pytest -m slow                # CLI processing chain and GAMMA loading, about 20 min
+pytest -m slow                # CLI processing chain and GAMMA loading, about 3 min (15 min more without data/gamma/sim_orb)
 git diff --check              # whitespace errors
 ```
 
