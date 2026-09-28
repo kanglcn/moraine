@@ -263,6 +263,11 @@ What should be included in a PR
 
 How to write and submit a PR
 
+- Read [docs/development.md](./docs/development.md) (how to change,
+  validate and report), [ARCHITECTURE.md](./ARCHITECTURE.md) (module map),
+  [docs/decisions/](./docs/decisions/README.md) and
+  [docs/contracts/](./docs/contracts/README.md) (formats others depend on).
+
 - The source code is the `.py` files in `moraine/`. Document new
   functions with [numpy style
   docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and

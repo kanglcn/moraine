@@ -3,6 +3,7 @@
 Example ``pipeline.toml``::
 
     [pipeline]
+    version = 1            # pipeline file format version (optional, default 1)
     workdir = "."          # relative paths are relative to this directory (default: the TOML directory);
                            # `moraine run --workdir DIR` overrides it
     quicklook = true       # save a PNG of every pyramid made by a step (default: true)
@@ -43,6 +44,8 @@ from pathlib import Path
 from . import UsageError, get_command, bind_args, execute, _print_summary, _strings
 
 _RESERVED = {'name', 'run', 'quicklook', 'kw'}
+# version of the pipeline file format, see docs/contracts/pipeline-file.md
+PIPELINE_VERSION = 1
 
 
 def _substitute(value, variables, where):
@@ -78,6 +81,13 @@ def load_pipeline(path:str, workdir:str=None, variables:dict=None)->dict:
     if unknown:
         raise UsageError(f'{path}: unknown table(s) {sorted(unknown)}; expected [pipeline], [vars], [defaults], [[step]]')
     meta = cfg.get('pipeline', {})
+    unknown = set(meta) - {'version', 'workdir', 'quicklook'}
+    if unknown:
+        raise UsageError(f'{path}: unknown key(s) {sorted(unknown)} in [pipeline]; expected version, workdir, quicklook')
+    version = meta.get('version', 1)
+    if not isinstance(version, int) or version < 1 or version > PIPELINE_VERSION:
+        raise UsageError(f'{path}: pipeline format version {version!r} is not supported by this moraine '
+                         f'(supported: 1..{PIPELINE_VERSION}); update moraine')
     variables = {**cfg.get('vars', {}), **(variables or {})}
     workdir = Path(workdir).resolve() if workdir else (path.parent / meta.get('workdir', '.')).resolve()
     defaults = _substitute(cfg.get('defaults', {}), variables, f'{path}: [defaults]')

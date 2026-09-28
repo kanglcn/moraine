@@ -17,6 +17,8 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0007](0007-visualization-through-pyramids.md) | Visualization and result statistics go through pyramids | Accepted |
 | [0008](0008-tool-independent-agent-docs.md) | Agent documentation is tool independent and tested | Accepted |
 | [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Accepted |
+| [0010](0010-versioned-contracts.md) | Formats others depend on are versioned contracts | Accepted |
+| [0011](0011-architecture-map.md) | The module map and layer rules are tested | Accepted |
 
 ## Writing a record
 

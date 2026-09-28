@@ -12,20 +12,36 @@ import zarr
 def pyramid_levels(path)->list:
     """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one.
 
-    Each level halves the (nlines, width) of the previous one; this tells a pyramid apart from the
-    directories of per-chunk zarr arrays (also named 0.zarr, 1.zarr, ...) made by `ras2pc_ras_chunk`.
+    Pyramids carry ``moraine_pyramid = {version, kind}`` in the attributes of ``0.zarr``
+    (docs/contracts/pyramid.md). Older pyramids without it are recognized by their levels halving in size,
+    which also tells them apart from directories of per-chunk arrays (``0.zarr``, ``1.zarr``, ... made by
+    `ras2pc_ras_chunk`).
     """
     p = Path(path)
-    if not p.is_dir() or not (p / '0.zarr').exists() or not (p / '1.zarr').exists():
+    if not p.is_dir() or not (p / '0.zarr').exists():
         return []
     try:
-        z0, z1 = (zarr.open(str(p / f'{i}.zarr'), mode='r') for i in (0, 1))
+        z0 = zarr.open(str(p / '0.zarr'), mode='r')
+    except Exception:
+        return []
+    levels = sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
+    meta = z0.attrs.get('moraine_pyramid') if hasattr(z0, 'attrs') else None
+    if meta:
+        from ..cli.plot import PYRAMID_VERSION
+        if meta.get('version', 0) > PYRAMID_VERSION:
+            raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
+                             f'supports ({PYRAMID_VERSION}); update moraine')
+        return levels
+    if not (p / '1.zarr').exists():
+        return []
+    try:
+        z1 = zarr.open(str(p / '1.zarr'), mode='r')
     except Exception:
         return []
     if z0.ndim < 2 or z1.ndim != z0.ndim or \
        tuple(z1.shape[:2]) != tuple(-(-n // 2) for n in z0.shape[:2]):
         return []
-    return sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
+    return levels
 
 
 def _round(x):

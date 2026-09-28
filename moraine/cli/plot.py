@@ -30,6 +30,9 @@ from .logging import mc_logger
 from ..coord_ import Coord
 from . import mk_clean_dir, dask_from_zarr, dask_to_zarr, parallel_write_zarr, parallel_read_zarr
 
+# layout version of the pyramids, see docs/contracts/pyramid.md
+PYRAMID_VERSION = 1
+
 def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
     slices = [slice(None),slice(None)]
     if len(channel_idx) != 0:
@@ -105,6 +108,7 @@ def ras_pyramid(
                 chunks=(*out_chunks,*channel_chunks),)
             logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
             downsampled_ras_zarrs.append(downsampled_ras_zarr)
+        downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'raster'}
 
         ras_data_delayed = ras_data.to_delayed().reshape(ras_zarr.shape[2:])
         out_delayed = np.empty_like(ras_data_delayed,dtype=object)
@@ -486,6 +490,7 @@ def pc_pyramid(
                 chunks=(*ras_chunks,*channel_chunks),)
             logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
             downsampled_ras_zarrs.append(downsampled_ras_zarr)
+        downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'point cloud'}
 
         pc_darr = dask_from_zarr(pc,chunks=(n_pc,*channel_chunks))
         pc_delayed = pc_darr.to_delayed().reshape(pc_zarr.shape[1:])

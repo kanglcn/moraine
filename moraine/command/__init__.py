@@ -16,7 +16,7 @@ function signature and numpy docstring::
 Add ``--json`` to any command for machine readable output on stdout; logs always go to stderr.
 """
 
-__all__ = ['main', 'commands']
+__all__ = ['main', 'commands', 'JSON_VERSION']
 
 import argparse
 import ast
@@ -41,6 +41,8 @@ _MODULES = ['load', 'transform', 'tnet', 'math', 'pc', 'ps', 'shp', 'co', 'pl', 
 _EXCLUDE = {'data_reduce'}
 # options added to every command
 _GLOBAL_OPTIONS = ('json', 'traceback', 'log', 'quiet')
+# version of the --json output format, see docs/contracts/json-output.md
+JSON_VERSION = 1
 
 
 class UsageError(Exception):
@@ -373,6 +375,7 @@ def _print_summary(s, echo=print):
 
 def _emit(args, result, text=None):
     if args.json:
+        result = {'version': JSON_VERSION, 'ok': True, **result}
         print(json.dumps(result, default=str))
     elif text:
         text()
@@ -534,7 +537,7 @@ def main(argv=None):
             import traceback; traceback.print_exc()
         msg = f'{type(e).__name__}: {e}' if not isinstance(e, UsageError) else str(e)
         if getattr(args, 'json', False):
-            print(json.dumps({'ok': False, 'error': msg}))
+            print(json.dumps({'version': JSON_VERSION, 'ok': False, 'error': msg}))
         print(f'moraine: error: {msg}', file=sys.stderr)
         if not getattr(args, 'traceback', False) and not isinstance(e, UsageError):
             print('(add --traceback for details)', file=sys.stderr)

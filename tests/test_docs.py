@@ -8,8 +8,10 @@ from moraine.command import commands
 from moraine.command.pipeline import load_pipeline
 
 REPO = Path(__file__).resolve().parents[1]
-DOCS = [REPO / 'AGENTS.md', REPO / 'README.md', *sorted((REPO / 'docs' / 'workflows').glob('*.md')),
+DOCS = [REPO / 'AGENTS.md', REPO / 'README.md', REPO / 'ARCHITECTURE.md',
+        *sorted((REPO / 'docs' / 'workflows').glob('*.md')),
         *sorted((REPO / 'docs' / 'decisions').glob('*.md')),
+        *sorted((REPO / 'docs' / 'contracts').glob('*.md')), REPO / 'docs' / 'development.md',
         REPO / '.claude' / 'skills' / 'moraine-processing' / 'SKILL.md']
 BUILTIN = {'list', 'info', 'quicklook', 'run', 'status', 'COMMAND', 'FILE'}
 EXAMPLES = sorted((REPO / 'examples').glob('*.toml'))
@@ -29,7 +31,7 @@ def test_documented_commands_exist(doc):
 
 @pytest.mark.parametrize('doc', DOCS, ids=lambda p: p.name)
 def test_documented_repo_files_exist(doc):
-    refs = set(re.findall(r'`((?:examples|docs/workflows|docs/decisions|nbs/Tutorials/CLI|moraine|tests)/[\w./-]+\.(?:toml|md|ipynb|py))`',
+    refs = set(re.findall(r'`((?:examples|docs|nbs/Tutorials/CLI|moraine|tests)/[\w./-]+\.(?:toml|md|ipynb|py))`',
                           doc.read_text()))
     missing = sorted(r for r in refs if not (REPO / r).exists())
     assert not missing, f'{doc.name} refers to missing files: {missing}'

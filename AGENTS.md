@@ -48,11 +48,12 @@ request before running anything.
 3. `moraine run FILE --dry-run` shows what would run and why. `moraine status FILE` shows the state.
    A rerun skips steps whose arguments and inputs did not change and reruns the steps downstream of a
    change, so after editing a parameter just run the file again.
-4. Use `--json` when you parse the output: stdout is then one JSON object, logs go to stderr.
+4. Use `--json` when you parse the output: stdout is then one JSON object, logs go to stderr
+   (fields in `docs/contracts/json-output.md`).
 5. A failing step prints the error and its log (`WORK/.moraine/<file name>/logs/<step>.log`). Fix the
    cause and run the file again; it resumes at the failed step.
 
-Pipeline file format (full description in `moraine/command/pipeline.py`):
+Pipeline file format (full description in `docs/contracts/pipeline-file.md`):
 
 ```toml
 [vars]                        # ${name} is replaced in any value; --var name=value overrides
@@ -92,20 +93,9 @@ Report anything outside those ranges to the user instead of silently continuing.
 
 ## Data conventions
 
-- Raster: `(nlines, width[, n])`, azimuth first. rslc stack `(nlines, width, nimages)` complex64.
-- Point cloud: arrays of shape `(n_points, ...)` indexed by
-  - `gix`: grid index `(n_points, 2)` int32, (azimuth, range) of each point in the raster;
-  - `hix`: hilbert index `(n_points,)` int64. After `pc-sort`, point clouds are in hilbert order, so
-    points close in the array are close on the ground. Index arrays must be sorted for
-    `pc-union` / `pc-intersect` / `pc-diff` / `pc-select-data`.
-- Image pairs `(n_pairs, 2)`: reference and secondary image index; files have two integer columns.
-- Interferograms and phase histories are complex; the phase is `np.angle(...)`. Filtered interferograms
-  and phase histories have unit amplitude.
-- Coherence of point clouds is stored compressed: the upper triangle of the coherence matrix,
-  `(n_points, n_image_pairs)`; `moraine.uncompress_coh` restores full matrices.
-- Commands that process raster chunks (`ras2pc-ras-chunk`, `emperical-co-pc`,
-  `emperical-co-emi-temp-coh-pc`) write a directory with one zarr per raster chunk; merge it with
-  `pc-concat` and the key written by `ras2pc-ras-chunk` (and the one of `pc-sort` for hilbert order).
+Shapes and orders of the arrays (rasters azimuth first, point clouds in hilbert order with `gix` / `hix`,
+image pairs, compressed coherence, per-chunk directories) are in `docs/contracts/data.md`. Read it before
+combining results of different commands.
 
 ## Rules
 
@@ -116,22 +106,13 @@ Report anything outside those ranges to the user instead of silently continuing.
   `moraine status FILE --workdir WORK`.
 - Only one GPU pipeline at a time: each GPU command reserves most of the GPU memory (rmm pool).
 
-## Design decisions
-
-Read `docs/decisions/README.md` (the index of the design decision records) before changing how moraine
-is built or used, e.g. dependencies, the command line, pipelines, visualization, documentation. Do not
-change code against an accepted decision: propose a new record instead and ask the user. Record new
-decisions there in the same change.
-
 ## Developing moraine
 
-- The source is `moraine/` (API, numpy / cupy functions) and `moraine/cli/` (zarr in, zarr out,
-  chunked with dask; every function decorated with `@mc_logger` becomes a `moraine` command).
-- Command options and help are generated from the signatures and numpy style docstrings of
-  `moraine/cli/*.py`, so keep type annotations and docstrings exact: shapes, dtypes, input or output,
-  real defaults. `tests/test_command.py` checks that every argument is documented.
-- Tests: `pytest -m "not slow"` (about 2 min). Tests needing the sample data (`MORAINE_TEST_DATA`,
-  default `./data`), a GPU, GAMMA or the models are skipped when these are missing; `-m slow` runs the
-  CLI chain tests. GPU tests are marked `@pytest.mark.gpu`.
-- GPU code: import cupy / dask_cuda / rmm only behind `moraine.utils_.is_cuda_available()`.
-- `.gitignore` ignores `*.toml`; new TOML files outside `examples/` need an exception.
+When the task is to change moraine itself rather than to process data:
+
+- `docs/development.md`: how to make, validate and report a change (read it first).
+- `ARCHITECTURE.md`: layers, module map and dependency rules.
+- `docs/decisions/README.md`: design decisions; do not change code against an accepted one, propose a
+  new record and ask the user.
+- `docs/contracts/README.md`: formats others depend on (`--json` output, pipeline files, pyramids, data
+  conventions); changing them needs the contract, its tests and possibly a new version.

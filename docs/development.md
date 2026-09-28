@@ -1,0 +1,64 @@
+# Developing moraine
+
+How to change moraine, for contributors and coding agents. The map of the code is `ARCHITECTURE.md`,
+the design decisions are in `docs/decisions/`, the promised formats in `docs/contracts/`.
+
+## Before changing code
+
+1. Read `ARCHITECTURE.md` for where the change goes, the index of `docs/decisions/` and the contracts
+   the change touches.
+2. Make sure the task is clear. If a request is ambiguous, restate what you understood and ask; do not
+   guess on behaviour that users or other code depend on.
+3. For a non-trivial change, state the goal, what must not change and what is out of scope.
+4. Do not change code against an accepted decision or contract: propose a new decision record (or a new
+   contract version) and ask the maintainer.
+
+## Making the change
+
+- Work on a branch, one topic per branch; never commit directly to `main`.
+- Make the smallest complete change: the code, its tests and everything listed below that depends on it.
+  Do not refactor, rename or reformat code that the task does not need; propose it separately.
+- Bugs found on the way are fixed in their own commit (or reported), not mixed into the feature.
+- Stop when the maintainer says so.
+
+### What changes together
+
+| when you change | also change, in the same commit |
+|---|---|
+| a function in `moraine/cli/` (arguments, behaviour) | its numpy docstring (it is the command help, decision 0005) and its tests; the examples and guides that use it |
+| any public function | its numpy docstring (shapes, dtypes, defaults) and its tests |
+| modules (add, remove, move, rename) | `ARCHITECTURE.md` (checked by `tests/test_architecture.py`) |
+| the `--json` output, pipeline files, pyramids or data conventions | the contract in `docs/contracts/` and its tests; bump the contract version if old files / scripts break |
+| an example pipeline | rerun it on the sample data and update the numbers in its guide (decision 0009) |
+| a design choice (dependency, interface, approach) | a new record in `docs/decisions/` |
+| dependencies | `pyproject.toml`; a decision record for a major one |
+| user visible behaviour | the `Unreleased` section of `CHANGELOG.md` |
+
+## Validating
+
+Run the layers that the change can affect, from cheap to expensive:
+
+```bash
+pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
+pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
+pytest -m slow                # CLI processing chain and GAMMA loading, about 20 min
+git diff --check              # whitespace errors
+```
+
+- Changes in `moraine/cli/` or `moraine/command/`: run the slow tests too.
+- GPU code: run the tests on a GPU node (`CUDA_VISIBLE_DEVICES` set); skipped GPU tests prove nothing.
+- Commands used by `examples/`: run the affected examples end to end on `data/gamma`.
+- Tests that need the sample data are skipped without it; say so when you report.
+
+## Committing and releasing
+
+- Commit messages say what changed and why; mention bugs found and fixed.
+- Do not commit data, processing outputs, credentials or executed notebook outputs.
+- `*.toml` is ignored by `.gitignore`; add an exception for new TOML files that belong in the repository.
+- Pushing, merging into `main`, tagging and releasing need the maintainer's explicit go. Never force-push
+  shared branches.
+
+## Reporting
+
+Report what was verified and what was not (skipped tests, missing data, no GPU). Report failures with
+their output instead of working around them silently.
