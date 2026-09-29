@@ -456,6 +456,7 @@ def pc_pyramid(
     logger.info('pc data coordinates rendering ends.')
 
     yis = []; xis = []
+    last_idx = None   # set in the first iteration
     for level in range(maxlevel+1):
         if level == 0:
             current_idx = coord.rasterize_iidx(gix)

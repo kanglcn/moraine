@@ -111,7 +111,8 @@ combining results of different commands.
 
 When the task is to change moraine itself rather than to process data:
 
-- `docs/development.md`: how to make, validate and report a change (read it first).
+- `docs/development.md`: how to make, validate and report a change, docstring rules and the pre-commit
+  hook (read it first).
 - `ARCHITECTURE.md`: layers, module map and dependency rules.
 - `docs/decisions/README.md`: design decisions; do not change code against an accepted one, propose a
   new record and ask the user.

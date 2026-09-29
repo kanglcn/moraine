@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# moraine pre-commit checks. Install once per clone:  git config core.hooksPath .githooks
+# The python with moraine's dev dependencies is taken from $MORAINE_PYTHON, else `python`.
+# Skip in an emergency with `git commit --no-verify` (and say so in the commit message).
+set -euo pipefail
+PY=${MORAINE_PYTHON:-python}
+fail() { echo "pre-commit: $*" >&2; exit 1; }
+
+"$PY" -c 'import pytest' 2>/dev/null || fail "no pytest in '$PY'; set MORAINE_PYTHON or pip install -e '.[dev]'"
+
+# 1. whitespace errors in the staged changes
+git diff --cached --check || fail "whitespace errors (see above)"
+
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACM)
+
+# 2. notebooks must be committed without outputs
+nbs=()
+for f in "${staged[@]}"; do [[ $f == *.ipynb ]] && nbs+=("$f"); done
+if (( ${#nbs[@]} )); then
+    "$PY" - "${nbs[@]}" <<'PYEOF' || fail "clear the outputs of these notebooks before committing"
+import json, sys
+bad = [f for f in sys.argv[1:] for c in json.load(open(f)).get('cells', [])
+       if c.get('outputs') or c.get('execution_count') is not None]
+for f in sorted(set(bad)):
+    print(f'  {f} has outputs', file=sys.stderr)
+sys.exit(1 if bad else 0)
+PYEOF
+fi
+
+# 3. lint the staged python files: errors that break at run time (rules in pyproject.toml)
+pys=()
+for f in "${staged[@]}"; do [[ $f == *.py ]] && pys+=("$f"); done
+if (( ${#pys[@]} )); then
+    if "$PY" -m ruff --version >/dev/null 2>&1; then
+        "$PY" -m ruff check --force-exclude "${pys[@]}" || fail "lint errors (see above)"
+    else
+        echo "pre-commit: ruff not installed (pip install -e '.[dev]'); lint skipped" >&2
+    fi
+fi
+
+# 4. fast consistency tests: module map, docs, decision records, contracts (seconds)
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+"$PY" -m pytest -q -p no:cacheprovider tests/test_architecture.py tests/test_docs.py \
+    tests/test_decisions.py tests/test_contracts.py >"$log" 2>&1 \
+    || { tail -30 "$log" >&2; fail "consistency tests failed"; }
