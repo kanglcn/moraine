@@ -436,14 +436,18 @@ def pc_pyramid(
     x, y = yx[:,1], yx[:,0]
 
     x0, xm, y0, ym = x.min(), x.max(), y.min(), y.max()
-    nx, ny = math.ceil((xm-x0)/ras_resolution), math.ceil((ym-y0)/ras_resolution)
+    # cell j is centred at x0 + j*ras_resolution and every point goes to its nearest centre, so the grid
+    # must reach the cell of the largest coordinates. The cell indices are computed on a grid with one
+    # spare cell and the grid is then cut to the cells used, so both come from the same rounding.
+    nx, ny = math.ceil((xm-x0)/ras_resolution) + 2, math.ceil((ym-y0)/ras_resolution) + 2
+    gix = Coord(x0, ras_resolution, nx, y0, ras_resolution, ny).coords2gixs(yx)
+    ny, nx = int(gix[:,0].max()) + 1, int(gix[:,1].max()) + 1
     coord = Coord(x0, ras_resolution, nx, y0, ras_resolution, ny)
     bounds = {'bounds':[x0, y0, coord.xm, coord.ym]}
     logger.info(f"rasterizing point cloud data to grid with bounds: {bounds['bounds']}.")
     with open(out_dir/'bounds.toml',mode='w') as f:
         toml.dump(bounds, f, encoder=toml.TomlNumpyEncoder())
 
-    gix = coord.coords2gixs(yx)
     maxlevel = coord.maxlevel
 
     out_x_zarr = zarr.open(out_dir/f'x.zarr',mode='w',shape=x.shape,dtype=x.dtype,chunks=(pc_chunks,))

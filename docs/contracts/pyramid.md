@@ -36,5 +36,10 @@ by level 1 being half the size of level 0.
 ```
 
 - Rows of the grid are y, columns x, like the rasters.
+- Cell (i, j) of level 0 is centred at (x0 + j * ras_resolution, y0 + i * ras_resolution) of `bounds`; every
+  point is in the cell of its nearest centre and the grid reaches the cells of the largest coordinates, so
+  `bounds` = [min x, min y, x0 + (width - 1) * ras_resolution, y0 + (nlines - 1) * ras_resolution] and points
+  in different cells never share one. Pyramids made before this was fixed may have the points of the last
+  line or column merged into the previous one.
 - Cells without points are nan in `l.zarr` and -1 in `idx_l.zarr`.
 - In each 2 x 2 block the first non empty cell is kept for the next level.

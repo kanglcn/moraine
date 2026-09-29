@@ -20,6 +20,8 @@ Prototype tile viewer for raster pyramids and point cloud pyramids (radar grid, 
 
 `gamma_mcf_pt`: float64 weights are converted to the FLOAT type mcf_pt reads (they were misread); the `gamma-mcf-pt` command passes `ref_point` on (it was ignored and the first point always used) and its default is 0, the first point as documented
 
+`pc_pyramid` / `pc-pyramid`: the grid reaches the cells of the largest coordinates; the points of the last line and column were merged into the previous cells (one point per cell kept), and whether they were depended on rounding for coordinates that are not multiples of `ras_resolution`. Rebuild point cloud pyramids to see those points
+
 Commands recognize outputs named without `/` or `.` (e.g. `--out_dir pyr`); `main()` returns 1 for a failed pipeline instead of raising `SystemExit`
 
 Bugs squashed: CPU `ad_intf_pc` (undefined name), `isPD`/`nearestPD` on numpy arrays, `HilbertRtree.save`/`load` with zarr 3
