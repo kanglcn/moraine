@@ -1,0 +1,24 @@
+.moraine-tv { font: 12px sans-serif; color: #222; }
+.moraine-tv-title { font-weight: bold; margin: 4px 0; }
+.moraine-tv-body { display: flex; align-items: center; gap: 8px; }
+.moraine-tv-map { background: #f4f4f4; border: 1px solid #ccc; }
+.moraine-tv-plot { display: grid; grid-template-columns: 64px auto; grid-template-rows: auto 38px; }
+.moraine-tv-xaxis, .moraine-tv-yaxis { position: relative; }
+.moraine-tv-xaxis .ticks, .moraine-tv-yaxis .ticks { position: absolute; inset: 0; }
+.moraine-tv-xaxis .tick { position: absolute; top: 0; transform: translateX(-50%); padding-top: 5px;
+                          border-left: 1px solid transparent; }
+.moraine-tv-xaxis .tick::before { content: ""; position: absolute; left: 50%; top: 0; height: 4px;
+                                  border-left: 1px solid #555; }
+.moraine-tv-xaxis .title { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; }
+.moraine-tv-yaxis .tick { position: absolute; right: 0; transform: translateY(-50%); padding-right: 6px; }
+.moraine-tv-yaxis .tick::after { content: ""; position: absolute; right: 0; top: 50%; width: 4px;
+                                 border-top: 1px solid #555; }
+.moraine-tv-yaxis .title { position: absolute; left: 0; top: 50%; writing-mode: vertical-rl;
+                           transform: translateY(-50%) rotate(180deg); }
+.moraine-tv-tile { image-rendering: pixelated; }
+.moraine-tv-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.moraine-tv-bar .ramp { width: 14px; border: 1px solid #888; }
+.moraine-tv-bar .label { writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 4px; }
+.moraine-tv-sliders label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.moraine-tv-sliders input { width: 300px; }
+.moraine-tv-status { min-height: 1.4em; margin-top: 4px; font-family: monospace; }

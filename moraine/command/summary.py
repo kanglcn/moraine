@@ -259,6 +259,34 @@ def _kdim_ranges(shape, post_proc):
     return {name: (0, m - 1) for name, m in zip(('i', 'j'), extra)}
 
 
+def _resolve_post_proc(base, post_proc):
+    """(post_proc, raster post processing, point post processing, phase_like) of a pyramid with level 0 `base`:
+    complex data show their phase by default."""
+    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
+    ras_proc = pc_proc = post_proc
+    if post_proc is None and complex_data:
+        if base.ndim == 3:
+            ras_proc = pc_proc = post_proc = 'phase'
+        else:
+            ras_proc, pc_proc = _phase_2d, _phase_pc_1d
+    return post_proc, ras_proc, pc_proc, complex_data or post_proc in _PHASE_POST_PROC
+
+
+def _colours(p, phase_like):
+    """(cmap, clim, label): cyclic over (-pi, pi] for phases, else viridis over the 1 % - 99 % range of the
+    values of pyramid `p`, (0, 1) for booleans; cmap is a list of hex colours or a matplotlib name."""
+    if phase_like:
+        return _cyclic_cmap(), (-np.pi, np.pi), 'phase (rad)'
+    stats = summarize(str(p))
+    if 'true_fraction' in stats:
+        clim = (0, 1)
+    elif stats.get('p01') is not None and stats['p01'] < stats['p99']:
+        clim = (stats['p01'], stats['p99'])
+    else:
+        clim = (np.nan, np.nan)
+    return 'viridis', clim, p.name
+
+
 def _frame_size(width, height):
     """Plot area with the aspect of the scene, fitted into _FRAME; very elongated scenes are squeezed."""
     ratio = min(max(width / height, 1 / _MAX_RATIO), _MAX_RATIO)
@@ -298,27 +326,8 @@ def view_pyramid(
                          f'or `moraine pc-pyramid` (point clouds)')
     base = zarr.open(str(p / '0.zarr'), mode='r')
     is_pc = (p / 'bounds.toml').exists()
-    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
-    ras_proc = pc_proc = post_proc
-    if post_proc is None and complex_data:
-        if base.ndim == 3:
-            ras_proc = pc_proc = post_proc = 'phase'
-        else:
-            ras_proc, pc_proc = _phase_2d, _phase_pc_1d
-    phase_like = complex_data or post_proc in _PHASE_POST_PROC
-
-    # colours: cyclic over (-pi, pi] for phases, else viridis over the 1 % - 99 % range of the values
-    if phase_like:
-        cmap, clim, label = _cyclic_cmap(), (-np.pi, np.pi), 'phase (rad)'
-    else:
-        stats = summarize(str(p))
-        cmap, label = 'viridis', p.name
-        if 'true_fraction' in stats:
-            clim = (0, 1)
-        elif stats.get('p01') is not None and stats['p01'] < stats['p99']:
-            clim = (stats['p01'], stats['p99'])
-        else:
-            clim = (np.nan, np.nan)
+    post_proc, ras_proc, pc_proc, phase_like = _resolve_post_proc(base, post_proc)
+    cmap, clim, label = _colours(p, phase_like)
 
     # axes: rasters and point clouds on the radar grid have range to the right and azimuth down;
     # point clouds on map coordinates keep north up

@@ -45,6 +45,8 @@ dependencies = [
 # deep learning models (n2f, n2fs3d, n2ft)
 dl = ["torch"]
 dev = ["pytest", "ruff"]
+# tile viewer of pyramids in notebooks (prototype, decision 0015)
+view = ["anywidget"]
 
 [project.scripts]
 moraine = "moraine.command:main"
@@ -58,6 +60,9 @@ version = { attr = "moraine.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["moraine*"]
+
+[tool.setuptools.package-data]
+"moraine.command" = ["*.js", "*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
