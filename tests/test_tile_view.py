@@ -124,10 +124,10 @@ def test_point_cloud_raster_zoom(grid_pc):
     v = tile_view(str(pyr))
     # map in cells of level 0: cell centres at the grid coordinates, the first at (x, y) = (2, 3)
     assert v.origin == [1.5, 2.5] and v.res == 1 and v.axis_labels == ['range', 'azimuth']
+    assert v.shape == [60, 40]
     t = v.tile_values(0, 0, 0)
     for y, x in pts:
-        if y < 62 and x < 41:        # the last line and column share cells with the previous (pc_pyramid)
-            assert t[y - 3, x - 2] == 1000 * y + x
+        assert t[y - 3, x - 2] == 1000 * y + x
     assert np.isnan(t[0, 0])                                 # (y, x) = (3, 2): no point
     v.tile_rgba(0, 0, 0)
     assert v._rtree is None                                  # overviews do not read the coordinates
@@ -186,15 +186,14 @@ def test_web_mercator_raster_zoom(mercator_pc):
     v = tile_view(str(pyr))
     assert v.crs == 'web_mercator' and v.axis_labels == ['longitude', 'latitude']
     assert v.res == pytest.approx(res)
-    ny, nx = v.shape         # 59 or 60 lines, 39 or 40 columns depending on rounding in pc_pyramid
-    assert v.extent == pytest.approx([west, top - 60 * res, west + nx * res, top - (60 - ny) * res], abs=1e-6)
+    assert v.shape == [60, 40]
+    assert v.extent == pytest.approx([west, top - 60 * res, west + 40 * res, top], abs=1e-6)
     assert v.max_zoom == 19                                   # 16 screen pixels per cell at most
     assert v.zoom == 18                                       # about 12 pixels per cell fit the 467 x 700 frame
     # zoom 15: one cell per screen pixel, north up
     t = v.mercator_values(15, TX, TY)
     for a, b in ab:
-        if a > 0 and b < 39:      # the northernmost line and last column share cells (pc_pyramid)
-            assert t[a, b] == 1000 * a + b
+        assert t[a, b] == 1000 * a + b
     assert np.isnan(t[1, 0]) and np.isnan(t[100, 100])        # no point, outside the scene
     assert np.isnan(v.mercator_values(15, TX + 1, TY)).all()
     # zoom 14: level 1 (cells of 2 pixels at zoom 15, one pixel here), the scene in the top left quarter
