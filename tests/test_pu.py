@@ -225,3 +225,225 @@ def test_cli_gamma_mcf_pt_reference(ramp_ph, tmp_path):
                     str(tmp_path / 'unw.zarr'), np.array([[1, 0]]), ref_point=k)
     unw = zarr.open(str(tmp_path / 'unw.zarr'), mode='r')[:, 0]
     assert abs(unw[k] - np.angle(ph[k])) < 1e-4
+
+
+# ---------------------------------------------------------------- EMCF
+
+def emcf_synthetic(n=3000, nimg=12, noise=0.5, seed=0):
+    """Points on a 10 pixel grid with 10 % gaps, images over two years with baselines; deformation bowl,
+    ramp and DEM error, scaled so that no noise free interferogram aliases (neighbour differences below
+    2.5 rad), plus noise."""
+    rng = np.random.default_rng(seed)
+    side = int(np.sqrt(n / 0.9))
+    g = np.stack(np.meshgrid(np.arange(side), np.arange(side)), -1).reshape(-1, 2)
+    g = g[rng.random(len(g)) < 0.9]
+    x, y = 10.0 * g[:, 0], 10.0 * g[:, 1]
+    t = np.sort(rng.uniform(0, 700, nimg))
+    t -= t[0]
+    b = rng.normal(0, 80, nimg)
+    u, v = g[:, 0] / side, g[:, 1] / side
+    vel = 10 * np.exp(-((u - 0.4) ** 2 + (v - 0.5) ** 2) / 0.02) + 3 * u     # rad / year
+    dem = 0.03 * np.sin(6 * u) * np.cos(5 * v)                               # rad / m of baseline
+    clean = vel[:, None] * t[None, :] / 365 + dem[:, None] * b[None, :]
+    tri, half, _ = _mcf_network(x, y)
+    e = np.arange(len(tri))
+    d = clean[tri[e - e % 3 + (e + 1) % 3]] - clean[tri]                      # image gradients along edges
+    worst = np.abs(d[:, :, None] - d[:, None, :]).max()                       # interferogram gradients
+    clean *= min(1.0, 2.5 / worst)
+    true = clean + rng.normal(0, noise, clean.shape)
+    return x, y, t, b, true, np.exp(1j * true).astype(np.complex64)
+
+
+def _closure(unw, t, b):
+    from moraine.pu import _temporal_network
+    tri, half, hull, pairs, t_pair, t_sign = _temporal_network(t, b)
+    T = np.arange(len(tri) // 3)
+    return sum(t_sign[3 * T + j][None, :] * unw[:, t_pair[3 * T + j]] for j in range(3))
+
+
+def _wrong_cycles(unw, pairs, true):
+    tr = true[:, pairs[:, 0]] - true[:, pairs[:, 1]]
+    return float(np.mean(np.rint((unw - unw[0] - (tr - tr[0])) / (2 * np.pi)) != 0))
+
+
+def test_emcf_noise_free_is_exact_and_closes():
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.0)
+    unw, pairs, _m = emcf_pc(x, y, ph, t, b)
+    assert unw.shape == (len(x), len(pairs)) and unw.dtype == np.float32
+    assert _wrong_cycles(unw, pairs, true) == 0
+    assert np.abs(_closure(unw, t, b)).max() < 1e-4
+
+
+@pytest.mark.parametrize('noise, fewer_errors', [(0.7, True), (0.9, False)])
+def test_emcf_consistent_closes_and_better_than_mcf_pc(noise, fewer_errors):
+    """Consistent with the wrapped phase, every triangle of interferograms closes at every point, and fewer
+    wrong cycles than unwrapping every interferogram alone where that is reliable (at 0.9 rad image noise
+    both fail in whole areas)."""
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=noise)
+    unw, pairs, _m = emcf_pc(x, y, ph, t, b)
+    intf = ph[:, pairs[:, 0]] * ph[:, pairs[:, 1]].conj()
+    assert np.abs(wrap(unw - np.angle(intf))).max() < 1e-3
+    assert np.abs(_closure(unw, t, b)).max() < 1e-3
+    unw_mcf = np.stack([mcf_pc(x, y, intf[:, k]) for k in range(len(pairs))], -1)
+    if fewer_errors:
+        assert _wrong_cycles(unw, pairs, true) < _wrong_cycles(unw_mcf, pairs, true) / 3
+    unw_free, _, _m = emcf_pc(x, y, ph, t, b, repair=False)
+    assert _wrong_cycles(unw, pairs, true) <= _wrong_cycles(unw_free, pairs, true)
+
+
+def test_emcf_repair_restores_a_shifted_interferogram():
+    """An interferogram shifted by a cycle in a whole area (what unwrapping it alone in space can do) is
+    found by the triangles on its two sides and shifted back; nothing else changes."""
+    from moraine.pu import emcf_pc, _temporal_network, _emcf_repair
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.3)
+    unw, pairs, _m = emcf_pc(x, y, ph, t, b)
+    tri, half, hull, P, t_pair, t_sign = _temporal_network(t, b)
+    interior = np.bincount(t_pair, minlength=len(pairs)) == 2        # pairs between two triangles
+    k = int(np.flatnonzero(interior)[len(pairs) // 3])
+    area = (x > x.mean()) & (y > y.mean())
+    shifted = unw.copy()
+    shifted[area, k] += 2 * np.pi
+    assert np.abs(_closure(shifted, t, b)).max() > 6
+    n_open = _emcf_repair(ph, shifted, pairs, tri, half, hull, t_pair, t_sign, 1, np.ones(len(pairs), np.int64),
+                          np.zeros(shifted.shape, bool), 1)
+    assert (n_open > 0).sum() == area.sum()
+    np.testing.assert_allclose(shifted, unw, atol=1e-4)
+
+
+@pytest.mark.parametrize('mode', ['constant', 'length', 'gradient', 'length+gradient'])
+def test_emcf_temporal_step_closes_every_temporal_triangle(mode):
+    from moraine.pu import (_temporal_network, _spatial_edges, _emcf_temporal, _pair_gradients, _temporal_costs)
+    x, y, t, b, true, ph = emcf_synthetic(noise=1.0, n=800)
+    t_tri, t_half, t_hull, pairs, t_pair, t_sign = _temporal_network(t, b)
+    s_tri, s_half, s_hull = _mcf_network(x, y)
+    s_rep, _, _ = _spatial_edges(s_tri, s_half)
+    for earth_cost in (1, 3):
+        pair_cost, adaptive = _temporal_costs(t, b, pairs, None, None, mode)
+        cycles = _emcf_temporal(ph, s_tri, s_rep, t_tri, t_half, t_hull, pairs, t_pair, t_sign, earth_cost,
+                                pair_cost, adaptive)
+        g = np.empty(len(pairs))
+        n_corrected = 0
+        for s, e0 in enumerate(s_rep):
+            p, q = s_tri[e0], s_tri[e0 - e0 % 3 + (e0 + 1) % 3]
+            _pair_gradients(ph, p, q, pairs, g)
+            G = g + 2 * np.pi * cycles[:, s]
+            T = np.arange(len(t_tri) // 3)
+            clos = sum(t_sign[3 * T + j] * G[t_pair[3 * T + j]] for j in range(3))
+            assert np.abs(clos).max() < 1e-6, (s, clos)
+            n_corrected += bool(cycles[:, s].any())
+        assert n_corrected > 0          # the noise made residues that the temporal step removed
+
+
+def test_emcf_order_independent():
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
+    unw, pairs, _m = emcf_pc(x, y, ph, t, b)
+    perm = np.concatenate(([0], 1 + np.random.default_rng(1).permutation(len(x) - 1)))
+    unw2, pairs2, _m = emcf_pc(x[perm], y[perm], ph[perm], t, b)
+    np.testing.assert_array_equal(pairs2, pairs)
+    np.testing.assert_array_equal(unw2, unw[perm])
+
+
+def test_emcf_network():
+    from moraine.pu import _temporal_network
+    rng = np.random.default_rng(0)
+    t, b = np.sort(rng.uniform(0, 500, 10)), rng.normal(0, 50, 10)
+    tri, half, hull, pairs, t_pair, t_sign = _temporal_network(t, b)
+    assert (pairs[:, 0] < pairs[:, 1]).all()
+    assert (np.lexsort(pairs.T[::-1]) == np.arange(len(pairs))).all()              # sorted
+    assert set(pairs.ravel()) == set(range(10))
+    assert len(pairs) == 3 * 10 - 3 - len(hull)                                     # triangulated
+    with pytest.raises(ValueError, match='plane'):
+        _temporal_network(t, np.zeros(10))                                           # no baselines
+    from moraine.pu import emcf_pc
+    with pytest.raises(ValueError, match='temporal_cost'):
+        emcf_pc(np.array([0., 5, 0, 5]), np.array([0., 0, 5, 5]), np.ones((4, 10), np.complex64), t, b,
+                temporal_cost='cheap')
+
+
+def test_cli_emcf_pc(tmp_path):
+    import toml
+    import zarr
+    import moraine.cli as mc
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.6, n=1500)
+    dates = [(np.datetime64('2021-01-01') + int(d)).astype(str).replace('-', '') for d in t]
+    t = np.array([(np.datetime64(f'{d[:4]}-{d[4:6]}-{d[6:]}') - np.datetime64('2021-01-01')).astype(int) for d in dates], float)
+    toml.dump({'dates': dates, 'perpendicular_baseline': b.tolist(), 'range_pixel_spacing': 4.0,
+               'azimuth_pixel_spacing': 3.0}, open(tmp_path / 'meta.toml', 'w'))
+    for name, data in [('gix.zarr', np.stack((y, x), -1).astype(np.int32)), ('ph.zarr', ph)]:
+        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(500, 1))
+        z[:] = data
+    mc.emcf_pc(str(tmp_path / 'gix.zarr'), str(tmp_path / 'ph.zarr'), str(tmp_path / 'meta.toml'),
+               str(tmp_path / 'unw.zarr'), str(tmp_path / 'pairs.txt'), misclosure=str(tmp_path / 'mis.zarr'))
+    unw, pairs, mis = emcf_pc(x * 4.0, y * 3.0, ph, t - t[0], b)      # coordinates in meters
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'mis.zarr'), mode='r')[:], mis)
+    np.testing.assert_array_equal(np.loadtxt(tmp_path / 'pairs.txt', dtype=int).reshape(-1, 2), pairs)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'unw.zarr'), mode='r')[:], unw)
+
+
+def test_emcf_parallel_and_sparse_are_exact():
+    from moraine.pu import (emcf_pc, _temporal_network, _temporal_costs, _spatial_edges, _emcf_temporal,
+                            _emcf_cycles)
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.9, n=1500)
+    u1, p1, m1 = emcf_pc(x, y, ph, t, b, n_workers=1)
+    u4, p4, m4 = emcf_pc(x, y, ph, t, b, n_workers=4)
+    np.testing.assert_array_equal(u1, u4)
+    np.testing.assert_array_equal(m1, m4)
+    t_tri, t_half, t_hull, pairs, t_pair, t_sign = _temporal_network(t, b)
+    cost, adaptive = _temporal_costs(t, b, pairs, None, None, 'length+gradient')
+    s_tri, s_half, _ = _mcf_network(x, y)
+    s_rep, _, _ = _spatial_edges(s_tri, s_half)
+    dense = _emcf_temporal(ph, s_tri, s_rep, t_tri, t_half, t_hull, pairs, t_pair, t_sign, 1, cost, adaptive)
+    ptr, edge, val = _emcf_cycles(ph, s_tri, s_rep, t_tri, t_half, t_hull, pairs, t_pair, t_sign, 1, cost, adaptive,
+                                  block=97)
+    rebuilt = np.zeros_like(dense)
+    for k in range(len(pairs)):
+        rebuilt[k, edge[ptr[k]:ptr[k + 1]]] = val[ptr[k]:ptr[k + 1]]
+    np.testing.assert_array_equal(rebuilt, dense)
+    assert dense.any()
+
+
+@pytest.mark.parametrize('spatial_cost', ['gradient', 'correction', 'length', 'weight',
+                                          'gradient+correction+length+weight'])
+def test_emcf_spatial_costs(spatial_cost):
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
+    weight = np.random.default_rng(0).uniform(0, 1, len(x))
+    unw, pairs, mis = emcf_pc(x, y, ph, t, b, weight=weight, spatial_cost=spatial_cost)
+    intf = ph[:, pairs[:, 0]] * ph[:, pairs[:, 1]].conj()
+    assert np.abs(wrap(unw - np.angle(intf))).max() < 1e-3
+    assert np.abs(_closure(unw, t, b)).max() < 1e-3
+    assert ((mis >= 0) & (mis <= 1)).all()
+
+
+def test_emcf_misclosure_and_errors():
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=1500)
+    unw, pairs, mis = emcf_pc(x, y, ph, t, b)
+    assert mis.shape == (len(x),) and mis.dtype == np.float32 and (mis == 0).all()
+    with pytest.raises(ValueError, match='spatial_cost'):
+        emcf_pc(x, y, ph, t, b, spatial_cost='gradient+cheap')
+    with pytest.raises(ValueError, match='weights'):
+        emcf_pc(x, y, ph, t, b, spatial_cost='weight')
+
+
+@pytest.mark.slow
+def test_emcf_benchmark():
+    """Realistic synthetic data (clusters of points linked by sparse points, a winter gap, seasonal deformation,
+    DEM error, atmosphere, noise from coherence and snow), 8 realisations: EMCF must stay clearly better than
+    unwrapping every interferogram alone. Reference (2026-09-29): wrong cycles median 0.10 %, max 10.3 %,
+    wrong edges 0.088 %; mcf_pc 1.08 %, 43.5 %, 0.174 %."""
+    from moraine.pu import emcf_pc
+    from unwrap_benchmark import make, scores
+    r = []
+    for seed in range(8):
+        d = make(seed=seed)
+        unw, pairs, _ = emcf_pc(d['x'], d['y'], d['ph'], d['t'], d['b'])
+        r.append(scores(unw, pairs, d['true'], d['x'], d['y']))
+    r = np.array(r)
+    assert np.median(r[:, 0]) < 0.003
+    assert r[:, 0].max() < 0.2
+    assert r[:, 1].mean() < 0.0011

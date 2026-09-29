@@ -50,7 +50,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
 | `moraine/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
-| `moraine/pu.py` | phase unwrapping: minimum cost flow (successive shortest paths) on the Delaunay half-edges, GAMMA wrapper | `mcf_pc`, `gamma_mcf_pt` |
+| `moraine/pu.py` | phase unwrapping: minimum cost flow (successive shortest paths) on the Delaunay half-edges, extended minimum cost flow (EMCF) of a network in time / perpendicular baseline, GAMMA wrapper | `mcf_pc`, `emcf_pc`, `gamma_mcf_pt` |
 | `moraine/dl.py` | deep learning filters, model download and cached loading | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | `moraine/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
 | `moraine/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
@@ -75,7 +75,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/co.py` | coherence of point clouds per raster chunk | `emperical-co-pc` |
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
 | `moraine/cli/pqm.py` | temporal coherence | `temp-coh` |
-| `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `gamma-mcf-pt` |
+| `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `gamma-mcf-pt` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds and their interactive plots | `ras-pyramid`, `pc-pyramid` |
 

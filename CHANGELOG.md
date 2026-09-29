@@ -12,6 +12,8 @@ Development moved from nbdev notebooks to plain python: packaging in `pyproject.
 
 `moraine ... --json` output has `version` and `ok` fields; pyramids record their format version in `0.zarr`; pipeline files may declare `[pipeline] version`. The formats are specified in `docs/contracts/`
 
+New `emcf_pc` / `emcf-pc`: extended minimum cost flow (EMCF) unwrapping of the interferograms of the Delaunay network of the images in time and perpendicular baseline (read from `meta.toml`, coordinates in meters from the pixel spacings); the interferograms of every triangle of images close at every point; outputs the image pairs and optionally a per point `misclosure`; `temporal_cost`, `spatial_cost` and point `weight` choose where corrections go (defaults chosen on a synthetic benchmark with known truth, `tests/unwrap_benchmark.py`: median 0.10 % wrong cycles against 1.08 % for `mcf-pc` and 0.22 % for spurt). Decision 0012, stage 3
+
 New command `moraine view PYRAMID ... -o view.ipynb`: a notebook with interactive plots of pyramids (cyclic colorwheel for phases, viridis over the 1-99 % range otherwise, radar or map axes, plot size from the scene, sliders for stacks); `quicklook` uses the colorwheel for phases too
 
 `mcf_pc` / `mcf-pc` use an own Delaunay triangulation and a successive shortest path min cost flow on its half-edges: exactly optimal, independent of the point order, about 7 times faster than before (10 million points in 16 s, GAMMA mcf_pt 35 s) with about 5 times less memory; new option `earth_cost` (default 1). OR-Tools is no longer a dependency
