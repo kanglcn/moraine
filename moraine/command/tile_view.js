@@ -12,9 +12,19 @@ function loadCss() {
   document.head.appendChild(link);
 }
 
-// map positions are cells of level 0: lat = line, lng = column, lines grow downwards; 2**z screen pixels
-// per cell. The data coordinate of position u is origin + u * res.
-const CRS = L.extend({}, L.CRS.Simple, { transformation: L.transformation(1, 0, 1, 0) });
+// crs "grid": map positions are cells of level 0: lat = line, lng = column, lines grow downwards; 2**z
+// screen pixels per cell. The data coordinate of position u is origin + u * res.
+const GRID = L.extend({}, L.CRS.Simple, { transformation: L.transformation(1, 0, 1, 0) });
+
+// base maps under web mercator point clouds, loaded by the browser
+const BASE_MAPS = {
+  "Satellite (Esri)": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxNativeZoom: 18, attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics" }],
+  "CARTO light": ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+    { maxNativeZoom: 20, attribution: "&copy; OpenStreetMap contributors &copy; CARTO" }],
+  "OpenStreetMap": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxNativeZoom: 19, attribution: "&copy; OpenStreetMap contributors" }],
+};
 
 function fmt(v) {
   if (v === null || v === undefined) return "nan";
@@ -52,6 +62,8 @@ function render({ model, el }) {
   const [fw, fh] = model.get("frame");
   const [xlabel, ylabel] = model.get("axis_labels");
   const [ox, oy] = model.get("origin"), res = model.get("res");
+  const mercator = model.get("crs") === "web_mercator";
+  const [ex0, ey0, ex1, ey1] = model.get("extent");
 
   el.classList.add("moraine-tv");
   el.innerHTML = `
@@ -100,14 +112,26 @@ function render({ model, el }) {
   }
   model.on("msg:custom", onMessage);
 
-  const bounds = L.latLngBounds([0, 0], [ny, nx]);
+  const toLatLng = (x, y) => L.CRS.EPSG3857.unproject(L.point(x, y));     // web mercator metres
+  const bounds = mercator ? L.latLngBounds(toLatLng(ex0, ey0), toLatLng(ex1, ey1))
+                          : L.latLngBounds([0, 0], [ny, nx]);
   // the element may not be in the page yet (size 0), so the initial zoom comes from the kernel
   const zoom = model.get("zoom");
   const map = L.map(mapEl, {
-    crs: CRS, maxZoom: model.get("max_zoom"), minZoom: zoom - 1, zoomSnap: 1,
-    attributionControl: false, maxBounds: bounds.pad(0.5),
+    crs: mercator ? L.CRS.EPSG3857 : GRID, maxZoom: model.get("max_zoom"),
+    minZoom: mercator ? 0 : zoom - 1, zoomSnap: 1, attributionControl: mercator,
+    maxBounds: mercator ? undefined : bounds.pad(0.5),
   });
   map.setView(bounds.getCenter(), zoom);
+  if (map.attributionControl) map.attributionControl.setPrefix(false);
+  const baseMaps = {};
+  if (mercator) {
+    for (const [name, [url, options]] of Object.entries(BASE_MAPS)) {
+      baseMaps[name] = L.tileLayer(url, { ...options, maxZoom: model.get("max_zoom") });
+    }
+    baseMaps["none"] = L.layerGroup();
+    baseMaps["Satellite (Esri)"].addTo(map);
+  }
 
   const Tiles = L.GridLayer.extend({
     createTile(coords, done) {
@@ -127,12 +151,13 @@ function render({ model, el }) {
       return img;
     },
   });
-  const layer = new Tiles({ tileSize: 256, bounds, minZoom: zoom - 1, maxZoom: model.get("max_zoom"),
-                            updateWhenZooming: false, keepBuffer: 1 });
+  const layer = new Tiles({ tileSize: 256, bounds, minZoom: map.getMinZoom(), maxZoom: model.get("max_zoom"),
+                            updateWhenZooming: false, keepBuffer: 1, zIndex: 10 });
   layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
   layer.addTo(map);
+  if (mercator) L.control.layers(baseMaps, { [model.get("label")]: layer }, { collapsed: true }).addTo(map);
 
-  // axes: range to the right (lng), azimuth down (lat)
+  // axes: range to the right, azimuth down (grid); longitude and latitude in degrees (web mercator)
   const xTicks = el.querySelector(".moraine-tv-xaxis .ticks"), yTicks = el.querySelector(".moraine-tv-yaxis .ticks");
   el.querySelector(".moraine-tv-xaxis .title").textContent = xlabel;
   el.querySelector(".moraine-tv-yaxis .title").textContent = ylabel;
@@ -141,6 +166,11 @@ function render({ model, el }) {
     if (!size.x || !size.y) return;
     const b = map.getBounds();
     const u0 = b.getWest(), u1 = b.getEast(), v0 = b.getSouth(), v1 = b.getNorth();   // v0 < v1
+    if (mercator) {
+      drawTicks(xTicks, u0, u1, (lng) => map.latLngToContainerPoint([v0, lng]).x, size.x, true);
+      drawTicks(yTicks, v0, v1, (lat) => map.latLngToContainerPoint([lat, u0]).y, size.y, false);
+      return;
+    }
     drawTicks(xTicks, ox + u0 * res, ox + u1 * res,
               (x) => map.latLngToContainerPoint([v0, (x - ox) / res]).x, size.x, true);
     drawTicks(yTicks, oy + v0 * res, oy + v1 * res,
@@ -171,7 +201,11 @@ function render({ model, el }) {
       if (msg.error) status.textContent = `error: ${msg.error}`;
       else if (msg.x === undefined) status.textContent = "no point here";
       else {
-        const where = `${xlabel} ${fmt(msg.x)}, ${ylabel} ${fmt(msg.y)}`;
+        let where = `${xlabel} ${fmt(msg.x)}, ${ylabel} ${fmt(msg.y)}`;
+        if (mercator) {
+          const p = toLatLng(msg.x, msg.y);
+          where = `${xlabel} ${p.lng.toFixed(6)}, ${ylabel} ${p.lat.toFixed(6)}`;
+        }
         status.textContent = (msg.point === undefined ? where : `point ${msg.point} (${where})`) +
                              `: ${fmt(msg.value)}`;
       }
@@ -179,8 +213,10 @@ function render({ model, el }) {
     });
   }
   map.on("mousemove", (e) => {
-    const u = e.latlng.lng, v = e.latlng.lat;
-    if (u < 0 || v < 0 || u >= nx || v >= ny) {     // outside the scene: nothing to ask
+    let u = e.latlng.lng, v = e.latlng.lat;
+    if (mercator) ({ x: u, y: v } = L.CRS.EPSG3857.project(e.latlng));
+    const outside = mercator ? u < ex0 || v < ey0 || u >= ex1 || v >= ey1 : u < 0 || v < 0 || u >= nx || v >= ny;
+    if (outside) {                                   // outside the scene: nothing to ask
       lastPos = null;
       status.textContent = "";
       return;
@@ -209,6 +245,13 @@ function render({ model, el }) {
     });
     sliders.appendChild(row);
   });
+  if (mercator) {        // see the base map through the data
+    const row = document.createElement("label");
+    row.innerHTML = `<span>opacity</span><input type="range" min="0" max="1" step="0.05" value="1"><output>1</output>`;
+    const input = row.querySelector("input"), output = row.querySelector("output");
+    input.addEventListener("input", () => { output.textContent = input.value; layer.setOpacity(Number(input.value)); });
+    sliders.appendChild(row);
+  }
 
   return () => {
     resize.disconnect();

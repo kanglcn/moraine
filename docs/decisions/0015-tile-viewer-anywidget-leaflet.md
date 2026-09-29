@@ -19,16 +19,19 @@ binary buffers.
 
 ## Decision
 
-Prototype `moraine.command.tile_view` for raster pyramids and point cloud pyramids on the radar grid:
+Prototype `moraine.command.tile_view` for raster pyramids and point cloud pyramids on the radar grid or in
+web mercator coordinates:
 
 - an anywidget widget with a Leaflet map (`CRS.Simple`, azimuth down) in cells of level 0, 2**z screen
   pixels per cell; the axes show data coordinates, cell i centred at coordinate i for rasters and at the
-  grid coordinates of `bounds.toml` for point clouds; Leaflet is loaded from the jsdelivr CDN in a pinned
-  version;
+  grid coordinates of `bounds.toml` for point clouds; web mercator point clouds use Leaflet's EPSG:3857 with
+  standard XYZ tiles, north up, longitude / latitude axes and a base map (Esri satellite images, CARTO or
+  OpenStreetMap, with their attribution); Leaflet is loaded from the jsdelivr CDN in a pinned version;
 - the browser asks for tiles with custom widget messages; the kernel reads the pyramid level with at
   least one pixel per screen pixel, applies the post processing and colours of `view_pyramid` and
-  answers with a PNG buffer; point clouds zoomed in beyond level 0 (z > 0) are drawn as disks at the
-  point coordinates, found with the lazily built Hilbert R-tree of `pc_plot`;
+  answers with a PNG buffer (web mercator tiles sample the finest level whose cells are at least a screen
+  pixel at the pixel centres); point clouds zoomed in until a cell of level 0 is larger than a screen
+  pixel are drawn as disks at the point coordinates, found with the lazily built Hilbert R-tree of `pc_plot`;
 - colour bar, axes, stack sliders and the value under the cursor (the nearest point for point clouds)
   are drawn by the widget;
 - anywidget is an optional dependency (`moraine[view]`).
@@ -41,7 +44,9 @@ Prototype `moraine.command.tile_view` for raster pyramids and point cloud pyrami
 - The browser needs internet access to the CDN; the kernel does not.
 - Tile requests are answered one by one in order; requests of tiles already scrolled away are still
   rendered (the answers are dropped).
-- Point clouds on map coordinates are not supported yet (next step: web mercator with a base map).
+- Point clouds on longitude / latitude are rejected: their cells are not square on the map; they are
+  converted to web mercator first (`moraine transform`).
+- The base map tiles come from third party servers and need internet access in the browser.
 - The first zoom to individual points reads all coordinates to build the R-tree (seconds).
 
 ## Do not

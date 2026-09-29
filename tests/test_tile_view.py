@@ -153,10 +153,67 @@ def test_rejects_other_inputs(tmp_path, ras):
     a, _ = ras
     with pytest.raises(ValueError, match='not a pyramid'):
         tile_view(str(tmp_path / 'ras.zarr'))
-    x = np.arange(20, dtype=float) * 7.5 - 1.6e7              # map coordinates (web mercator)
-    for name, arr in [('x.zarr', x), ('y.zarr', x + 2.2e7), ('v.zarr', x.astype(np.float32))]:
+    lon = 120 + 1e-4 * np.arange(20)                          # longitude / latitude: not supported
+    for name, arr in [('x.zarr', lon), ('y.zarr', lon - 90), ('v.zarr', lon.astype(np.float32))]:
         _zarr(tmp_path / name, arr)
-    mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'map_pyr'), x=str(tmp_path / 'x.zarr'),
-                  y=str(tmp_path / 'y.zarr'), ras_resolution=7.5)
-    with pytest.raises(ValueError, match='map coordinates'):
-        TileView(str(tmp_path / 'map_pyr'))
+    mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'lonlat_pyr'), x=str(tmp_path / 'x.zarr'),
+                  y=str(tmp_path / 'y.zarr'), ras_resolution=1e-4)
+    with pytest.raises(ValueError, match='longitude'):
+        TileView(str(tmp_path / 'lonlat_pyr'))
+
+
+TX, TY = 26000, 13000        # web mercator tile at zoom 15 (east Asia) holding the test scene
+
+
+@pytest.fixture
+def mercator_pc(tmp_path):
+    """Points in web mercator coordinates with cells of one screen pixel at zoom 15: point (a, b) (line a from
+    the north, column b; one cell in three) at the centre of pixel (a, b) of tile (TX, TY), value 1000 a + b."""
+    from moraine.command.tile_view import WORLD, _mercator_pixel
+    res = _mercator_pixel(15)
+    west, top = -WORLD / 2 + TX * 256 * res, WORLD / 2 - TY * 256 * res
+    ab = np.array([(a, b) for a in range(60) for b in range(40) if (a + b) % 3 == 0])
+    _zarr(tmp_path / 'mx.zarr', west + (ab[:, 1] + 0.5) * res)
+    _zarr(tmp_path / 'my.zarr', top - (ab[:, 0] + 0.5) * res)
+    _zarr(tmp_path / 'val.zarr', (1000 * ab[:, 0] + ab[:, 1]).astype(np.float32))
+    mc.pc_pyramid(str(tmp_path / 'val.zarr'), str(tmp_path / 'merc_pyr'), x=str(tmp_path / 'mx.zarr'),
+                  y=str(tmp_path / 'my.zarr'), ras_resolution=res)
+    return [tuple(int(c) for c in q) for q in ab], res, west, top, tmp_path / 'merc_pyr'
+
+
+def test_web_mercator_raster_zoom(mercator_pc):
+    ab, res, west, top, pyr = mercator_pc
+    v = tile_view(str(pyr))
+    assert v.crs == 'web_mercator' and v.axis_labels == ['longitude', 'latitude']
+    assert v.res == pytest.approx(res)
+    ny, nx = v.shape         # 59 or 60 lines, 39 or 40 columns depending on rounding in pc_pyramid
+    assert v.extent == pytest.approx([west, top - 60 * res, west + nx * res, top - (60 - ny) * res], abs=1e-6)
+    assert v.max_zoom == 19                                   # 16 screen pixels per cell at most
+    assert v.zoom == 18                                       # about 12 pixels per cell fit the 467 x 700 frame
+    # zoom 15: one cell per screen pixel, north up
+    t = v.mercator_values(15, TX, TY)
+    for a, b in ab:
+        if a > 0 and b < 39:      # the northernmost line and last column share cells (pc_pyramid)
+            assert t[a, b] == 1000 * a + b
+    assert np.isnan(t[1, 0]) and np.isnan(t[100, 100])        # no point, outside the scene
+    assert np.isnan(v.mercator_values(15, TX + 1, TY)).all()
+    # zoom 14: level 1 (cells of 2 pixels at zoom 15, one pixel here), the scene in the top left quarter
+    t = v.mercator_values(14, TX // 2, TY // 2)
+    assert np.isfinite(t[:30, :20]).mean() > 0.5 and np.isnan(t[31:, 21:]).all()
+    assert v._rtree is None
+
+
+def test_web_mercator_points_and_value(mercator_pc):
+    ab, res, west, top, pyr = mercator_pc
+    v = tile_view(str(pyr))
+    # zoom 17: cells of 4 pixels, tile (4 TX, 4 TY) covers pixels 0 - 63 of the zoom 15 tile
+    rgba = v.tile_rgba(17, 4 * TX, 4 * TY)
+    row, col = 4 * 30 + 2, 4 * 21 + 2                        # point (a, b) = (30, 21)
+    np.testing.assert_array_equal(rgba[row, col], v.colorize(np.array([30021.0]))[0])
+    assert rgba[row, col + 4, 3] == 0                        # (30, 22): no point
+    k = ab.index((30, 21))
+    x, y = west + 21.5 * res, top - 30.5 * res
+    found = v.value(x + 0.3 * res, y - 0.2 * res, z=17)
+    assert found['point'] == k and found['value'] == 30021.0
+    assert found['x'] == pytest.approx(x) and found['y'] == pytest.approx(y)
+    assert v.value(west - res, y, z=17) is None              # outside the scene

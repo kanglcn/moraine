@@ -20,6 +20,12 @@ except ImportError:      # optional dependency: `pip install moraine[view]`
 TILE = 256               # tile edge in screen pixels
 MAX_ZOOM = 4             # at most 2**MAX_ZOOM screen pixels per cell of level 0
 PROBE = 4                # the value under the cursor is of the nearest point within this many screen pixels
+WORLD = 2 * np.pi * 6378137.0   # extent of the web mercator (EPSG:3857) plane in metres
+
+
+def _mercator_pixel(z):
+    """Screen pixel size in web mercator metres at zoom `z`."""
+    return WORLD / TILE / 2 ** z
 
 
 def _ras_post_proc(post_proc):
@@ -77,20 +83,33 @@ def _disk(r):
     return dy[inside], dx[inside]
 
 
+def _stamp(rgba, row, col, colours, r):
+    """Draw disks of radius `r` pixels with `colours` (n, 4) at pixels (`row`, `col`) (n,) of `rgba`, in
+    order; transparent colours (nan values) are skipped."""
+    h, w = rgba.shape[:2]
+    for dy, dx in zip(*_disk(r)):
+        rr, cc = row + dy, col + dx
+        ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (colours[:, 3] > 0)
+        rgba[rr[ok], cc[ok]] = colours[ok]
+    return rgba
+
+
 if anywidget is not None:
     class TileView(anywidget.AnyWidget):
         """Interactive map of a pyramid for Jupyter / VS Code notebooks: zoom and pan read only the tiles on
         screen, sliders choose the image of a stack, the cursor shows the value under it.
 
         Point clouds are drawn as their pyramid rasters when zoomed out and as individual points when a cell
-        of the finest raster is larger than a screen pixel. No server or port forwarding is needed; the
-        kernel reads the data on the machine that holds them.
+        of the finest raster is larger than a screen pixel. Point clouds in web mercator coordinates are
+        drawn north up over a base map (satellite images, CARTO or OpenStreetMap, loaded by the browser from
+        the internet). No server or port forwarding is needed; the kernel reads the data on the machine that
+        holds them.
 
         Parameters
         ----------
         pyramid : str
             pyramid directory made by `ras_pyramid`, or by `pc_pyramid` from points on the radar grid
-            (non negative integer coordinates, e.g. `gix`)
+            (non negative integer coordinates, e.g. `gix`) or in web mercator coordinates (EPSG:3857, metres)
         post_proc : str, optional
             how to show a stack of images: 'phase', 'intf_0' (interferograms with the first image),
             'intf_seq' (sequential interferograms) or 'intf_all' (any pair); the phase for complex data by
@@ -99,12 +118,15 @@ if anywidget is not None:
         _esm = Path(__file__).with_name('tile_view.js')
         _css = Path(__file__).with_name('tile_view.css')
 
-        # the map is in cells of level 0: cell (i, j) covers [j, j + 1) x [i, i + 1), and a map position u
-        # is at data coordinate origin + u * res (x: range, y: azimuth)
+        # crs 'grid': the map is in cells of level 0, cell (i, j) covers [j, j + 1) x [i, i + 1), and a map
+        # position u is at data coordinate origin + u * res (x: range, y: azimuth down).
+        # crs 'web_mercator': Leaflet's EPSG:3857 with standard XYZ tiles, data coordinates in metres.
         title = traitlets.Unicode().tag(sync=True)
+        crs = traitlets.Unicode('grid').tag(sync=True)
         shape = traitlets.List().tag(sync=True)          # [ny, nx] cells of level 0
         origin = traitlets.List([-0.5, -0.5]).tag(sync=True)
         res = traitlets.Float(1.0).tag(sync=True)
+        extent = traitlets.List().tag(sync=True)         # [x0, y0, x1, y1] of the cells in data coordinates
         frame = traitlets.List().tag(sync=True)          # [width, height] of the map in screen pixels
         max_zoom = traitlets.Int(MAX_ZOOM).tag(sync=True)
         zoom = traitlets.Int().tag(sync=True)            # zoom showing the whole scene in the frame
@@ -124,16 +146,23 @@ if anywidget is not None:
             base = zarr.open(str(p / '0.zarr'), mode='r')
             ny, nx = base.shape[:2]
             self._pc = (p / 'bounds.toml').exists()
-            origin, res = [-0.5, -0.5], 1.0           # raster: pixel i centred at coordinate i
+            crs, origin, res = 'grid', [-0.5, -0.5], 1.0     # raster: pixel i centred at coordinate i
+            axis_labels = ['range', 'azimuth']
             if self._pc:
                 import toml
-                x0, y0, xm, ym = toml.load(p / 'bounds.toml')['bounds']
-                if not all(float(v).is_integer() and v >= 0 for v in (x0, y0, xm, ym)):
-                    raise ValueError(f'{pyramid}: point clouds on map coordinates are not supported by the tile '
-                                     f'viewer yet; use `view_pyramid`')
+                x0, y0, xm, ym = (float(v) for v in toml.load(p / 'bounds.toml')['bounds'])
                 # cell centres of level 0 at x0 + j * res (`pc_pyramid`)
                 res = (xm - x0) / (nx - 1) if nx > 1 else ((ym - y0) / (ny - 1) if ny > 1 else 1.0)
                 origin = [x0 - res / 2, y0 - res / 2]
+                if not all(v.is_integer() and v >= 0 for v in (x0, y0, xm, ym)):
+                    if max(abs(x0), abs(xm)) <= 180 and max(abs(y0), abs(ym)) <= 90 and res < 0.01:
+                        raise ValueError(f'{pyramid}: the coordinates look like longitude / latitude; the tile '
+                                         f'viewer needs web mercator coordinates (EPSG:3857), convert them with '
+                                         f'`moraine transform` and rebuild the pyramid')
+                    if max(abs(x0), abs(xm), abs(y0), abs(ym)) > WORLD / 2:
+                        raise ValueError(f'{pyramid}: coordinates outside the web mercator plane (EPSG:3857)')
+                    crs, axis_labels = 'web_mercator', ['longitude', 'latitude']
+            extent = [origin[0], origin[1], origin[0] + nx * res, origin[1] + ny * res]
             post_proc, ras_proc, pc_proc, phase_like = _resolve_post_proc(base, post_proc)
             cmap, clim, label = _colours(p, phase_like)
             ranges = _kdim_ranges(base.shape, post_proc if isinstance(post_proc, str) else None)
@@ -149,9 +178,13 @@ if anywidget is not None:
             title = f'{p.name}  {tuple(base.shape)} {base.dtype}' + \
                 (f'  {post_proc}' if isinstance(post_proc, str) else '')
             frame = _frame_size(nx, ny)
-            zoom = min(int(np.floor(np.log2(min(frame[0] / nx, frame[1] / ny)))), MAX_ZOOM)
-            super().__init__(title=title, shape=[ny, nx], origin=[float(o) for o in origin], res=float(res),
-                             frame=list(frame), zoom=zoom,
+            # zoom showing the whole scene: screen pixels per cell of level 0 at zoom 0, 1 / res for mercator
+            per_cell = 1 if crs == 'grid' else res / _mercator_pixel(0)
+            zoom = int(np.floor(np.log2(min(frame[0] / nx, frame[1] / ny) / per_cell)))
+            max_zoom = int(np.floor(np.log2(2 ** MAX_ZOOM / per_cell)))    # 2**MAX_ZOOM pixels per cell
+            super().__init__(title=title, crs=crs, shape=[ny, nx], origin=[float(o) for o in origin],
+                             res=float(res), extent=[float(e) for e in extent], axis_labels=axis_labels,
+                             frame=list(frame), zoom=min(zoom, max_zoom), max_zoom=max_zoom,
                              colors=_hex(self._lut[::8]) + _hex(self._lut[-1:]), clim=list(self._clim),
                              label=label, kdims=[{'name': k, 'max': int(hi)} for k, (_, hi) in ranges.items()],
                              index=[0] * len(ranges), **kwargs)
@@ -168,10 +201,6 @@ if anywidget is not None:
                 from ..cli.plot import _LazyRtree
                 self._rtree = _LazyRtree(self._dir)
             return self._rtree.bbox_query(bounds, self._zarr('x'), self._zarr('y'))
-
-        def _to_map(self, x, y):
-            """Map positions (cells of level 0) of data coordinates."""
-            return (x - self.origin[0]) / self.res, (y - self.origin[1]) / self.res
 
         def tile_values(self, z, tx, ty, index=()):
             """Raster values of tile (`tx`, `ty`) at zoom `z`: 2**z screen pixels per cell of level 0, tiles of
@@ -192,33 +221,69 @@ if anywidget is not None:
             out[:a.shape[0], :a.shape[1]] = a
             return out
 
-        def point_radius(self, z):
-            """Radius in screen pixels of the points drawn at zoom `z` > 0."""
-            return max(1.0, 0.4 * 2 ** z)
+        def pixel_size(self, z):
+            """Screen pixel size in data coordinates at zoom `z`."""
+            return self.res / 2 ** z if self.crs == 'grid' else _mercator_pixel(z)
 
-        def tile_rgba(self, z, tx, ty, index=()):
-            """(h, w, 4) uint8 RGBA image of a tile, see `tile_values`: the raster, or for point clouds
-            zoomed in beyond the finest raster (`z` > 0) the points as disks on a 256 x 256 transparent tile."""
-            if not (self._pc and z > 0):
-                return self.colorize(self.tile_values(z, tx, ty, index))
+        def point_radius(self, z):
+            """Radius in screen pixels of the points drawn at zoom `z`."""
+            return max(1.0, 0.4 * self.res / self.pixel_size(z))
+
+        def mercator_values(self, z, tx, ty, index=()):
+            """Raster values of web mercator tile (`tx`, `ty`) at zoom `z` (XYZ scheme, north up), 256 x 256,
+            nan outside the scene: the finest level whose cells are at least a screen pixel, sampled at the
+            pixel centres."""
+            m = WORLD / 2 ** z                                   # tile edge in metres
+            s = m / TILE
+            xc = -WORLD / 2 + tx * m + (np.arange(TILE) + 0.5) * s
+            yc = WORLD / 2 - ty * m - (np.arange(TILE) + 0.5) * s
+            level = int(min(max(np.ceil(np.log2(s / self.res) - 1e-9), 0), self._max_level))
+            x0, y0 = self.origin[0] + self.res / 2, self.origin[1] + self.res / 2     # centre of cell (0, 0)
+            j = np.floor(((xc - x0) / self.res + 0.5) / 2 ** level).astype(np.int64)
+            i = np.floor(((yc - y0) / self.res + 0.5) / 2 ** level).astype(np.int64)
+            data = self._zarr(level)
+            ny, nx = data.shape[:2]
+            okj, oki = (j >= 0) & (j < nx), (i >= 0) & (i < ny)
+            out = np.full((TILE, TILE), np.nan)
+            if not okj.any() or not oki.any():
+                return out
+            j0, j1, i0, i1 = j[okj].min(), j[okj].max(), i[oki].min(), i[oki].max()
+            a = np.asarray(self._post_proc(data, slice(j0, j1 + 1), slice(i0, i1 + 1), *index))
+            out[np.ix_(oki, okj)] = a[np.ix_(i[oki] - i0, j[okj] - j0)]
+            return out
+
+        def _points_rgba(self, west, top, pixel, r, down, index):
+            """256 x 256 RGBA tile with the points as disks of radius `r` pixels; the tile starts at data
+            coordinates (`west`, `top`) and has pixels of `pixel` data units, rows going `down` (y grows)
+            or up (north up)."""
             rgba = np.zeros((TILE, TILE, 4), np.uint8)
-            scale, r = 2 ** z, self.point_radius(z)                # screen pixels per cell, point radius
-            m = TILE / scale                                       # tile edge in cells
-            pad = r / scale
-            ox, oy = self.origin
-            idx = self._points_in(((tx * m - pad) * self.res + ox, (ty * m - pad) * self.res + oy,
-                                   ((tx + 1) * m + pad) * self.res + ox, ((ty + 1) * m + pad) * self.res + oy))
+            pad = r * pixel
+            span = TILE * pixel
+            y0, y1 = (top, top + span) if down else (top - span, top)
+            idx = self._points_in((west - pad, y0 - pad, west + span + pad, y1 + pad))
             if len(idx) == 0:
                 return rgba
-            u, v = self._to_map(self._zarr('x')[idx], self._zarr('y')[idx])
-            col = np.floor((u - tx * m) * scale).astype(np.int64)
-            row = np.floor((v - ty * m) * scale).astype(np.int64)
+            x, y = self._zarr('x')[idx], self._zarr('y')[idx]
+            col = np.floor((x - west) / pixel).astype(np.int64)
+            row = np.floor(((y - top) if down else (top - y)) / pixel).astype(np.int64)
             colours = self.colorize(np.asarray(self._pc_post_proc(self._zarr('pc'), idx, *index), np.float64))
-            for dy, dx in zip(*_disk(r)):
-                rr, cc = row + dy, col + dx
-                ok = (rr >= 0) & (rr < TILE) & (cc >= 0) & (cc < TILE) & (colours[:, 3] > 0)
-                rgba[rr[ok], cc[ok]] = colours[ok]
-            return rgba
+            return _stamp(rgba, row, col, colours, r)
+
+        def tile_rgba(self, z, tx, ty, index=()):
+            """(h, w, 4) uint8 RGBA image of a tile: the raster (see `tile_values` and `mercator_values`), or
+            for point clouds zoomed in until a cell of level 0 is larger than a screen pixel the points as
+            disks on a 256 x 256 transparent tile."""
+            pixel = self.pixel_size(z)
+            if not (self._pc and pixel < self.res):
+                values = self.tile_values(z, tx, ty, index) if self.crs == 'grid' else \
+                    self.mercator_values(z, tx, ty, index)
+                return self.colorize(values)
+            r = self.point_radius(z)
+            if self.crs == 'grid':
+                return self._points_rgba(self.origin[0] + tx * TILE * pixel, self.origin[1] + ty * TILE * pixel,
+                                         pixel, r, True, index)
+            return self._points_rgba(-WORLD / 2 + tx * TILE * pixel, WORLD / 2 - ty * TILE * pixel,
+                                     pixel, r, False, index)
 
         def colorize(self, values):
             """RGBA (uint8, last axis 4) of `values` with the colours of the colour bar, transparent for nan."""
@@ -231,18 +296,25 @@ if anywidget is not None:
             return rgba
 
         def value(self, u, v, z=0, index=()):
-            """Value under map position (`u`, `v`) (cells of level 0) at zoom `z`, as a dict with ``value`` and
-            the data coordinates ``x``, ``y``; for point clouds the nearest point within a few screen pixels
-            (at least half a cell) and its index ``point``. None outside the scene or without a point."""
-            ny, nx = self.shape
-            if not (0 <= u < nx and 0 <= v < ny):
-                return None
-            if not self._pc:
-                j, i = int(u), int(v)
-                a = self._post_proc(self._zarr(0), slice(j, j + 1), slice(i, i + 1), *index)
-                return {'x': j, 'y': i, 'value': _scalar(a)}
-            w = max(0.5, PROBE / 2 ** z) * self.res                # search half width in data units
-            x, y = self.origin[0] + u * self.res, self.origin[1] + v * self.res
+            """Value under map position (`u`, `v`) at zoom `z`: cells of level 0 for the radar grid, web
+            mercator metres otherwise. A dict with ``value`` and the data coordinates ``x``, ``y``; for point
+            clouds the nearest point within a few screen pixels (at least half a cell) and its index
+            ``point``. None outside the scene or without a point."""
+            if self.crs == 'grid':
+                ny, nx = self.shape
+                if not (0 <= u < nx and 0 <= v < ny):
+                    return None
+                if not self._pc:
+                    j, i = int(u), int(v)
+                    a = self._post_proc(self._zarr(0), slice(j, j + 1), slice(i, i + 1), *index)
+                    return {'x': j, 'y': i, 'value': _scalar(a)}
+                x, y = self.origin[0] + u * self.res, self.origin[1] + v * self.res
+            else:
+                x0, y0, x1, y1 = self.extent
+                if not (x0 <= u < x1 and y0 <= v < y1):
+                    return None
+                x, y = u, v
+            w = max(0.5 * self.res, PROBE * self.pixel_size(z))    # search half width in data units
             idx = self._points_in((x - w, y - w, x + w, y + w))
             if len(idx) == 0:
                 return None

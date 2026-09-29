@@ -14,7 +14,7 @@ Development moved from nbdev notebooks to plain python: packaging in `pyproject.
 
 New command `moraine view PYRAMID ... -o view.ipynb`: a notebook with interactive plots of pyramids (cyclic colorwheel for phases, viridis over the 1-99 % range otherwise, radar or map axes, plot size from the scene, sliders for stacks); `quicklook` uses the colorwheel for phases too
 
-Prototype tile viewer for raster pyramids and point cloud pyramids on the radar grid in notebooks: `moraine.command.tile_view.tile_view(PYRAMID)` shows a Leaflet map whose tiles the kernel renders, with axes, a colour bar, stack sliders, individual points when zoomed in and the value under the cursor (needs `pip install moraine[view]`)
+Prototype tile viewer for raster pyramids and point cloud pyramids (radar grid, or web mercator over a satellite / street base map) in notebooks: `moraine.command.tile_view.tile_view(PYRAMID)` shows a Leaflet map whose tiles the kernel renders, with axes, a colour bar, stack sliders, individual points when zoomed in and the value under the cursor (needs `pip install moraine[view]`)
 
 `mcf_pc` / `mcf-pc` use an own Delaunay triangulation and a successive shortest path min cost flow on its half-edges: exactly optimal, independent of the point order, about 7 times faster than before (10 million points in 16 s, GAMMA mcf_pt 35 s) with about 5 times less memory; new option `earth_cost` (default 1). OR-Tools is no longer a dependency
 
