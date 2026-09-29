@@ -227,6 +227,26 @@ def test_point_cloud_pyramid_layout(tmp_path, rng):
         np.testing.assert_array_equal(ras[idx != -1], pc[idx[idx != -1]])
 
 
+@pytest.mark.parametrize('res, x0, y0', [(1, 2, 3), (4.777314267823516, -16498435.873784425, 8649592.229351616)])
+def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
+    # one point in three cells of a 60 x 40 grid, including the last line and column
+    yi, xi = np.nonzero((np.arange(60)[:, None] + np.arange(40)[None, :]) % 3 == 0)
+    x, y = x0 + xi * res, y0 + yi * res
+    _zarr(tmp_path / 'x.zarr', x); _zarr(tmp_path / 'y.zarr', y)
+    _zarr(tmp_path / 'pc.zarr', np.arange(len(x), dtype=np.float32))
+    mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'),
+                  y=str(tmp_path / 'y.zarr'), ras_resolution=res)
+    import toml
+    bx0, by0, bxm, bym = toml.load(tmp_path / 'pyr' / 'bounds.toml')['bounds']
+    idx = zarr.open(str(tmp_path / 'pyr' / 'idx_0.zarr'), mode='r')[:]
+    assert idx.shape == (60, 40)
+    assert (bx0, by0) == (pytest.approx(x0), pytest.approx(y0))
+    assert (bxm, bym) == (pytest.approx(x0 + 39 * res), pytest.approx(y0 + 59 * res))
+    # cell (i, j) centred at (x0 + j res, y0 + i res) holds the point there: no two points share a cell
+    np.testing.assert_array_equal(idx[yi, xi], np.arange(len(x)))
+    assert (idx != -1).sum() == len(x)
+
+
 def test_newer_pyramid_is_rejected(tmp_path, rng):
     _zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
