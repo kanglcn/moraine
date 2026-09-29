@@ -49,7 +49,8 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/co.py` | interferograms, covariance / coherence matrices, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
-| `moraine/pu.py` | phase unwrapping (minimum cost flow on a Delaunay network, GAMMA wrapper) | `mcf_pc`, `gamma_mcf_pt` |
+| `moraine/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
+| `moraine/pu.py` | phase unwrapping: minimum cost flow (successive shortest paths) on the Delaunay half-edges, GAMMA wrapper | `mcf_pc`, `gamma_mcf_pt` |
 | `moraine/dl.py` | deep learning filters, model download and cached loading | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | `moraine/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
 | `moraine/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |

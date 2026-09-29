@@ -39,7 +39,6 @@ dependencies = [
     "joblib",
     "requests",
     "fpsample",
-    "ortools",
 ]
 
 [project.optional-dependencies]

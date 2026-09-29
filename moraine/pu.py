@@ -3,18 +3,14 @@
 
 __all__ = ['gamma_mcf_pt', 'mcf_pc']
 
-import math
 import numpy as np
 import tempfile
 from pathlib import Path
 import os
-from .gamma_ import read_gamma_pdata, read_gamma_plist, write_gamma_image, write_gamma_plist
-
 from numba import njit
-from scipy.spatial import Delaunay
-from scipy.sparse import csgraph as csg
-import scipy.sparse as sp
-from ortools.graph.python import min_cost_flow
+
+from .gamma_ import read_gamma_pdata, read_gamma_plist, write_gamma_image, write_gamma_plist
+from .delaunay_ import delaunay_halfedges
 
 def gamma_mcf_pt(
     pc_x:np.ndarray,
@@ -69,188 +65,270 @@ def gamma_mcf_pt(
         unwrap_ph = unwrap_ph.reshape(ph.shape)
     return unwrap_ph
 
-def _delaunay(x, y):
-    points = np.vstack((x,y)).T
-    tri = Delaunay(points,)
-    assert tri.coplanar.shape[0] == 0, "input coordinates are not unique."
-    return tri.simplices, tri.neighbors
+# ---------------------------------------------------------------- minimum cost flow unwrapping
+# Everything works on the half-edges of the Delaunay triangulation (moraine.delaunay_): `tri` (3T,) start
+# vertex of every half-edge, `half` (3T,) its twin or -1 on the convex hull. The dual graph of the MCF
+# problem is read from them directly: node e // 3 is the triangle of half-edge e, half[e] // 3 the
+# triangle across it, node T (the earth) is behind every hull half-edge.
 
-def _edge_for_graph_and_dual_graph(simplex, simplex_neighbors):
+_TWO_PI = 2 * np.pi
 
-    # simplex: 0， 1， 2
-    # edges: (2, 0), (0, 1), (1, 2)
-    edges = np.stack((np.roll(simplex, 1, 1), simplex), axis=2).reshape(-1, 2) # directed
-    sort_idx = np.argsort(edges, axis=1)
-    sorted_edges = np.take_along_axis(edges, sort_idx, axis=1)
-    unique_edges, unique_idx  = np.unique(sorted_edges, axis=0, return_index=True)
 
-    num_simplex = simplex.shape[0]
-    simplex_edges = np.stack((
-        np.broadcast_to(np.arange(num_simplex)[:, None], simplex_neighbors.shape),
-        np.roll(simplex_neighbors, -1, 1)), axis=2
-    ).reshape(-1, 2) % (num_simplex + 1)
-    # this % make -1 become num_simplex, therefore, it connect to the earth simplex
+@njit(cache=True)
+def _hull_halfedges(half):
+    n = 0
+    for e in range(half.shape[0]):
+        n += half[e] < 0
+    hull = np.empty(n, np.int32)
+    n = 0
+    for e in range(half.shape[0]):
+        if half[e] < 0:
+            hull[n] = e
+            n += 1
+    return hull
 
-    # simplex_edges: (0,1), (0,2), (0,0)
-    # so each simplex_edge exactly match point edge
 
-    unique_simplex_edges = np.take_along_axis(simplex_edges, sort_idx, axis=1)[unique_idx]
+def _mcf_network(x, y):
+    """Triangulation of the points and the hull half-edges; shared by all interferograms."""
+    tri, half = delaunay_halfedges(x, y)
+    return tri, half, _hull_halfedges(half)
 
-    return unique_edges, unique_simplex_edges
 
-@njit(fastmath=True)
-def _compute_supplys(psi, simplex):
-    n_simplex = simplex.shape[0]
-    n_vertex = simplex.shape[1]
-    two_pi = 2.0 * np.pi
-
-    supplys = np.empty(n_simplex + 1, dtype=np.int32)
-
-    for i in range(n_simplex):
+@njit(cache=True, nogil=True)
+def _mcf_residues(psi, tri):
+    """Residue of every triangle (sum of wrapped phase differences along its half-edges / 2 pi); the
+    last element is the earth, which balances the total."""
+    T = tri.shape[0] // 3
+    r = np.empty(T + 1, np.int32)
+    tot = 0
+    for t in range(T):
         s = 0.0
-        for j in range(n_vertex):
-            a = simplex[i, j]
-            b = simplex[i, (j - 1) % n_vertex]
-            diff = psi[a] - psi[b]
-            # wrap to (-pi, pi]
-            diff = (diff + np.pi) % two_pi - np.pi
-            s += diff
-        supplys[i] = int(np.round(s * 0.5 / np.pi))
+        for j in range(3):
+            d = np.float64(psi[tri[3 * t + (j + 1) % 3]]) - np.float64(psi[tri[3 * t + j]])
+            s += (d + np.pi) % _TWO_PI - np.pi
+        k = int(np.round(s / _TWO_PI))
+        r[t] = k
+        tot += k
+    r[T] = -tot
+    return r
 
-    # last element: earth node
-    supplys[-1] = -np.sum(supplys[:-1])
-    return supplys
 
-def _solve_mcf_or(simplex_edges, supplys, capacity, weights):
-    smcf = min_cost_flow.SimpleMinCostFlow()
-    smcf.add_arcs_with_capacity_and_unit_cost(simplex_edges[:,0], simplex_edges[:,1], capacity, weights)
-    smcf.add_arcs_with_capacity_and_unit_cost(simplex_edges[:,1], simplex_edges[:,0], capacity, weights)
+@njit(cache=True, nogil=True)
+def _grow(a):
+    b = np.empty(a.shape[0] * 2, a.dtype)
+    b[:a.shape[0]] = a
+    return b
 
-    smcf.set_nodes_supplies(np.arange(supplys.shape[0]), supplys)
-    status = smcf.solve()
-    assert status == 1
 
-    n_edge = simplex_edges.shape[0]
-    flows = smcf.flows(np.arange(smcf.num_arcs()))
-    flows = flows[n_edge:] - flows[:n_edge]
-    return flows
+@njit(cache=True, nogil=True)
+def _mcf_ssp(tri, half, hull, supply, earth_cost):
+    """Min cost flow by successive shortest paths.
 
-@njit(fastmath=True, nogil=True)
-def _build_adjacency(npts, edges):
-    # Count neighbors
-    counts = np.zeros(npts, dtype=np.int32)
-    for a, b in edges:
-        counts[a] += 1
-        counts[b] += 1
-
-    indptr = np.empty(npts + 1, dtype=np.int32)
-    indptr[0] = 0
-    for i in range(npts):
-        indptr[i + 1] = indptr[i] + counts[i]
-
-    indices = np.empty(indptr[-1], dtype=np.int32)
-    # Precompute edge positions
-    edge_pos_a = np.empty(len(edges), dtype=np.int32)
-    edge_pos_b = np.empty(len(edges), dtype=np.int32)
-
-    start = indptr.copy()
-    for k in range(len(edges)):
-        a = edges[k,0]
-        b = edges[k,1]
-
-        ia = start[a]
-        ib = start[b]
-
-        indices[ia] = b
-        indices[ib] = a
-
-        edge_pos_a[k] = ia
-        edge_pos_b[k] = ib
-
-        start[a] += 1
-        start[b] += 1
-
-    return indptr, indices, edge_pos_a, edge_pos_b
-
-@njit(fastmath=True)
-def _compute_diff_dual(psi, edges, flows, edge_pos_a, edge_pos_b):
-    n_edge = edges.shape[0]
-    two_pi = 2.0 * np.pi
-    diff_dual = np.empty(n_edge * 2, dtype=psi.dtype)
-
-    for i in range(n_edge):
-        a = edges[i, 0]
-        b = edges[i, 1]
-        diff = psi[b] - psi[a]
-        diff = (diff + np.pi) % two_pi - np.pi  # wrap_func
-        diff += flows[i] * two_pi
-        diff_dual[edge_pos_a[i]] = diff
-        diff_dual[edge_pos_b[i]] = -diff
-
-    return diff_dual
-
-@njit(fastmath=True, cache=True)
-def _unwrap_points_bfs(phase, indptr, indices, gradients):
+    From every node with positive excess, Dijkstra on reduced costs (node potentials keep them non
+    negative) until the nearest node with negative excess, then one unit is pushed along the path. The
+    search stops at the first sink, so it stays local when residues pair up with close neighbours.
+    Arc cost: 1 between triangles, `earth_cost` to the earth, unlimited capacity. Returns the flow per
+    half-edge, leaving triangle e // 3 across e (antisymmetric on twins).
     """
-    BFS-based flood fill using prebuilt CSR adjacency (fast, Numba-compiled).
-    """
-    npts = len(phase)
-    unwrapped = np.zeros(npts, dtype=np.float64)
-    visited = np.zeros(npts, dtype=np.bool_)
-    visited[0] = True
+    T = tri.shape[0] // 3
+    EARTH = T
+    n_nodes = T + 1
+    f = np.zeros(half.shape[0], np.int32)
+    pi = np.zeros(n_nodes, np.int64)
+    excess = supply.astype(np.int64)
+    INF = np.int64(1) << 62
+    dist = np.full(n_nodes, INF, np.int64)
+    settled = np.zeros(n_nodes, np.bool_)
+    pred = np.zeros(n_nodes, np.int64)      # e >= 0: from e // 3 across e; -(e + 1): from the earth across hull e
+    touched = np.empty(n_nodes, np.int32)
+    hd = np.empty(1024, np.int64)           # binary heap (distance, node); ties by node for determinism
+    hv = np.empty(1024, np.int32)
+    for s in range(n_nodes):
+        while excess[s] > 0:
+            nt = 1
+            touched[0] = s
+            dist[s] = 0
+            hd[0] = 0
+            hv[0] = s
+            hn = 1
+            t = -1
+            D = np.int64(0)
+            while hn > 0:
+                d = hd[0]
+                u = hv[0]
+                hn -= 1
+                hd[0] = hd[hn]
+                hv[0] = hv[hn]
+                i = 0
+                while True:
+                    l = 2 * i + 1
+                    if l >= hn:
+                        break
+                    c = l
+                    if l + 1 < hn and (hd[l + 1] < hd[l] or (hd[l + 1] == hd[l] and hv[l + 1] < hv[l])):
+                        c = l + 1
+                    if hd[i] < hd[c] or (hd[i] == hd[c] and hv[i] <= hv[c]):
+                        break
+                    hd[c], hd[i] = hd[i], hd[c]
+                    hv[c], hv[i] = hv[i], hv[c]
+                    i = c
+                if settled[u] or d > dist[u]:
+                    continue
+                settled[u] = True
+                if excess[u] < 0:
+                    t = u
+                    D = d
+                    break
+                kmax = 3 if u != EARTH else hull.shape[0]
+                for k in range(kmax):
+                    if u != EARTH:
+                        e = 3 * u + k
+                        h = half[e]
+                        if h >= 0:
+                            v = h // 3
+                            mc = 1 if f[e] >= 0 else -1
+                        else:
+                            v = EARTH
+                            mc = earth_cost if f[e] >= 0 else -earth_cost
+                        code = e
+                    else:
+                        e = hull[k]
+                        v = e // 3
+                        mc = earth_cost if f[e] <= 0 else -earth_cost
+                        code = -(e + 1)
+                    if settled[v]:
+                        continue
+                    nd = d + mc + pi[u] - pi[v]
+                    if nd < dist[v]:
+                        if dist[v] == INF:
+                            touched[nt] = v
+                            nt += 1
+                        dist[v] = nd
+                        pred[v] = code
+                        if hn >= hd.shape[0]:
+                            hd = _grow(hd)
+                            hv = _grow(hv)
+                        j = hn
+                        hd[j] = nd
+                        hv[j] = v
+                        hn += 1
+                        while j > 0:
+                            p = (j - 1) >> 1
+                            if hd[p] < hd[j] or (hd[p] == hd[j] and hv[p] <= hv[j]):
+                                break
+                            hd[p], hd[j] = hd[j], hd[p]
+                            hv[p], hv[j] = hv[j], hv[p]
+                            j = p
+            if t < 0:
+                raise RuntimeError('mcf: no sink reachable')
+            for i in range(nt):     # potentials += min(dist, D) - D; a uniform shift does not matter
+                v = touched[i]
+                if settled[v] and dist[v] < D:
+                    pi[v] += dist[v] - D
+            v = t
+            while v != s:
+                code = pred[v]
+                if code >= 0:
+                    f[code] += 1
+                    h = half[code]
+                    if h >= 0:
+                        f[h] -= 1
+                    v = code // 3
+                else:
+                    f[-code - 1] -= 1
+                    v = EARTH
+            excess[s] -= 1
+            excess[t] += 1
+            for i in range(nt):
+                v = touched[i]
+                dist[v] = INF
+                settled[v] = False
+    return f
 
-    queue = [0]
-    while queue:
-        i = queue.pop(0)
-        start, end = indptr[i], indptr[i + 1]
-        for idx in range(start, end):
-            j = indices[idx]
-            g = gradients[idx]
-            if not visited[j]:
-                unwrapped[j] = unwrapped[i] + g
-                visited[j] = True
-                queue.append(j)
-    return unwrapped + phase[0]
 
-def _prepare_mcf(x,y):
-    simplex, simplex_neighbors = _delaunay(x,y)
-    edges, simplex_edges = _edge_for_graph_and_dual_graph(simplex, simplex_neighbors)
-    n_points = x.shape[0]
-    indptr, indices, edge_pos_a, edge_pos_b = _build_adjacency(n_points, edges)
-    return simplex, edges, simplex_edges, indptr, indices, edge_pos_a, edge_pos_b
-
-def _solve_mcf(ph, simplex, edges, simplex_edges, indptr, indices, edge_pos_a, edge_pos_b, capacity=int(1e9), weight=1):
-    psi = np.angle(ph).astype(np.float32)
-    supplys = _compute_supplys(psi, simplex)
-    flows = _solve_mcf_or(simplex_edges, supplys, capacity, weight)
-    diff_dual = _compute_diff_dual(psi, edges, flows, edge_pos_a, edge_pos_b)
-    unw = _unwrap_points_bfs(psi, indptr, indices, diff_dual)
+@njit(cache=True, nogil=True)
+def _mcf_integrate(psi, tri, half, f, n_points):
+    """Breadth first search over the triangles from the first point; the unwrapped gradient along
+    half-edge e is wrap(psi[b] - psi[a]) - 2 pi f[e]. The first point keeps its wrapped phase."""
+    T = tri.shape[0] // 3
+    unw = np.empty(n_points, np.float64)
+    done = np.zeros(n_points, np.bool_)
+    seen = np.zeros(T, np.bool_)
+    t0 = 0
+    for e in range(tri.shape[0]):
+        if tri[e] == 0:
+            t0 = e // 3
+            break
+    unw[0] = psi[0]
+    done[0] = True
+    queue = np.empty(T, np.int32)
+    queue[0] = t0
+    seen[t0] = True
+    qh = 0
+    qt = 1
+    while qh < qt:
+        t = queue[qh]
+        qh += 1
+        for rep in range(2):
+            for j in range(3):
+                e = 3 * t + j
+                a = tri[e]
+                b = tri[3 * t + (j + 1) % 3]
+                if done[a] and not done[b]:
+                    d = np.float64(psi[b]) - np.float64(psi[a])
+                    unw[b] = unw[a] + (d + np.pi) % _TWO_PI - np.pi - _TWO_PI * f[e]
+                    done[b] = True
+        for j in range(3):
+            h = half[3 * t + j]
+            if h >= 0 and not seen[h // 3]:
+                seen[h // 3] = True
+                queue[qt] = h // 3
+                qt += 1
     return unw
+
+
+@njit(cache=True, nogil=True)
+def _mcf_solve(ph, tri, half, hull, earth_cost):
+    psi = np.empty(ph.shape[0], np.float32)
+    for i in range(ph.shape[0]):
+        psi[i] = np.arctan2(ph[i].imag, ph[i].real)
+    f = _mcf_ssp(tri, half, hull, _mcf_residues(psi, tri), earth_cost)
+    return _mcf_integrate(psi, tri, half, f, psi.shape[0])
+
+
+def _mcf_unwrap(ph, tri, half, hull, earth_cost=1):
+    """Unwrap one interferogram on a network made by `_mcf_network`."""
+    return _mcf_solve(np.ascontiguousarray(ph), tri, half, hull, int(earth_cost))
+
 
 def mcf_pc(
     pc_x:np.ndarray,
     pc_y:np.ndarray,
     ph:np.ndarray,
+    earth_cost:int=1,
 )-> np.ndarray:
-    """Minimum cost flow phase unwrapping solver.
-    Note that the coordinates (pc_x, pc_y) must be unique.
+    """Minimum cost flow phase unwrapping of a point cloud interferogram.
+
+    The points are triangulated (Delaunay); every triangle whose wrapped phase differences do not sum
+    to zero is a residue; a minimum cost flow between the triangles (successive shortest paths) decides
+    where the 2 pi jumps go, and the phase is integrated over the triangles from the first point. The
+    result is exactly optimal for the costs below and does not depend on the order of the points.
 
     Parameters
     ----------
     pc_x : np.ndarray
-        x coordinate, shape of (N,)
+        x coordinate, shape (N,); the coordinates must be unique and not all collinear
     pc_y : np.ndarray
-        y coordinate, shape of (N,)
+        y coordinate, shape (N,)
     ph : np.ndarray
-        wrapped phase, shape of (N,), np.complex64
+        wrapped phase (complex), shape (N,)
+    earth_cost : int, default: 1
+        cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
+        discourages discharging residues through the border (GAMMA mcf_pt behaves like 3)
 
     Returns
     -------
     np.ndarray
-        unwrapped phase, shape of (N,)
+        unwrapped phase, shape (N,), np.float64; the first point keeps its wrapped phase
     """
-    # pc_x = pc_x.astype(np.int32)
-    # pc_y = pc_y.astype(np.int32)
-    required_data = _prepare_mcf(pc_x, pc_y)
-    unw = _solve_mcf(ph, *required_data)
-    return unw
+    return _mcf_unwrap(ph, *_mcf_network(pc_x, pc_y), earth_cost)

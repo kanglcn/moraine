@@ -14,7 +14,10 @@ Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr`.
 1. `pc-gix`: grid index of the refined points (from their hilbert index).
 2. `image-pairs`: sequential pairs (bandwidth 1).
 3. `mcf-pc`: minimum cost flow unwrapping on a Delaunay network of the points, one interferogram at a
-   time (moraine's own implementation; `gamma-mcf-pt` uses GAMMA's `mcf_pt` instead and takes e/n).
+   time (moraine's own implementation: exactly optimal, independent of the point order; `earth_cost`
+   sets the cost of phase jumps across the border of the point cloud, default 1). `gamma-mcf-pt` uses
+   GAMMA's `mcf_pt` instead and takes e/n; its results differ by 2 pi at some points in low coherence
+   areas, where several unwrappings are equally good.
 4. `pc-pyramid` of the unwrapped phase on the map.
 
 Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phase in radians.
@@ -23,12 +26,12 @@ Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phas
 
 | result | sample value | sane range |
 |---|---|---|
-| `unw/pc_unw_pyramid` | p01 -5.8, p50 -0.06, p99 8.6, min -14.6, max 19.9 | a few multiples of 2 pi |
+| `unw/pc_unw_pyramid` | p01 -5.8, p50 -0.07, p99 8.6, min -14.7, max 19.9 | a few multiples of 2 pi |
 
-Run time: about 45 s for 157 189 points and 16 interferograms (CPU).
+Run time: about 12 s for 157 189 points and 16 interferograms (CPU, one worker).
 
 Correctness check (in python): rewrapping the result must give the input phase,
-`np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 2.5e-6 rad).
+`np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 1.1e-6 rad).
 
 ## Checks
 

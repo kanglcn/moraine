@@ -120,12 +120,16 @@ def mcf_pc(
     ph:str,
     unw_ph:str,
     image_pairs:np.ndarray,
+    earth_cost:int=1,
     out_chunks:int=None,
     n_workers=1,
     threads_per_worker=2,
     **dask_cluster_arg,
 ):
     """Minimum cost flow phase unwrapping of point cloud interferograms (own implementation, GAMMA not needed).
+
+    The Delaunay triangulation of the points is made once and shared by all interferograms; each one is
+    unwrapped by `moraine.mcf_pc` (exactly optimal, independent of the order of the points).
 
     Parameters
     ----------
@@ -138,6 +142,9 @@ def mcf_pc(
         output: unwrapped phase of the interferograms, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
         image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
+    earth_cost : int, default: 1
+        cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
+        discourages discharging residues through the border (GAMMA mcf_pt behaves like 3)
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
@@ -166,8 +173,8 @@ def mcf_pc(
 
     if out_chunks is None: out_chunks = ph_zarr.chunks[0]
 
-    logger.info('construct Delaunay triangulation and mcf solver')
-    required_data = mr.pu._prepare_mcf(pc_x_data, pc_y_data)
+    logger.info('Delaunay triangulation of the points')
+    required_data = mr.pu._mcf_network(pc_x_data, pc_y_data)
     logger.info('Done')
 
     Cluster = LocalCluster; cluster_args = {'processes':True, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
@@ -185,14 +192,14 @@ def mcf_pc(
         logger.info(f'phase wrapping with mcf.')
 
         unw_ph_delayed = np.empty((1,nimage_pairs),dtype=object)
-        f_mcf_delayed = delayed(mr.pu._solve_mcf,pure=True,nout=1)
+        f_mcf_delayed = delayed(mr.pu._mcf_unwrap,pure=True,nout=1)
         f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
         for i, (ref, sec) in enumerate(image_pairs):
             ref_ph_delayed = ph[:,ref].to_delayed()[0]
             sec_ph_delayed = ph[:,sec].to_delayed()[0]
             intf_delayed = f_intf_delayed(ref_ph_delayed,sec_ph_delayed)
             # intf_delayed = f_intf_delayed(ph_delayed[ref],ph_delayed[sec])
-            unw_ph_delayed[0,i] = f_mcf_delayed(intf_delayed, *required_data_future)
+            unw_ph_delayed[0,i] = f_mcf_delayed(intf_delayed, *required_data_future, earth_cost)
             unw_ph_delayed[0,i] = da.from_delayed(unw_ph_delayed[0,i],shape=(npoint,),meta=np.array((),dtype=np.float32)).reshape(npoint,1)
         unw_ph = da.block(unw_ph_delayed.tolist())
 
