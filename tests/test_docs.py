@@ -11,7 +11,7 @@ REPO = Path(__file__).resolve().parents[1]
 DOCS = [REPO / 'AGENTS.md', REPO / 'README.md', REPO / 'ARCHITECTURE.md',
         *sorted((REPO / 'docs' / 'workflows').glob('*.md')),
         *sorted((REPO / 'docs' / 'decisions').glob('*.md')),
-        *sorted((REPO / 'docs' / 'contracts').glob('*.md')), REPO / 'docs' / 'development.md',
+        *sorted((REPO / 'docs' / 'contracts').glob('*.md')), REPO / 'docs' / 'development.md', REPO / 'docs' / 'roadmap.md',
         REPO / '.claude' / 'skills' / 'moraine-processing' / 'SKILL.md',
         REPO / '.claude' / 'skills' / 'moraine-development' / 'SKILL.md']
 BUILTIN = {'list', 'info', 'quicklook', 'view', 'run', 'status', 'COMMAND', 'FILE'}

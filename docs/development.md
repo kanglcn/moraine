@@ -1,7 +1,8 @@
 # Developing moraine
 
 How to change moraine, for contributors and coding agents. The map of the code is `ARCHITECTURE.md`,
-the design decisions are in `docs/decisions/`, the promised formats in `docs/contracts/`.
+the design decisions are in `docs/decisions/`, the promised formats in `docs/contracts/`, planned features in
+`docs/roadmap.md`.
 
 ## Before changing code
 

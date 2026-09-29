@@ -57,7 +57,10 @@ unw(a, b) + unw(b, c) = unw(a, c). The optional output `misclosure` is, per poin
 triangles that did not close before the network was made consistent (sample: mean 21 % for the refined
 points, 26 % for the DS points); where it is high the result relies on the majority of the interferograms.
 Coordinates are converted to meters with the pixel spacings of `raw/meta.toml`; `weight` (e.g. the temporal
-coherence) can make phase jumps prefer low quality points (`spatial_cost` with `weight`).
+coherence) can make phase jumps prefer low quality points (`spatial_cost` with `weight`). `exclude` leaves
+decorrelated images out of the network (dates, e.g. `exclude = ["20211025"]`): on the sample data the
+interferograms using 2021-10-25 (snow) and the images of 2022-09-12 to 2022-10-24 are mostly noise; leaving
+out 2021-10-25 reduces the open triangles from 13 % to 5 % (constant spatial cost).
 
 How the defaults were chosen (`tests/unwrap_benchmark.py`, synthetic data with known truth: clusters of
 points linked by sparse points, a winter gap, seasonal deformation, DEM error, atmosphere, noise; 8

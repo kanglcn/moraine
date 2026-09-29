@@ -230,6 +230,7 @@ def emcf_pc(
     spatial_cost:str='gradient+correction+length',
     repair:bool=True,
     n_workers:int=None,
+    exclude:str|list=None,
     out_chunks:int=None,
 ):
     """Extended minimum cost flow (EMCF) phase unwrapping of point cloud interferograms (own implementation, GAMMA
@@ -276,6 +277,9 @@ def emcf_pc(
         make the interferograms of every triangle of images add up to zero at every point
     n_workers : int, optional
         number of interferograms unwrapped at the same time; up to 8 by default
+    exclude : str or list, optional
+        dates (YYYYMMDD) of images left out of the network, e.g. decorrelated by snow; no interferogram uses
+        them
     out_chunks : int, optional
         point chunk size of the outputs, same as `ph` by default
     """
@@ -288,6 +292,11 @@ def emcf_pc(
     t = np.array([(d - dates[0]).days for d in dates], dtype=np.float64)
     bperp = np.asarray(m['perpendicular_baseline'], dtype=np.float64)
     rps, azps = float(m.get('range_pixel_spacing', 1.0)), float(m.get('azimuth_pixel_spacing', 1.0))
+    ex = [] if exclude is None else ([exclude] if isinstance(exclude, str) else list(exclude))
+    missing = [d for d in ex if str(d) not in [str(x) for x in m['dates']]]
+    if missing:
+        raise ValueError(f'exclude: dates {missing} are not in {meta}')
+    ex_idx = [[str(x) for x in m['dates']].index(str(d)) for d in ex]
     logger.info(f'{len(dates)} images, {t[-1]:.0f} days, perpendicular baselines {bperp.min():.1f} .. {bperp.max():.1f} m, '
                 f'pixel spacing {rps} m (range) x {azps} m (azimuth)')
 
@@ -302,7 +311,8 @@ def emcf_pc(
     unw, image_pairs, mis = mr.emcf_pc(gix_data[:, 1] * rps, gix_data[:, 0] * azps, ph_data, t, bperp,
                                        weight=weight_data, earth_cost=earth_cost, t_scale=t_scale,
                                        bperp_scale=bperp_scale, temporal_cost=temporal_cost,
-                                       spatial_cost=spatial_cost, repair=repair, n_workers=n_workers)
+                                       spatial_cost=spatial_cost, repair=repair, n_workers=n_workers,
+                                       exclude=ex_idx)
     logger.info(f'{image_pairs.shape[0]} interferograms unwrapped; triangles of images that did not close '
                 f'before the repair: {mis.mean():.2%} (points with any: {np.mean(mis > 0):.1%})')
     unw_zarr = zarr.open(unw_ph, mode='w', shape=unw.shape, dtype=np.float32, chunks=(out_chunks, 1))

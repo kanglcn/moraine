@@ -97,5 +97,6 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `docs/decisions/` | design decision records |
 | `docs/contracts/` | promises on formats others depend on (JSON output, pipeline files, pyramids, data) |
 | `docs/development.md` | how to change moraine |
+| `docs/roadmap.md` | planned features not started yet |
 | `nbs/Tutorials/` | tutorial notebooks (examples, not tests) |
 | `data/` | sample data (not in git) |

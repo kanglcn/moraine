@@ -447,3 +447,32 @@ def test_emcf_benchmark():
     assert np.median(r[:, 0]) < 0.003
     assert r[:, 0].max() < 0.2
     assert r[:, 1].mean() < 0.0011
+
+
+def test_emcf_exclude_images(tmp_path):
+    """Excluded images are left out of the network; the pairs keep the image numbers of the full stack."""
+    import toml
+    import zarr
+    import moraine.cli as mc
+    from moraine.pu import emcf_pc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.3, n=1500)
+    unw, pairs, mis = emcf_pc(x, y, ph, t, b, exclude=[3, 7])
+    assert not np.isin(pairs, [3, 7]).any() and set(pairs.ravel()) == set(range(12)) - {3, 7}
+    keep = np.setdiff1d(np.arange(12), [3, 7])
+    ref, ref_pairs, _ = emcf_pc(x, y, ph[:, keep], t[keep], b[keep])
+    np.testing.assert_array_equal(pairs, keep[ref_pairs])
+    np.testing.assert_array_equal(unw, ref)
+    with pytest.raises(ValueError, match='at least 3'):
+        emcf_pc(x, y, ph, t, b, exclude=list(range(10)))
+    # command: dates
+    dates = [(np.datetime64('2021-01-01') + int(d)).astype(str).replace('-', '') for d in t]
+    toml.dump({'dates': dates, 'perpendicular_baseline': b.tolist()}, open(tmp_path / 'meta.toml', 'w'))
+    for name, data in [('gix.zarr', np.stack((y, x), -1).astype(np.int32)), ('ph.zarr', ph)]:
+        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(500, 1))
+        z[:] = data
+    mc.emcf_pc(str(tmp_path / 'gix.zarr'), str(tmp_path / 'ph.zarr'), str(tmp_path / 'meta.toml'),
+               str(tmp_path / 'unw.zarr'), str(tmp_path / 'pairs.txt'), exclude=[dates[3], dates[7]])
+    np.testing.assert_array_equal(np.loadtxt(tmp_path / 'pairs.txt', dtype=int), pairs)
+    with pytest.raises(ValueError, match='not in'):
+        mc.emcf_pc(str(tmp_path / 'gix.zarr'), str(tmp_path / 'ph.zarr'), str(tmp_path / 'meta.toml'),
+                   str(tmp_path / 'unw2.zarr'), str(tmp_path / 'pairs2.txt'), exclude='19990101')

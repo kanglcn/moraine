@@ -670,6 +670,7 @@ def emcf_pc(
     repair:bool=True,
     repair_cost:int=1,
     n_workers:int=None,
+    exclude:list=None,
 ):
     """Extended minimum cost flow (EMCF) phase unwrapping of point cloud interferograms.
 
@@ -718,6 +719,8 @@ def emcf_pc(
         how much more it costs the repair to change an interferogram at a point where it has no phase jump
     n_workers : int, optional
         number of interferograms unwrapped at the same time; up to 8 by default
+    exclude : list, optional
+        indices of images left out of the network, e.g. decorrelated by snow; no interferogram uses them
 
     Returns
     -------
@@ -725,7 +728,8 @@ def emcf_pc(
         unwrapped phase of the interferograms, shape (n_points, n_image_pairs), np.float32; the first
         point keeps its wrapped phase
     image_pairs : np.ndarray
-        the interferograms (reference, secondary) image indices, shape (n_image_pairs, 2), np.int32
+        the interferograms (reference, secondary) image indices (of all images, excluded ones included),
+        shape (n_image_pairs, 2), np.int32
     misclosure : np.ndarray
         fraction of the triangles of images whose interferograms did not add up to zero at every point before
         the repair, shape (n_points,), np.float32; 0 where the interferograms agreed
@@ -736,6 +740,16 @@ def emcf_pc(
     if ph.ndim != 2 or ph.shape[1] != len(t) or len(t) != len(bperp):
         raise ValueError(f'ph must have shape (n_points, nimages) with nimages = len(t) = len(bperp), got '
                          f'{ph.shape}, {len(t)}, {len(bperp)}')
+    keep = np.ones(len(t), bool)
+    if exclude is not None and len(exclude):
+        keep[np.asarray(exclude, dtype=int)] = False
+        if keep.sum() < 3:
+            raise ValueError('at least 3 images must be left after `exclude`')
+    images = np.flatnonzero(keep)
+    if not keep.all():
+        ph = np.ascontiguousarray(ph[:, images])
+        t = np.asarray(t, dtype=np.float64)[images]
+        bperp = np.asarray(bperp, dtype=np.float64)[images]
     flags = _spatial_cost_flags(spatial_cost, weight)
     t_tri, t_half, t_hull, pairs, t_pair, t_sign = _temporal_network(t, bperp, t_scale, bperp_scale)
     pair_cost, adaptive = _temporal_costs(t, bperp, pairs, t_scale, bperp_scale, temporal_cost)
@@ -774,4 +788,4 @@ def emcf_pc(
     else:
         n_open = _emcf_repair(ph, unw.copy(), pairs, t_tri, t_half, t_hull, t_pair, t_sign, earth_cost,
                               np.ones(n_pairs, np.int64), touched, 1)
-    return unw, pairs, (n_open / (t_tri.shape[0] // 3)).astype(np.float32)
+    return unw, images[pairs].astype(np.int32), (n_open / (t_tri.shape[0] // 3)).astype(np.float32)
