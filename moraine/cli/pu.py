@@ -23,7 +23,7 @@ def gamma_mcf_pt(
     ph:str,
     unw_ph:str,
     image_pairs:np.ndarray,
-    ref_point:int=1,
+    ref_point:int=0,
     out_chunks:int=None,
     n_workers=1,
     threads_per_worker=2,
@@ -43,8 +43,8 @@ def gamma_mcf_pt(
         output: unwrapped phase of the interferograms, shape (n_points, n_image_pairs)
     image_pairs : np.ndarray
         image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
-    ref_point : int, default: 1
-        reference point, the first point by default
+    ref_point : int, default: 0
+        index of the reference point (from 0), the first point by default
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
@@ -97,7 +97,7 @@ def gamma_mcf_pt(
         f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
         for i, (ref, sec) in enumerate(image_pairs):
             intf_delayed = f_intf_delayed(ph_delayed[ref],ph_delayed[sec])
-            unw_ph_delayed[0,i] = f_mcf_delayed(pc_x_delayed, pc_y_delayed, intf_delayed)
+            unw_ph_delayed[0,i] = f_mcf_delayed(pc_x_delayed, pc_y_delayed, intf_delayed, ref_point=ref_point)
             unw_ph_delayed[0,i] = da.from_delayed(unw_ph_delayed[0,i],shape=(npoint,1),meta=np.array((),dtype=np.float32))
         unw_ph = da.block(unw_ph_delayed.tolist())
 

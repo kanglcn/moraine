@@ -185,3 +185,43 @@ def test_mcf_pc_not_worse_than_gamma(ds_ph):
     e, psi = r['edges'], r['psi'].astype(float)
     k = np.rint((g[e[:, 1]] - g[e[:, 0]] - wrap(psi[e[:, 1]] - psi[e[:, 0]])) / (2 * np.pi))
     assert r['total'] <= int((np.abs(k) * r['cost']).sum())
+
+
+needs_gamma = pytest.mark.skipif(__import__('shutil').which('mcf_pt') is None, reason='GAMMA mcf_pt not found')
+
+
+@pytest.fixture(scope='module')
+def ramp_ph(ds_ph):
+    """Sample interferogram plus a ramp of about 3 cycles, and a point that is not in the same cycle as
+    the first point: with it as reference, the result differs from the default reference."""
+    gix, ph = ds_ph
+    ph = (ph * np.exp(1j * 0.05 * gix[:, 1])).astype(np.complex64)
+    unw0 = gamma_mcf_pt(gix[:, 1], gix[:, 0], ph)
+    k = int(np.flatnonzero(np.abs(unw0 - np.angle(ph)) > 1)[0])
+    return gix, ph, k
+
+
+@needs_gamma
+def test_gamma_mcf_pt_weights_and_reference(ramp_ph):
+    gix, ph, k = ramp_ph
+    x, y = gix[:, 1], gix[:, 0]
+    w = np.random.default_rng(0).uniform(0.2, 1.0, len(ph))
+    # mcf_pt reads FLOAT weights: float64 input must give the same result as float32
+    np.testing.assert_array_equal(gamma_mcf_pt(x, y, ph, ph_weight=w), gamma_mcf_pt(x, y, ph, ph_weight=w.astype(np.float32)))
+    unw = gamma_mcf_pt(x, y, ph, ref_point=k)
+    assert abs(unw[k] - np.angle(ph[k])) < 1e-5      # the reference point keeps its wrapped phase
+
+
+@needs_gamma
+def test_cli_gamma_mcf_pt_reference(ramp_ph, tmp_path):
+    import zarr
+    import moraine.cli as mc
+    gix, ph, k = ramp_ph
+    for name, data in [('x.zarr', gix[:, 1].astype(np.float64)), ('y.zarr', gix[:, 0].astype(np.float64)),
+                       ('ph.zarr', np.stack((np.ones_like(ph), ph), -1).astype(np.complex64))]:
+        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=data.shape)
+        z[:] = data
+    mc.gamma_mcf_pt(str(tmp_path / 'x.zarr'), str(tmp_path / 'y.zarr'), str(tmp_path / 'ph.zarr'),
+                    str(tmp_path / 'unw.zarr'), np.array([[1, 0]]), ref_point=k)
+    unw = zarr.open(str(tmp_path / 'unw.zarr'), mode='r')[:, 0]
+    assert abs(unw[k] - np.angle(ph[k])) < 1e-4

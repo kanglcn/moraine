@@ -32,7 +32,7 @@ def gamma_mcf_pt(
     ph_weight : np.ndarray, optional
         point weight, shape of (N,) or (N,M), optional
     ref_point : int, default: 0
-        reference point, the first point by default
+        index of the reference point (from 0), the first point by default
 
     Returns
     -------
@@ -55,7 +55,7 @@ def gamma_mcf_pt(
             ph_weight_path = '-'
         else:
             ph_weight_path = temp_dir/'ph_weight'
-            ph_wieght = ph_weight.astype(np.float32)
+            ph_weight = ph_weight.astype(np.float32)   # mcf_pt reads FLOAT
             write_gamma_image(ph_weight,ph_weight_path)
 
         mcf_pt_command = f'mcf_pt {str(pc_path)} - {str(ph_path)} - {str(ph_weight_path)} - {str(unwrap_ph_path)} - - {ref_point} &> {temp_dir/"gamma.log"}'
