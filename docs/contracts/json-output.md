@@ -51,6 +51,13 @@ Any command of `moraine list` (e.g. `moraine amp-disp ... --json`).
 |---|---|---|
 | `png` | string | the PNG written |
 
+### view
+
+| field | type | description |
+|---|---|---|
+| `notebook` | string | the notebook written |
+| `pyramids` | list of strings | the pyramids it shows, as given |
+
 ### run
 
 | field | type | description |

@@ -85,6 +85,9 @@ Never load large arrays to look at them. Use:
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
   `--post_proc intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
   Look at the PNG: fringes should be continuous, noise should be where coherence is low.
+- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb` writes a notebook with interactive plots (zoom and pan
+  load details, sliders for the images of a stack, colours and axes chosen from the data). Give it to the
+  user to open in Jupyter / VS Code; it needs no server or port forwarding. Do not write plotting code.
 - Pyramids are made by the `ras-pyramid` (rasters) and `pc-pyramid` (point clouds) commands; the
   examples build them for the results worth checking, and `moraine run` saves their PNGs to
   `WORK/.moraine/<file name>/quicklook/`.

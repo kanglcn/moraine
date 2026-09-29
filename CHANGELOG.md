@@ -12,6 +12,8 @@ Development moved from nbdev notebooks to plain python: packaging in `pyproject.
 
 `moraine ... --json` output has `version` and `ok` fields; pyramids record their format version in `0.zarr`; pipeline files may declare `[pipeline] version`. The formats are specified in `docs/contracts/`
 
+New command `moraine view PYRAMID ... -o view.ipynb`: a notebook with interactive plots of pyramids (cyclic colorwheel for phases, viridis over the 1-99 % range otherwise, radar or map axes, plot size from the scene, sliders for stacks); `quicklook` uses the colorwheel for phases too
+
 `mcf_pc` / `mcf-pc` use an own Delaunay triangulation and a successive shortest path min cost flow on its half-edges: exactly optimal, independent of the point order, about 7 times faster than before (10 million points in 16 s, GAMMA mcf_pt 35 s) with about 5 times less memory; new option `earth_cost` (default 1). OR-Tools is no longer a dependency
 
 `gamma_mcf_pt`: float64 weights are converted to the FLOAT type mcf_pt reads (they were misread); the `gamma-mcf-pt` command passes `ref_point` on (it was ignored and the first point always used) and its default is 0, the first point as documented

@@ -9,6 +9,7 @@ function signature and numpy docstring::
     moraine info ps/adi.zarr                      # shape, dtype and chunks of a result
     moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
     moraine quicklook ps/adi_pyramid -o adi.png   # PNG of a pyramid, drawn with moraine's holoviews plots
+    moraine view ps/adi_pyramid -o view.ipynb     # notebook with interactive plots of pyramids
     moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
     moraine run pipeline.toml                     # run (or resume) a processing pipeline
     moraine status pipeline.toml
@@ -443,6 +444,13 @@ def _build_parser(with_commands=True):
                    help='how to show a stack, see moraine.cli.ras_plot (default: the phase for complex data)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     _add_global(p)
+    p = sub.add_parser('view', help='write a notebook with interactive plots of pyramids')
+    p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
+    p.add_argument('-o', '--out', default='view.ipynb', help='notebook to write (default: view.ipynb)')
+    p.add_argument('--post_proc', choices=['phase', 'intf_0', 'intf_seq', 'intf_all'],
+                   help='how to show stacks, see moraine.cli.ras_plot (default: the phase for complex data)')
+    p.add_argument('--overwrite', action='store_true', help='replace an existing notebook')
+    _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
     p.add_argument('pipeline')
     p.add_argument('--dry-run', action='store_true', help='check the file and print the plan only')
@@ -474,7 +482,7 @@ def _run(args):
                     print(f'{mod}:')
                     for c in group:
                         print(f'  {c.name:32s} {c.summary.split(". ")[0][:90]}')
-            print('\nOther: info, quicklook, run, status.  `moraine COMMAND --help` for details.')
+            print('\nOther: info, quicklook, view, run, status.  `moraine COMMAND --help` for details.')
         return _emit(args, result, text)
     if sub == 'info':
         from .summary import summarize
@@ -485,6 +493,11 @@ def _run(args):
         out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
         quicklook(args.pyramid, out, index=tuple(args.index), post_proc=args.post_proc, width=args.width)
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
+    if sub == 'view':
+        from .summary import view
+        out = view(args.pyramids, args.out, post_proc=args.post_proc, overwrite=args.overwrite)
+        return _emit(args, {'notebook': out, 'pyramids': args.pyramids},
+                     lambda: print(f'saved {out}: open it in Jupyter or VS Code and run all cells'))
     if sub in ('run', 'status'):
         from . import pipeline
         return pipeline.cli(args, _emit)
@@ -507,7 +520,7 @@ def _run(args):
 
 def _normalize_options(argv):
     """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands."""
-    if not argv or argv[0] in ('list', 'info', 'quicklook', 'run', 'status'):
+    if not argv or argv[0] in ('list', 'info', 'quicklook', 'view', 'run', 'status'):
         return argv
     out = []
     for tok in argv:
@@ -524,7 +537,7 @@ def main(argv=None):
     """Entry point of the ``moraine`` command."""
     argv = _normalize_options(sys.argv[1:] if argv is None else list(argv))
     # the processing commands import the whole library; skip that for --help of the top level
-    needs_commands = not argv or argv[0] not in ('info', 'quicklook', 'status') or '--help' in argv
+    needs_commands = not argv or argv[0] not in ('info', 'quicklook', 'view', 'status') or '--help' in argv
     parser = _build_parser(with_commands=needs_commands or argv[0] == 'run')
     args = parser.parse_args(argv)
     if not args._sub:

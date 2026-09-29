@@ -116,6 +116,8 @@ def test_json_quicklook(tmp_path, capsys, rng):
     capsys.readouterr()
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
     _check(_json_out(capsys), 'Every output', 'quicklook')
+    assert main(['view', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'v.ipynb'), '--json']) == 0
+    _check(_json_out(capsys), 'Every output', 'view')
 
 
 PIPELINE = '''

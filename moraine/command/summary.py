@@ -1,6 +1,7 @@
-"""Metadata of results, statistics and quicklook images of pyramids (drawn with the holoviews plots of moraine)."""
+"""Metadata of results, statistics, quicklook images and interactive views of pyramids (drawn with the
+holoviews plots of moraine)."""
 
-__all__ = ['summarize', 'quicklook', 'pyramid_levels']
+__all__ = ['summarize', 'quicklook', 'view', 'view_pyramid', 'pyramid_levels']
 
 import math
 from pathlib import Path
@@ -213,7 +214,7 @@ def quicklook(
     frames = [plot[index] if kdims else plot[()] for plot in plots]
 
     phase_like = complex_data or post_proc in ('phase', 'intf_0', 'intf_seq', 'intf_all')
-    style = dict(cmap='twilight', clim=(-np.pi, np.pi)) if phase_like else dict(cmap='viridis')
+    style = dict(cmap=_cyclic_cmap(), clim=(-np.pi, np.pi)) if phase_like else dict(cmap='viridis')
     title = f'{p.name}  {tuple(base.shape)} {base.dtype}'
     if kdims:
         title += '  ' + ', '.join(f'{d.name}={v}' for d, v in zip(kdims, index))
@@ -224,4 +225,183 @@ def quicklook(
                                     backend='matplotlib')
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     hv.save(frame, str(out), backend='matplotlib')
+    return str(out)
+
+
+# ---------------------------------------------------------------- interactive views
+
+_PHASE_POST_PROC = ('phase', 'intf_0', 'intf_seq', 'intf_all')
+_FRAME = (900, 700)            # largest plot area (width, height) in screen pixels
+_MAX_RATIO = 4                 # scenes more elongated than 1:4 are drawn with this ratio
+
+
+def _cyclic_cmap():
+    import colorcet
+    return colorcet.colorwheel
+
+
+def _phase_pc_1d(data_zarr, idx_array):
+    return np.angle(data_zarr[idx_array])
+
+
+def _kdim_ranges(shape, post_proc):
+    """Range of the image indices i (and j) of a stack for the sliders."""
+    extra = shape[2:]
+    if not extra:
+        return {}
+    n = extra[0]
+    if post_proc == 'intf_seq':
+        return {'i': (0, n - 2)}
+    if post_proc == 'intf_all':
+        return {'i': (0, n - 1), 'j': (0, n - 1)}
+    if post_proc in ('phase', 'intf_0'):
+        return {'i': (0, n - 1)}
+    return {name: (0, m - 1) for name, m in zip(('i', 'j'), extra)}
+
+
+def _frame_size(width, height):
+    """Plot area with the aspect of the scene, fitted into _FRAME; very elongated scenes are squeezed."""
+    ratio = min(max(width / height, 1 / _MAX_RATIO), _MAX_RATIO)
+    if ratio >= _FRAME[0] / _FRAME[1]:
+        return _FRAME[0], max(1, round(_FRAME[0] / ratio))
+    return max(1, round(_FRAME[1] * ratio)), _FRAME[1]
+
+
+def view_pyramid(
+    pyramid:str,
+    post_proc:str=None,
+):
+    """Interactive plot of a pyramid for a Jupyter notebook: zoom and pan read only the data on screen.
+
+    Parameters
+    ----------
+    pyramid : str
+        pyramid directory made by `ras_pyramid` or `pc_pyramid`
+    post_proc : str, optional
+        how to show a stack of images: 'phase', 'intf_0' (interferograms with the first image),
+        'intf_seq' (sequential interferograms) or 'intf_all' (any pair); the phase for complex data by
+        default
+
+    Returns
+    -------
+    holoviews object
+        the plot, with a colour bar (cyclic for phases, viridis otherwise), axes of the right orientation
+        and sliders for the images of a stack
+    """
+    import holoviews as hv
+    from ..cli.plot import ras_plot, pc_plot
+
+    p = Path(pyramid)
+    levels = pyramid_levels(p)
+    if not levels:
+        raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid` (rasters) '
+                         f'or `moraine pc-pyramid` (point clouds)')
+    base = zarr.open(str(p / '0.zarr'), mode='r')
+    is_pc = (p / 'bounds.toml').exists()
+    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
+    ras_proc = pc_proc = post_proc
+    if post_proc is None and complex_data:
+        if base.ndim == 3:
+            ras_proc = pc_proc = post_proc = 'phase'
+        else:
+            ras_proc, pc_proc = _phase_2d, _phase_pc_1d
+    phase_like = complex_data or post_proc in _PHASE_POST_PROC
+
+    # colours: cyclic over (-pi, pi] for phases, else viridis over the 1 % - 99 % range of the values
+    if phase_like:
+        cmap, clim, label = _cyclic_cmap(), (-np.pi, np.pi), 'phase (rad)'
+    else:
+        stats = summarize(str(p))
+        cmap, label = 'viridis', p.name
+        if 'true_fraction' in stats:
+            clim = (0, 1)
+        elif stats.get('p01') is not None and stats['p01'] < stats['p99']:
+            clim = (stats['p01'], stats['p99'])
+        else:
+            clim = (np.nan, np.nan)
+
+    # axes: rasters and point clouds on the radar grid have range to the right and azimuth down;
+    # point clouds on map coordinates keep north up
+    if is_pc:
+        import toml
+        x0, y0, xm, ym = toml.load(p / 'bounds.toml')['bounds']
+        grid = all(float(v).is_integer() and v >= 0 for v in (x0, y0, xm, ym))
+        width, height = xm - x0, ym - y0
+    else:
+        grid = True
+        height, width = base.shape[:2]
+    xlabel, ylabel = ('range', 'azimuth') if grid else ('x', 'y')
+    frame_width, frame_height = _frame_size(max(width, 1), max(height, 1))
+
+    if is_pc:
+        layers = list(pc_plot(str(p), post_proc_ras=ras_proc, post_proc_pc=pc_proc))
+    else:
+        layers = [ras_plot(str(p), post_proc=ras_proc)]
+    ranges = _kdim_ranges(base.shape, post_proc if isinstance(post_proc, str) else None)
+    if ranges:
+        layers = [layer.redim.range(**{k: v for k, v in ranges.items() if k in [d.name for d in layer.kdims]})
+                  for layer in layers]
+    style = dict(cmap=cmap, clim=clim, tools=['hover'])
+    layers[0] = layers[0].opts(colorbar=True, colorbar_opts={'title': label}, **style)
+    if is_pc:        # the points of the finest zoom share the colours of the image layer
+        layers[1] = layers[1].opts(color='z', size=5, **style)
+    title = f'{p.name}  {tuple(base.shape)} {base.dtype}' + (f'  {post_proc}' if isinstance(post_proc, str) else '')
+    plot = layers[0] * layers[1] if is_pc else layers[0]     # `*` keeps the slider dimensions of both layers
+    return plot.opts(frame_width=frame_width, frame_height=frame_height, xlabel=xlabel, ylabel=ylabel,
+                     invert_yaxis=grid, title=title)
+
+
+def view(
+    pyramids:list,
+    out:str,
+    post_proc:str=None,
+    overwrite:bool=False,
+)->str:
+    """Write a Jupyter notebook with an interactive plot of every pyramid.
+
+    Open it in Jupyter or VS Code, choose the python environment of moraine as kernel and run all cells.
+    No server or port forwarding is needed: the kernel reads the data on the machine that holds them.
+
+    Parameters
+    ----------
+    pyramids : list
+        pyramid directories made by `ras_pyramid` / `pc_pyramid`
+    out : str
+        notebook to write (.ipynb)
+    post_proc : str, optional
+        how to show stacks, see `view_pyramid`
+    overwrite : bool, default: False
+        replace an existing notebook
+
+    Returns
+    -------
+    str
+        the notebook path
+    """
+    import json
+    for pyr in pyramids:
+        if not pyramid_levels(pyr):
+            raise ValueError(f'{pyr} is not a pyramid; build one first with `moraine ras-pyramid` (rasters) '
+                             f'or `moraine pc-pyramid` (point clouds)')
+    out = Path(out)
+    if out.suffix != '.ipynb':
+        raise ValueError(f'{out}: the notebook name must end with .ipynb')
+    if out.exists() and not overwrite:
+        raise FileExistsError(f'{out} exists; choose another name or overwrite it')
+
+    def cell(kind, text):
+        c = {'cell_type': kind, 'metadata': {}, 'source': text.splitlines(True)}
+        if kind == 'code':
+            c.update(execution_count=None, outputs=[])
+        return c
+
+    arg = f', post_proc={post_proc!r}' if post_proc else ''
+    cells = [cell('markdown', 'Interactive views of moraine pyramids: zoom and pan to load details, use the '
+                              'sliders to change the image of a stack.'),
+             cell('code', 'import holoviews as hv\nfrom moraine.command.summary import view_pyramid\n'
+                          "hv.extension('bokeh')\nhv.output(widget_location='bottom')   # sliders below the plots")]
+    cells += [cell('code', f'view_pyramid({str(Path(pyr).resolve())!r}{arg})') for pyr in pyramids]
+    nb = {'cells': cells, 'metadata': {'language_info': {'name': 'python'}}, 'nbformat': 4, 'nbformat_minor': 5}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(nb, indent=1) + '\n')
     return str(out)

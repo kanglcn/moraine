@@ -85,7 +85,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 |---|---|
 | `moraine/command/__init__.py` | command registry generated from `moraine.cli`, argument parsing and validation, `execute`, `--json` output, `main` |
 | `moraine/command/pipeline.py` | TOML pipeline loading (`[vars]`, `[defaults]`, `[[step]]`), planning, resume, state in `.moraine/<file name>/` |
-| `moraine/command/summary.py` | `info` metadata and pyramid statistics, `quicklook` through `ras_plot` / `pc_plot` |
+| `moraine/command/summary.py` | `info` metadata and pyramid statistics, `quicklook` (PNG) and `view` (notebook with interactive plots) through `ras_plot` / `pc_plot` |
 
 ## Other parts of the repository
 

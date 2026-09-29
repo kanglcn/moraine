@@ -404,3 +404,87 @@ def test_outputs_without_slash_or_dot(tmp_path, capsys, rng, monkeypatch):
     assert main(['ras-pyramid', '--ras', 'ras.zarr', '--out_dir', 'pyr', '--json', '-q']) == 0
     out = _json_out(capsys)
     assert out['outputs'] == ['pyr'] and out['inputs'].keys() == {'ras.zarr'}
+
+
+# ---------------------------------------------------------------- interactive views
+
+def _rendered(plot):
+    import holoviews as hv
+    from bokeh.models import ColorBar
+    fig = hv.render(plot, backend='bokeh')
+    bar = [r for r in fig.right if isinstance(r, ColorBar)][0]
+    return fig, bar
+
+
+@pytest.fixture
+def pyramids(tmp_path, rng):
+    import moraine.cli as mc
+    d = tmp_path
+    stack = np.exp(1j * rng.uniform(-np.pi, np.pi, (60, 40, 4))).astype(np.complex64)
+    _zarr(d / 'stack.zarr', stack, (30, 40, 1))
+    mc.ras_pyramid(str(d / 'stack.zarr'), str(d / 'stack_pyr'))
+    _zarr(d / 'long.zarr', rng.random((400, 20)).astype(np.float32), (100, 20))     # elongated scene
+    mc.ras_pyramid(str(d / 'long.zarr'), str(d / 'long_pyr'))
+    n = 300
+    g = np.stack(np.unravel_index(np.sort(rng.choice(60 * 40, n, replace=False)), (60, 40)), -1)
+    for name, a in [('gy.zarr', g[:, 0].astype(float)), ('gx.zarr', g[:, 1].astype(float)),
+                    ('my.zarr', 6e6 + 7.5 * g[:, 0]), ('mx.zarr', -1.6e7 + 7.5 * g[:, 1]),     # map coordinates
+                    ('val.zarr', np.linspace(0, 10, n * 3).reshape(n, 3).astype(np.float32))]:
+        _zarr(d / name, a)
+    mc.pc_pyramid(str(d / 'val.zarr'), str(d / 'grid_pyr'), x=str(d / 'gx.zarr'), y=str(d / 'gy.zarr'), ras_resolution=1)
+    mc.pc_pyramid(str(d / 'val.zarr'), str(d / 'map_pyr'), x=str(d / 'mx.zarr'), y=str(d / 'my.zarr'), ras_resolution=7.5)
+    return d
+
+
+def test_view_pyramid_colours_axes_sliders(pyramids):
+    import colorcet
+    from moraine.command.summary import view_pyramid
+    d = pyramids
+    # complex stack: phase with the cyclic colorwheel over (-pi, pi], radar axes with azimuth down
+    plot = view_pyramid(str(d / 'stack_pyr'))
+    fig, bar = _rendered(plot)
+    assert [c.lower() for c in bar.color_mapper.palette] == [c.lower() for c in colorcet.colorwheel]
+    assert (bar.color_mapper.low, bar.color_mapper.high) == pytest.approx((-np.pi, np.pi))
+    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('range', 'azimuth')
+    assert fig.y_range.start > fig.y_range.end                         # azimuth grows downwards
+    assert {k.name: k.range for k in plot.kdims} == {'i': (0, 3)}
+    assert fig.frame_height == 700 and fig.frame_width == round(700 * 40 / 60)
+    assert {k.name: k.range for k in view_pyramid(str(d / 'stack_pyr'), post_proc='intf_seq').kdims} == {'i': (0, 2)}
+    assert {k.name: k.range for k in view_pyramid(str(d / 'stack_pyr'), post_proc='intf_all').kdims} == \
+        {'i': (0, 3), 'j': (0, 3)}
+    # real point cloud stack on the radar grid: viridis over the 1 - 99 % range, sliders over the stack
+    plot = view_pyramid(str(d / 'grid_pyr'))
+    fig, bar = _rendered(plot)
+    assert bar.color_mapper.palette[0].lower() == '#440154'           # viridis
+    assert 0 < bar.color_mapper.low < bar.color_mapper.high < 10
+    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('range', 'azimuth')
+    assert {k.name: k.range for k in plot.kdims} == {'i': (0, 2)}
+    # map coordinates: north up
+    fig, _ = _rendered(view_pyramid(str(d / 'map_pyr')))
+    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('x', 'y') and fig.y_range.start < fig.y_range.end
+    # a 1:20 scene is drawn at most 1:4
+    fig, _ = _rendered(view_pyramid(str(d / 'long_pyr')))
+    assert (fig.frame_width, fig.frame_height) == (175, 700)
+    with pytest.raises(ValueError, match='not a pyramid'):
+        view_pyramid(str(d / 'stack.zarr'))
+
+
+def test_view_command_writes_a_runnable_notebook(pyramids, capsys):
+    import holoviews as hv
+    d = pyramids
+    nb_path = d / 'v.ipynb'
+    assert main(['view', str(d / 'stack_pyr'), str(d / 'map_pyr'), '-o', str(nb_path), '--json']) == 0
+    out = _json_out(capsys)
+    assert out['notebook'] == str(nb_path) and len(out['pyramids']) == 2
+    nb = json.loads(nb_path.read_text())
+    code = [''.join(c['source']) for c in nb['cells'] if c['cell_type'] == 'code']
+    assert all(not c['outputs'] for c in nb['cells'] if c['cell_type'] == 'code')
+    assert str((d / 'map_pyr').resolve()) in code[-1]                 # absolute paths: runs from anywhere
+    assert "widget_location='bottom'" in code[0]                      # sliders below the plots
+    ns = {}
+    for src in code:                                                   # the cells run and give plots
+        result = eval(compile(src, 'cell', 'exec' if src is code[0] else 'eval'), ns)
+    hv.render(result, backend='bokeh')
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 1   # no silent overwrite
+    assert 'exists' in _json_out(capsys)['error']
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--json']) == 0
