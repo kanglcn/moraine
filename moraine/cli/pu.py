@@ -126,10 +126,7 @@ def mcf_pc(
     threads_per_worker=2,
     **dask_cluster_arg,
 ):
-    """Minimum cost flow phase unwrapping of point cloud interferograms (own implementation, GAMMA not needed).
-
-    The Delaunay triangulation of the points is made once and shared by all interferograms; each one is
-    unwrapped by `moraine.mcf_pc` (exactly optimal, independent of the order of the points).
+    """Minimum cost flow phase unwrapping of point cloud interferograms.
 
     Parameters
     ----------
@@ -144,7 +141,7 @@ def mcf_pc(
         image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
     earth_cost : int, default: 1
         cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
-        discourages discharging residues through the border (GAMMA mcf_pt behaves like 3)
+        discourages discharging residues through the border
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
@@ -173,7 +170,7 @@ def mcf_pc(
 
     if out_chunks is None: out_chunks = ph_zarr.chunks[0]
 
-    logger.info('Delaunay triangulation of the points')
+    logger.info('Delaunay triangulation of the points')   # made once, shared by all interferograms
     required_data = mr.pu._mcf_network(pc_x_data, pc_y_data)
     logger.info('Done')
 

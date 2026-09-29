@@ -309,11 +309,6 @@ def mcf_pc(
 )-> np.ndarray:
     """Minimum cost flow phase unwrapping of a point cloud interferogram.
 
-    The points are triangulated (Delaunay); every triangle whose wrapped phase differences do not sum
-    to zero is a residue; a minimum cost flow between the triangles (successive shortest paths) decides
-    where the 2 pi jumps go, and the phase is integrated over the triangles from the first point. The
-    result is exactly optimal for the costs below and does not depend on the order of the points.
-
     Parameters
     ----------
     pc_x : np.ndarray
@@ -324,11 +319,13 @@ def mcf_pc(
         wrapped phase (complex), shape (N,)
     earth_cost : int, default: 1
         cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
-        discourages discharging residues through the border (GAMMA mcf_pt behaves like 3)
+        discourages discharging residues through the border
 
     Returns
     -------
     np.ndarray
         unwrapped phase, shape (N,), np.float64; the first point keeps its wrapped phase
     """
+    # Delaunay triangulation, residues of the triangles, successive shortest path min cost flow between
+    # them, integration from the first point; exactly optimal, independent of the point order (ADR 0013)
     return _mcf_unwrap(ph, *_mcf_network(pc_x, pc_y), earth_cost)
