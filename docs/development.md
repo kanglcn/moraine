@@ -21,6 +21,26 @@ the design decisions are in `docs/decisions/`, the promised formats in `docs/con
 - Bugs found on the way are fixed in their own commit (or reported), not mixed into the feature.
 - Stop when the maintainer says so.
 
+### Parallel work in git worktrees
+
+Several agents (or people) work at the same time in separate worktrees, one topic each:
+
+```bash
+git worktree add ../moraine-<topic> -b <topic> main    # a new directory and branch per topic
+git worktree list
+git worktree remove ../moraine-<topic>                 # after the branch is merged
+```
+
+- Work only inside your worktree; do not edit files of the main checkout or of other worktrees.
+- The development environment has moraine installed in editable mode from the main checkout. Inside a
+  worktree, `python -m pytest` tests the worktree's code, but the `moraine` executable runs the main
+  checkout's code: use `python -m moraine ...` (or `PYTHONPATH=$PWD`) to run your version.
+- The pre-commit hook and the git configuration are shared by all worktrees.
+- GPUs: use only the GPUs given to you (`CUDA_VISIBLE_DEVICES`); only one GPU pipeline per GPU.
+- Processing runs use a working directory of your own, never one shared with another worktree.
+- Changes to shared files (`CHANGELOG.md`, `ARCHITECTURE.md`, the decision index) are merged by hand when
+  the branches come together; keep them to the lines your topic needs.
+
 ### What changes together
 
 | when you change | also change, in the same commit |
