@@ -21,6 +21,8 @@ EXAMPLES = sorted((REPO / 'examples').glob('*.toml'))
 def test_documented_commands_exist(doc):
     names = set(commands()) | BUILTIN
     text = doc.read_text()
+    if doc.parent.name == 'decisions':
+        pytest.skip('decision records may name planned commands')
     code = '\n'.join(re.findall(r'```.*?\n(.*?)```', text, re.S))       # fenced code blocks
     used = set(re.findall(r'`moraine ([a-z][a-z0-9-]*)', text))
     used |= set(re.findall(r'^\s*moraine ([a-z][a-z0-9-]*)', code, re.M))

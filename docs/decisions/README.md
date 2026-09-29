@@ -19,6 +19,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Accepted |
 | [0010](0010-versioned-contracts.md) | Formats others depend on are versioned contracts | Accepted |
 | [0011](0011-architecture-map.md) | The module map and layer rules are tested | Accepted |
+| [0012](0012-network-emcf-inversion.md) | Redundant networks, EMCF unwrapping and time series inversion | Accepted |
 
 ## Writing a record
 
