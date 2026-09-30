@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 hv = pytest.importorskip('holoviews')
-from moraine.plot import ras_plot, pc_plot
+from moraine.api.plot import ras_plot, pc_plot
 
 hv.extension('bokeh')
 

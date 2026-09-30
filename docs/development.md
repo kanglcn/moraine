@@ -55,8 +55,18 @@ every change is designed for that size, not for the sample data.
   `LocalCluster` with processes) also copy the inputs to every worker. Choose by memory: threads with
   numba `nogil` functions for work on shared arrays in memory, processes only where the work holds the
   GIL, and in both cases few workers when the per task memory is large.
-- Process zarr data in chunks (`moraine/cli/`); load a whole array only where the algorithm needs it
-  (e.g. the network of a point cloud for unwrapping) and say so in the docstring of the command.
+- Split the work into units that fit in memory. An API function (`moraine/api/`) processes one unit: one
+  image (or image pair) of the whole scene, or one block of pixels / points with its whole time series
+  (plus a halo where neighbours are needed). The CLI function (`moraine/cli/`) cuts the zarr data into
+  these units, maps the API function over them with dask (bounded number of workers) and writes the
+  results to zarr. The CLI never loads a whole stack; an API function that chains several steps on a
+  whole stack in memory is fine for small data and tests, but the CLI uses the per unit functions.
+- An algorithm whose steps need different units (e.g. per block of points, then per image, then per
+  block again) passes its intermediate results between the steps through zarr, chunked so that every
+  step reads and writes whole chunks (e.g. `(n_points_block, 1)` chunks are written by a per image step
+  and read by a per block step without rechunking). Only small global structures (coordinates, the
+  network of a point cloud for unwrapping) are held in memory for the whole run; say so in the docstring
+  of the command, with their size per point.
 - Keep working arrays compact: int32 instead of int64 indices where the size allows, int8 / bool for
   small values, sparse storage for mostly empty results, float32 outputs.
 - Measure: for a change of a processing step, report run time and peak memory (e.g. `/usr/bin/time -f

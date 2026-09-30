@@ -201,7 +201,7 @@ def emperical_co_emi_temp_coh_pc(
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
     for i in range(batch_bounds.shape[0]-1):
         start = batch_bounds[i]; stop = batch_bounds[i+1]
-        _coh = mr.co.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
+        _coh = mr.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
         ph[start:stop],emi_quality[start:stop] = emi(_coh)
         t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
     return ph, emi_quality, t_coh

@@ -40,7 +40,8 @@ def make(seed=0, side=400, noise=0.6, atmo=1.0, snow=2.0):
 
 def scores(unw, pairs, true, x, y):
     """(wrong cycles relative to point 0, wrong spatial edges) against the truth."""
-    from moraine.pu import _mcf_network, _spatial_edges
+    from moraine.api.unwrap.mcf import _mcf_network
+    from moraine.api.unwrap.emcf import _spatial_edges
     tr = true[:, pairs[:, 0]] - true[:, pairs[:, 1]]
     rel = np.mean(np.rint((unw - unw[0] - (tr - tr[0])) / (2 * np.pi)) != 0)
     tri, half, _ = _mcf_network(x, y)

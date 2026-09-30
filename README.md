@@ -278,7 +278,7 @@ How to write and submit a PR
 
 - The CI runs on machines without GPU, so GPU related packages (`cupy`,
   `dask_cuda`, `rmm`) must only be imported behind
-  `moraine.utils_.is_cuda_available()`, and GPU tests are marked with
+  `moraine.api.utils_.is_cuda_available()`, and GPU tests are marked with
   `@pytest.mark.gpu`.
 
 - Describe what your PR changes and why this is a good thing. Be as

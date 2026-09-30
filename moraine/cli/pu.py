@@ -171,7 +171,7 @@ def mcf_pc(
     if out_chunks is None: out_chunks = ph_zarr.chunks[0]
 
     logger.info('Delaunay triangulation of the points')   # made once, shared by all interferograms
-    required_data = mr.pu._mcf_network(pc_x_data, pc_y_data)
+    required_data = mr.api.unwrap.mcf._mcf_network(pc_x_data, pc_y_data)
     logger.info('Done')
 
     Cluster = LocalCluster; cluster_args = {'processes':True, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
@@ -189,7 +189,7 @@ def mcf_pc(
         logger.info(f'phase wrapping with mcf.')
 
         unw_ph_delayed = np.empty((1,nimage_pairs),dtype=object)
-        f_mcf_delayed = delayed(mr.pu._mcf_unwrap,pure=True,nout=1)
+        f_mcf_delayed = delayed(mr.api.unwrap.mcf._mcf_unwrap,pure=True,nout=1)
         f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
         for i, (ref, sec) in enumerate(image_pairs):
             ref_ph_delayed = ph[:,ref].to_delayed()[0]

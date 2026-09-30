@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from ..tnet import TempNet
+from ..api.tnet import TempNet
 from .logging import mc_logger
 
 

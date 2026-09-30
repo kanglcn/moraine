@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.pqm import temp_coh
+from moraine.api.pqm import temp_coh
 
 
 @pytest.mark.gpu

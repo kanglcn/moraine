@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 import zarr
 
-from moraine.utils_ import is_cuda_available
+from moraine.api.utils_ import is_cuda_available
 
 REPO = Path(__file__).resolve().parents[1]
 DATA = Path(os.environ.get('MORAINE_TEST_DATA', REPO / 'data'))

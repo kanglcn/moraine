@@ -24,7 +24,7 @@ Keeping two inference runtimes doubles the code paths and dependencies.
 
 All deep learning models run with PyTorch. Models are `state_dict` `.pth` files (n2f.pth, n2fs3d.pth from
 github.com/kanglcn/n2f, n2ft.pth from github.com/kanglcn/n2ft) downloaded by
-`moraine.download_dl_model()`, loaded once and cached by `moraine.dl._load_model`. PyTorch is an optional
+`moraine.download_dl_model()`, loaded once and cached by `moraine.api.dl._load_model`. PyTorch is an optional
 dependency (`pip install moraine[dl]`) imported only when a model is used. cupy arrays are passed to
 torch with DLPack; CLI GPU workers allocate torch memory from the rmm pool. n2ft uses a fixed farthest
 point sampling start (`start_idx=0`) so results are reproducible.
@@ -38,5 +38,5 @@ point sampling start (`start_idx=0`) so results are reproducible.
 
 - Do not add ONNX Runtime or another inference runtime back.
 - Do not import torch at module level in code that `import moraine` loads.
-- Do not change the model architectures in `moraine/unet_torch_.py` / `moraine/n2ft_torch_.py` without
+- Do not change the model architectures in `moraine/api/unet_torch_.py` / `moraine/api/n2ft_torch_.py` without
   new weights: they must match the published `.pth` files.

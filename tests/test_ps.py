@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from moraine.ps import amp_disp
+from moraine.api.ps import amp_disp
 
 
 @pytest.mark.gpu

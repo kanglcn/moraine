@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
+from moraine.api.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
 from conftest import synthetic_shp
 
 
@@ -95,7 +95,7 @@ def test_isPD_and_regularize_spectral(rslc):
 
 
 def test_nearestPD(rng):
-    from moraine.co import nearestPD
+    from moraine.api.co import nearestPD
     a = rng.standard_normal((4, 6, 6))
     a = (a + np.swapaxes(a, -1, -2)) / 2          # symmetric, mostly indefinite
     assert not isPD(a).all()

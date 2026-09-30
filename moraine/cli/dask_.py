@@ -14,8 +14,8 @@ from dask import array as da
 from dask import delayed
 import zarr
 
-from ..chunk_ import fill_slice as _fill_slice
-from ..chunk_ import all_chunk_slices, all_chunk_slices_with_overlap
+from ..api.chunk_ import fill_slice as _fill_slice
+from ..api.chunk_ import all_chunk_slices, all_chunk_slices_with_overlap
 from .logging import mc_logger_
 
 def _one_chunk_slices_and_out_shape(data_zarr,slices):

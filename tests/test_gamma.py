@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from moraine.gamma_ import read_gamma_image
+from moraine.api.gamma_ import read_gamma_image
 from conftest import data_path
 
 

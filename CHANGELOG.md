@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The API modules moved from `moraine/` to `moraine/api/`, phase unwrapping to `moraine/api/unwrap/` (`mcf.py`, `emcf.py`, `gamma.py`, `delaunay_.py`; `moraine/pu.py` is split). `import moraine` still exports the same names (`moraine.mcf_pc`, ...); code importing modules directly changes, e.g. `from moraine.pu import mcf_pc` becomes `from moraine.api.unwrap import mcf_pc`. The downloaded deep learning models stay in `moraine/dl_model/`
+
 Deep learning models run on PyTorch instead of ONNX Runtime; torch is an optional dependency (`pip install moraine[dl]`) and the models are downloaded as `.pth` files by `download_dl_model()`
 
 `n2ft` results are reproducible (fixed farthest point sampling start)

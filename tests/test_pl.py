@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.pl import emi, ds_temp_coh, emperical_co_emi_temp_coh_pc
+from moraine.api.pl import emi, ds_temp_coh, emperical_co_emi_temp_coh_pc
 
 
 @pytest.fixture(scope='module')

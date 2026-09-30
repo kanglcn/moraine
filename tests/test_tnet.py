@@ -1,6 +1,6 @@
 import numpy as np
 
-from moraine.tnet import TempNet, nimage_from_npair
+from moraine.api.tnet import TempNet, nimage_from_npair
 
 
 def test_from_bandwidth():

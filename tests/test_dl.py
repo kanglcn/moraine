@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.dl import (_pre_infer_n2f_numba, _after_infer_n2f_numba, _pre_infer_n2fs3d_numba,
+from moraine.api.dl import (_pre_infer_n2f_numba, _after_infer_n2f_numba, _pre_infer_n2fs3d_numba,
                         _load_model, _get_model, n2f, n2fs3d, n2ft)
 
 torch = pytest.importorskip('torch')
@@ -45,7 +45,7 @@ def test_pre_after_infer_n2f(intf):
 @pytest.mark.gpu
 def test_pre_after_infer_gpu(intf, adi):
     import cupy as cp
-    from moraine.dl import _pre_infer_n2f_cp, _after_infer_n2f_cp, _pre_infer_n2fs3d_cp
+    from moraine.api.dl import _pre_infer_n2f_cp, _after_infer_n2f_cp, _pre_infer_n2fs3d_cp
     x, mask = _pre_infer_n2f_numba(intf)
     x_cp, mask_cp = _pre_infer_n2f_cp(cp.asarray(intf))
     np.testing.assert_array_equal(mask, mask_cp.get())
@@ -79,7 +79,7 @@ def test_n2f(intf, gpu):
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         # NaN pixels are filled with random phase, compare medians; TF32 adds ~1e-3 rad
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
-        np.testing.assert_array_equal(np.isnan(mr.dl._n2f_np_in_gpu(intf.copy())), np.isnan(out))
+        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2f_np_in_gpu(intf.copy())), np.isnan(out))
 
 
 @pytest.mark.parametrize('gpu', GPU)

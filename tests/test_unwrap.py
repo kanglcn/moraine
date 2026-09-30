@@ -12,7 +12,8 @@ import pytest
 from numba import njit
 
 import moraine as mr
-from moraine.pu import mcf_pc, gamma_mcf_pt, _mcf_network, _mcf_residues, _mcf_ssp, _mcf_integrate
+from moraine.api.unwrap.mcf import mcf_pc, _mcf_network, _mcf_residues, _mcf_ssp, _mcf_integrate
+from moraine.api.unwrap.gamma import gamma_mcf_pt
 
 
 def wrap(unw):
@@ -255,7 +256,7 @@ def emcf_synthetic(n=3000, nimg=12, noise=0.5, seed=0):
 
 
 def _closure(unw, t, b):
-    from moraine.pu import _temporal_network
+    from moraine.api.unwrap.emcf import _temporal_network
     tri, half, hull, pairs, t_pair, t_sign = _temporal_network(t, b)
     T = np.arange(len(tri) // 3)
     return sum(t_sign[3 * T + j][None, :] * unw[:, t_pair[3 * T + j]] for j in range(3))
@@ -267,7 +268,7 @@ def _wrong_cycles(unw, pairs, true):
 
 
 def test_emcf_noise_free_is_exact_and_closes():
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.0)
     unw, pairs, _m = emcf_pc(x, y, ph, t, b)
     assert unw.shape == (len(x), len(pairs)) and unw.dtype == np.float32
@@ -280,7 +281,7 @@ def test_emcf_consistent_closes_and_better_than_mcf_pc(noise, fewer_errors):
     """Consistent with the wrapped phase, every triangle of interferograms closes at every point, and fewer
     wrong cycles than unwrapping every interferogram alone where that is reliable (at 0.9 rad image noise
     both fail in whole areas)."""
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=noise)
     unw, pairs, _m = emcf_pc(x, y, ph, t, b)
     intf = ph[:, pairs[:, 0]] * ph[:, pairs[:, 1]].conj()
@@ -296,7 +297,7 @@ def test_emcf_consistent_closes_and_better_than_mcf_pc(noise, fewer_errors):
 def test_emcf_repair_restores_a_shifted_interferogram():
     """An interferogram shifted by a cycle in a whole area (what unwrapping it alone in space can do) is
     found by the triangles on its two sides and shifted back; nothing else changes."""
-    from moraine.pu import emcf_pc, _temporal_network, _emcf_repair
+    from moraine.api.unwrap.emcf import emcf_pc, _temporal_network, _emcf_repair
     x, y, t, b, true, ph = emcf_synthetic(noise=0.3)
     unw, pairs, _m = emcf_pc(x, y, ph, t, b)
     tri, half, hull, P, t_pair, t_sign = _temporal_network(t, b)
@@ -314,7 +315,7 @@ def test_emcf_repair_restores_a_shifted_interferogram():
 
 @pytest.mark.parametrize('mode', ['constant', 'length', 'gradient', 'length+gradient'])
 def test_emcf_temporal_step_closes_every_temporal_triangle(mode):
-    from moraine.pu import (_temporal_network, _spatial_edges, _emcf_temporal, _pair_gradients, _temporal_costs)
+    from moraine.api.unwrap.emcf import (_temporal_network, _spatial_edges, _emcf_temporal, _pair_gradients, _temporal_costs)
     x, y, t, b, true, ph = emcf_synthetic(noise=1.0, n=800)
     t_tri, t_half, t_hull, pairs, t_pair, t_sign = _temporal_network(t, b)
     s_tri, s_half, s_hull = _mcf_network(x, y)
@@ -337,7 +338,7 @@ def test_emcf_temporal_step_closes_every_temporal_triangle(mode):
 
 
 def test_emcf_order_independent():
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
     unw, pairs, _m = emcf_pc(x, y, ph, t, b)
     perm = np.concatenate(([0], 1 + np.random.default_rng(1).permutation(len(x) - 1)))
@@ -347,7 +348,7 @@ def test_emcf_order_independent():
 
 
 def test_emcf_network():
-    from moraine.pu import _temporal_network
+    from moraine.api.unwrap.emcf import _temporal_network
     rng = np.random.default_rng(0)
     t, b = np.sort(rng.uniform(0, 500, 10)), rng.normal(0, 50, 10)
     tri, half, hull, pairs, t_pair, t_sign = _temporal_network(t, b)
@@ -357,7 +358,7 @@ def test_emcf_network():
     assert len(pairs) == 3 * 10 - 3 - len(hull)                                     # triangulated
     with pytest.raises(ValueError, match='plane'):
         _temporal_network(t, np.zeros(10))                                           # no baselines
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     with pytest.raises(ValueError, match='temporal_cost'):
         emcf_pc(np.array([0., 5, 0, 5]), np.array([0., 0, 5, 5]), np.ones((4, 10), np.complex64), t, b,
                 temporal_cost='cheap')
@@ -367,7 +368,7 @@ def test_cli_emcf_pc(tmp_path):
     import toml
     import zarr
     import moraine.cli as mc
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.6, n=1500)
     dates = [(np.datetime64('2021-01-01') + int(d)).astype(str).replace('-', '') for d in t]
     t = np.array([(np.datetime64(f'{d[:4]}-{d[4:6]}-{d[6:]}') - np.datetime64('2021-01-01')).astype(int) for d in dates], float)
@@ -385,7 +386,7 @@ def test_cli_emcf_pc(tmp_path):
 
 
 def test_emcf_parallel_and_sparse_are_exact():
-    from moraine.pu import (emcf_pc, _temporal_network, _temporal_costs, _spatial_edges, _emcf_temporal,
+    from moraine.api.unwrap.emcf import (emcf_pc, _temporal_network, _temporal_costs, _spatial_edges, _emcf_temporal,
                             _emcf_cycles)
     x, y, t, b, true, ph = emcf_synthetic(noise=0.9, n=1500)
     u1, p1, m1 = emcf_pc(x, y, ph, t, b, n_workers=1)
@@ -409,7 +410,7 @@ def test_emcf_parallel_and_sparse_are_exact():
 @pytest.mark.parametrize('spatial_cost', ['gradient', 'correction', 'length', 'weight',
                                           'gradient+correction+length+weight'])
 def test_emcf_spatial_costs(spatial_cost):
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
     weight = np.random.default_rng(0).uniform(0, 1, len(x))
     unw, pairs, mis = emcf_pc(x, y, ph, t, b, weight=weight, spatial_cost=spatial_cost)
@@ -420,7 +421,7 @@ def test_emcf_spatial_costs(spatial_cost):
 
 
 def test_emcf_misclosure_and_errors():
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=1500)
     unw, pairs, mis = emcf_pc(x, y, ph, t, b)
     assert mis.shape == (len(x),) and mis.dtype == np.float32 and (mis == 0).all()
@@ -436,7 +437,7 @@ def test_emcf_benchmark():
     DEM error, atmosphere, noise from coherence and snow), 8 realisations: EMCF must stay clearly better than
     unwrapping every interferogram alone. Reference (2026-09-29): wrong cycles median 0.10 %, max 10.3 %,
     wrong edges 0.088 %; mcf_pc 1.08 %, 43.5 %, 0.174 %."""
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     from unwrap_benchmark import make, scores
     r = []
     for seed in range(8):
@@ -454,7 +455,7 @@ def test_emcf_exclude_images(tmp_path):
     import toml
     import zarr
     import moraine.cli as mc
-    from moraine.pu import emcf_pc
+    from moraine.api.unwrap.emcf import emcf_pc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.3, n=1500)
     unw, pairs, mis = emcf_pc(x, y, ph, t, b, exclude=[3, 7])
     assert not np.isin(pairs, [3, 7]).any() and set(pairs.ravel()) == set(range(12)) - {3, 7}

@@ -22,6 +22,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0012](0012-network-emcf-inversion.md) | Redundant networks, EMCF unwrapping and time series inversion | Accepted |
 | [0013](0013-own-delaunay-and-mcf.md) | Own Delaunay triangulation and successive shortest path MCF | Accepted |
 | [0014](0014-interactive-views-as-notebooks.md) | Interactive views are generated notebooks | Accepted |
+| [0015](0015-api-package.md) | The API layer is the package moraine.api, grouped by topic | Accepted |
 
 ## Writing a record
 

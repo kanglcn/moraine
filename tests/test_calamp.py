@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from moraine.calamp import rslc2amp, calamp
+from moraine.api.calamp import rslc2amp, calamp
 
 
 def test_rslc2amp(rslc):
