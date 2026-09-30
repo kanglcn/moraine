@@ -41,6 +41,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/coord_.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/gamma_.py` | read / write GAMMA binary files | `read_gamma_image` |
 | `moraine/tnet.py` | temporal network: image pairs | `TempNet` |
+| `moraine/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
 | `moraine/pc.py` | point cloud indices (grid / hilbert), sorting, set operations, raster <-> point cloud | `pc_hix`, `pc_union`, `ras2pc` |
 | `moraine/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
 | `moraine/calamp.py` | SLC amplitude and amplitude calibration | `rslc2amp`, `calamp` |
@@ -69,6 +70,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |
 | `moraine/cli/math.py` | elementwise numexpr expressions on zarr arrays | `math` |
+| `moraine/cli/polygon.py` | masks of rasters / point clouds from polygon files | `polygon-mask` |
 | `moraine/cli/pc.py` | point cloud operations on zarr | `ras2pc`, `pc-union`, `pc-sort`, ... |
 | `moraine/cli/ps.py` | amplitude dispersion index | `amp-disp` |
 | `moraine/cli/shp.py` | SHP test and selection | `shp-test`, `select-shp` |

@@ -16,6 +16,8 @@ New command `moraine view PYRAMID ... -o view.ipynb`: a notebook with interactiv
 
 Prototype tile viewer for raster pyramids and point cloud pyramids (radar grid, or web mercator over a satellite / street base map) in notebooks: `moraine.command.tile_view.tile_view(PYRAMID)` shows a Leaflet map whose tiles the kernel renders, with axes, a colour bar, stack sliders, individual points when zoomed in and the value under the cursor (needs `pip install moraine[view]`)
 
+New command `polygon-mask`: bool mask of a raster or point cloud inside or outside the polygons of a GeoJSON file (longitude / latitude or radar grid coordinates); `moraine.read_polygons`, `write_polygons`, `polygons_contain`
+
 `mcf_pc` / `mcf-pc` use an own Delaunay triangulation and a successive shortest path min cost flow on its half-edges: exactly optimal, independent of the point order, about 7 times faster than before (10 million points in 16 s, GAMMA mcf_pt 35 s) with about 5 times less memory; new option `earth_cost` (default 1). OR-Tools is no longer a dependency
 
 `gamma_mcf_pt`: float64 weights are converted to the FLOAT type mcf_pt reads (they were misread); the `gamma-mcf-pt` command passes `ref_point` on (it was ignored and the first point always used) and its default is 0, the first point as documented

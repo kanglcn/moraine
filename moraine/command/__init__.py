@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 # modules of moraine.cli whose logged functions become commands
-_MODULES = ['load', 'transform', 'tnet', 'math', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'plot']
+_MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'plot']
 # functions that need python callables as input
 _EXCLUDE = {'data_reduce'}
 # options added to every command

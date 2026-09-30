@@ -23,6 +23,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0013](0013-own-delaunay-and-mcf.md) | Own Delaunay triangulation and successive shortest path MCF | Accepted |
 | [0014](0014-interactive-views-as-notebooks.md) | Interactive views are generated notebooks | Accepted |
 | [0015](0015-tile-viewer-anywidget-leaflet.md) | Tile viewer with anywidget and Leaflet, tiles through the notebook channel | Proposed |
+| [0016](0016-polygons-as-geojson.md) | Polygons are GeoJSON files in longitude / latitude or radar grid coordinates | Accepted |
 
 ## Writing a record
 

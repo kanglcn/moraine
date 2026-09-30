@@ -4,6 +4,7 @@ __version__ = "0.9.0"
 from .pc import *
 from .rtree import *
 from .tnet import *
+from .polygon import *
 
 # amplitude and calibration
 from .calamp import *
