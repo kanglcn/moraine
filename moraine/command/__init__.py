@@ -8,8 +8,8 @@ function signature and numpy docstring::
     moraine amp-disp --rslc raw/rslc.zarr --adi ps/adi.zarr --cuda
     moraine info ps/adi.zarr                      # shape, dtype and chunks of a result
     moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
-    moraine quicklook ps/adi_pyramid -o adi.png   # PNG of a pyramid, drawn with moraine's holoviews plots
-    moraine view ps/adi_pyramid -o view.ipynb     # notebook with interactive plots of pyramids
+    moraine quicklook ps/adi_pyramid -o adi.png   # PNG of a pyramid, drawn like moraine.cli.view
+    moraine view ps/adi_pyramid -o view.ipynb     # notebook with interactive maps of pyramids (moraine.cli.view)
     moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
     moraine run pipeline.toml                     # run (or resume) a processing pipeline
     moraine status pipeline.toml
@@ -439,16 +439,17 @@ def _build_parser(with_commands=True):
     p.add_argument('pyramid', help='pyramid directory made by `moraine ras-pyramid` or `moraine pc-pyramid`')
     p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
     p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
-                   help='image (i) of a stack, or two images (i j) with --post_proc intf_all (default: 0)')
-    p.add_argument('--post_proc', choices=['phase', 'intf_0', 'intf_seq', 'intf_all'],
-                   help='how to show a stack, see moraine.cli.ras_plot (default: the phase for complex data)')
+                   help='image of a stack, or two images (ref sec) with --show intf_all / coh (default: the first)')
+    p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
+                   help='what to show of a stack, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     _add_global(p)
-    p = sub.add_parser('view', help='write a notebook with interactive plots of pyramids')
+    p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
     p.add_argument('-o', '--out', default='view.ipynb', help='notebook to write (default: view.ipynb)')
-    p.add_argument('--post_proc', choices=['phase', 'intf_0', 'intf_seq', 'intf_all'],
-                   help='how to show stacks, see moraine.cli.ras_plot (default: the phase for complex data)')
+    p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
+                   help='what to show of stacks, see moraine.cli.view (default: the phase for complex data)')
+    p.add_argument('--dates', help='toml file with the image dates, e.g. the metadata of load-gamma-metadata')
     p.add_argument('--overwrite', action='store_true', help='replace an existing notebook')
     _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
@@ -491,11 +492,11 @@ def _run(args):
     if sub == 'quicklook':
         from .summary import quicklook
         out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
-        quicklook(args.pyramid, out, index=tuple(args.index), post_proc=args.post_proc, width=args.width)
+        quicklook(args.pyramid, out, index=tuple(args.index), show=args.show, width=args.width)
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
-        out = view(args.pyramids, args.out, post_proc=args.post_proc, overwrite=args.overwrite)
+        out = view(args.pyramids, args.out, show=args.show, dates=args.dates, overwrite=args.overwrite)
         return _emit(args, {'notebook': out, 'pyramids': args.pyramids},
                      lambda: print(f'saved {out}: open it in Jupyter or VS Code and run all cells'))
     if sub in ('run', 'status'):

@@ -22,3 +22,19 @@
 .moraine-tv-sliders label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
 .moraine-tv-sliders input { width: 300px; }
 .moraine-tv-status { min-height: 1.4em; margin-top: 4px; font-family: monospace; }
+.moraine-tv-toolbar { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.moraine-tv-toolbar button { font: 12px sans-serif; padding: 2px 8px; border: 1px solid #999; border-radius: 3px;
+                             background: #f6f6f6; cursor: pointer; }
+.moraine-tv-toolbar button.active { background: #ffe066; border-color: #b08900; }
+.moraine-tv-toolbar .hint { color: #666; }
+.moraine-tv-chart { margin-top: 6px; }
+.moraine-tv-chart svg { font: 11px sans-serif; background: #fff; }
+.moraine-tv-chart .title { font-weight: bold; }
+.moraine-tv-chart .axis { stroke: #555; }
+.moraine-tv-chart .grid { stroke: #e4e4e4; }
+.moraine-tv-chart .ytick { text-anchor: end; fill: #333; }
+.moraine-tv-chart .xtick { text-anchor: middle; fill: #333; }
+.moraine-tv-chart .line { fill: none; stroke: #1f77b4; stroke-width: 1.5; }
+.moraine-tv-chart .dot { fill: #1f77b4; }
+.moraine-tv-panels { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.moraine-tv-bars { display: flex; flex-direction: column; gap: 10px; }

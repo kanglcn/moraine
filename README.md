@@ -183,7 +183,7 @@ moraine info ps/adi.zarr                       # shape, dtype and chunks of a re
 moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
 moraine info ps/adi_pyramid                    # + statistics and anomaly warnings, from a coarse level
 moraine quicklook ps/adi_pyramid -o adi.png    # PNG of the whole scene, drawn from the pyramid
-moraine view ps/adi_pyramid -o view.ipynb      # notebook with interactive plots of pyramids
+moraine view ps/adi_pyramid -o view.ipynb      # notebook with interactive maps (moraine.cli.view)
 moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
 ```
 

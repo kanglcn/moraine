@@ -36,9 +36,9 @@ Run time: about 1 minute with a GPU (n2ft 46 s).
 
 ## Checks
 
-- `moraine quicklook pc/pc_ph_pyramid --post_proc intf_seq --index I -o pc_intf.png`: interferograms of
+- `moraine quicklook pc/pc_ph_pyramid --show intf_seq --index I -o pc_intf.png`: interferograms of
   the refined points should show smooth, spatially continuous phase (fringes), not noise.
-- Compare with the raw interferogram: `moraine quicklook raw/rslc_pyramid --post_proc intf_seq --index I`.
+- Compare with the raw interferogram: `moraine quicklook raw/rslc_pyramid --show intf_seq --index I`.
 
 ## Problems
 

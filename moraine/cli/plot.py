@@ -1,20 +1,16 @@
-"""Accurate and interative big data visualization"""
+"""Pyramids of rasters and point clouds (multi resolution copies for views and statistics) and the rules to
+read and show them"""
 
 
-__all__ = ['ras_pyramid', 'ras_plot', 'pc_pyramid', 'pc_plot', 'ts_plot']
+__all__ = ['ras_pyramid', 'pc_pyramid']
 
 import logging
 import zarr
 import numpy as np
 import math
 from pathlib import Path
-from functools import partial
-from typing import Callable
 import numpy as np
 from numba import prange
-from scipy.spatial import KDTree
-import holoviews as hv
-from holoviews import streams
 
 import dask
 from dask import array as da
@@ -25,7 +21,6 @@ import time
 import toml
 from ..utils_ import ngpjit
 from ..rtree import HilbertRtree
-from ..plot import _default_post_proc_ts, _default_post_proc_ts_ref, _hv_ts_callback, _hv_ts_ref_callback
 from .logging import mc_logger
 from ..coord_ import Coord
 from . import mk_clean_dir, dask_from_zarr, dask_to_zarr, parallel_write_zarr, parallel_read_zarr
@@ -129,77 +124,6 @@ def ras_pyramid(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-# there should be better way to achieve variable kdims, but I don't find that.
-def _hv_ras_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase):
-    # start = time.time()
-    if x_range is None:
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if y_range is None:
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res,y_res)))
-    level += level_increase
-    level = sorted((0, level, coord.maxlevel))[1]
-    data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-    xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-    coord_bbox = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-    # decide_slice = time.time()
-    data = post_proc(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1))
-    # post_proc_data = time.time()
-    # print(f"It takes {post_proc_data-decide_slice} to post_proc the data", file = sourceFile)
-    ### test shows data read takes only 0.006 s, post_proc and data_range takes only 0.001s
-    ### the majority of time is used by holoviews that I can not optimize.
-    return hv.Image(data[::-1,:],bounds=coord_bbox)
-def _hv_ras_callback_1(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase,i=0):
-    if x_range is None:
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if y_range is None:
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res,y_res)))
-    level = sorted((0, level, coord.maxlevel))[1]
-    level += level_increase
-    data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-    xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-    coord_bbox = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-    data = post_proc(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i)
-    return hv.Image(data[::-1,:],bounds=coord_bbox)
-def _hv_ras_callback_2(x_range,y_range,width,height,scale,data_dir,post_proc,coord,level_increase,i=0,j=0):
-    if x_range is None:
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if y_range is None:
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res,y_res)))
-    level = sorted((0, level, coord.maxlevel))[1]
-    level += level_increase
-    data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-    xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-    coord_bbox = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-    data = post_proc(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i,j)
-    return hv.Image(data[::-1,:],bounds=coord_bbox)
-
 def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
     assert len(kdims) == data_n_kdim
@@ -264,70 +188,6 @@ def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
             return np.angle(data_zarr[yslice,xslice,i,j])
         else:
             return data_zarr[yslice,xslice,i,j]
-
-def ras_plot(
-    pyramid_dir:str,
-    post_proc:Callable=None,
-    n_kdim:int=None,
-    bounds:tuple=None,
-    level_increase=0,
-):
-    """plot rendered stack of ras tiles.
-
-    Parameters
-    ----------
-    pyramid_dir : str
-        directory to the rendered ras pyramid
-    post_proc : Callable, optional
-        function for the post processing, can be None, 'intf_0', 'intf_seq', 'intf_all' or user-defined function
-    n_kdim : int, optional
-        number of key dimensions, can only be 0 or 1 or 2, ndim of raster dataset -2 by default
-    bounds : tuple, optional
-        bounding box (x0, y0, x_max, y_max)
-    level_increase : default: 0
-        amount of zoom level increase for more clear point show and faster responds time
-    """
-    pyramid_dir = Path(pyramid_dir)
-    data_zarr = zarr.open(pyramid_dir/'0.zarr',mode='r')
-    ny, nx = data_zarr.shape[:2]
-    if post_proc is None: 
-        post_proc = _default_ras_post_proc
-    elif post_proc == 'intf_0':
-        post_proc = _ras_inf_0_post_proc
-        n_kdim = 1
-    elif post_proc == 'intf_seq':
-        post_proc = _ras_inf_seq_post_proc
-        n_kdim = 1
-    elif post_proc == 'intf_all':
-        post_proc = _ras_inf_all_post_proc
-        n_kdim = 2
-    elif post_proc == 'phase':
-        post_proc = _ras_phase_post_proc
-        n_kdim = 1
-
-    if n_kdim is None: n_kdim = data_zarr.ndim -2 
-    assert n_kdim <= 2, 'n_kdim can only be 0 or 1 or2.'
-    kdims = ['i','j'][:n_kdim]
-
-    if len(kdims) == 0:
-        hv_ras_callback = _hv_ras_callback_0
-    elif len(kdims) == 1:
-        hv_ras_callback = _hv_ras_callback_1
-    elif len(kdims) == 2:
-        hv_ras_callback = _hv_ras_callback_2
-
-    if bounds is None:
-        x0 = 0; dx = 1; y0 = 0; dy = 1
-    else:
-        x0, y0, xm, ym = bounds
-        dx = (xm-x0)/(nx-1); dy = (ym-y0)/(ny-1)
-    coord = Coord(x0,dx,nx,y0,dy,ny)
-
-    rangexy = streams.RangeXY()
-    plotsize = streams.PlotSize()
-    images = hv.DynamicMap(partial(hv_ras_callback,data_dir=pyramid_dir,
-                                   post_proc=post_proc,coord=coord,level_increase=level_increase),streams=[rangexy,plotsize],kdims=kdims)
-    return images
 
 @ngpjit
 def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
@@ -533,176 +393,6 @@ class _LazyRtree:
             self._rtree = HilbertRtree.build(x_,y_,page_size=512)
         return self._rtree.bbox_query(bounds, x, y)
 
-def _is_nan_range(x_range):
-    if x_range is None:
-        return True
-    if np.isnan(x_range[0]):
-        return True
-    if abs(x_range[1]-x_range[0]) == 0:
-        return True
-    return False
-
-def _hv_pc_Image_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,level_increase):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    # level = -1
-    images = []
-    if level > -1:
-        data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-        idx_zarr = zarr.open(data_dir/f'idx_{level}.zarr',mode='r')
-        xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-        x0, y0, xm, ym = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-        data = post_proc_ras(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1))
-        idx = idx_zarr[yi0:yim+1,xi0:xim+1]
-        return hv.Image((np.linspace(x0,xm,data.shape[1]), np.linspace(y0,ym,data.shape[0]),data,idx),vdims=['z','idx'])
-    else:
-        return hv.Image([],vdims=['z','idx'])
-def _hv_pc_Image_callback_1(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,level_increase,i):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    images = []
-    if level > -1:
-        data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-        idx_zarr = zarr.open(data_dir/f'idx_{level}.zarr',mode='r')
-        xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-        x0, y0, xm, ym = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-        data = post_proc_ras(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i)
-        idx = idx_zarr[yi0:yim+1,xi0:xim+1]
-        return hv.Image((np.linspace(x0,xm,data.shape[1]), np.linspace(y0,ym,data.shape[0]),data,idx),vdims=['z','idx'])
-    else:
-        return hv.Image([],vdims=['z','idx'])
-def _hv_pc_Image_callback_2(x_range,y_range,width,height,scale,data_dir,post_proc_ras,coord,level_increase,i,j):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    images = []
-    if level > -1:
-        data_zarr = zarr.open(data_dir/f'{level}.zarr',mode='r')
-        idx_zarr = zarr.open(data_dir/f'idx_{level}.zarr',mode='r')
-        xi0, yi0, xim, yim = coord.hv_bbox2gix_bbox((x0,y0,xm,ym),level)
-        x0, y0, xm, ym = coord.gix_bbox2hv_bbox((xi0, yi0, xim, yim),level)
-        data = post_proc_ras(data_zarr,slice(xi0,xim+1),slice(yi0,yim+1),i,j)
-        idx = idx_zarr[yi0:yim+1,xi0:xim+1]
-        return hv.Image((np.linspace(x0,xm,data.shape[1]), np.linspace(y0,ym,data.shape[0]),data,idx),vdims=['z','idx'])
-    else:
-        return hv.Image([],vdims=['z','idx'])
-
-def _hv_pc_Points_callback_0(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,level_increase):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    images = []
-    if level > -1:
-        return hv.Points([],vdims=['z','idx'])
-    else:
-        data_zarr, x_zarr, y_zarr = (zarr.open(data_dir/file,mode='r') for file in ('pc.zarr', 'x.zarr', 'y.zarr'))
-        idx = rtree.bbox_query((x0, y0, xm, ym), x_zarr, y_zarr)
-        x, y = (zarr_[idx] for zarr_ in (x_zarr, y_zarr))
-        data = post_proc_pc(data_zarr,idx)
-        return hv.Points((x,y,data,idx),vdims=['z','idx'])
-def _hv_pc_Points_callback_1(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,level_increase,i=0):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    # level = -1
-    images = []
-    if level > -1:
-        return hv.Points([],vdims=['z','idx'])
-    else:
-        data_zarr, x_zarr, y_zarr = (zarr.open(data_dir/file,mode='r') for file in ('pc.zarr', 'x.zarr', 'y.zarr'))
-        idx = rtree.bbox_query((x0, y0, xm, ym), x_zarr, y_zarr)
-        x, y = (zarr_[idx] for zarr_ in (x_zarr, y_zarr))
-        data = post_proc_pc(data_zarr,idx,i)
-        return hv.Points((x,y,data,idx),vdims=['z','idx'])
-def _hv_pc_Points_callback_2(x_range,y_range,width,height,scale,data_dir,post_proc_pc,coord,rtree,level_increase,i=0,j=0):
-    if _is_nan_range(x_range):
-        x0 = coord.x0; xm = coord.xm
-    else:
-        x0, xm = x_range
-    if _is_nan_range(y_range):
-        y0 = coord.y0; ym = coord.ym
-    else:
-        y0, ym = y_range
-    if height is None: height = hv.plotting.bokeh.ElementPlot.height
-    if width is None: width = hv.plotting.bokeh.ElementPlot.width
-
-    x_res = (xm-x0)/width; y_res = (ym-y0)/height
-    level = math.floor(math.log2(min(x_res/coord.dx,y_res/coord.dy)))
-    level += level_increase
-    level = sorted((-1, level, coord.maxlevel))[1]
-    # level = -1
-    images = []
-    if level > -1:
-        return hv.Points([],vdims=['z','idx'])
-    else:
-        data_zarr, x_zarr, y_zarr = (zarr.open(data_dir/file,mode='r') for file in ('pc.zarr', 'x.zarr', 'y.zarr'))
-        idx = rtree.bbox_query((x0, y0, xm, ym), x_zarr, y_zarr)
-        x, y = (zarr_[idx] for zarr_ in (x_zarr, y_zarr))
-        data = post_proc_pc(data_zarr,idx,i,j)
-        return hv.Points((x,y,data,idx),vdims=['z','idx'])
-
 def _default_pc_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
     assert len(kdims) == data_n_kdim
@@ -768,154 +458,149 @@ def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
         else:
             return data_zarr[idx_array,i,j]
 
-def pc_plot(
-    pyramid_dir:str,
-    post_proc_ras:Callable=None,
-    post_proc_pc:Callable=None,
-    n_kdim:int=None,
-    rtree=None,
-    level_increase=0,
-):
-    """plot rendered point cloud pyramid.
+# ---------------------------------------------------------------- pyramid reading and plotting rules
+# used by `moraine info` / `quicklook` / `view` (moraine/command/summary.py) and the tile viewer
 
-    Parameters
-    ----------
-    pyramid_dir : str
-        directory to the rendered point cloud pyramid
-    post_proc_ras : Callable, optional
-        function for the post processing
-    post_proc_pc : Callable, optional
-        function for the post processing
-    n_kdim : int, optional
-        number of key dimensions, can only be 0 or 1 or 2, ndim of point cloud dataset -1 by default
-    rtree : optional
-        rtree, if not provide, will be automatically generated but may slow the program
-    level_increase : default: 0
-        amount of zoom level increase for more clear point show and faster responds time
+def pyramid_levels(path)->list:
+    """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one.
+
+    Pyramids carry ``moraine_pyramid = {version, kind}`` in the attributes of ``0.zarr``
+    (docs/contracts/pyramid.md). Older pyramids without it are recognized by their levels halving in size,
+    which also tells them apart from directories of per-chunk arrays (``0.zarr``, ``1.zarr``, ... made by
+    `ras2pc_ras_chunk`).
     """
-    if post_proc_ras is None: post_proc_ras = _default_ras_post_proc
-    if post_proc_pc is None: post_proc_pc = _default_pc_post_proc
+    p = Path(path)
+    if not p.is_dir() or not (p / '0.zarr').exists():
+        return []
+    try:
+        z0 = zarr.open(str(p / '0.zarr'), mode='r')
+    except Exception:
+        return []
+    levels = sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
+    meta = z0.attrs.get('moraine_pyramid') if hasattr(z0, 'attrs') else None
+    if meta:
+        if meta.get('version', 0) > PYRAMID_VERSION:
+            raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
+                             f'supports ({PYRAMID_VERSION}); update moraine')
+        return levels
+    if not (p / '1.zarr').exists():
+        return []
+    try:
+        z1 = zarr.open(str(p / '1.zarr'), mode='r')
+    except Exception:
+        return []
+    if z0.ndim < 2 or z1.ndim != z0.ndim or \
+       tuple(z1.shape[:2]) != tuple(-(-n // 2) for n in z0.shape[:2]):
+        return []
+    return levels
 
-    pyramid_dir = Path(pyramid_dir)
-    data_zarr = zarr.open(pyramid_dir/'0.zarr',mode='r')
-    ny, nx = data_zarr.shape[:2]
 
-    if post_proc_ras is None:
-        post_proc_ras = _default_ras_post_proc
-        post_proc_pc = _default_pc_post_proc
-    elif post_proc_ras == 'intf_0':
-        post_proc_ras = _ras_inf_0_post_proc
-        post_proc_pc = _pc_inf_0_post_proc
-        n_kdim = 1
-    elif post_proc_ras == 'intf_seq':
-        post_proc_ras = _ras_inf_seq_post_proc
-        post_proc_pc = _pc_inf_seq_post_proc
-        n_kdim = 1
-    elif post_proc_ras == 'intf_all':
-        post_proc_ras = _ras_inf_all_post_proc
-        post_proc_pc = _pc_inf_all_post_proc
-        n_kdim = 2
-    elif post_proc_pc == 'phase':
-        post_proc_ras = _ras_phase_post_proc
-        post_proc_pc = _pc_phase_post_proc
-        n_kdim = 1
+def _round(x):
+    x = float(x)
+    if not math.isfinite(x) or x == 0:
+        return x
+    return round(x, 5 - int(math.floor(math.log10(abs(x)))))
 
-    if n_kdim is None: n_kdim = data_zarr.ndim -2
-    assert n_kdim <= 2, 'n_kdim can only be 0 or 1 or2.'
-    kdims = ['i','j'][:n_kdim]
 
-    with open(pyramid_dir/'bounds.toml','r') as f:
-        x0, y0, xm, ym = toml.load(f)['bounds']
-
-    dx = (xm-x0)/(nx-1); dy = (ym-y0)/(ny-1)
-    coord = Coord(x0,dx,nx,y0,dy,ny)
-
-    if rtree is None:
-        rtree = _LazyRtree(pyramid_dir)
-
-    if len(kdims) == 0:
-        hv_pc_Image_callback = _hv_pc_Image_callback_0
-        hv_pc_Points_callback = _hv_pc_Points_callback_0
-    elif len(kdims) == 1:
-        hv_pc_Image_callback = _hv_pc_Image_callback_1
-        hv_pc_Points_callback = _hv_pc_Points_callback_1
-    elif len(kdims) == 2:
-        hv_pc_Image_callback = _hv_pc_Image_callback_2
-        hv_pc_Points_callback = _hv_pc_Points_callback_2
-
-    rangexy = streams.RangeXY()
-    plotsize = streams.PlotSize()
-    images = hv.DynamicMap(partial(hv_pc_Image_callback,data_dir=pyramid_dir,
-                                   post_proc_ras=post_proc_ras,coord=coord,level_increase=level_increase),
-                           streams=[rangexy,plotsize],kdims=kdims)
-    points = hv.DynamicMap(partial(hv_pc_Points_callback,data_dir=pyramid_dir,
-                                   post_proc_pc=post_proc_pc,coord=coord,rtree=rtree,level_increase=level_increase),
-                           streams=[rangexy,plotsize],kdims=kdims)
-    return images, points
-
-def ts_plot(
-    v:str,
-    t,
-    source_plot,
-    kdtree=None,
-    y:str=None,
-    x:str=None,
-    reference=False,
-    post_proc_ts=None,
-):
-    """Plot time series with clicked point.
-
-    Parameters
-    ----------
-    v : str
-        path to pc dataset
-    t
-        temporal coordinate
-    source_plot
-        source plot
-    kdtree : optional
-        kdtree, optional
-    y : str, optional
-        path to y coordinate, must be provided if kdtree is not provided
-    x : str, optional
-        path to x coordinate, must be provided if kdtree is not provided
-    reference : default: False
-        allow set reference points (double click)
-    post_proc_ts : optional
-    """
-    if kdtree is None:
-        y = zarr.open(y, mode='r')[:]
-        x = zarr.open(x, mode='r')[:]
-        kdtree = KDTree(np.c_[y, x])
-    v = zarr.open(v,mode='r')
-
-    stap_stream = streams.SingleTap(source=source_plot, x=0, y=0)
-
-    if post_proc_ts is None:
-        if reference:
-            post_proc_ts = _default_post_proc_ts_ref
-        else:
-            post_proc_ts = _default_post_proc_ts
-
-    if reference:
-        dtap_stream = streams.DoubleTap(source=source_plot, x=0, y=0)
-        dtap_stream = dtap_stream.rename(x='x0',y='y0')
-        return hv.DynamicMap(
-            partial(
-                _hv_ts_ref_callback,
-                t=t,v=v,
-                post_proc_ts=post_proc_ts,
-                kdtree=kdtree,
-            ),
-            streams=[stap_stream, dtap_stream]
-        )
+def _stats(a):
+    """Statistics and warnings of a sample of values (1D array)."""
+    out, warnings = {}, []
+    if a.size == 0:
+        return {'warnings': ['no values']}
+    if a.dtype == bool:
+        out['true_fraction'] = _round(a.mean())
+        if a.all() or not a.any():
+            warnings.append(f'all values are {bool(a[0])}')
+        return {**out, 'warnings': warnings} if warnings else out
+    prefix = ''
+    if np.iscomplexobj(a):
+        nan = np.isnan(a.real) | np.isnan(a.imag)
+        a, prefix = np.abs(a), 'amplitude_'
     else:
-        return hv.DynamicMap(
-            partial(
-                _hv_ts_callback,
-                t=t, v=v,
-                post_proc_ts=post_proc_ts,
-                kdtree=kdtree,
-            ),
-            streams=[stap_stream,]
-        )
+        a = a.astype(np.float64)
+        nan = np.isnan(a)
+    out['nan_fraction'] = _round(nan.mean())
+    inf = np.isinf(a)
+    v = a[~nan & ~inf]
+    if inf.any():
+        warnings.append(f'{int(inf.sum())} infinite values in the sample')
+    if v.size == 0:
+        warnings.append('all values are nan')
+    else:
+        p = np.percentile(v, [1, 50, 99])
+        out.update({prefix + 'min': _round(v.min()), prefix + 'max': _round(v.max()), prefix + 'mean': _round(v.mean()),
+                    prefix + 'std': _round(v.std()), prefix + 'p01': _round(p[0]), prefix + 'p50': _round(p[1]),
+                    prefix + 'p99': _round(p[2])})
+        if v.min() == v.max():
+            warnings.append(f'all values are {_round(v.min())}')
+    if warnings:
+        out['warnings'] = warnings
+    return out
+
+
+def _pyramid_stats(p, levels, max_bytes):
+    """Statistics from the finest pyramid level read within `max_bytes`: a regular decimation of the scene."""
+    level = levels[-1]
+    for lv in levels:
+        if zarr.open(str(p / f'{lv}.zarr'), mode='r').nbytes <= max_bytes:
+            level = lv
+            break
+    a = np.asarray(zarr.open(str(p / f'{level}.zarr'), mode='r')[...])
+    idx_path = p / f'idx_{level}.zarr'
+    if idx_path.exists():   # point cloud pyramid: skip the cells without points (idx == -1)
+        a = a[np.asarray(zarr.open(str(idx_path), mode='r')[...]) != -1]
+    return {'stats_level': level, **_stats(a.ravel())}
+
+
+def _phase_2d(data_zarr, xslice, yslice):
+    return np.angle(data_zarr[yslice, xslice])
+
+
+_PHASE_POST_PROC = ('phase', 'intf_0', 'intf_seq', 'intf_all')
+_FRAME = (900, 700)            # largest plot area (width, height) in screen pixels
+_MAX_RATIO = 4                 # scenes more elongated than 1:4 are drawn with this ratio
+
+
+def _cyclic_cmap():
+    import colorcet
+    return colorcet.colorwheel
+
+
+def _phase_pc_1d(data_zarr, idx_array):
+    return np.angle(data_zarr[idx_array])
+
+
+def _kdim_ranges(shape, post_proc):
+    """Range of the image indices i (and j) of a stack for the sliders."""
+    extra = shape[2:]
+    if not extra:
+        return {}
+    n = extra[0]
+    if post_proc == 'intf_seq':
+        return {'i': (0, n - 2)}
+    if post_proc == 'intf_all':
+        return {'i': (0, n - 1), 'j': (0, n - 1)}
+    if post_proc in ('phase', 'intf_0'):
+        return {'i': (0, n - 1)}
+    return {name: (0, m - 1) for name, m in zip(('i', 'j'), extra)}
+
+
+def _resolve_post_proc(base, post_proc):
+    """(post_proc, raster post processing, point post processing, phase_like) of a pyramid with level 0 `base`:
+    complex data show their phase by default."""
+    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
+    ras_proc = pc_proc = post_proc
+    if post_proc is None and complex_data:
+        if base.ndim == 3:
+            ras_proc = pc_proc = post_proc = 'phase'
+        else:
+            ras_proc, pc_proc = _phase_2d, _phase_pc_1d
+    return post_proc, ras_proc, pc_proc, complex_data or post_proc in _PHASE_POST_PROC
+
+
+def _frame_size(width, height):
+    """Plot area with the aspect of the scene, fitted into _FRAME; very elongated scenes are squeezed."""
+    ratio = min(max(width / height, 1 / _MAX_RATIO), _MAX_RATIO)
+    if ratio >= _FRAME[0] / _FRAME[1]:
+        return _FRAME[0], max(1, round(_FRAME[0] / ratio))
+    return max(1, round(_FRAME[1] * ratio)), _FRAME[1]

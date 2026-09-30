@@ -83,11 +83,18 @@ Never load large arrays to look at them. Use:
   statistics from a coarse level (nan_fraction, min, max, mean, std, p01, p50, p99; amplitude for
   complex data) and `warnings` for all-nan, infinite or constant values.
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
-  `--post_proc intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
+  `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
   Look at the PNG: fringes should be continuous, noise should be where coherence is low.
-- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb` writes a notebook with interactive plots (zoom and pan
-  load details, sliders for the images of a stack, colours and axes chosen from the data). Give it to the
-  user to open in Jupyter / VS Code; it needs no server or port forwarding. Do not write plotting code.
+- In Python, `mc.view(data)` (`import moraine.cli as mc`) views a pyramid, a raster array or point data
+  (`x=`, `y=`): `show=` what to show of a stack (`'intf_seq'`, ... or a function `lambda v, ref, sec: ...`),
+  `a * b` overlays views, `a + b` puts them side by side. `repr(v)` describes a view in text and
+  `v.png('out.png', index={...})` saves an image you can look at. In a notebook it is an interactive map:
+  zoom and pan load details, sliders choose the image, a click plots the time series of a pixel / point and
+  a double click makes it the reference, polygons drawn with `polygons='areas.geojson'` are saved for
+  `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map.
+- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb [--show ...] [--dates meta.toml]` writes a notebook of
+  such maps. Give it to the user to open in Jupyter / VS Code; it needs no server or port forwarding.
+  Do not write plotting code.
 - Pyramids are made by the `ras-pyramid` (rasters) and `pc-pyramid` (point clouds) commands; the
   examples build them for the results worth checking, and `moraine run` saves their PNGs to
   `WORK/.moraine/<file name>/quicklook/`.

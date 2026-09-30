@@ -1,7 +1,7 @@
 # Contract: pyramids
 
 Version 1. Multi resolution copies of rasters and point clouds made by the `ras-pyramid` and
-`pc-pyramid` commands, read by `ras_plot` / `pc_plot`, `moraine info` and `moraine quicklook`
+`pc-pyramid` commands, read by `moraine.cli.view`, `moraine info` and `moraine quicklook`
 (decision 0007).
 
 ## Marker

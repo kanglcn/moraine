@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by 0017
 
 ## Date
 
@@ -19,21 +19,32 @@ binary buffers.
 
 ## Decision
 
-Prototype `moraine.command.tile_view` for raster pyramids and point cloud pyramids on the radar grid or in
-web mercator coordinates:
+Prototype tile viewer in the CLI layer next to the holoviews plots it replaces (`moraine.cli.tiles`,
+`moraine.cli.viewer`; used from notebooks as `mc.ras_layer`, `mc.pc_layer`, `mc.tile_view`, not a command),
+built from layers that are combined:
 
-- an anywidget widget with a Leaflet map (`CRS.Simple`, azimuth down) in cells of level 0, 2**z screen
-  pixels per cell; the axes show data coordinates, cell i centred at coordinate i for rasters and at the
-  grid coordinates of `bounds.toml` for point clouds; web mercator point clouds use Leaflet's EPSG:3857 with
-  standard XYZ tiles, north up, longitude / latitude axes and a base map (Esri satellite images, CARTO or
-  OpenStreetMap, with their attribution); Leaflet is loaded from the jsdelivr CDN in a pinned version;
-- the browser asks for tiles with custom widget messages; the kernel reads the pyramid level with at
-  least one pixel per screen pixel, applies the post processing and colours of `view_pyramid` and
-  answers with a PNG buffer (web mercator tiles sample the finest level whose cells are at least a screen
-  pixel at the pixel centres); point clouds zoomed in until a cell of level 0 is larger than a screen
-  pixel are drawn as disks at the point coordinates, found with the lazily built Hilbert R-tree of `pc_plot`;
-- colour bar, axes, stack sliders and the value under the cursor (the nearest point for point clouds)
-  are drawn by the widget;
+- layers: `ras_layer` (raster pyramid or array in memory, optional `bounds`) and `pc_layer` (point cloud
+  pyramid, or point data with coordinates, rasterized in memory like `pc_pyramid`), on the radar grid or in
+  web mercator; ``a * b`` overlays layers on one map, ``a + b`` shows maps side by side with linked zoom
+  and pan; sliders of the same name are shared; `tile_view(pyramid)` is the one layer shortcut;
+- an anywidget widget with Leaflet maps: on the radar grid (`CRS.Simple`, azimuth down) the map position
+  is the data coordinate minus the corner of the first layer, 2**z screen pixels per data unit; web
+  mercator layers use Leaflet's EPSG:3857 with standard XYZ tiles, north up, longitude / latitude axes and
+  a base map (Esri satellite images, CARTO or OpenStreetMap, with their attribution); Leaflet is loaded
+  from the jsdelivr CDN in a pinned version;
+- the browser asks for the tiles of each layer with custom widget messages; the layer samples its finest
+  pyramid level whose cells are at least a screen pixel at the pixel centres, applies the post processing
+  and colours of `view_pyramid` and the kernel answers with a PNG buffer; point clouds zoomed in until a
+  cell of level 0 is larger than a screen pixel are drawn as disks at the point coordinates, found with a
+  lazily built Hilbert R-tree;
+- colour bars of each layer, axes, stack sliders (with dates), layer opacity and the values of all layers
+  under the cursor (the nearest point for point clouds) are drawn by the widget;
+- the interactions of the holoviews plots are kept: click a pixel or point for its time series (the
+  stack of the pyramid or another zarr), double click one to make it the reference of the time series
+  (not of the map), custom post processing functions and slider counts like `ras_plot` / `pc_plot`,
+  and built-in 'coh' / 'coh_abs' for compressed coherence with reference / secondary sliders; the time
+  series is drawn as SVG by the widget, without a plotting library;
+- polygons are drawn on the map, synchronized with the kernel and saved as GeoJSON (decision 0016);
 - anywidget is an optional dependency (`moraine[view]`).
 
 `moraine view` keeps writing holoviews notebooks until the prototype is accepted.
@@ -48,6 +59,8 @@ web mercator coordinates:
   converted to web mercator first (`moraine transform`).
 - The base map tiles come from third party servers and need internet access in the browser.
 - The first zoom to individual points reads all coordinates to build the R-tree (seconds).
+- Layers in different coordinates (radar grid, web mercator) cannot be combined.
+- Arrays in memory are decimated on the fly; large data should go through `ras-pyramid` / `pc-pyramid`.
 
 ## Do not
 

@@ -31,9 +31,7 @@ dependencies = [
     "toml",
     "numba>=0.59",
     "numexpr",
-    "bokeh>=3.4.1",
-    "holoviews>=1.18.3",
-    "jupyter_bokeh",  # interactive holoviews/panel plots in VS Code and Jupyter notebooks
+    "anywidget",  # interactive maps in VS Code and Jupyter notebooks (moraine.cli.view)
     "pyproj>=3.0",
     "dask[complete]",
     "joblib",
@@ -45,8 +43,6 @@ dependencies = [
 # deep learning models (n2f, n2fs3d, n2ft)
 dl = ["torch"]
 dev = ["pytest", "ruff"]
-# tile viewer of pyramids in notebooks (prototype, decision 0015)
-view = ["anywidget"]
 
 [project.scripts]
 moraine = "moraine.command:main"
@@ -62,7 +58,7 @@ version = { attr = "moraine.__version__" }
 include = ["moraine*"]
 
 [tool.setuptools.package-data]
-"moraine.command" = ["*.js", "*.css"]
+"moraine.cli" = ["*.js", "*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

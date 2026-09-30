@@ -56,7 +56,6 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
 | `moraine/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded | |
-| `moraine/plot.py` | interactive holoviews plots of in-memory rasters / point clouds / time series | `ras_plot`, `pc_plot`, `ts_plot` |
 
 ## CLI layer (moraine/cli/)
 
@@ -79,7 +78,9 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/pqm.py` | temporal coherence | `temp-coh` |
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `gamma-mcf-pt` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
-| `moraine/cli/plot.py` | pyramids of rasters / point clouds and their interactive plots | `ras-pyramid`, `pc-pyramid` |
+| `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |
+| `moraine/cli/tiles.py` | views (`view`): rasters and point clouds from pyramids or arrays, tiles and PNG images, value / point / time series at a position, `*` overlay and `+` layout, text description | (notebook, no command) |
+| `moraine/cli/viewer.py` | the notebook widget of views (`TileView`; anywidget + Leaflet, tiles rendered by the kernel): maps linked in zoom and pan, merged sliders, time series, reference, polygons; `viewer.js` / `.css` beside it | (notebook, no command) |
 
 ## Command layer (moraine/command/)
 
@@ -87,8 +88,7 @@ moraine/*.py       numpy / cupy arrays in memory              (API layer)
 |---|---|
 | `moraine/command/__init__.py` | command registry generated from `moraine.cli`, argument parsing and validation, `execute`, `--json` output, `main` |
 | `moraine/command/pipeline.py` | TOML pipeline loading (`[vars]`, `[defaults]`, `[[step]]`), planning, resume, state in `.moraine/<file name>/` |
-| `moraine/command/summary.py` | `info` metadata and pyramid statistics, `quicklook` (PNG) and `view` (notebook with interactive plots) through `ras_plot` / `pc_plot` |
-| `moraine/command/tile_view.py` | tile viewer of raster and point cloud pyramids in notebooks (anywidget + Leaflet, tiles rendered by the kernel; `tile_view.js` / `.css` beside it) |
+| `moraine/command/summary.py` | `info` metadata and pyramid statistics, `quicklook` (PNG) and `view` (notebook of interactive maps) through `moraine.cli.view` |
 
 ## Other parts of the repository
 

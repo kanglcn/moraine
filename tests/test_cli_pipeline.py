@@ -1,7 +1,7 @@
 """The CLI processing chain on a 400x400 crop of the sample data, checked against the API.
 
 rslc -> amp_disp -> shp_test -> select_shp -> DS candidates -> emperical_co_pc -> emi / ds_temp_coh
-     -> emperical_co_emi_temp_coh_pc -> temp_coh -> mcf_pc, plus pyramids and plots.
+     -> emperical_co_emi_temp_coh_pc -> temp_coh -> mcf_pc, plus pyramids and views.
 """
 import numpy as np
 import pytest
@@ -159,16 +159,11 @@ def test_mcf_pc(pl):
     np.testing.assert_array_almost_equal(np.mod(unw + np.pi, 2 * np.pi) - np.pi, np.angle(intf), decimal=3)
 
 
-def test_pyramids_and_plots(work, shp):
-    hv = pytest.importorskip('holoviews')
-    hv.extension('bokeh')
+def test_pyramids_and_views(work, shp):
     d, crop = work
     mc.amp_disp(str(d / 'rslc.zarr'), str(d / 'adi.zarr'))
     mc.ras_pyramid(str(d / 'adi.zarr'), str(d / 'adi_pyramid'))
-    hv.render(mc.ras_plot(str(d / 'adi_pyramid'), bounds=(0, 0, 399, 399)), backend='bokeh')
     mc.ras_pyramid(str(d / 'rslc.zarr'), str(d / 'rslc_pyramid'))
-    plot = mc.ras_plot(str(d / 'rslc_pyramid'), post_proc='intf_seq')
-    hv.render(plot.redim.range(i=(0, 15)), backend='bokeh')
     # point cloud pyramid of the DS candidates
     gix = r(d / 'ds_can_gix.zarr')
     for name, data in [('x.zarr', gix[:, 1].astype(np.float64)), ('y.zarr', gix[:, 0].astype(np.float64)),
@@ -176,8 +171,11 @@ def test_pyramids_and_plots(work, shp):
         z = zarr.open(str(d / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=data.shape)
         z[:] = data
     mc.pc_pyramid(str(d / 'pc.zarr'), str(d / 'pc_pyramid'), x=str(d / 'x.zarr'), y=str(d / 'y.zarr'), ras_resolution=20)
-    ras, pts = mc.pc_plot(str(d / 'pc_pyramid'))
-    hv.render(ras * pts, backend='bokeh')
+    # views of real data: adi with the DS candidates on it, next to the interferograms
+    v = mc.view(str(d / 'adi_pyramid'), cmap='gray') * mc.view(str(d / 'pc_pyramid')) + \
+        mc.view(str(d / 'rslc_pyramid'), show='intf_seq')
+    assert [len(p) for p in v.widget.layers] == [2, 1] and v.widget.kdims == [{'name': 'image', 'max': 15}]
+    assert v.png(str(d / 'views.png'), index={'image': 3}) and (d / 'views.png').stat().st_size > 10_000
 
 
 def test_transform(tmp_path):

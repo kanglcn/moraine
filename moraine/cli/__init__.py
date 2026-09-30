@@ -15,3 +15,12 @@ from .dl import *
 from .pqm import *
 from .pu import *
 from .plot import *
+from .tiles import *
+
+
+def __getattr__(name):
+    # the notebook widget imports anywidget / ipywidgets: only when used, so that the command line starts fast
+    if name == 'TileView':
+        from .viewer import TileView
+        return TileView
+    raise AttributeError(f'module {__name__!r} has no attribute {name!r}')

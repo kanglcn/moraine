@@ -283,7 +283,7 @@ def test_pyramids(tmp_path, rng):
     assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1
     assert s['stats_level'] == 0 and abs(s['amplitude_mean'] - np.abs(ras).mean()) < 1e-3 and 'warnings' not in s
     assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000)['stats_level'] > 0     # coarser level
-    for kw in [{}, {'index': (2,)}, {'post_proc': 'intf_seq', 'index': (1,)}, {'post_proc': 'intf_all', 'index': (0, 2)}]:
+    for kw in [{}, {'index': (2,)}, {'show': 'intf_seq', 'index': (1,)}, {'show': 'intf_all', 'index': (0, 2)}]:
         out = tmp_path / 'r.png'
         quicklook(str(tmp_path / 'ras_pyramid'), str(out), width=200, **kw)
         assert out.stat().st_size > 1000
@@ -299,7 +299,7 @@ def test_pyramids(tmp_path, rng):
     s = summarize(str(tmp_path / 'pc_pyramid'))
     assert s['kind'] == 'point cloud pyramid'
     assert s['nan_fraction'] == 0.0            # cells without points are not counted as nan
-    for width in (1000, 50):       # points layer (fine) and image layer (coarse) of pc_plot
+    for width in (1000, 50):       # points drawn one by one (fine) and rasterized (coarse)
         quicklook(str(tmp_path / 'pc_pyramid'), str(tmp_path / f'p{width}.png'), width=width)
         assert (tmp_path / f'p{width}.png').stat().st_size > 1000
 
@@ -408,14 +408,6 @@ def test_outputs_without_slash_or_dot(tmp_path, capsys, rng, monkeypatch):
 
 # ---------------------------------------------------------------- interactive views
 
-def _rendered(plot):
-    import holoviews as hv
-    from bokeh.models import ColorBar
-    fig = hv.render(plot, backend='bokeh')
-    bar = [r for r in fig.right if isinstance(r, ColorBar)][0]
-    return fig, bar
-
-
 @pytest.fixture
 def pyramids(tmp_path, rng):
     import moraine.cli as mc
@@ -436,55 +428,51 @@ def pyramids(tmp_path, rng):
     return d
 
 
-def test_view_pyramid_colours_axes_sliders(pyramids):
+def test_view_colours_axes_sliders(pyramids):
     import colorcet
-    from moraine.command.summary import view_pyramid
+    import moraine.cli as mc
     d = pyramids
     # complex stack: phase with the cyclic colorwheel over (-pi, pi], radar axes with azimuth down
-    plot = view_pyramid(str(d / 'stack_pyr'))
-    fig, bar = _rendered(plot)
-    assert [c.lower() for c in bar.color_mapper.palette] == [c.lower() for c in colorcet.colorwheel]
-    assert (bar.color_mapper.low, bar.color_mapper.high) == pytest.approx((-np.pi, np.pi))
-    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('range', 'azimuth')
-    assert fig.y_range.start > fig.y_range.end                         # azimuth grows downwards
-    assert {k.name: k.range for k in plot.kdims} == {'i': (0, 3)}
-    assert fig.frame_height == 700 and fig.frame_width == round(700 * 40 / 60)
-    assert {k.name: k.range for k in view_pyramid(str(d / 'stack_pyr'), post_proc='intf_seq').kdims} == {'i': (0, 2)}
-    assert {k.name: k.range for k in view_pyramid(str(d / 'stack_pyr'), post_proc='intf_all').kdims} == \
-        {'i': (0, 3), 'j': (0, 3)}
+    w = mc.view(str(d / 'stack_pyr')).widget
+    bar = w.panels[0]['layers'][0]
+    assert bar['colors'][0] == colorcet.colorwheel[0].lower() and bar['clim'] == pytest.approx([-np.pi, np.pi])
+    assert w.crs == 'grid' and w.axis_labels == ['range', 'azimuth']
+    assert w.kdims == [{'name': 'image', 'max': 3}]
+    assert w.frame == [round(700 * 40 / 60), 700]
+    assert mc.view(str(d / 'stack_pyr'), show='intf_seq').widget.kdims == [{'name': 'image', 'max': 2}]
+    assert mc.view(str(d / 'stack_pyr'), show='intf_all').widget.kdims == [{'name': 'ref', 'max': 3},
+                                                                          {'name': 'sec', 'max': 3}]
     # real point cloud stack on the radar grid: viridis over the 1 - 99 % range, sliders over the stack
-    plot = view_pyramid(str(d / 'grid_pyr'))
-    fig, bar = _rendered(plot)
-    assert bar.color_mapper.palette[0].lower() == '#440154'           # viridis
-    assert 0 < bar.color_mapper.low < bar.color_mapper.high < 10
-    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('range', 'azimuth')
-    assert {k.name: k.range for k in plot.kdims} == {'i': (0, 2)}
-    # map coordinates: north up
-    fig, _ = _rendered(view_pyramid(str(d / 'map_pyr')))
-    assert (fig.xaxis[0].axis_label, fig.yaxis[0].axis_label) == ('x', 'y') and fig.y_range.start < fig.y_range.end
+    w = mc.view(str(d / 'grid_pyr')).widget
+    lo, hi = w.panels[0]['layers'][0]['clim']
+    assert w.panels[0]['layers'][0]['colors'][0] == '#440154' and 0 < lo < hi < 10
+    assert w.kdims == [{'name': 'i', 'max': 2}]
+    # map coordinates: north up, longitude / latitude axes
+    assert mc.view(str(d / 'map_pyr')).widget.axis_labels == ['longitude', 'latitude']
     # a 1:20 scene is drawn at most 1:4
-    fig, _ = _rendered(view_pyramid(str(d / 'long_pyr')))
-    assert (fig.frame_width, fig.frame_height) == (175, 700)
-    with pytest.raises(ValueError, match='not a pyramid'):
-        view_pyramid(str(d / 'stack.zarr'))
+    assert mc.view(str(d / 'long_pyr')).widget.frame == [175, 700]
 
 
-def test_view_command_writes_a_runnable_notebook(pyramids, capsys):
-    import holoviews as hv
+def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
+    from moraine.cli.tiles import _Shown
     d = pyramids
+    (d / 'meta.toml').write_text('dates = ["20210101", "20210113", "20210125", "20210206"]\n')
     nb_path = d / 'v.ipynb'
-    assert main(['view', str(d / 'stack_pyr'), str(d / 'map_pyr'), '-o', str(nb_path), '--json']) == 0
+    assert main(['view', str(d / 'stack_pyr'), str(d / 'map_pyr'), '-o', str(nb_path), '--show', 'intf_seq',
+                 '--dates', str(d / 'meta.toml'), '--json']) == 0
     out = _json_out(capsys)
     assert out['notebook'] == str(nb_path) and len(out['pyramids']) == 2
     nb = json.loads(nb_path.read_text())
     code = [''.join(c['source']) for c in nb['cells'] if c['cell_type'] == 'code']
     assert all(not c['outputs'] for c in nb['cells'] if c['cell_type'] == 'code')
-    assert str((d / 'map_pyr').resolve()) in code[-1]                 # absolute paths: runs from anywhere
-    assert "widget_location='bottom'" in code[0]                      # sliders below the plots
+    assert code[0] == 'import moraine.cli as mc'
+    assert str((d / 'map_pyr').resolve()) in code[-1] and "show='intf_seq'" in code[-1]   # absolute paths
     ns = {}
-    for src in code:                                                   # the cells run and give plots
+    for src in code:                                                   # the cells run and give views
         result = eval(compile(src, 'cell', 'exec' if src is code[0] else 'eval'), ns)
-    hv.render(result, backend='bokeh')
+    assert isinstance(result, _Shown) and result.widget.dates[1] == '20210113'
+    assert 'moraine view' in repr(result)                              # a text description for readers
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 1   # no silent overwrite
     assert 'exists' in _json_out(capsys)['error']
-    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--json']) == 0
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--post_proc', 'phase',
+                 '--json']) == 0                                       # the old option name still works
