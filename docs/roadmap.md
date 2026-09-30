@@ -22,6 +22,14 @@ of leaving the images out. Validate on `tests/unwrap_benchmark.py` with images m
 Time series inversion (stage 4) and deformation products (stage 5): see
 `docs/decisions/0012-network-emcf-inversion.md`.
 
+## Memory of EMCF
+
+Checked against the memory rules of `docs/development.md` after the merge: the spatial step runs up to 8
+threads by default, each with working arrays of the size of the triangulation (about 1 GB at 10 million
+points), and the repair keeps a (n_points, n_image_pairs) bool matrix of where the spatial step placed
+phase jumps (2.9 GB at 10 million points and 290 interferograms). Bound the default number of threads by
+the available memory, store the phase jump marks sparse, and measure the peak memory at 10 million points.
+
 ## Small issues
 
 - The generated help shows `PATH` as placeholder for every list of strings, also for dates

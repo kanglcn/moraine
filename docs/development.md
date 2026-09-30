@@ -42,6 +42,27 @@ git worktree remove ../moraine-<topic>                 # after the branch is mer
 - Changes to shared files (`CHANGELOG.md`, `ARCHITECTURE.md`, the decision index) are merged by hand when
   the branches come together; keep them to the lines your topic needs.
 
+### Large data and memory
+
+moraine is made for data larger than memory (tens of millions of points, stacks of hundreds of images);
+every change is designed for that size, not for the sample data.
+
+- Memory, not only time, decides a design. Estimate the peak memory of a change as
+  `shared inputs + number of parallel workers x memory per task` and keep it bounded: the number of
+  workers (and chunks) must be a parameter, and its default must not multiply a large per task memory by
+  the number of cores.
+- Threads share the inputs (one copy) but every thread has its own working arrays; processes (e.g. a dask
+  `LocalCluster` with processes) also copy the inputs to every worker. Choose by memory: threads with
+  numba `nogil` functions for work on shared arrays in memory, processes only where the work holds the
+  GIL, and in both cases few workers when the per task memory is large.
+- Process zarr data in chunks (`moraine/cli/`); load a whole array only where the algorithm needs it
+  (e.g. the network of a point cloud for unwrapping) and say so in the docstring of the command.
+- Keep working arrays compact: int32 instead of int64 indices where the size allows, int8 / bool for
+  small values, sparse storage for mostly empty results, float32 outputs.
+- Measure: for a change of a processing step, report run time and peak memory (e.g. `/usr/bin/time -f
+  %M`, `resource.getrusage`) on a large synthetic case (about 10 million points) as well as on the sample
+  data, and the memory per worker.
+
 ### What changes together
 
 | when you change | also change, in the same commit |
