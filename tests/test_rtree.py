@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.rtree import HilbertRtree, _is_outside, _is_inside, _is_inside_bf, _expand_ranges
+from moraine.api.rtree import HilbertRtree, _is_outside, _is_inside, _is_inside_bf, _expand_ranges
 
 
 def test_box_helpers():

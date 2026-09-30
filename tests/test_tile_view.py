@@ -453,7 +453,7 @@ def test_map_size(ras, grid_pc):
 
 
 def test_polygon_file(tmp_path, grid_pc, mercator_pc):
-    from moraine.polygon import read_polygons
+    from moraine.api.polygon import read_polygons
     pts, pyr = grid_pc
     path = tmp_path / 'areas.geojson'
     layer = view(str(pyr), polygons=str(path))

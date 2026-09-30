@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The API modules moved from `moraine/` to `moraine/api/`, phase unwrapping to `moraine/api/unwrap/` (`mcf.py`, `emcf.py`, `gamma.py`, `delaunay_.py`; `moraine/pu.py` is split). `import moraine` still exports the same names (`moraine.mcf_pc`, ...); code importing modules directly changes, e.g. `from moraine.pu import mcf_pc` becomes `from moraine.api.unwrap import mcf_pc`. The downloaded deep learning models stay in `moraine/dl_model/`
+
 Deep learning models run on PyTorch instead of ONNX Runtime; torch is an optional dependency (`pip install moraine[dl]`) and the models are downloaded as `.pth` files by `download_dl_model()`
 
 `n2ft` results are reproducible (fixed farthest point sampling start)
@@ -11,6 +13,8 @@ Deep learning models run on PyTorch instead of ONNX Runtime; torch is an optiona
 Development moved from nbdev notebooks to plain python: packaging in `pyproject.toml`, numpy style docstrings, pytest tests in `tests/`; the nbdev documentation site is removed
 
 `moraine ... --json` output has `version` and `ok` fields; pyramids record their format version in `0.zarr`; pipeline files may declare `[pipeline] version`. The formats are specified in `docs/contracts/`
+
+New `emcf_pc` / `emcf-pc`: extended minimum cost flow (EMCF) unwrapping of the interferograms of the Delaunay network of the images in time and perpendicular baseline (read from `meta.toml`, coordinates in meters from the pixel spacings); the interferograms of every triangle of images close at every point; outputs the image pairs and optionally a per point `misclosure`; `temporal_cost`, `spatial_cost` and point `weight` choose where corrections go (defaults chosen on a synthetic benchmark with known truth, `tests/unwrap_benchmark.py`: median 0.10 % wrong cycles against 1.08 % for `mcf-pc` and 0.22 % for spurt). Decision 0012, stage 3
 
 One viewer, `moraine.cli.view(data, ...)`, replaces the holoviews plots: interactive maps in Jupyter / VS Code notebooks (no server or port forwarding) of pyramids, rasters in memory and point data; `show=` a name ('phase', 'intf_seq', 'intf_all', 'coh', ...) or a function `lambda v, ref, sec: ...` whose arguments are sliders; `a * b` overlays views, `a + b` shows them side by side with linked zoom and pan; click a pixel / point for its time series (`series=`), double click for its reference; web mercator data over a satellite / street base map; polygons drawn on the map saved to `polygons='file.geojson'`; `.selected`, `.reference`, `.index` in python; `repr` describes a view and `.png(path)` saves an image. `moraine view PYRAMID ... -o view.ipynb [--show] [--dates]` writes a notebook of such maps and `moraine quicklook` draws with it (`--show`, the old `--post_proc` still works). Removed: `ras_plot`, `pc_plot`, `ts_plot`, `bg_alpha`, `view_pyramid` and the dependencies holoviews, bokeh, jupyter_bokeh; anywidget is a dependency
 

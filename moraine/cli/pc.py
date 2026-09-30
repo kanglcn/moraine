@@ -19,7 +19,7 @@ from dask.distributed import Client, LocalCluster, progress
 from .logging import mc_logger
 import moraine as mr
 import moraine.cli as mc
-from ..utils_ import ngjit
+from ..api.utils_ import ngjit
 from . import mk_clean_dir, dask_to_zarr, dask_from_zarr
 
 @mc_logger
@@ -345,10 +345,10 @@ def ras2pc_ras_chunk(
     n_pc = gix.shape[0]
 
     logger.info('convert gix to the order of ras chunk')
-    chunk_idx, chunk_bounds, invert_idx = mr.pc._pc_split_by_chunk(gix,chunks,shape)
+    chunk_idx, chunk_bounds, invert_idx = mr.api.pc._pc_split_by_chunk(gix,chunks,shape)
     pc_chunksize = tuple(np.diff(chunk_bounds))
     sorted_gix = gix[chunk_idx]
-    ras_chunk_order_gix = mr.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, shape)
+    ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, shape)
     logger.info('save key')
     key_zarr = zarr.open(key,mode='w',dtype=invert_idx.dtype,shape=invert_idx.shape,chunks=gix_zarr.chunks[:1])
     key_zarr[:] = invert_idx

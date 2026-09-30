@@ -34,7 +34,7 @@ decision record, since every stored result depends on them.
 
 ## Polygons
 
-- GeoJSON files (decision 0016): a FeatureCollection of Polygon (or MultiPolygon) features; only the outer
+- GeoJSON files (decision 0017): a FeatureCollection of Polygon (or MultiPolygon) features; only the outer
   rings are used, several polygons are united.
 - The top level member `moraine_coordinates` gives the vertex coordinates: `lonlat` (longitude, latitude
   in degrees, the GeoJSON default when the member is missing) or `radar_grid` (range, azimuth pixel

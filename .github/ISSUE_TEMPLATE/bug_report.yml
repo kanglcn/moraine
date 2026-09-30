@@ -41,7 +41,7 @@ body:
     attributes:
       label: "System information"
       description: |
-        Please provide the version of all relevant softwares, including this library and other dependents, e.g., python, cupy, dask, holoviews, bokeh, jupyterlab, etc.
+        Please provide the version of all relevant softwares, including this library and other dependents, e.g., python, cupy, dask, anywidget, jupyterlab or VS Code, etc.
       placeholder: "PASTE THE OUTPUT HERE"
       render: bash
     validations:

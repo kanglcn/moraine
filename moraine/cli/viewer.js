@@ -1,4 +1,4 @@
-// Leaflet maps of moraine layers (moraine/cli/viewer.py, decision 0015). Tiles are requested from
+// Leaflet maps of moraine layers (moraine/cli/viewer.py, decision 0018). Tiles are requested from
 // the kernel with custom widget messages and come back as PNG buffers. Several maps are zoomed and panned
 // together; sliders, time series, reference and polygons are shared by all maps.
 import * as L from "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet-src.esm.js";

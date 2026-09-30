@@ -19,10 +19,10 @@ from dask.distributed import Client, LocalCluster, progress
 import time
 
 import toml
-from ..utils_ import ngpjit
-from ..rtree import HilbertRtree
+from ..api.utils_ import ngpjit
+from ..api.rtree import HilbertRtree
 from .logging import mc_logger
-from ..coord_ import Coord
+from ..api.coord_ import Coord
 from . import mk_clean_dir, dask_from_zarr, dask_to_zarr, parallel_write_zarr, parallel_read_zarr
 
 # layout version of the pyramids, see docs/contracts/pyramid.md

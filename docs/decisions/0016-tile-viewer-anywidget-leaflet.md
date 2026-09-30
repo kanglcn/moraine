@@ -1,8 +1,8 @@
-# 0015 Tile viewer with anywidget and Leaflet, tiles through the notebook channel
+# 0016 Tile viewer with anywidget and Leaflet, tiles through the notebook channel
 
 ## Status
 
-Superseded by 0017
+Superseded by 0018
 
 ## Date
 
@@ -44,7 +44,7 @@ built from layers that are combined:
   (not of the map), custom post processing functions and slider counts like `ras_plot` / `pc_plot`,
   and built-in 'coh' / 'coh_abs' for compressed coherence with reference / secondary sliders; the time
   series is drawn as SVG by the widget, without a plotting library;
-- polygons are drawn on the map, synchronized with the kernel and saved as GeoJSON (decision 0016);
+- polygons are drawn on the map, synchronized with the kernel and saved as GeoJSON (decision 0017);
 - anywidget is an optional dependency (`moraine[view]`).
 
 `moraine view` keeps writing holoviews notebooks until the prototype is accepted.

@@ -10,24 +10,24 @@ from pathlib import Path
 import math
 import cmath
 import importlib
-from ..utils_ import ngjit, ngpjit
+from ..api.utils_ import ngjit, ngpjit
 
 import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from ..utils_ import is_cuda_available
+from ..api.utils_ import is_cuda_available
 if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster
     from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 import moraine.cli as mc
-from ..utils_ import get_array_module
-from ..chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
-from ..co import intf as intf_func
+from ..api.utils_ import get_array_module
+from ..api.chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
+from ..api.co import intf as intf_func
 from .dask_ import parallel_read_zarr
-from ..dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft
+from ..api.dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
@@ -132,7 +132,7 @@ def _cli_n2f_cpu(
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_numba(ref[in_slice],sec[in_slice])
         infer_out_slice = _infer_unet(model, input_intf_slice)
-        out[out_slice] = mr.dl._after_infer_n2f_numba(infer_out_slice,mask_slice)[map_slice]
+        out[out_slice] = mr.api.dl._after_infer_n2f_numba(infer_out_slice,mask_slice)[map_slice]
     return out
 
 def _cli_n2f_np_in_gpu(
@@ -166,7 +166,7 @@ def _cli_n2f_np_in_gpu(
         sec_slice = cp.asarray(sec[in_slice])
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_cp(ref_slice,sec_slice)
         output_intf_slice = _infer_unet(model, input_intf_slice)
-        out[out_slice] = (mr.dl._after_infer_n2f_cp(output_intf_slice,mask_slice)[map_slice]).get()
+        out[out_slice] = (mr.api.dl._after_infer_n2f_cp(output_intf_slice,mask_slice)[map_slice]).get()
     return out
 
 @mc_logger

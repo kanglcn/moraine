@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import zarr
 
-from ..polygon import read_polygons, polygons_contain
+from ..api.polygon import read_polygons, polygons_contain
 from .logging import mc_logger
 
 

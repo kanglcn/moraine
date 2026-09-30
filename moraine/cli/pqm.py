@@ -11,7 +11,7 @@ import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from ..utils_ import is_cuda_available, get_array_module
+from ..api.utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster

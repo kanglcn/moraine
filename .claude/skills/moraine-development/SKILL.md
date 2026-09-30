@@ -15,6 +15,10 @@ The rules are tool independent and live in the repository. Before changing anyth
 
 Checklist before reporting the change as done:
 
+- designed for data larger than memory: API functions work on one unit (one image of the scene, or one
+  block with its whole time series), the CLI maps them over zarr chunks with dask; peak memory estimated
+  and bounded (workers x memory per task),
+  run time and peak memory measured on a large case (see "Large data and memory" in the guide);
 - the smallest complete change: code, numpy docstring (no implementation details), tests, and the
   docs / examples / changelog listed in the "What changes together" table;
 - a new test fails on the old code and passes on the new one;

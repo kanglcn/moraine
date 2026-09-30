@@ -1,5 +1,5 @@
 """The notebook widget of views (`moraine.cli.tiles`): Leaflet maps whose tiles are rendered by the kernel and
-sent through the notebook channel (decision 0017)."""
+sent through the notebook channel (decision 0018)."""
 
 __all__ = ['TileView']
 
@@ -138,7 +138,7 @@ class TileView(anywidget.AnyWidget):
         path : str
             output GeoJSON file
         """
-        from ..polygon import write_polygons
+        from ..api.polygon import write_polygons
         write_polygons(path, self.polygons, self.polygon_coordinates)
 
     def load_polygons(self, path):
@@ -150,7 +150,7 @@ class TileView(anywidget.AnyWidget):
             GeoJSON file in the coordinates of the maps: radar grid (range, azimuth) or longitude / latitude for
             web mercator layers
         """
-        from ..polygon import read_polygons
+        from ..api.polygon import read_polygons
         polys, coordinates = read_polygons(path)
         if coordinates != self.polygon_coordinates:
             raise ValueError(f'{path} has {coordinates} polygons, the maps need {self.polygon_coordinates}')

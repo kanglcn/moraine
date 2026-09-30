@@ -14,17 +14,18 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0004](0004-no-docs-website.md) | No documentation website for now | Accepted |
 | [0005](0005-cli-generated-from-docstrings.md) | The command line is generated from moraine.cli signatures and docstrings | Accepted |
 | [0006](0006-toml-pipelines.md) | Processing chains are TOML pipelines that resume | Accepted |
-| [0007](0007-visualization-through-pyramids.md) | Visualization and result statistics go through pyramids | Superseded by 0017 |
+| [0007](0007-visualization-through-pyramids.md) | Visualization and result statistics go through pyramids | Superseded by 0018 |
 | [0008](0008-tool-independent-agent-docs.md) | Agent documentation is tool independent and tested | Accepted |
 | [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Accepted |
 | [0010](0010-versioned-contracts.md) | Formats others depend on are versioned contracts | Accepted |
 | [0011](0011-architecture-map.md) | The module map and layer rules are tested | Accepted |
 | [0012](0012-network-emcf-inversion.md) | Redundant networks, EMCF unwrapping and time series inversion | Accepted |
 | [0013](0013-own-delaunay-and-mcf.md) | Own Delaunay triangulation and successive shortest path MCF | Accepted |
-| [0014](0014-interactive-views-as-notebooks.md) | Interactive views are generated notebooks | Superseded by 0017 |
-| [0015](0015-tile-viewer-anywidget-leaflet.md) | Tile viewer with anywidget and Leaflet, tiles through the notebook channel | Superseded by 0017 |
-| [0016](0016-polygons-as-geojson.md) | Polygons are GeoJSON files in longitude / latitude or radar grid coordinates | Accepted |
-| [0017](0017-one-viewer.md) | One viewer: `moraine.cli.view` replaces the holoviews plots | Accepted |
+| [0014](0014-interactive-views-as-notebooks.md) | Interactive views are generated notebooks | Superseded by 0018 |
+| [0015](0015-api-package.md) | The API layer is the package moraine.api, grouped by topic | Accepted |
+| [0016](0016-tile-viewer-anywidget-leaflet.md) | Tile viewer with anywidget and Leaflet, tiles through the notebook channel | Superseded by 0018 |
+| [0017](0017-polygons-as-geojson.md) | Polygons are GeoJSON files in longitude / latitude or radar grid coordinates | Accepted |
+| [0018](0018-one-viewer.md) | One viewer: `moraine.cli.view` replaces the holoviews plots | Accepted |
 
 ## Writing a record
 

@@ -69,7 +69,7 @@ def test_ras2pc_ras_chunk(w, rng):
         mc.pc_concat(w(name), w(name + '.zarr'), key=w('key.zarr'), chunks=200)
         np.testing.assert_array_equal(r(w(name + '.zarr')), ras[gix[:, 0], gix[:, 1]])
     # without key the output is in chunk order
-    chunk_idx = mr.pc._pc_split_by_chunk(gix, chunks, shape)[0]
+    chunk_idx = mr.api.pc._pc_split_by_chunk(gix, chunks, shape)[0]
     sgix = gix[chunk_idx]
     for name, ras in [('pc1', ras1), ('pc2', ras2)]:
         mc.pc_concat(w(name), w(name + '.zarr'), chunks=200)

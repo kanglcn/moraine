@@ -14,7 +14,7 @@ import dask
 from dask import array as da
 from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
-from ..utils_ import is_cuda_available, get_array_module
+from ..api.utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
     from dask_cuda import LocalCUDACluster
@@ -105,10 +105,10 @@ def emperical_co_pc(
     logger.info('loading gix into memory.')
     gix = mc.parallel_read_zarr(gix_zarr,(slice(None),slice(None)))
     logger.info('convert gix to the order of ras chunk')
-    chunk_idx, chunk_bounds = mr.pc._pc_split_by_chunk(gix,chunks,(nlines,width))[:2]
+    chunk_idx, chunk_bounds = mr.api.pc._pc_split_by_chunk(gix,chunks,(nlines,width))[:2]
     pc_chunksize = tuple(np.diff(chunk_bounds))
     sorted_gix = gix[chunk_idx]
-    ras_chunk_order_gix = mr.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, (nlines,width),overlap=(az_half_win,r_half_win))
+    ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, (nlines,width),overlap=(az_half_win,r_half_win))
 
     if cuda:
         Cluster = LocalCUDACluster; cluster_args= {

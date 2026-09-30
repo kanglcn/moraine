@@ -1,7 +1,7 @@
 """phase unwrapping"""
 
 
-__all__ = ['gamma_mcf_pt', 'mcf_pc']
+__all__ = ['gamma_mcf_pt', 'mcf_pc', 'emcf_pc']
 
 import logging
 import zarr
@@ -171,7 +171,7 @@ def mcf_pc(
     if out_chunks is None: out_chunks = ph_zarr.chunks[0]
 
     logger.info('Delaunay triangulation of the points')   # made once, shared by all interferograms
-    required_data = mr.pu._mcf_network(pc_x_data, pc_y_data)
+    required_data = mr.api.unwrap.mcf._mcf_network(pc_x_data, pc_y_data)
     logger.info('Done')
 
     Cluster = LocalCluster; cluster_args = {'processes':True, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
@@ -189,7 +189,7 @@ def mcf_pc(
         logger.info(f'phase wrapping with mcf.')
 
         unw_ph_delayed = np.empty((1,nimage_pairs),dtype=object)
-        f_mcf_delayed = delayed(mr.pu._mcf_unwrap,pure=True,nout=1)
+        f_mcf_delayed = delayed(mr.api.unwrap.mcf._mcf_unwrap,pure=True,nout=1)
         f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
         for i, (ref, sec) in enumerate(image_pairs):
             ref_ph_delayed = ph[:,ref].to_delayed()[0]
@@ -212,3 +212,116 @@ def mcf_pc(
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
+
+
+@mc_logger
+def emcf_pc(
+    gix:str,
+    ph:str,
+    meta:str,
+    unw_ph:str,
+    pairs:str,
+    misclosure:str=None,
+    weight:str=None,
+    earth_cost:int=1,
+    t_scale:float=None,
+    bperp_scale:float=None,
+    temporal_cost:str='length+gradient',
+    spatial_cost:str='gradient+correction+length',
+    repair:bool=True,
+    n_workers:int=None,
+    exclude:str|list=None,
+    out_chunks:int=None,
+):
+    """Extended minimum cost flow (EMCF) phase unwrapping of point cloud interferograms (own implementation, GAMMA
+    not needed).
+
+    Parameters
+    ----------
+    gix : str
+        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int; the points must
+        be unique
+    ph : str
+        input: wrapped phase history (complex), shape (n_points, nimages)
+    meta : str
+        input: metadata toml file with the `dates` (YYYYMMDD), `perpendicular_baseline` (m),
+        `range_pixel_spacing` and `azimuth_pixel_spacing` (m) of the images, as made by `load-gamma-metadata`
+    unw_ph : str
+        output: unwrapped phase of the interferograms in radians, shape (n_points, n_image_pairs), float32;
+        at every point unw(a, b) + unw(b, c) = unw(a, c) for every triangle of images
+    pairs : str
+        output: text file with the image pairs of the interferograms (reference, secondary), one line per
+        column of `unw_ph`
+    misclosure : str, optional
+        output: fraction of the triangles of images whose interferograms did not add up to zero before the
+        repair, shape (n_points,), float32; 0 where the interferograms agreed, a quality measure
+    weight : str, optional
+        input: quality of the points from 0 to 1, e.g. the temporal coherence, shape (n_points,); used by
+        `spatial_cost` 'weight'
+    earth_cost : int, default: 1
+        cost of a phase jump across the border of the network (of the points and of the images), relative
+        to 1 inside; a larger value discourages discharging residues through the border
+    t_scale : float, optional
+        time distance in days that counts like `bperp_scale` of perpendicular baseline when the images are
+        connected; the time span by default
+    bperp_scale : float, optional
+        perpendicular baseline distance in meters matching `t_scale`; the baseline span by default
+    temporal_cost : str, default: 'length+gradient'
+        which interferograms are corrected first where the interferograms of a triangle of images disagree:
+        'gradient' (those with the least reliable phase difference between the two points), 'length' (the
+        longest in time and baseline), 'length+gradient', or 'constant' (all alike)
+    spatial_cost : str, default: 'gradient+correction+length'
+        where phase jumps are placed first in every interferogram: 'constant' (anywhere alike) or a
+        combination with + of 'gradient', 'correction', 'length' and 'weight', see `moraine.emcf_pc`
+    repair : bool, default: True
+        make the interferograms of every triangle of images add up to zero at every point
+    n_workers : int, optional
+        number of interferograms unwrapped at the same time; up to 8 by default
+    exclude : str or list, optional
+        dates (YYYYMMDD) of images left out of the network, e.g. decorrelated by snow; no interferogram uses
+        them
+    out_chunks : int, optional
+        point chunk size of the outputs, same as `ph` by default
+    """
+    import datetime
+    from pathlib import Path
+    import toml
+    logger = logging.getLogger(__name__)
+    m = toml.load(meta)
+    dates = [datetime.datetime.strptime(str(d), '%Y%m%d') for d in m['dates']]
+    t = np.array([(d - dates[0]).days for d in dates], dtype=np.float64)
+    bperp = np.asarray(m['perpendicular_baseline'], dtype=np.float64)
+    rps, azps = float(m.get('range_pixel_spacing', 1.0)), float(m.get('azimuth_pixel_spacing', 1.0))
+    ex = [] if exclude is None else ([exclude] if isinstance(exclude, str) else list(exclude))
+    missing = [d for d in ex if str(d) not in [str(x) for x in m['dates']]]
+    if missing:
+        raise ValueError(f'exclude: dates {missing} are not in {meta}')
+    ex_idx = [[str(x) for x in m['dates']].index(str(d)) for d in ex]
+    logger.info(f'{len(dates)} images, {t[-1]:.0f} days, perpendicular baselines {bperp.min():.1f} .. {bperp.max():.1f} m, '
+                f'pixel spacing {rps} m (range) x {azps} m (azimuth)')
+
+    gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
+    ph_zarr = zarr.open(ph, mode='r')
+    logger.zarr_info(ph, ph_zarr)
+    ph_data = parallel_read_zarr(ph_zarr, (slice(None), slice(None)))
+    weight_data = parallel_read_zarr(zarr.open(weight, mode='r'), (slice(None),)) if weight is not None else None
+    if out_chunks is None: out_chunks = ph_zarr.chunks[0]
+
+    logger.info('EMCF unwrapping')
+    unw, image_pairs, mis = mr.emcf_pc(gix_data[:, 1] * rps, gix_data[:, 0] * azps, ph_data, t, bperp,
+                                       weight=weight_data, earth_cost=earth_cost, t_scale=t_scale,
+                                       bperp_scale=bperp_scale, temporal_cost=temporal_cost,
+                                       spatial_cost=spatial_cost, repair=repair, n_workers=n_workers,
+                                       exclude=ex_idx)
+    logger.info(f'{image_pairs.shape[0]} interferograms unwrapped; triangles of images that did not close '
+                f'before the repair: {mis.mean():.2%} (points with any: {np.mean(mis > 0):.1%})')
+    unw_zarr = zarr.open(unw_ph, mode='w', shape=unw.shape, dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(unw_ph, unw_zarr)
+    unw_zarr[:] = unw
+    if misclosure is not None:
+        mis_zarr = zarr.open(misclosure, mode='w', shape=mis.shape, dtype=np.float32, chunks=(out_chunks,))
+        logger.zarr_info(misclosure, mis_zarr)
+        mis_zarr[:] = mis
+    Path(pairs).parent.mkdir(parents=True, exist_ok=True)
+    np.savetxt(pairs, image_pairs, fmt='%d')
+    logger.info(f'image pairs saved to {pairs}')

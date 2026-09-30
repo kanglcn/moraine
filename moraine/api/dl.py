@@ -285,7 +285,7 @@ def n2f(
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     """
-    xp = mr.utils_.get_array_module(intf)
+    xp = get_array_module(intf)
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
@@ -434,7 +434,7 @@ def n2fs3d(
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     """
-    xp = mr.utils_.get_array_module(intf)
+    xp = get_array_module(intf)
     shape = intf.shape
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)

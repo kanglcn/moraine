@@ -1,72 +1,13 @@
-"""phase unwrapping"""
+"""minimum cost flow unwrapping of point clouds"""
 
-
-__all__ = ['gamma_mcf_pt', 'mcf_pc']
+__all__ = ['mcf_pc']
 
 import numpy as np
-import tempfile
-from pathlib import Path
-import os
 from numba import njit
 
-from .gamma_ import read_gamma_pdata, read_gamma_plist, write_gamma_image, write_gamma_plist
 from .delaunay_ import delaunay_halfedges
 
-def gamma_mcf_pt(
-    pc_x:np.ndarray,
-    pc_y:np.ndarray,
-    ph:np.ndarray,
-    ph_weight:np.ndarray=None,
-    ref_point:int=0,
-) -> np.ndarray:
-    """A simple wrapper for mcf_pt in GAMMA software, only work if you have access to mcf_pt.
-
-    Parameters
-    ----------
-    pc_x : np.ndarray
-        x coordinate, shape of (N,)
-    pc_y : np.ndarray
-        y coordinate, shape of (N,)
-    ph : np.ndarray
-        wrapped phase, shape of (N,) or (N,M)
-    ph_weight : np.ndarray, optional
-        point weight, shape of (N,) or (N,M), optional
-    ref_point : int, default: 0
-        index of the reference point (from 0), the first point by default
-
-    Returns
-    -------
-    np.ndarray
-        unwrapped phase, shape of (N,) or (N,M)
-    """
-    pc_x = pc_x.astype(np.int32)
-    pc_y = pc_y.astype(np.int32)
-    pc_xy = np.stack((pc_x,pc_y),axis=-1)
-    ph = ph.astype(np.complex64)
-
-    with tempfile.TemporaryDirectory() as tempdir_str:
-        temp_dir = Path(tempdir_str)
-        pc_path = temp_dir/'pc'
-        ph_path = temp_dir/'ph'
-        unwrap_ph_path = temp_dir/'unwrap_ph'
-        write_gamma_plist(pc_xy,pc_path)
-        write_gamma_image(ph,ph_path)
-        if ph_weight is None:
-            ph_weight_path = '-'
-        else:
-            ph_weight_path = temp_dir/'ph_weight'
-            ph_weight = ph_weight.astype(np.float32)   # mcf_pt reads FLOAT
-            write_gamma_image(ph_weight,ph_weight_path)
-
-        mcf_pt_command = f'mcf_pt {str(pc_path)} - {str(ph_path)} - {str(ph_weight_path)} - {str(unwrap_ph_path)} - - {ref_point} &> {temp_dir/"gamma.log"}'
-        os.system(mcf_pt_command)
-
-        unwrap_ph = read_gamma_pdata(unwrap_ph_path,dtype='float')
-        unwrap_ph = unwrap_ph.reshape(ph.shape)
-    return unwrap_ph
-
-# ---------------------------------------------------------------- minimum cost flow unwrapping
-# Everything works on the half-edges of the Delaunay triangulation (moraine.delaunay_): `tri` (3T,) start
+# Everything works on the half-edges of the Delaunay triangulation (`delaunay_`): `tri` (3T,) start
 # vertex of every half-edge, `half` (3T,) its twin or -1 on the convex hull. The dual graph of the MCF
 # problem is read from them directly: node e // 3 is the triangle of half-edge e, half[e] // 3 the
 # triangle across it, node T (the earth) is behind every hull half-edge.
@@ -121,13 +62,14 @@ def _grow(a):
 
 
 @njit(cache=True, nogil=True)
-def _mcf_ssp(tri, half, hull, supply, earth_cost):
+def _mcf_ssp(tri, half, hull, supply, earth_cost, cost=None):
     """Min cost flow by successive shortest paths.
 
     From every node with positive excess, Dijkstra on reduced costs (node potentials keep them non
     negative) until the nearest node with negative excess, then one unit is pushed along the path. The
     search stops at the first sink, so it stays local when residues pair up with close neighbours.
-    Arc cost: 1 between triangles, `earth_cost` to the earth, unlimited capacity. Returns the flow per
+    Arc cost: `cost[e]` (1 if None) across half-edge e between triangles, times `earth_cost` to the earth;
+    unlimited capacity. Returns the flow per
     half-edge, leaving triangle e // 3 across e (antisymmetric on twins).
     """
     T = tri.shape[0] // 3
@@ -186,15 +128,18 @@ def _mcf_ssp(tri, half, hull, supply, earth_cost):
                         h = half[e]
                         if h >= 0:
                             v = h // 3
-                            mc = 1 if f[e] >= 0 else -1
+                            c = 1 if cost is None else cost[e]
+                            mc = c if f[e] >= 0 else -c
                         else:
                             v = EARTH
-                            mc = earth_cost if f[e] >= 0 else -earth_cost
+                            c = earth_cost if cost is None else earth_cost * cost[e]
+                            mc = c if f[e] >= 0 else -c
                         code = e
                     else:
                         e = hull[k]
                         v = e // 3
-                        mc = earth_cost if f[e] <= 0 else -earth_cost
+                        c = earth_cost if cost is None else earth_cost * cost[e]
+                        mc = c if f[e] <= 0 else -c
                         code = -(e + 1)
                     if settled[v]:
                         continue

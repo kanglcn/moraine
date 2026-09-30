@@ -21,9 +21,9 @@ GAMMA): each Dijkstra stops at the nearest sink and stays local.
 
 ## Decision
 
-- `moraine/delaunay_.py`: own sweep-hull triangulation (following Delaunator, ISC license, notice in
+- `moraine/api/unwrap/delaunay_.py`: own sweep-hull triangulation (following Delaunator, ISC license, notice in
   the file) with exact integer predicates and coordinate based tie breaking, returning half-edges.
-- `moraine/pu.py`: residues, SSP min cost flow and integration work directly on the half-edges (the
+- `moraine/api/unwrap/mcf.py`: residues, SSP min cost flow and integration work directly on the half-edges (the
   dual graph is read from them, no derived arrays). Arc cost 1 between triangles and `earth_cost`
   (default 1, the previous behaviour) across the convex hull.
 - OR-Tools is removed from the dependencies.
@@ -35,7 +35,7 @@ GAMMA's and OR-Tools'.
 
 ## Consequences
 
-- Correctness is tested independently of other programs (`tests/test_pu.py`: optimality
+- Correctness is tested independently of other programs (`tests/test_unwrap.py`: optimality
   certificate, brute force on tiny sets, flow conservation, known truth, order independence;
   `tests/test_delaunay.py`: identical to Qhull where unique, Delaunay property where cocircular).
 - Results differ from GAMMA `mcf_pt` and from the previous OR-Tools version by 2 pi at some points in

@@ -13,7 +13,7 @@ GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
 @pytest.fixture(autouse=True)
 def _need_models():
     try:
-        mr.dl._get_model('n2f'); mr.dl._get_model('n2ft')
+        mr.api.dl._get_model('n2f'); mr.api.dl._get_model('n2ft')
     except FileNotFoundError:
         pytest.skip('models not downloaded, run moraine.download_dl_model()')
 

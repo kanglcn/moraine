@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy.spatial import Delaunay
 
-from moraine.delaunay_ import delaunay
+from moraine.api.unwrap.delaunay_ import delaunay
 
 
 def tri_set(simplices):

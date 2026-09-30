@@ -1,5 +1,5 @@
 """Views of results: rasters and point clouds, from pyramids or arrays in memory, shown as interactive tile maps
-in notebooks and as PNG images (decision 0017). ``mc.view(data)`` makes a layer; ``a * b`` overlays layers on
+in notebooks and as PNG images (decision 0018). ``mc.view(data)`` makes a layer; ``a * b`` overlays layers on
 one map, ``a + b`` shows maps side by side."""
 
 __all__ = ['view']
@@ -191,7 +191,7 @@ def _coh_post_procs(tnet, kind):
 
 def _image_pairs(image_pairs, n_pairs):
     """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs."""
-    from ..tnet import TempNet, nimage_from_npair
+    from ..api.tnet import TempNet, nimage_from_npair
     if image_pairs is None:
         return TempNet.from_bandwidth(nimage_from_npair(n_pairs))
     pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
@@ -685,7 +685,7 @@ class RasterLayer(_Layer):
 def _pc_levels_in_memory(x, y, pc, res):
     """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, max level, cell
     centre (x0, y0) of cell (0, 0), shape)."""
-    from ..coord_ import Coord
+    from ..api.coord_ import Coord
     from .plot import _next_level_idx_from_raster_of_integer
     yx = np.stack([y, x], axis=-1).astype(np.float64)
     x0, xm, y0, ym = float(x.min()), float(x.max()), float(y.min()), float(y.max())
@@ -767,7 +767,7 @@ class PointLayer(_Layer):
                 from .plot import _LazyRtree
                 self._rtree = _LazyRtree(self._rtree_dir)
             else:
-                from ..rtree import HilbertRtree
+                from ..api.rtree import HilbertRtree
                 self._rtree = HilbertRtree.build(self._x, self._y, page_size=512)
         return self._rtree.bbox_query(bounds, self._x, self._y)
 

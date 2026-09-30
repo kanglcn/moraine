@@ -1,4 +1,4 @@
-# 0017 One viewer: `moraine.cli.view` replaces the holoviews plots
+# 0018 One viewer: `moraine.cli.view` replaces the holoviews plots
 
 ## Status
 
@@ -12,7 +12,7 @@ Accepted
 
 moraine had two ways to look at results: the holoviews / bokeh plots (`ras_plot`, `pc_plot`, `ts_plot`, used
 by `moraine view` and `moraine quicklook`, decisions 0007 and 0014) and the tile viewer prototype
-(decision 0015). The holoviews plots redraw the whole view after each zoom or pan, need several large
+(decision 0016). The holoviews plots redraw the whole view after each zoom or pan, need several large
 dependencies and a different call for every kind of data; the tile viewer is faster and does what they did
 (stacks, time series, reference, coherence, custom post processing) plus overlays, base maps and polygons.
 Users and agents should have one tool to remember.
@@ -30,7 +30,7 @@ Users and agents should have one tool to remember.
   the notebook channel (no server, no port forwarding): the pyramid level with at least one cell per screen
   pixel is sampled at the pixel centres, point clouds are drawn point by point when zoomed in, web mercator
   data are drawn north up over a base map. The clicked pixel / point, the reference, the slider values and
-  the polygons (saved to the `polygons` GeoJSON file, decision 0016) are available in python.
+  the polygons (saved to the `polygons` GeoJSON file, decision 0017) are available in python.
 - Every view describes itself in text (`repr`) and saves a PNG (`.png(path)`), so agents can check results
   without a browser; `moraine quicklook` is ``view(pyramid).png(out)`` and `moraine view` writes a notebook of
   `mc.view` calls.

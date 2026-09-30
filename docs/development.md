@@ -1,7 +1,8 @@
 # Developing moraine
 
 How to change moraine, for contributors and coding agents. The map of the code is `ARCHITECTURE.md`,
-the design decisions are in `docs/decisions/`, the promised formats in `docs/contracts/`.
+the design decisions are in `docs/decisions/`, the promised formats in `docs/contracts/`, planned features in
+`docs/roadmap.md`.
 
 ## Before changing code
 
@@ -40,6 +41,37 @@ git worktree remove ../moraine-<topic>                 # after the branch is mer
 - Processing runs use a working directory of your own, never one shared with another worktree.
 - Changes to shared files (`CHANGELOG.md`, `ARCHITECTURE.md`, the decision index) are merged by hand when
   the branches come together; keep them to the lines your topic needs.
+
+### Large data and memory
+
+moraine is made for data larger than memory (tens of millions of points, stacks of hundreds of images);
+every change is designed for that size, not for the sample data.
+
+- Memory, not only time, decides a design. Estimate the peak memory of a change as
+  `shared inputs + number of parallel workers x memory per task` and keep it bounded: the number of
+  workers (and chunks) must be a parameter, and its default must not multiply a large per task memory by
+  the number of cores.
+- Threads share the inputs (one copy) but every thread has its own working arrays; processes (e.g. a dask
+  `LocalCluster` with processes) also copy the inputs to every worker. Choose by memory: threads with
+  numba `nogil` functions for work on shared arrays in memory, processes only where the work holds the
+  GIL, and in both cases few workers when the per task memory is large.
+- Split the work into units that fit in memory. An API function (`moraine/api/`) processes one unit: one
+  image (or image pair) of the whole scene, or one block of pixels / points with its whole time series
+  (plus a halo where neighbours are needed). The CLI function (`moraine/cli/`) cuts the zarr data into
+  these units, maps the API function over them with dask (bounded number of workers) and writes the
+  results to zarr. The CLI never loads a whole stack; an API function that chains several steps on a
+  whole stack in memory is fine for small data and tests, but the CLI uses the per unit functions.
+- An algorithm whose steps need different units (e.g. per block of points, then per image, then per
+  block again) passes its intermediate results between the steps through zarr, chunked so that every
+  step reads and writes whole chunks (e.g. `(n_points_block, 1)` chunks are written by a per image step
+  and read by a per block step without rechunking). Only small global structures (coordinates, the
+  network of a point cloud for unwrapping) are held in memory for the whole run; say so in the docstring
+  of the command, with their size per point.
+- Keep working arrays compact: int32 instead of int64 indices where the size allows, int8 / bool for
+  small values, sparse storage for mostly empty results, float32 outputs.
+- Measure: for a change of a processing step, report run time and peak memory (e.g. `/usr/bin/time -f
+  %M`, `resource.getrusage`) on a large synthetic case (about 10 million points) as well as on the sample
+  data, and the memory per worker.
 
 ### What changes together
 

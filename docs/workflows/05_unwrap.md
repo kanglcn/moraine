@@ -33,6 +33,44 @@ Run time: about 12 s for 157 189 points and 16 interferograms (CPU, one worker).
 Correctness check (in python): rewrapping the result must give the input phase,
 `np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 1.1e-6 rad).
 
+## Alternative: EMCF
+
+`emcf-pc` unwraps a redundant network instead of sequential pairs: the interferograms of the Delaunay
+triangulation of the images in time and perpendicular baseline (from `raw/meta.toml`), unwrapped
+together. It writes the unwrapped phase and the image pairs it used (a file like the one of
+`image-pairs`):
+
+```toml
+[[step]]
+name = "unwrap_emcf"
+run = "emcf-pc"
+gix = "unw/pc_gix.zarr"
+ph = "pc/pc_ph.zarr"
+meta = "raw/meta.toml"
+unw_ph = "unw/pc_unw_emcf.zarr"
+pairs = "unw/pairs_emcf.txt"
+```
+
+Sample data: 42 interferograms, about 17 s for the refined points (20 s for the 293 814 DS points). At
+every point the interferograms of every triangle of images close: for three images a < b < c,
+unw(a, b) + unw(b, c) = unw(a, c). The optional output `misclosure` is, per point, the fraction of image
+triangles that did not close before the network was made consistent (sample: mean 21 % for the refined
+points, 26 % for the DS points); where it is high the result relies on the majority of the interferograms.
+Coordinates are converted to meters with the pixel spacings of `raw/meta.toml`; `weight` (e.g. the temporal
+coherence) can make phase jumps prefer low quality points (`spatial_cost` with `weight`). `exclude` leaves
+decorrelated images out of the network (dates, e.g. `exclude = ["20211025"]`): on the sample data the
+interferograms using 2021-10-25 (snow) and the images of 2022-09-12 to 2022-10-24 are mostly noise; leaving
+out 2021-10-25 reduces the open triangles from 13 % to 5 % (constant spatial cost).
+
+How the defaults were chosen (`tests/unwrap_benchmark.py`, synthetic data with known truth: clusters of
+points linked by sparse points, a winter gap, seasonal deformation, DEM error, atmosphere, noise; 8
+realisations): with the defaults the median share of wrong cycles is 0.10 % (worst realisation 10 %,
+wrong neighbour differences 0.088 %), against 1.08 % (43 %, 0.174 %) when every interferogram is unwrapped
+alone with `mcf-pc`, and 0.22 % (26 %, 0.106 %) for the EMCF of spurt with distance costs, which takes
+more than 50 times longer (9 s against 0.1 s for 29 000 points). On the sample data the defaults differ from `spatial_cost = "constant"` in 20 - 30 %
+of the values; without a truth there it is unknown which is right, so look at the quicklooks when the
+result matters.
+
 ## Checks
 
 - `moraine info unw/pc_unw_pyramid`: no warnings; values within a few tens of radians.

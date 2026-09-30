@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from moraine.pc import (_unravel_gix, _check_idx_sorted, _pc_split_by_chunk, _gix_ras_chunk,
+from moraine.api.pc import (_unravel_gix, _check_idx_sorted, _pc_split_by_chunk, _gix_ras_chunk,
                         pc_hix, pc_gix, pc_sort, pc2ras, pc_union, pc_intersect, pc_diff)
 
 

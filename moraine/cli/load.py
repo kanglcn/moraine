@@ -24,7 +24,7 @@ from dask import delayed
 from dask.distributed import Client, LocalCluster, progress
 
 import moraine as mr
-from ..gamma_ import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
+from ..api.gamma_ import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
 from .logging import mc_logger
 from . import dask_from_zarr, dask_to_zarr
 
