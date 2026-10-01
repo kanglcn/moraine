@@ -10,8 +10,17 @@ the design decisions are in `docs/decisions/`, the promised formats in `docs/con
    the change touches.
 2. Make sure the task is clear. If a request is ambiguous, restate what you understood and ask; do not
    guess on behaviour that users or other code depend on.
-3. For a non-trivial change, state the goal, what must not change and what is out of scope.
-4. Do not change code against an accepted decision or contract: propose a new decision record (or a new
+3. One change at a time: a single smallest new feature or a single smallest improvement. Split a larger
+   task into such changes and do them one after another, each discussed, implemented and reported on its
+   own.
+4. Discuss every change with the maintainer before implementing it, until each step is clear: the goal,
+   what must not change and what is out of scope, the functions and files touched, the tests, and how it
+   is validated (e.g. memory and run time measured). Then ask for the go; do not start the implementation
+   before it.
+5. When you propose an interface (a new or changed function or command), give every input and output
+   with its shape, dtype, unit and meaning (what one element is, e.g. "unwrapped phase in radians of
+   pair k at point i"), the defaults and the allowed values, before any implementation.
+6. Do not change code against an accepted decision or contract: propose a new decision record (or a new
    contract version) and ask the maintainer.
 
 ## Making the change

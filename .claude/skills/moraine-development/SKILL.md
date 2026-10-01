@@ -12,6 +12,11 @@ The rules are tool independent and live in the repository. Before changing anyth
 2. Read `ARCHITECTURE.md` for where the change goes and the layer rules.
 3. Read the index `docs/decisions/README.md` and the contracts in `docs/contracts/` the change touches.
    Do not change code against an accepted decision or contract; propose a new record and ask.
+4. Work on one smallest new feature or one smallest improvement at a time. Discuss it with the maintainer
+   until every step is clear (goal, scope, files, tests, validation), then ask for the go before
+   implementing it.
+5. When proposing an interface, give every input and output with shape, dtype, unit and meaning, the
+   defaults and the allowed values.
 
 Checklist before reporting the change as done:
 
