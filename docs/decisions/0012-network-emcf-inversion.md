@@ -45,7 +45,7 @@ command, docstring, tests, example and guide):
    `image-pairs` command gets a `meta` input and a `delaunay` method.
 2. **Spatial MCF improvements** (`mcf_pc`, output unchanged): coordinates scaled by the pixel spacings
    (or map coordinates), and edge costs `constant` (current behaviour, default) or `distance`.
-3. **EMCF** (`emcf_pc`, command `emcf-pc`): inputs point coordinates, the wrapped phase history
+3. **EMCF** (`emcf_pc`, command `emcf-pc`; its network and the split into steps are changed by decision 0020): inputs point coordinates, the wrapped phase history
    (n_points, nimages) and the network; output unwrapped phase (n_points, n_image_pairs) float32, same
    layout as `mcf_pc`. Temporal MCFs are many and small: batched over spatial edges, parallel.
 4. **Inversion** (`invert_pc`, command `ts-inversion-pc`): unwrapped phase (n_points, n_image_pairs)

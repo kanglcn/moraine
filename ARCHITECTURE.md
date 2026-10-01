@@ -53,10 +53,11 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/co.py` | interferograms, covariance / coherence matrices, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
-| `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `gamma_mcf_pt` | |
+| `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
 | `moraine/api/unwrap/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
 | `moraine/api/unwrap/mcf.py` | minimum cost flow (successive shortest paths) on the Delaunay half-edges, unwrapping of one interferogram | `mcf_pc` |
-| `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of a network of interferograms in time / perpendicular baseline | `emcf_pc` |
+| `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of any network of interferograms | `emcf_pc` |
+| `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like); L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
 | `moraine/api/dl.py` | deep learning filters, model download and cached loading | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | `moraine/api/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |

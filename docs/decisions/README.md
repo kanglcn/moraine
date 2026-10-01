@@ -27,6 +27,8 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0017](0017-polygons-as-geojson.md) | Polygons are GeoJSON files in longitude / latitude or radar grid coordinates | Accepted |
 | [0018](0018-one-viewer.md) | One viewer: `moraine.cli.view` replaces the holoviews plots | Accepted |
 | [0019](0019-chunks-space-blocks-one-image.md) | Data are chunked by blocks in space and one image per chunk | Accepted |
+| [0020](0020-emcf-any-image-pair-network.md) | EMCF on any network of image pairs, in steps of their own units | Accepted |
+| [0021](0021-closure-correction-by-regions.md) | Unwrapping errors are corrected by phase closure per region, as in MintPy | Accepted |
 
 ## Writing a record
 

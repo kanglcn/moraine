@@ -35,6 +35,31 @@ def _mcf_network(x, y):
     return tri, half, _hull_halfedges(half)
 
 
+def _mcf_edges(x, y):
+    """Triangulation of the points and its edges. Returns (tri, half, hull, edges, edge_of_half, sign_of_half):
+    `edges` (n_edges, 2) int32 (p, q) sorted by the smaller and then the larger point index (a block of edges
+    reads a block of points); the direction p -> q is the one of a half-edge, so that it does not depend on the
+    point order (results that break ties by the direction stay independent of it); for every half-edge its
+    edge and +1 if it goes from p to q, else -1."""
+    tri, half, hull = _mcf_network(x, y)
+    e = np.arange(tri.shape[0])
+    a, b = tri, tri[e - e % 3 + (e + 1) % 3]
+    rep = np.flatnonzero((half < 0) | (e < half))      # one half-edge per edge, its direction
+    order = np.lexsort((np.maximum(a[rep], b[rep]), np.minimum(a[rep], b[rep])))
+    rep = rep[order]
+    edges = np.stack((a[rep], b[rep]), -1).astype(np.int32)
+    idx = np.arange(rep.shape[0], dtype=np.int32)
+    edge_of_half = np.empty(tri.shape[0], np.int32)
+    sign_of_half = np.empty(tri.shape[0], np.int8)
+    edge_of_half[rep] = idx
+    sign_of_half[rep] = 1
+    twin = half[rep]
+    has = twin >= 0
+    edge_of_half[twin[has]] = idx[has]
+    sign_of_half[twin[has]] = -1
+    return tri, half, hull, edges, edge_of_half, sign_of_half
+
+
 @njit(cache=True, nogil=True)
 def _mcf_residues(psi, tri):
     """Residue of every triangle (sum of wrapped phase differences along its half-edges / 2 pi); the
