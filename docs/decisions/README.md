@@ -26,6 +26,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0016](0016-tile-viewer-anywidget-leaflet.md) | Tile viewer with anywidget and Leaflet, tiles through the notebook channel | Superseded by 0018 |
 | [0017](0017-polygons-as-geojson.md) | Polygons are GeoJSON files in longitude / latitude or radar grid coordinates | Accepted |
 | [0018](0018-one-viewer.md) | One viewer: `moraine.cli.view` replaces the holoviews plots | Accepted |
+| [0019](0019-chunks-space-blocks-one-image.md) | Data are chunked by blocks in space and one image per chunk | Accepted |
 
 ## Writing a record
 

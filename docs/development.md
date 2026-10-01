@@ -19,7 +19,9 @@ the design decisions are in `docs/decisions/`, the promised formats in `docs/con
    before it.
 5. When you propose an interface (a new or changed function or command), give every input and output
    with its shape, dtype, unit and meaning (what one element is, e.g. "unwrapped phase in radians of
-   pair k at point i"), the defaults and the allowed values, before any implementation.
+   pair k at point i"), the defaults and the allowed values, before any implementation. Functions and
+   commands take exactly the values they need (e.g. pixel spacings as numbers, dates as a list), never a
+   metadata file such as `meta.toml`.
 6. Do not change code against an accepted decision or contract: propose a new decision record (or a new
    contract version) and ask the maintainer.
 

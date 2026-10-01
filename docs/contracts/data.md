@@ -9,6 +9,21 @@ decision record, since every stored result depends on them.
 - rslc stack: `(nlines, width, nimages)` complex64, images in date order.
 - nan marks missing data.
 
+## Chunks
+
+Decision 0019.
+
+- Stacks are chunked in space by blocks and along the image (or image pair) axis with one image per
+  chunk: point clouds `(n_points, nimages)` as `(points_block, 1)`, rasters `(nlines, width, nimages)` as
+  `(lines_block, width_block, 1)`; the same for interferograms, coherence and unwrapped phase
+  `(n_points, n_pairs)`.
+- Arrays without an image axis are chunked in space only: `(points_block,)`, `(points_block, 2)` for
+  `gix`, `(lines_block, width_block)`.
+- A step per image (or image pair) then reads and writes whole chunks, and a step per block of points or
+  pixels reads one chunk of every image, without rechunking. Temporary zarrs between the steps of a
+  command follow the same layout.
+- Commands expect this layout and report other chunks instead of rechunking them.
+
 ## Point clouds
 
 - Arrays of shape `(n_points, ...)`, the first axis indexes the points.
