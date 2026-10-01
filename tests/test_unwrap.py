@@ -526,20 +526,57 @@ def test_closure_without_loops_and_errors():
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, min_region_points=0)
 
 
-@pytest.mark.xfail(strict=True, reason='the emcf-pc command still uses the former emcf_pc; rewritten next')
-def test_cli_emcf_pc(tmp_path):
-    import toml
+def _write_zarr(path, data, chunks):
+    import zarr
+    z = zarr.open(str(path), mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks)
+    z[:] = data
+    return str(path)
+
+
+@pytest.mark.parametrize('chunk', [97, 2000])
+def test_cli_emcf_pc(tmp_path, chunk):
+    """The command equals the API (coordinates in meters from the pixel spacings), with blocks of the temporal
+    step much smaller than the point cloud (rows of far points read) and with one block."""
     import zarr
     import moraine.cli as mc
-    x, y, t, b, true, ph = emcf_synthetic(noise=0.6, n=1500)
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
     dates = [(np.datetime64('2021-01-01') + int(d)).astype(str).replace('-', '') for d in t]
-    toml.dump({'dates': dates, 'perpendicular_baseline': b.tolist(), 'range_pixel_spacing': 4.0,
-               'azimuth_pixel_spacing': 3.0}, open(tmp_path / 'meta.toml', 'w'))
-    for name, data in [('gix.zarr', np.stack((y, x), -1).astype(np.int32)), ('ph.zarr', ph)]:
-        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(500, 1))
-        z[:] = data
-    mc.emcf_pc(str(tmp_path / 'gix.zarr'), str(tmp_path / 'ph.zarr'), str(tmp_path / 'meta.toml'),
-               str(tmp_path / 'unw.zarr'), str(tmp_path / 'pairs.txt'))
+    t = np.array([(np.datetime64(f'{d[:4]}-{d[4:6]}-{d[6:]}') - np.datetime64('2021-01-01')).astype(int)
+                  for d in dates], float)
+    gix = np.stack((y / 10, x / 10), -1).astype(np.int32)
+    weight = np.random.default_rng(0).uniform(0, 1, len(x)).astype(np.float32)
+    pairs = hop3(len(t))
+    paths = dict(gix=_write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
+                 ph=_write_zarr(tmp_path / 'ph.zarr', ph, (chunk, 1)),
+                 weight=_write_zarr(tmp_path / 'w.zarr', weight, (chunk,)))
+    for tc, sc in (('constant', 'length'), ('length', 'length+weight')):
+        out = str(tmp_path / f'unw_{tc}.zarr')
+        mc.emcf_pc(paths['gix'], paths['ph'], pairs, out, range_pixel_spacing=4.0, azimuth_pixel_spacing=3.0,
+                   dates=dates, weight=paths['weight'], temporal_cost=tc, spatial_cost=sc)
+        unw, _ = mr.emcf_pc(gix[:, 1] * 4.0, gix[:, 0] * 3.0, ph, t, image_pairs=pairs, weight=weight,
+                            temporal_cost=tc, spatial_cost=sc)
+        z = zarr.open(out, mode='r')
+        assert z.chunks == (chunk, 1) and z.dtype == np.float32
+        np.testing.assert_array_equal(z[:], unw)
+        assert not (tmp_path / f'unw_{tc}.zarr.tmp').exists()
+
+
+def test_cli_emcf_pc_errors(tmp_path):
+    import moraine.cli as mc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=300)
+    gix = _write_zarr(tmp_path / 'gix.zarr', np.stack((y / 10, x / 10), -1).astype(np.int32), (100, 2))
+    pairs = hop3(len(t))
+    args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
+    by_point = _write_zarr(tmp_path / 'ph_rows.zarr', ph, (100, len(t)))
+    with pytest.raises(ValueError, match='one image per chunk'):
+        mc.emcf_pc(gix, by_point, pairs, str(tmp_path / 'u.zarr'), **args)
+    ph_path = _write_zarr(tmp_path / 'ph.zarr', ph, (100, 1))
+    with pytest.raises(ValueError, match='acquisition times'):
+        mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), temporal_cost='length', **args)
+    with pytest.raises(ValueError, match='dates'):
+        mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), dates=['20210101', '20210113'], **args)
+    with pytest.raises(ValueError, match='two different images'):
+        mc.emcf_pc(gix, ph_path, np.array([[0, 0]]), str(tmp_path / 'u.zarr'), **args)
 
 
 @pytest.mark.slow

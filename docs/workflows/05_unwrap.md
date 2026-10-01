@@ -35,41 +35,44 @@ Correctness check (in python): rewrapping the result must give the input phase,
 
 ## Alternative: EMCF
 
-`emcf-pc` unwraps a redundant network instead of sequential pairs: the interferograms of the Delaunay
-triangulation of the images in time and perpendicular baseline (from `raw/meta.toml`), unwrapped
-together. It writes the unwrapped phase and the image pairs it used (a file like the one of
-`image-pairs`):
+`emcf-pc` unwraps a redundant network instead of sequential pairs: the interferograms of a network of
+image pairs that closes loops, e.g. every image with the next three (`image-pairs` with `bandwidth = 3`),
+unwrapped together. The pixel spacings convert the grid index to meters (from the `*.rslc.par` of the
+data; 4.29 m in range and 3.74 m in azimuth for the sample):
 
 ```toml
+[[step]]
+name = "pairs_hop3"
+run = "image-pairs"
+rslc = "pc/pc_ph.zarr"
+bandwidth = 3
+out = "unw/pairs_hop3.txt"
+
 [[step]]
 name = "unwrap_emcf"
 run = "emcf-pc"
 gix = "unw/pc_gix.zarr"
 ph = "pc/pc_ph.zarr"
-meta = "raw/meta.toml"
+image_pairs = "unw/pairs_hop3.txt"
 unw_ph = "unw/pc_unw_emcf.zarr"
-pairs = "unw/pairs_emcf.txt"
+range_pixel_spacing = 4.290037
+azimuth_pixel_spacing = 3.740175
 ```
 
-Sample data: 42 interferograms, about 17 s for the refined points (20 s for the 293 814 DS points). At
-every point the interferograms of every triangle of images close: for three images a < b < c,
-unw(a, b) + unw(b, c) = unw(a, c). The optional output `misclosure` is, per point, the fraction of image
-triangles that did not close before the network was made consistent (sample: mean 21 % for the refined
-points, 26 % for the DS points); where it is high the result relies on the majority of the interferograms.
-Coordinates are converted to meters with the pixel spacings of `raw/meta.toml`; `weight` (e.g. the temporal
-coherence) can make phase jumps prefer low quality points (`spatial_cost` with `weight`). `exclude` leaves
-decorrelated images out of the network (dates, e.g. `exclude = ["20211025"]`): on the sample data the
-interferograms using 2021-10-25 (snow) and the images of 2022-09-12 to 2022-10-24 are mostly noise; leaving
-out 2021-10-25 reduces the open triangles from 13 % to 5 % (constant spatial cost).
+Sample data (2026-09-30): 45 interferograms of 17 images, 6.3 s for the 157 193 refined points; rewrapping
+gives the input phase (max 2.6e-6 rad). The loops of image pairs do not close at every point after EMCF:
+on the sample, 12.8 % of the interferograms of a point (mean) do not fit them; the phase closure
+correction is a separate step (`unwrap_correct_closure_pc`). `ph` must be chunked one image per chunk
+(`docs/contracts/data.md`). Large data: 10 million points, 100 images, 294 interferograms take 13 min with
+4 interferograms at the same time (8.2 GB peak memory) and 6 min with 32 (51 GB, the default on a
+32 core machine is bounded by the cores and half of the available memory).
 
-How the defaults were chosen (`tests/unwrap_benchmark.py`, synthetic data with known truth: clusters of
-points linked by sparse points, a winter gap, seasonal deformation, DEM error, atmosphere, noise; 8
-realisations): with the defaults the median share of wrong cycles is 0.10 % (worst realisation 10 %,
-wrong neighbour differences 0.088 %), against 1.08 % (43 %, 0.174 %) when every interferogram is unwrapped
-alone with `mcf-pc`, and 0.22 % (26 %, 0.106 %) for the EMCF of spurt with distance costs, which takes
-more than 50 times longer (9 s against 0.1 s for 29 000 points). On the sample data the defaults differ from `spatial_cost = "constant"` in 20 - 30 %
-of the values; without a truth there it is unknown which is right, so look at the quicklooks when the
-result matters.
+`temporal_cost = "length"` (with `dates`, the acquisition dates) corrects the longest interferograms first
+where loops disagree; `spatial_cost = "weight"` (with `weight`, e.g. the temporal coherence) places phase
+jumps first at points of low quality. The defaults (`constant`, `length`) were chosen among the costs
+with a counterpart in the literature on synthetic data with known truth (`tests/unwrap_benchmark.py`):
+median share of wrong (point, interferogram) 0.81 % against 1.54 % when every interferogram is unwrapped
+alone with `mcf-pc` (decision 0020).
 
 ## Checks
 

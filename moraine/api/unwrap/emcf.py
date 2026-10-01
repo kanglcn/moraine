@@ -102,6 +102,29 @@ def _spatial_cost_flags(mode, weight):
 _MEMORY_FRACTION = 0.5          # share of the available memory the spatial workers may use by default
 
 
+def _image_pairs(image_pairs, nimages):
+    """The image pairs checked, (n_pairs, 2) int64."""
+    pairs = np.asarray(image_pairs)
+    if pairs.ndim != 2 or pairs.shape[1] != 2 or pairs.shape[0] == 0 or not np.issubdtype(pairs.dtype, np.integer):
+        raise ValueError(f'image_pairs must be integers of shape (n_pairs, 2), got {pairs.dtype} {pairs.shape}')
+    if pairs.min() < 0 or pairs.max() >= nimages or (pairs[:, 0] == pairs[:, 1]).any():
+        raise ValueError(f'image_pairs must pair two different images of 0 .. {nimages - 1}')
+    return np.ascontiguousarray(pairs, dtype=np.int64)
+
+
+def _edge_length(x, y, edges):
+    """Reliability of every edge by its length: median length / length, up to 1, (n_edges,) float32."""
+    length = np.hypot(x[edges[:, 1]] - x[edges[:, 0]], y[edges[:, 1]] - y[edges[:, 0]])
+    return np.minimum(np.median(length) / np.maximum(length, 1e-12), 1.0).astype(np.float32)
+
+
+def _spatial_workers(n_points, n_edges, n_tri, flags, n_pairs):
+    """Default number of interferograms unwrapped at the same time: bounded by the available cores and
+    `_MEMORY_FRACTION` of the available memory."""
+    per_worker = _spatial_worker_bytes(n_points, n_edges, n_tri, flags)
+    return max(1, min(n_pairs, get_n_cpus_avail(), int(_MEMORY_FRACTION * get_mem_avail() // per_worker)))
+
+
 def _spatial_worker_bytes(n_points, n_edges, n_tri, flags):
     """Working memory of one `_emcf_spatial` call in bytes, about 200 per point."""
     b = n_points * (16 + 8 + 1 + 4)                  # image phases (2 complex64), unw float64, done, float32 result
@@ -256,14 +279,8 @@ def emcf_pc(
     if image_pairs is None:
         if nimages < 2:
             raise ValueError('at least 2 images are needed')
-        pairs = TempNet.from_bandwidth(nimages, min(3, nimages - 1)).image_pairs
-    else:
-        pairs = np.asarray(image_pairs)
-        if pairs.ndim != 2 or pairs.shape[1] != 2 or pairs.shape[0] == 0 or not np.issubdtype(pairs.dtype, np.integer):
-            raise ValueError(f'image_pairs must be integers of shape (n_pairs, 2), got {pairs.dtype} {pairs.shape}')
-        if pairs.min() < 0 or pairs.max() >= nimages or (pairs[:, 0] == pairs[:, 1]).any():
-            raise ValueError(f'image_pairs must pair two different images of 0 .. {nimages - 1}')
-    pairs = np.ascontiguousarray(pairs, dtype=np.int64)
+        image_pairs = TempNet.from_bandwidth(nimages, min(3, nimages - 1)).image_pairs
+    pairs = _image_pairs(image_pairs, nimages)
     if t is not None:
         t = np.asarray(t, dtype=np.float64)
         if t.shape != (nimages,):
@@ -280,11 +297,7 @@ def emcf_pc(
     earth_cost = int(earth_cost)
     cycles = _emcf_temporal(ph, edges[:, 0], edges[:, 1], pairs, pair_cost, order, parent)
 
-    if flags & 1:
-        length = np.hypot(x[edges[:, 1]] - x[edges[:, 0]], y[edges[:, 1]] - y[edges[:, 0]])
-        edge_length = np.minimum(np.median(length) / np.maximum(length, 1e-12), 1.0).astype(np.float32)
-    else:
-        edge_length = np.ones(1, np.float32)
+    edge_length = _edge_length(x, y, edges) if flags & 1 else np.ones(1, np.float32)
     w = np.clip(np.asarray(weight, dtype=np.float32), 0, 1) if weight is not None else np.ones(1, np.float32)
     n_pairs = pairs.shape[0]
     unw = np.empty((ph.shape[0], n_pairs), np.float32)
@@ -294,9 +307,7 @@ def emcf_pc(
                                   np.ascontiguousarray(cycles[:, k]), tri, half, hull, edges, edge_of_half,
                                   sign_of_half, earth_cost, flags, edge_length, w)
 
-    if not n_workers:
-        per_worker = _spatial_worker_bytes(ph.shape[0], edges.shape[0], tri.shape[0] // 3, flags)
-        n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(_MEMORY_FRACTION * get_mem_avail() // per_worker)))
+    n_workers = n_workers or _spatial_workers(ph.shape[0], edges.shape[0], tri.shape[0] // 3, flags, n_pairs)
     with ThreadPoolExecutor(max_workers=n_workers) as pool:
         list(pool.map(spatial, range(n_pairs)))
     return unw, pairs.astype(np.int32)
