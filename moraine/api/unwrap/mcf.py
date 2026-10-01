@@ -258,17 +258,47 @@ def _mcf_integrate(psi, tri, half, f, n_points):
 
 
 @njit(cache=True, nogil=True)
-def _mcf_solve(ph, tri, half, hull, earth_cost):
+def _mcf_solve(ph, tri, half, hull, earth_cost, cost):
     psi = np.empty(ph.shape[0], np.float32)
     for i in range(ph.shape[0]):
         psi[i] = np.arctan2(ph[i].imag, ph[i].real)
-    f = _mcf_ssp(tri, half, hull, _mcf_residues(psi, tri), earth_cost)
+    f = _mcf_ssp(tri, half, hull, _mcf_residues(psi, tri), earth_cost, cost)
     return _mcf_integrate(psi, tri, half, f, psi.shape[0])
 
 
-def _mcf_unwrap(ph, tri, half, hull, earth_cost=1):
-    """Unwrap one interferogram on a network made by `_mcf_network`."""
-    return _mcf_solve(np.ascontiguousarray(ph), tri, half, hull, int(earth_cost))
+def _mcf_unwrap(ph, tri, half, hull, earth_cost=1, cost=None):
+    """Unwrap one interferogram on a network made by `_mcf_network` (arc costs per half-edge from
+    `_mcf_cost_network`, or None for 1)."""
+    return _mcf_solve(np.ascontiguousarray(ph), tri, half, hull, int(earth_cost), cost)
+
+
+_SPATIAL_COST_RANGE = 99.0       # arc costs from 1 to 1 + this
+
+
+def _edge_length(x, y, edges):
+    """Reliability of every edge by its length: median length / length, up to 1, (n_edges,) float32."""
+    length = np.hypot(x[edges[:, 1]] - x[edges[:, 0]], y[edges[:, 1]] - y[edges[:, 0]])
+    return np.minimum(np.median(length) / np.maximum(length, 1e-12), 1.0).astype(np.float32)
+
+
+def _mcf_cost_network(x, y, spatial_cost):
+    """Network and arc costs for `_mcf_unwrap`: (tri, half, hull, cost); cost per half-edge
+    1 + round(_SPATIAL_COST_RANGE * reliability) (int32), None for 'constant'. Decision 0020."""
+    if spatial_cost == 'constant':
+        return (*_mcf_network(x, y), None)
+    if spatial_cost != 'length':
+        raise ValueError(f'unknown spatial_cost {spatial_cost!r}: constant or length')
+    tri, half, hull, edges, edge_of_half, _ = _mcf_edges(x, y)
+    cost = (1 + np.rint(_SPATIAL_COST_RANGE * _edge_length(x, y, edges))).astype(np.int32)
+    return tri, half, hull, np.ascontiguousarray(cost[edge_of_half])
+
+
+def _mcf_worker_bytes(n_points, n_tri):
+    """Working memory of one `_mcf_unwrap` call with its inputs in bytes, about 160 per point."""
+    b = n_points * (16 + 8 + 4 + 8 + 4 + 8 + 1)     # two image phases, interferogram, psi, unw float64 and float32, done
+    b += (n_tri + 1) * (4 + 1 + 4 + 37)              # residues, seen, queue; per node of `_mcf_ssp`
+    b += 3 * n_tri * 4                               # flow per half-edge
+    return b
 
 
 def mcf_pc(
@@ -276,6 +306,7 @@ def mcf_pc(
     pc_y:np.ndarray,
     ph:np.ndarray,
     earth_cost:int=1,
+    spatial_cost:str='constant',
 )-> np.ndarray:
     """Minimum cost flow phase unwrapping of a point cloud interferogram.
 
@@ -290,6 +321,9 @@ def mcf_pc(
     earth_cost : int, default: 1
         cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
         discourages discharging residues through the border
+    spatial_cost : str, default: 'constant'
+        where phase jumps are placed first: 'constant' (anywhere alike) or 'length' (long connections
+        between points)
 
     Returns
     -------
@@ -298,4 +332,7 @@ def mcf_pc(
     """
     # Delaunay triangulation, residues of the triangles, successive shortest path min cost flow between
     # them, integration from the first point; exactly optimal, independent of the point order (ADR 0013)
-    return _mcf_unwrap(ph, *_mcf_network(pc_x, pc_y), earth_cost)
+    x = np.asarray(pc_x, dtype=np.float64)
+    y = np.asarray(pc_y, dtype=np.float64)
+    tri, half, hull, cost = _mcf_cost_network(x, y, spatial_cost)
+    return _mcf_unwrap(ph, tri, half, hull, earth_cost, cost)

@@ -33,18 +33,20 @@ The API must also be split into units for data larger than memory (`docs/develop
   perpendicular baseline is not used; `bperp`, `t_scale`, `bperp_scale` and `exclude` are removed
   (images are left out by leaving them out of `image_pairs`). `temporal_cost` 'length' uses the time
   span of the pairs only. `earth_cost` applies to the network of points only.
-- Costs only where they have a counterpart in the literature: the temporal step corrects an
-  interferogram at cost 'constant' (1) or 'length' (shorter time spans cost more, like the distance costs
-  of spurt), default 'constant'; the spatial step places phase jumps first on long edges ('length', like
-  spurt) and at points of low quality ('weight', like coherence weights of GAMMA or Costantini),
-  default 'length'. The former adaptive costs are removed: the temporal 'gradient' (|wrapped gradient|
-  close to pi cheaper) and the spatial 'gradient' and 'correction' (edges corrected by the temporal step
-  cheaper). Measured on the synthetic data of `tests/unwrap_benchmark.py` (median share of wrong (point,
-  interferogram) after `emcf_pc` and the closure correction): clusters with bridges 0.0010 with them,
-  0.0041 without (the spatial pair together made the difference); islands 0.0178 and 0.0169; uniform
-  noise 0.0072 and 0.0058. They are removed nevertheless, without a basis and with a benefit on one kind
-  of synthetic data only; better costs (e.g. the temporal coherence of the edges, as in PSI networks) are
-  to be measured on real data.
+- Costs only where they have a counterpart in the literature: the temporal step corrects an interferogram at
+  cost 'constant' (1) or 'length' (shorter time spans cost more, like the distance costs of spurt), default
+  'constant'; the spatial step places phase jumps first on long edges ('length', like spurt) and at points of
+  low quality ('weight', like coherence weights of GAMMA or Costantini), default 'constant' (also for
+  `mcf_pc`, which gets 'length' too, decision 0012 stage 2); on the synthetic data 'length' was better after
+  the closure correction (median 0.0041 against 0.0081) but the defaults stay without costs until better ones
+  are measured on real data. The former adaptive costs are removed: the temporal 'gradient' (|wrapped
+  gradient| close to pi cheaper) and the spatial 'gradient' and 'correction' (edges corrected by the temporal
+  step cheaper). Measured on the synthetic data of `tests/unwrap_benchmark.py` (median share of wrong (point,
+  interferogram) after `emcf_pc` and the closure correction): clusters with bridges 0.0010 with them, 0.0041
+  without (the spatial pair together made the difference); islands 0.0178 and 0.0169; uniform noise 0.0072 and
+  0.0058. They are removed nevertheless, without a basis and with a benefit on one kind of synthetic data
+  only; better costs (e.g. the temporal coherence of the edges, as in PSI networks) are to be measured on real
+  data.
 - The temporal step solves the L1 potential problem on any graph of image pairs (one numba solver,
   `_l1_fit`: spanning forest, then negative cycle cancelling of the dual circulation). A network
   without loops is accepted with a warning (every interferogram is then unwrapped alone).

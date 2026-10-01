@@ -120,98 +120,87 @@ def mcf_pc(
     ph:str,
     unw_ph:str,
     image_pairs:np.ndarray,
+    range_pixel_spacing:float,
+    azimuth_pixel_spacing:float,
     earth_cost:int=1,
+    spatial_cost:str='constant',
+    n_workers:int=None,
     out_chunks:int=None,
-    n_workers=1,
-    threads_per_worker=2,
-    **dask_cluster_arg,
 ):
     """Minimum cost flow phase unwrapping of point cloud interferograms.
+
+    Every interferogram is unwrapped alone on the Delaunay network of the points. The network stays in
+    memory, about 50 bytes per point (100 with `spatial_cost` 'length'), and every interferogram unwrapped
+    at the same time needs about 160 bytes per point more.
 
     Parameters
     ----------
     gix : str
-        input: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int; the points must
-        be unique
+        input: grid index (azimuth, range) of the points, shape (n_points, 2), int; the points must be unique
     ph : str
-        input: wrapped phase history (complex), shape (n_points, nimages)
+        input: wrapped phase history (complex), shape (n_points, nimages), chunked one image per chunk
+        (points_block, 1)
     unw_ph : str
-        output: unwrapped phase of the interferograms, shape (n_points, n_image_pairs)
+        output: unwrapped phase of the interferograms in radians, shape (n_points, n_pairs), float32, chunks
+        (out_chunks, 1); the first point keeps its wrapped phase
     image_pairs : np.ndarray
-        image pairs (reference, secondary) of the interferograms to unwrap, shape (n_image_pairs, 2)
+        image pairs (reference, secondary) of the interferograms to unwrap, shape (n_pairs, 2); the
+        interferogram is reference * conj(secondary)
+    range_pixel_spacing : float
+        range pixel spacing in meters
+    azimuth_pixel_spacing : float
+        azimuth pixel spacing in meters
     earth_cost : int, default: 1
         cost of a phase jump across the convex hull of the points, relative to 1 inside; a larger value
         discourages discharging residues through the border
+    spatial_cost : str, default: 'constant'
+        where phase jumps are placed first: 'constant' (anywhere alike) or 'length' (long connections
+        between points)
+    n_workers : int, optional
+        number of interferograms unwrapped at the same time; by default as many as the available cores and
+        half of the available memory allow
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
-    n_workers : default: 1
-        number of dask worker, number of interferograms to be unwrapped in the same time
-    threads_per_worker : default: 2
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
     """
-
+    from ..api.unwrap.emcf import _image_pairs
+    from ..api.unwrap.mcf import _mcf_cost_network, _mcf_unwrap, _mcf_worker_bytes
+    from ..api.utils_ import get_mem_avail, get_n_cpus_avail
     logger = logging.getLogger(__name__)
-    logger.info('load coordinates')
-    gix_data = parallel_read_zarr(zarr.open(gix, mode='r'),(slice(None),slice(None)))
-    pc_x_data, pc_y_data = gix_data[:,1], gix_data[:,0]
-    # pc_x_data = parallel_read_zarr(zarr.open(pc_x,mode='r'),(slice(None),))
-    # pc_y_data = parallel_read_zarr(zarr.open(pc_y,mode='r'),(slice(None),))
-    logger.info('Done')
 
-    ph_path = ph
-    unw_ph_path = unw_ph
+    ph_zarr = zarr.open(ph, mode='r')
+    logger.zarr_info(ph, ph_zarr)
+    n_points, nimages = ph_zarr.shape
+    if ph_zarr.chunks[1] != 1:
+        raise ValueError(f'{ph}: chunks {ph_zarr.chunks}; stacks are chunked one image per chunk, '
+                         f'(points_block, 1) (docs/contracts/data.md)')
+    pairs = _image_pairs(image_pairs, nimages)
+    n_pairs = pairs.shape[0]
+    if out_chunks is None:
+        out_chunks = ph_zarr.chunks[0]
+    gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
+    if gix_data.shape != (n_points, 2):
+        raise ValueError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
+    x = gix_data[:, 1] * float(range_pixel_spacing)
+    y = gix_data[:, 0] * float(azimuth_pixel_spacing)
+    del gix_data
+    logger.info(f'triangulation of {n_points} points')      # made once, shared by all interferograms
+    tri, half, hull, cost = _mcf_cost_network(x, y, spatial_cost)
+    del x, y
+    earth_cost = int(earth_cost)
+    unw_zarr = zarr.open(unw_ph, mode='w', shape=(n_points, n_pairs), dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(unw_ph, unw_zarr)
 
-    ph_zarr = zarr.open(ph_path,mode='r')
-    logger.zarr_info(ph_path,ph_zarr)
-    npoint, nimage = ph_zarr.shape
-    nimage_pairs = image_pairs.shape[0]
+    def unwrap(k):
+        intf = ph_zarr[:, pairs[k, 0]] * np.conj(ph_zarr[:, pairs[k, 1]])
+        unw_zarr[:, k] = _mcf_unwrap(intf, tri, half, hull, earth_cost, cost)
+        return k
 
-    if out_chunks is None: out_chunks = ph_zarr.chunks[0]
-
-    logger.info('Delaunay triangulation of the points')   # made once, shared by all interferograms
-    required_data = mr.api.unwrap.mcf._mcf_network(pc_x_data, pc_y_data)
-    logger.info('Done')
-
-    Cluster = LocalCluster; cluster_args = {'processes':True, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-    cluster_args.update(dask_cluster_arg)
-
-    logger.info('starting dask local cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        required_data_future = [client.scatter(data, broadcast=True) for data in required_data]
-        ph = dask_from_zarr(ph_path,chunks=(ph_zarr.shape[0],1))
-        logger.darr_info('ph', ph)
-        # ph_delayed = ph.to_delayed()[0]
-        logger.info(f'phase wrapping with mcf.')
-
-        unw_ph_delayed = np.empty((1,nimage_pairs),dtype=object)
-        f_mcf_delayed = delayed(mr.api.unwrap.mcf._mcf_unwrap,pure=True,nout=1)
-        f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
-        for i, (ref, sec) in enumerate(image_pairs):
-            ref_ph_delayed = ph[:,ref].to_delayed()[0]
-            sec_ph_delayed = ph[:,sec].to_delayed()[0]
-            intf_delayed = f_intf_delayed(ref_ph_delayed,sec_ph_delayed)
-            # intf_delayed = f_intf_delayed(ph_delayed[ref],ph_delayed[sec])
-            unw_ph_delayed[0,i] = f_mcf_delayed(intf_delayed, *required_data_future, earth_cost)
-            unw_ph_delayed[0,i] = da.from_delayed(unw_ph_delayed[0,i],shape=(npoint,),meta=np.array((),dtype=np.float32)).reshape(npoint,1)
-        unw_ph = da.block(unw_ph_delayed.tolist())
-
-        logger.info('got unwrapped phase.')
-        logger.darr_info('unw_ph', unw_ph)
-        logger.info('save unw_ph')
-        _unw_ph = dask_to_zarr(unw_ph, unw_ph_path,chunks=(out_chunks,1))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_unw_ph)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    if not n_workers:
+        per_worker = _mcf_worker_bytes(n_points, tri.shape[0] // 3)
+        n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // per_worker)))
+    logger.info(f'{n_pairs} interferograms, {n_workers} at the same time')
+    dask.compute(*[delayed(unwrap)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+    logger.info('done.')
 
 
 @mc_logger
@@ -226,7 +215,7 @@ def emcf_pc(
     weight:str=None,
     earth_cost:int=1,
     temporal_cost:str='constant',
-    spatial_cost:str='length',
+    spatial_cost:str='constant',
     n_workers:int=None,
     out_chunks:int=None,
 ):
@@ -268,7 +257,7 @@ def emcf_pc(
     temporal_cost : str, default: 'constant'
         which interferograms are corrected first where the interferograms of a loop of image pairs disagree:
         'constant' (all alike) or 'length' (the longest in time)
-    spatial_cost : str, default: 'length'
+    spatial_cost : str, default: 'constant'
         where phase jumps are placed first in every interferogram: 'constant' (anywhere alike), 'length'
         (long connections between points), 'weight' (points of low `weight`) or 'length+weight'
     n_workers : int, optional
@@ -283,7 +272,7 @@ def emcf_pc(
     from pathlib import Path
     from ..api.unwrap import emcf as _emcf
     from ..api.unwrap.closure import _pair_forest
-    from ..api.unwrap.mcf import _mcf_edges
+    from ..api.unwrap.mcf import _edge_length, _mcf_edges
     logger = logging.getLogger(__name__)
 
     ph_zarr = zarr.open(ph, mode='r')
@@ -318,7 +307,7 @@ def emcf_pc(
     logger.info(f'triangulation of {n_points} points')
     tri, half, hull, edges, edge_of_half, sign_of_half = _mcf_edges(x, y)
     n_edges = edges.shape[0]
-    edge_length = _emcf._edge_length(x, y, edges) if flags & 1 else np.ones(1, np.float32)
+    edge_length = _edge_length(x, y, edges) if flags & 1 else np.ones(1, np.float32)
     del x, y
     if weight is not None:
         w = np.clip(parallel_read_zarr(zarr.open(weight, mode='r'), (slice(None),)).astype(np.float32), 0, 1)

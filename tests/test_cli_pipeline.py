@@ -153,7 +153,8 @@ def test_mcf_pc(pl):
         z = zarr.open(str(d / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(data.shape[0], 1))
         z[:] = data
     pairs = mr.TempNet.from_bandwidth(17, bandwidth=1).image_pairs[:3]
-    mc.mcf_pc(str(d / 'ds_gix.zarr'), str(d / 'ds_ph.zarr'), str(d / 'ds_unw.zarr'), pairs)
+    mc.mcf_pc(str(d / 'ds_gix.zarr'), str(d / 'ds_ph.zarr'), str(d / 'ds_unw.zarr'), pairs, range_pixel_spacing=1.0,
+              azimuth_pixel_spacing=1.0)
     unw = r(d / 'ds_unw.zarr')
     intf = ph[keep][key][:, pairs[:, 0]] * ph[keep][key][:, pairs[:, 1]].conj()
     np.testing.assert_array_almost_equal(np.mod(unw + np.pi, 2 * np.pi) - np.pi, np.angle(intf), decimal=3)

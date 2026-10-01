@@ -7,17 +7,19 @@ Needs `04_refine`.
 moraine run examples/05_unwrap.toml --workdir WORK
 ```
 
-Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr`.
+Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr` and the pixel spacings to the ones of the
+data (`range_pixel_spacing`, `azimuth_pixel_spacing` in meters, from a `*.rslc.par`).
 
 ## Steps
 
 1. `pc-gix`: grid index of the refined points (from their hilbert index).
 2. `image-pairs`: sequential pairs (bandwidth 1).
-3. `mcf-pc`: minimum cost flow unwrapping on a Delaunay network of the points, one interferogram at a
-   time (moraine's own implementation: exactly optimal, independent of the point order; `earth_cost`
-   sets the cost of phase jumps across the border of the point cloud, default 1). `gamma-mcf-pt` uses
-   GAMMA's `mcf_pt` instead and takes e/n; its results differ by 2 pi at some points in low coherence
-   areas, where several unwrappings are equally good.
+3. `mcf-pc`: minimum cost flow unwrapping on a Delaunay network of the points (in meters from the pixel
+   spacings), every interferogram alone, several at the same time (moraine's own implementation: exactly
+   optimal, independent of the point order; `earth_cost` sets the cost of phase jumps across the border of the
+   point cloud, default 1; `spatial_cost = "length"` places them first on long edges). `gamma-mcf-pt` uses
+   GAMMA's `mcf_pt` instead and takes e/n; its results differ by 2 pi at some points in low coherence areas,
+   where several unwrappings are equally good.
 4. `pc-pyramid` of the unwrapped phase on the map.
 
 Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phase in radians.
@@ -26,9 +28,9 @@ Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phas
 
 | result | sample value | sane range |
 |---|---|---|
-| `unw/pc_unw_pyramid` | p01 -5.8, p50 -0.07, p99 8.6, min -14.7, max 19.9 | a few multiples of 2 pi |
+| `unw/pc_unw_pyramid` | p01 -6.1, p50 -0.07, p99 8.6, min -19.9, max 19.9 | a few multiples of 2 pi |
 
-Run time: about 12 s for 157 189 points and 16 interferograms (CPU, one worker).
+Run time: 0.8 s for 157 193 points and 16 interferograms (CPU, 16 at the same time).
 
 Correctness check (in python): rewrapping the result must give the input phase,
 `np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 1.1e-6 rad).
@@ -95,10 +97,10 @@ peak memory. `ph` must be chunked one image per chunk
 
 `temporal_cost = "length"` (with `dates`, the acquisition dates) corrects the longest interferograms first
 where loops disagree; `spatial_cost = "weight"` (with `weight`, e.g. the temporal coherence) places phase
-jumps first at points of low quality. The defaults (`constant`, `length`) were chosen among the costs
-with a counterpart in the literature on synthetic data with known truth (`tests/unwrap_benchmark.py`):
-median share of wrong (point, interferogram) 0.81 % against 1.54 % when every interferogram is unwrapped
-alone with `mcf-pc` (decision 0020).
+jumps first at points of low quality, `spatial_cost = "length"` on long edges. Both costs are
+`constant` by default; on synthetic data with known truth (`tests/unwrap_benchmark.py`) the median share
+of wrong (point, interferogram) is 0.83 % against 1.54 % when every interferogram is unwrapped alone with
+`mcf-pc` (decision 0020).
 
 ## Checks
 

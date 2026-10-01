@@ -11,7 +11,7 @@ from numba import njit, prange
 from ..tnet import TempNet
 from ..utils_ import get_mem_avail, get_n_cpus_avail
 from .closure import _l1_fit, _pair_forest
-from .mcf import _TWO_PI, _mcf_edges, _mcf_ssp
+from .mcf import _SPATIAL_COST_RANGE, _TWO_PI, _edge_length, _mcf_edges, _mcf_ssp
 
 # Two steps, each on its own unit so that they can run on data larger than memory (decision 0020):
 # 1. temporal step, per block of spatial edges: on every edge (p, q) of the point triangulation, the wrapped
@@ -82,7 +82,6 @@ def _emcf_temporal(ph, p, q, pairs, pair_cost, order, parent):
 
 
 _SPATIAL_COST_FACTORS = {'length': 1, 'weight': 2}
-_SPATIAL_COST_RANGE = 99.0       # arc costs of the spatial step from 1 to 1 + this
 
 
 def _spatial_cost_flags(mode, weight):
@@ -111,11 +110,6 @@ def _image_pairs(image_pairs, nimages):
         raise ValueError(f'image_pairs must pair two different images of 0 .. {nimages - 1}')
     return np.ascontiguousarray(pairs, dtype=np.int64)
 
-
-def _edge_length(x, y, edges):
-    """Reliability of every edge by its length: median length / length, up to 1, (n_edges,) float32."""
-    length = np.hypot(x[edges[:, 1]] - x[edges[:, 0]], y[edges[:, 1]] - y[edges[:, 0]])
-    return np.minimum(np.median(length) / np.maximum(length, 1e-12), 1.0).astype(np.float32)
 
 
 def _spatial_workers(n_points, n_edges, n_tri, flags, n_pairs):
@@ -224,7 +218,7 @@ def emcf_pc(
     weight:np.ndarray=None,
     earth_cost:int=1,
     temporal_cost:str='constant',
-    spatial_cost:str='length',
+    spatial_cost:str='constant',
     n_workers:int=None,
 ):
     """Extended minimum cost flow (EMCF) phase unwrapping of point cloud interferograms.
@@ -255,7 +249,7 @@ def emcf_pc(
     temporal_cost : str, default: 'constant'
         which interferograms are corrected first where the interferograms of a loop of image pairs disagree:
         'constant' (all alike) or 'length' (the longest in time)
-    spatial_cost : str, default: 'length'
+    spatial_cost : str, default: 'constant'
         where phase jumps are placed first in every interferogram: 'constant' (anywhere alike), 'length'
         (long connections between points), 'weight' (points of low `weight`) or 'length+weight'
     n_workers : int, optional

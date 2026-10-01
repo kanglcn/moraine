@@ -8,6 +8,8 @@
 
 [vars]
 shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+range_pixel_spacing = "4.290037"  # m, from the *.rslc.par of the data
+azimuth_pixel_spacing = "3.740175"
 
 [[step]]
 name = "gix"                      # mcf-pc needs the grid index of the points
@@ -30,6 +32,8 @@ gix = "unw/pc_gix.zarr"
 ph = "pc/pc_ph.zarr"
 unw_ph = "unw/pc_unw.zarr"
 image_pairs = "unw/pairs_seq.txt"
+range_pixel_spacing = "${range_pixel_spacing}"
+azimuth_pixel_spacing = "${azimuth_pixel_spacing}"
 
 [[step]]
 name = "unw_pyramid"
