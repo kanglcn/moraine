@@ -443,6 +443,9 @@ def _build_parser(with_commands=True):
     p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of a stack, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
+    p.add_argument('--extent', help='part to draw, finer levels for smaller parts: "west,south,east,north" degrees '
+                   '(web mercator) or "range_min,azimuth_min,range_max,azimuth_max" pixels (radar grid); '
+                   'default: the whole scene')
     _add_global(p)
     p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
@@ -492,7 +495,7 @@ def _run(args):
     if sub == 'quicklook':
         from .summary import quicklook
         out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
-        quicklook(args.pyramid, out, index=tuple(args.index), show=args.show, width=args.width)
+        quicklook(args.pyramid, out, index=tuple(args.index), show=args.show, width=args.width, extent=args.extent)
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view

@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`moraine quicklook --extent` and `view(...).png(..., extent=...)` draw a part of the scene, from the finest pyramid level that fits, down to the data (degrees on web mercator maps, pixels on the radar grid); the title gives the extent and the level, `repr` of a view the extent and the finest cell of every layer, so that agents can zoom into what they look at
+
 Data conventions (`docs/contracts/data.md`): stacks are chunked by blocks in space and one image (or image pair) per chunk; commands expect this layout (decision 0019)
 
 The API modules moved from `moraine/` to `moraine/api/`, phase unwrapping to `moraine/api/unwrap/` (`mcf.py`, `emcf.py`, `gamma.py`, `delaunay_.py`; `moraine/pu.py` is split). `import moraine` still exports the same names (`moraine.mcf_pc`, ...); code importing modules directly changes, e.g. `from moraine.pu import mcf_pc` becomes `from moraine.api.unwrap import mcf_pc`. The downloaded deep learning models stay in `moraine/dl_model/`

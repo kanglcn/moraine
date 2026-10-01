@@ -487,3 +487,34 @@ def test_png(tmp_path, ras, stack, grid_pc, mercator_pc):
         view(str(ppyr)).png(str(tmp_path / f'p{width}.png'), width=width)
         assert (tmp_path / f'p{width}.png').stat().st_size > 1000
     assert view(str(mercator_pc[-1])).png(str(tmp_path / 'm.png'))
+
+
+def test_png_extent(tmp_path, ras, mercator_pc):
+    """A part of the scene is drawn from the finest level that fits, down to the data themselves; extents are
+    pixels on the radar grid and degrees on web mercator; the view describes the extent and the finest cell."""
+    from moraine.cli.tiles import _data_extent, _level_of, _panel_geom, _user_extent
+    a, pyr = ras
+    layer = view(str(pyr))
+    full = _panel_geom(layer.extent, 'grid', 100)[0]
+    part = (100, 50, 200, 150)                                         # range, azimuth
+    geom, size = _panel_geom(_data_extent(part, 'grid'), 'grid', 100)
+    assert _level_of(layer, abs(full.sx)) > 0 and _level_of(layer, abs(geom.sx)) == 0
+    values = layer.raster_values(geom, size=size)
+    cols = np.floor(geom.x0 + np.arange(size[0]) * geom.sx + 0.5).astype(int)
+    rows = np.floor(geom.y0 + np.arange(size[1]) * geom.sy + 0.5).astype(int)
+    np.testing.assert_array_equal(values, a[np.ix_(rows, cols)])      # the data, not a coarser level
+    assert layer.png(str(tmp_path / 'part.png'), width=300, extent=part)
+    assert _user_extent(_data_extent(part, 'grid'), 'grid') == 'range 100 .. 200, azimuth 50 .. 150'
+    with pytest.raises(ValueError, match='extent'):
+        layer.png(str(tmp_path / 'bad.png'), extent=(200, 50, 100, 150))
+    # web mercator: degrees
+    pts, res, west, top, mpyr = mercator_pc
+    mlayer = view(str(mpyr))
+    x0, y0, x1, y1 = mlayer.extent
+    text = _user_extent((x0, y0, x1, y1), 'web_mercator')
+    lon0, lon1 = (float(v) for v in text.split(',')[0].split()[1::2])
+    lat0, lat1 = (float(v) for v in text.split(',')[1].split()[1::2])
+    np.testing.assert_allclose(_data_extent((lon0, lat0, lon1, lat1), 'web_mercator'), (x0, y0, x1, y1), atol=10)
+    assert mlayer.png(str(tmp_path / 'mpart.png'), extent=(lon0, lat0, (lon0 + lon1) / 2, (lat0 + lat1) / 2))
+    assert 'extent lon ' in repr(mlayer) and 'finest cell' in repr(mlayer) and 'levels 0..' in repr(mlayer)
+    assert 'extent range -0.5 .. 499.5, azimuth -0.5 .. 299.5' in repr(layer)          # cell edges

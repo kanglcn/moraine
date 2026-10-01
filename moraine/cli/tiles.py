@@ -367,9 +367,11 @@ class _Shown:
     def index(self, value):
         self.widget.index = {**self.widget.index, **value}
 
-    def png(self, path, width:int=1000, index=None)->str:
-        """Save a PNG image of the whole extent with axes, colour bars and titles, e.g. to check a result
-        without a browser.
+    def png(self, path, width:int=1000, index=None, extent:tuple=None)->str:
+        """Save a PNG image with axes, colour bars and titles, e.g. to check a result without a browser.
+
+        The finest pyramid level whose cells are at least a pixel is drawn: a smaller `extent` (or a larger
+        `width`) shows finer details, down to the data themselves. The title gives the extent and the level.
 
         Parameters
         ----------
@@ -379,13 +381,17 @@ class _Shown:
             image width in pixels
         index : dict or tuple, optional
             slider values by name, or in the order of the sliders; the first images by default
+        extent : tuple, optional
+            the part to draw: (west, south, east, north) longitudes and latitudes in degrees on a web mercator
+            map, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid; the whole extent
+            of the data by default (see `repr` of the view)
 
         Returns
         -------
         str
             the output path
         """
-        return render_png(self._panels(), path, width=width, index=index)
+        return render_png(self._panels(), path, width=width, index=index, extent=extent)
 
 
 def _as_layers(obj):
@@ -459,6 +465,8 @@ def describe(panels)->str:
             lo, hi = layer.clim
             lines.append(f'  map {n + 1}: {layer.describe()}; colours {lo:.4g} .. {hi:.4g} ({layer.bar_label})'
                          + (f'; opacity {layer.opacity}' if layer.opacity != 1 else ''))
+            lines.append(f'    extent {_user_extent(layer.extent, layer.crs)}; levels 0..{layer.max_level}, '
+                         f'finest cell {_cell_text(layer, layer.cell)} (png(..., extent=...) to zoom in)')
     kdims, index = view_sliders(panels)
     dates = view_dates(panels)
     for k in kdims:
@@ -842,7 +850,56 @@ def _panel_geom(extent, crs, width):
     return TileGeom(x0 + s / 2, y1 - s / 2, s, -s), size
 
 
-def render_png(panels, path, width=1000, index=None):
+_RADIUS = WORLD / 2 / np.pi
+
+
+def _lonlat_to_merc(lon, lat):
+    return np.radians(lon) * _RADIUS, _RADIUS * np.log(np.tan(np.pi / 4 + np.radians(lat) / 2))
+
+
+def _merc_to_lonlat(x, y):
+    return np.degrees(x / _RADIUS), np.degrees(2 * np.arctan(np.exp(y / _RADIUS)) - np.pi / 2)
+
+
+def _data_extent(extent, crs):
+    """(x0, y0, x1, y1) in data coordinates of a user extent: (west, south, east, north) degrees on web
+    mercator, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid."""
+    e = [float(v) for v in extent]
+    if len(e) != 4 or not (e[0] < e[2] and e[1] < e[3]):
+        what = '(west, south, east, north)' if crs == 'web_mercator' else '(range_min, azimuth_min, range_max, azimuth_max)'
+        raise ValueError(f'extent must be {what} with the minimum before the maximum, got {tuple(extent)}')
+    if crs == 'web_mercator':
+        x0, y0 = _lonlat_to_merc(e[0], e[1])
+        x1, y1 = _lonlat_to_merc(e[2], e[3])
+        return float(x0), float(y0), float(x1), float(y1)
+    return tuple(e)
+
+
+def _user_extent(extent, crs)->str:
+    """Text of an extent in data coordinates as the user gives it."""
+    x0, y0, x1, y1 = extent
+    if crs == 'web_mercator':
+        w, s = _merc_to_lonlat(x0, y0)
+        e, n = _merc_to_lonlat(x1, y1)
+        return f'lon {w:.4f} .. {e:.4f}, lat {s:.4f} .. {n:.4f}'
+    return f'range {x0:.6g} .. {x1:.6g}, azimuth {y0:.6g} .. {y1:.6g}'
+
+
+def _cell_text(layer, cell)->str:
+    """Size of a cell of `layer` in data units: metres on the ground for web mercator, pixels on the grid."""
+    if layer.crs == 'web_mercator':
+        x0, y0, x1, y1 = layer.extent
+        lat = _merc_to_lonlat(0, (y0 + y1) / 2)[1]
+        return f'{cell * np.cos(np.radians(lat)):.3g} m'
+    return f'{cell:.3g} px'
+
+
+def _level_of(layer, pixel):
+    """Pyramid level drawn for pixels of size `pixel` (data units), as in `raster_values`."""
+    return int(min(max(math.ceil(math.log2(pixel / layer.cell) - 1e-9), 0), layer.max_level))
+
+
+def render_png(panels, path, width=1000, index=None, extent=None):
     """Save a PNG of maps of layers (see `_Shown.png`)."""
     from matplotlib.figure import Figure        # no pyplot: works with any backend, also without a display
     from matplotlib.cm import ScalarMappable
@@ -860,8 +917,11 @@ def render_png(panels, path, width=1000, index=None):
     elif index:
         values.update(dict(zip([k['name'] for k in kdims], index)))
     dates = view_dates(panels)
-    ext = np.array([layer.extent for layer in layers])
-    extent = (ext[:, 0].min(), ext[:, 1].min(), ext[:, 2].max(), ext[:, 3].max())
+    if extent is None:
+        ext = np.array([layer.extent for layer in layers])
+        extent = (ext[:, 0].min(), ext[:, 1].min(), ext[:, 2].max(), ext[:, 3].max())
+    else:
+        extent = _data_extent(extent, crs)
     per = max(200, width // len(panels))
     geom, size = _panel_geom(extent, crs, per)
     img_extent = (geom.x0 - geom.sx / 2, geom.x0 + (size[0] - 0.5) * geom.sx,
@@ -882,7 +942,9 @@ def render_png(panels, path, width=1000, index=None):
             alpha = rgba[..., 3:] * layer.opacity
             rgb = rgba[..., :3] * alpha + rgb * (1 - alpha)
         ax.imshow(rgb, extent=img_extent, interpolation='nearest', aspect='equal')
-        ax.set_title('  |  '.join(layer.title for layer in p) + (f'\n{sliders}' if sliders else ''), fontsize=9)
+        levels = ', '.join(f'level {_level_of(layer, abs(geom.sx))} of 0..{layer.max_level}' for layer in p)
+        ax.set_title('  |  '.join(layer.title for layer in p) + (f'\n{sliders}' if sliders else '')
+                     + f'\n{_user_extent(extent, crs)}; {levels}', fontsize=9)
         if crs == 'grid':
             ax.set_xlabel('range'); ax.set_ylabel('azimuth')
         else:

@@ -68,8 +68,9 @@ def quicklook(
     index:tuple=(),
     show:str=None,
     width:int=1000,
+    extent:str=None,
 )->str:
-    """Save a PNG of the whole scene of a pyramid, drawn like `moraine.cli.view` (``view(pyramid).png(out)``).
+    """Save a PNG of a pyramid, drawn like `moraine.cli.view` (``view(pyramid).png(out)``).
 
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
     first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds).
@@ -87,6 +88,10 @@ def quicklook(
         what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
     width : int, default: 1000
         image width in pixels
+    extent : str, optional
+        the part to draw, four numbers separated by commas: "west,south,east,north" in degrees on a web
+        mercator map, "range_min,azimuth_min,range_max,azimuth_max" in pixels on the radar grid; the whole
+        scene by default. A smaller part shows finer pyramid levels, down to the data
 
     Returns
     -------
@@ -97,7 +102,9 @@ def quicklook(
     if not pyramid_levels(Path(pyramid)):
         raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras {pyramid} '
                          f'--out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
-    return _view(str(pyramid), show=show).png(out, width=width, index=tuple(index))
+    if extent is not None and not isinstance(extent, (tuple, list)):
+        extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
+    return _view(str(pyramid), show=show).png(out, width=width, index=tuple(index), extent=extent)
 
 
 def view(

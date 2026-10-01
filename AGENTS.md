@@ -84,11 +84,15 @@ Never load large arrays to look at them. Use:
   complex data) and `warnings` for all-nan, infinite or constant values.
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
   `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
-  Look at the PNG: fringes should be continuous, noise should be where coherence is low.
+  Look at the PNG: fringes should be continuous, noise should be where coherence is low. Zoom in with
+  `--extent west,south,east,north` (degrees; `range_min,azimuth_min,range_max,azimuth_max` pixels on the
+  radar grid): a smaller part is drawn from a finer pyramid level, down to single pixels / points; the title
+  gives the extent and the level. Look at the whole scene first, then zoom into what looks wrong.
 - In Python, `mc.view(data)` (`import moraine.cli as mc`) views a pyramid, a raster array or point data
   (`x=`, `y=`): `show=` what to show of a stack (`'intf_seq'`, ... or a function `lambda v, ref, sec: ...`),
   `a * b` overlays views, `a + b` puts them side by side. `repr(v)` describes a view in text and
-  `v.png('out.png', index={...})` saves an image you can look at. In a notebook it is an interactive map:
+  `v.png('out.png', index={...}, extent=(...))` saves an image you can look at (`repr` gives the extent of
+  the data and the finest cell). In a notebook it is an interactive map:
   zoom and pan load details, sliders choose the image, a click plots the time series of a pixel / point and
   a double click makes it the reference, polygons drawn with `polygons='areas.geojson'` are saved for
   `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map.

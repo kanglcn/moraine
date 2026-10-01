@@ -311,6 +311,9 @@ def test_quicklook_command(tmp_path, capsys, rng):
     capsys.readouterr()                  # drop the dask progress bar of ras_pyramid
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
     assert _json_out(capsys)['png'] == str(tmp_path / 'q.png')
+    assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'part.png'), '--extent', '10,5,30,20',
+                 '--json']) == 0
+    assert _json_out(capsys)['png'] == str(tmp_path / 'part.png') and (tmp_path / 'part.png').stat().st_size > 1000
     assert main(['quicklook', str(tmp_path / 'ras.zarr'), '--json']) == 1
     assert 'not a pyramid' in _json_out(capsys)['error']
 
