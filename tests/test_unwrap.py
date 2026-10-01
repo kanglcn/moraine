@@ -579,6 +579,63 @@ def test_cli_emcf_pc_errors(tmp_path):
         mc.emcf_pc(gix, ph_path, np.array([[0, 0]]), str(tmp_path / 'u.zarr'), **args)
 
 
+def _islands_files(tmp_path, chunk):
+    """Islands after spatial unwrapping of every interferogram, written to zarr (grid index from the
+    coordinates, pixel spacings 1)."""
+    d = make_islands(seed=0, side=200, nimg=12)
+    pairs = hop3(len(d['t']))
+    intf = d['ph'][:, pairs[:, 0]] * d['ph'][:, pairs[:, 1]].conj()
+    unw = np.stack([mcf_pc(d['x'], d['y'], intf[:, k]) for k in range(len(pairs))], -1).astype(np.float32)
+    gix = np.stack((d['y'], d['x']), -1).astype(np.int32)
+    paths = dict(gix=_write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
+                 ph=_write_zarr(tmp_path / 'ph.zarr', d['ph'], (chunk, 1)),
+                 unw=_write_zarr(tmp_path / 'unw.zarr', unw, (chunk, 1)))
+    return d, pairs, unw, paths
+
+
+@pytest.mark.parametrize('chunk', [97, 100000])
+def test_cli_unwrap_correct_closure_pc(tmp_path, chunk):
+    """The command equals the API, with blocks much smaller than the point cloud and with one block; the
+    optional outputs are written and the temporary zarr removed."""
+    import zarr
+    import moraine.cli as mc
+    d, pairs, unw, paths = _islands_files(tmp_path, chunk)
+    out = str(tmp_path / 'cor.zarr')
+    mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs, out, range_pixel_spacing=1.0,
+                                 azimuth_pixel_spacing=1.0, misclosure_fraction=str(tmp_path / 'mis.zarr'),
+                                 region=str(tmp_path / 'region.zarr'))
+    cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs)
+    z = zarr.open(out, mode='r')
+    assert z.dtype == np.float32 and z.chunks == (chunk, 1)
+    np.testing.assert_array_equal(z[:], cor)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'mis.zarr'), mode='r')[:], mis)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'region.zarr'), mode='r')[:], region)
+    assert (cor != unw).any()                                             # something was corrected
+    assert not (tmp_path / 'cor.zarr.tmp').exists()
+
+
+def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
+    import zarr
+    import moraine.cli as mc
+    d, pairs, unw, paths = _islands_files(tmp_path, 500)
+    args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
+    out = str(tmp_path / 'cor.zarr')
+    rows = _write_zarr(tmp_path / 'unw_rows.zarr', unw, (500, unw.shape[1]))
+    with pytest.raises(ValueError, match='one image'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], rows, pairs, out, **args)
+    shifted = _write_zarr(tmp_path / 'unw_shifted.zarr', unw + 1.0, (500, 1))
+    with pytest.raises(ValueError, match='rewrap'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], shifted, pairs, out, **args)
+    assert (tmp_path / 'cor.zarr.tmp').exists()                           # kept when the command fails
+    with pytest.raises(ValueError, match='columns'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs[:-1], out, **args)
+    seq = np.c_[np.arange(11), np.arange(1, 12)]
+    seq_unw = _write_zarr(tmp_path / 'unw_seq.zarr', unw[:, :11].copy(), (500, 1))
+    with pytest.warns(UserWarning, match='no loop'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], seq_unw, seq, out, **args)
+    np.testing.assert_array_equal(zarr.open(out, mode='r')[:], unw[:, :11])
+
+
 @pytest.mark.slow
 def test_emcf_benchmark():
     """Realistic synthetic data (clusters of points linked by sparse points, a winter gap, seasonal deformation,

@@ -1,7 +1,7 @@
 """phase unwrapping"""
 
 
-__all__ = ['gamma_mcf_pt', 'mcf_pc', 'emcf_pc']
+__all__ = ['gamma_mcf_pt', 'mcf_pc', 'emcf_pc', 'unwrap_correct_closure_pc']
 
 import logging
 import zarr
@@ -252,7 +252,7 @@ def emcf_pc(
     unw_ph : str
         output: unwrapped phase of the interferograms in radians, shape (n_points, n_pairs), float32, chunks
         (out_chunks, 1); at the first point the difference of the wrapped phases of the two images. Loops of
-        image pairs may still not add up to zero at some points: see `unwrap_correct_closure_pc`
+        image pairs may still not add up to zero at some points: see `unwrap-correct-closure-pc`
     range_pixel_spacing : float
         range pixel spacing in meters
     azimuth_pixel_spacing : float
@@ -373,5 +373,186 @@ def emcf_pc(
         n_workers = _emcf._spatial_workers(n_points, n_edges, tri.shape[0] // 3, flags, n_pairs)
     logger.info(f'spatial step: {n_pairs} interferograms, {n_workers} at the same time')
     dask.compute(*[delayed(spatial)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+    shutil.rmtree(tmp)
+    logger.info('done.')
+
+
+@mc_logger
+def unwrap_correct_closure_pc(
+    gix:str,
+    ph:str,
+    unw_ph:str,
+    image_pairs:np.ndarray,
+    unw_cor:str,
+    range_pixel_spacing:float,
+    azimuth_pixel_spacing:float,
+    misclosure_fraction:str=None,
+    region:str=None,
+    max_edge_factor:float=4.0,
+    min_region_points:int=30,
+    n_workers:int=None,
+    out_chunks:int=None,
+):
+    """Correction of unwrapping errors of point cloud interferograms by phase closure.
+
+    The unwrapped phases of every loop of image pairs should add up to zero, e.g.
+    unw(a, b) + unw(b, c) = unw(a, c). Where they do not, the interferograms are corrected by whole cycles,
+    changing as few interferograms as possible, by the same amount for all points of a region: the points
+    connected by edges of the point network no longer than `max_edge_factor` times the median edge length.
+    Points of smaller regions than `min_region_points` are corrected one by one. The correction assumes
+    that most interferograms of a region are right: where most are wrong, it makes them worse. The region
+    of every point stays in memory (4 bytes per point; about 100 bytes per point while the regions are
+    made). Intermediate results are written to `unw_cor`.tmp (kept if the command fails, removed at the end).
+
+    Parameters
+    ----------
+    gix : str
+        input: grid index (azimuth, range) of the points, shape (n_points, 2), int; the points must be unique
+    ph : str
+        input: wrapped phase history (complex), shape (n_points, nimages), chunked one image per chunk
+        (points_block, 1)
+    unw_ph : str
+        input: unwrapped phase of the interferograms in radians, shape (n_points, n_pairs), chunked one
+        interferogram per chunk (points_block, 1), e.g. from `mcf-pc` or `emcf-pc`; rewrapped, it must be the
+        phase of ph[:, reference] * conj(ph[:, secondary])
+    image_pairs : np.ndarray
+        the interferograms: (reference, secondary) image indices of the columns of `unw_ph`, shape
+        (n_pairs, 2); the network needs loops (e.g. every image paired with the next three), otherwise
+        nothing is corrected (a warning is given)
+    unw_cor : str
+        output: corrected unwrapped phase in radians, shape (n_points, n_pairs), float32, chunks
+        (out_chunks, 1): `unw_ph` plus whole cycles, the same for all points of a region and interferogram
+    range_pixel_spacing : float
+        range pixel spacing in meters
+    azimuth_pixel_spacing : float
+        azimuth pixel spacing in meters
+    misclosure_fraction : str, optional
+        output: fraction of the interferograms of every point that do not fit the loops before the
+        correction, shape (n_points,), float32, 0..1; 0 where every loop closes
+    region : str, optional
+        output: region of every point, shape (n_points,), int32: 0 .. n_regions - 1, or -1 for the points of
+        regions smaller than `min_region_points`, corrected one by one (e.g. to be masked)
+    max_edge_factor : float, default: 4.0
+        edges of the point network longer than this times the median edge length do not connect a region,
+        e.g. edges across water or decorrelated areas; larger than 1
+    min_region_points : int, default: 30
+        in regions of fewer points every point is corrected by its own loops alone, which is less reliable
+    n_workers : int, optional
+        number of interferograms corrected at the same time; by default as many as the available cores and
+        half of the available memory allow
+    out_chunks : int, optional
+        point chunk size of the outputs, same as `unw_ph` by default
+    """
+    import shutil
+    import warnings
+    from concurrent.futures import ThreadPoolExecutor
+    from pathlib import Path
+    from ..api.unwrap import closure as _closure
+    from ..api.unwrap.emcf import _image_pairs
+    from ..api.unwrap.mcf import _mcf_edges
+    from ..api.utils_ import get_mem_avail, get_n_cpus_avail
+    logger = logging.getLogger(__name__)
+
+    ph_zarr = zarr.open(ph, mode='r')
+    unw_zarr = zarr.open(unw_ph, mode='r')
+    logger.zarr_info(ph, ph_zarr)
+    logger.zarr_info(unw_ph, unw_zarr)
+    n_points, nimages = ph_zarr.shape
+    n_pairs = unw_zarr.shape[1]
+    for path, z in ((ph, ph_zarr), (unw_ph, unw_zarr)):
+        if z.chunks[1] != 1:
+            raise ValueError(f'{path}: chunks {z.chunks}; stacks are chunked one image (pair) per chunk, '
+                             f'(points_block, 1) (docs/contracts/data.md)')
+    if unw_zarr.shape[0] != n_points:
+        raise ValueError(f'ph {ph_zarr.shape} and unw_ph {unw_zarr.shape} have different points')
+    pairs = _image_pairs(image_pairs, nimages)
+    if pairs.shape[0] != n_pairs:
+        raise ValueError(f'image_pairs: {pairs.shape[0]} pairs for {n_pairs} columns of unw_ph')
+    if not max_edge_factor > 1:
+        raise ValueError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
+    if int(min_region_points) < 1:
+        raise ValueError(f'min_region_points must be at least 1, got {min_region_points}')
+    if out_chunks is None:
+        out_chunks = unw_zarr.chunks[0]
+    order, parent, n_loops = _closure._pair_forest(pairs, nimages)
+
+    gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
+    if gix_data.shape != (n_points, 2):
+        raise ValueError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
+    x = gix_data[:, 1] * float(range_pixel_spacing)
+    y = gix_data[:, 0] * float(azimuth_pixel_spacing)
+    del gix_data
+    logger.info(f'regions of {n_points} points')
+    edges = _mcf_edges(x, y)[3]
+    reg, n_regions = _closure._closure_regions(x, y, edges, float(max_edge_factor), int(min_region_points))
+    del x, y, edges
+    logger.info(f'{n_regions} regions of at least {min_region_points} points, {np.mean(reg < 0):.2%} of the points '
+                f'in smaller ones')
+    if region is not None:
+        z = zarr.open(region, mode='w', shape=(n_points,), dtype=np.int32, chunks=(out_chunks,))
+        logger.zarr_info(region, z)
+        z[:] = reg
+    out_zarr = zarr.open(unw_cor, mode='w', shape=(n_points, n_pairs), dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(unw_cor, out_zarr)
+    mis_zarr = None
+    if misclosure_fraction is not None:
+        mis_zarr = zarr.open(misclosure_fraction, mode='w', shape=(n_points,), dtype=np.float32,
+                             chunks=(out_chunks,))
+        logger.zarr_info(misclosure_fraction, mis_zarr)
+
+    if n_loops == 0:
+        warnings.warn('the image pairs close no loop: nothing to correct')
+        logger.warning('the image pairs close no loop: nothing to correct')
+        for k in range(n_pairs):
+            out_zarr[:, k] = unw_zarr[:, k]
+        if mis_zarr is not None:
+            mis_zarr[:] = 0
+        return
+
+    tmp = Path(str(unw_cor) + '.tmp')
+    if tmp.exists():
+        shutil.rmtree(tmp)
+    tmp.mkdir(parents=True)
+
+    # per point corrections per block of points (one chunk of every image and interferogram); the next block
+    # is read while the current one is computed (the kernel is parallel itself)
+    block = unw_zarr.chunks[0]
+    d_zarr = zarr.open(str(tmp / 'd.zarr'), mode='w', shape=(n_points, n_pairs), dtype=np.int8, chunks=(block, 1))
+    mis = np.empty(n_points, np.float32)
+
+    def read_block(start):
+        sl = slice(start, min(start + block, n_points))
+        return sl, ph_zarr[sl], unw_zarr[sl]
+
+    starts = list(range(0, n_points, block))
+    logger.info(f'per point corrections: {len(starts)} blocks of {block} points')
+    with ThreadPoolExecutor(max_workers=1) as reader:
+        future = reader.submit(read_block, starts[0])
+        for j in range(len(starts)):
+            sl, ph_rows, unw_rows = future.result()
+            if j + 1 < len(starts):
+                future = reader.submit(read_block, starts[j + 1])
+            d, mis[sl], dev = _closure._closure_estimate(np.ascontiguousarray(ph_rows),
+                                                         np.ascontiguousarray(unw_rows, dtype=np.float32),
+                                                         pairs, order, parent)
+            if dev > 0.1:
+                raise ValueError(f'unw_ph does not rewrap to the interferograms of ph (up to {dev:.2f} cycles off)')
+            d_zarr[sl] = d
+    if mis_zarr is not None:
+        mis_zarr[:] = mis
+    logger.info(f'loops do not close at {np.mean(mis > 0):.1%} of the points, mean fraction of interferograms '
+                f'that do not fit {mis.mean():.3f}')
+
+    # correction per interferogram, in dask threads
+    def correct(k):
+        col = np.ascontiguousarray(unw_zarr[:, k], dtype=np.float32)
+        _closure._closure_apply(col, d_zarr[:, k], reg, n_regions)
+        out_zarr[:, k] = col
+        return k
+
+    if not n_workers:
+        n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // (16 * n_points + 1))))
+    logger.info(f'correction: {n_pairs} interferograms, {n_workers} at the same time')
+    dask.compute(*[delayed(correct)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
     shutil.rmtree(tmp)
     logger.info('done.')

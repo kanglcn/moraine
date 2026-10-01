@@ -61,8 +61,34 @@ azimuth_pixel_spacing = 3.740175
 
 Sample data (2026-09-30): 45 interferograms of 17 images, 6.3 s for the 157 193 refined points; rewrapping
 gives the input phase (max 2.6e-6 rad). The loops of image pairs do not close at every point after EMCF:
-on the sample, 12.8 % of the interferograms of a point (mean) do not fit them; the phase closure
-correction is a separate step (`unwrap_correct_closure_pc`). `ph` must be chunked one image per chunk
+on the sample, 12.8 % of the interferograms of a point (mean) do not fit them. The phase closure correction
+is a separate step, after `emcf-pc` or `mcf-pc` on a network with loops:
+
+```toml
+[[step]]
+name = "closure"
+run = "unwrap-correct-closure-pc"
+gix = "unw/pc_gix.zarr"
+ph = "pc/pc_ph.zarr"
+unw_ph = "unw/pc_unw_emcf.zarr"
+image_pairs = "unw/pairs_hop3.txt"
+unw_cor = "unw/pc_unw_emcf_cor.zarr"
+misclosure_fraction = "unw/pc_misclosure_fraction.zarr"
+region = "unw/pc_region.zarr"
+range_pixel_spacing = 4.290037
+azimuth_pixel_spacing = 3.740175
+```
+
+Where the loops do not add up to zero, every region (points connected without edges longer than 4 times
+the median edge length, e.g. a cluster or an island) is shifted by whole cycles in the interferograms that
+disagree with the majority (MintPy's phase closure correction, decision 0021); points of regions of fewer
+than 30 points are corrected one by one and marked -1 in `region`. Sample data: 0.8 s, 144 regions (3.0 %
+of the points in smaller ones), 12.6 % of the values changed, mostly in the interferograms across the
+winter gap (October 2021 to June 2022, with the snow image 2021-10-25; three of them at almost every point)
+and in those of September and October 2022. Without a truth it is unknown
+whether every change is right: it relies on most interferograms of a region being right, so look at the
+quicklooks of `unw_cor` and `misclosure_fraction`. 10 million points, 294 interferograms: 108 s, 3.3 GB
+peak memory. `ph` must be chunked one image per chunk
 (`docs/contracts/data.md`). Large data: 10 million points, 100 images, 294 interferograms take 13 min with
 4 interferograms at the same time (8.2 GB peak memory) and 6 min with 32 (51 GB, the default on a
 32 core machine is bounded by the cores and half of the available memory).

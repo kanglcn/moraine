@@ -83,7 +83,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/co.py` | coherence of point clouds per raster chunk | `emperical-co-pc` |
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
 | `moraine/cli/pqm.py` | temporal coherence | `temp-coh` |
-| `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `gamma-mcf-pt` |
+| `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |
 | `moraine/cli/tiles.py` | views (`view`): rasters and point clouds from pyramids or arrays, tiles and PNG images, value / point / time series at a position, `*` overlay and `+` layout, text description | (notebook, no command) |
