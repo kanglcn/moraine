@@ -372,26 +372,32 @@ def unwrap_correct_closure_pc(
     ph:str,
     unw_ph:str,
     image_pairs:np.ndarray,
-    unw_cor:str,
+    ts:str,
     range_pixel_spacing:float,
     azimuth_pixel_spacing:float,
+    ref:int=0,
     misclosure_fraction:str=None,
+    change_fraction:str=None,
     region:str=None,
     max_edge_factor:float=4.0,
     min_region_points:int=30,
     n_workers:int=None,
     out_chunks:int=None,
 ):
-    """Correction of unwrapping errors of point cloud interferograms by phase closure.
+    """Correction of unwrapping errors of point cloud interferograms by phase closure, to the unwrapped phase of
+    every image.
 
     The unwrapped phases of every loop of image pairs should add up to zero, e.g.
     unw(a, b) + unw(b, c) = unw(a, c). Where they do not, the interferograms are corrected by whole cycles,
     changing as few interferograms as possible, by the same amount for all points of a region: the points
     connected by edges of the point network no longer than `max_edge_factor` times the median edge length.
     Points of smaller regions than `min_region_points` are corrected one by one. The correction assumes
-    that most interferograms of a region are right: where most are wrong, it makes them worse. The region
-    of every point stays in memory (4 bytes per point; about 100 bytes per point while the regions are
-    made). Intermediate results are written to `unw_cor`.tmp (kept if the command fails, removed at the end).
+    that most interferograms of a region are right: where most are wrong, it makes them worse. Where a point
+    still does not fit the loops after the correction of its region, the interferograms fitting most of its
+    loops are kept. The result is the unwrapped phase of every image, whose differences close every loop.
+    Errors that close every loop (e.g. the same whole cycles in every interferogram of one image) are neither
+    corrected nor reported. The region of every point stays in memory (4 bytes per point; about 100 bytes per point while the regions
+    are made). Intermediate results are written to `ts`.tmp (kept if the command fails, removed at the end).
 
     Parameters
     ----------
@@ -406,18 +412,25 @@ def unwrap_correct_closure_pc(
         phase of ph[:, reference] * conj(ph[:, secondary])
     image_pairs : np.ndarray
         the interferograms: (reference, secondary) image indices of the columns of `unw_ph`, shape
-        (n_pairs, 2); the network needs loops (e.g. every image paired with the next three), otherwise
-        nothing is corrected (a warning is given)
-    unw_cor : str
-        output: corrected unwrapped phase in radians, shape (n_points, n_pairs), float32, chunks
-        (out_chunks, 1): `unw_ph` plus whole cycles, the same for all points of a region and interferogram
+        (n_pairs, 2); the pairs must connect all images; the network needs loops (e.g. every image paired with
+        the next three) to correct anything, otherwise only the image phases are computed (a warning is given)
+    ts : str
+        output: unwrapped phase of every image relative to image `ref` in radians, shape (n_points, nimages),
+        float32, chunks (out_chunks, 1); ts[:, ref] is 0; rewrapped, ts[:, j] is the phase of
+        ph[:, j] * conj(ph[:, ref]); the corrected interferogram (a, b) is ts[:, a] - ts[:, b]
     range_pixel_spacing : float
         range pixel spacing in meters
     azimuth_pixel_spacing : float
         azimuth pixel spacing in meters
+    ref : int, default: 0
+        index of the reference image, 0 .. nimages - 1: the image phases are relative to it
     misclosure_fraction : str, optional
         output: fraction of the interferograms of every point that do not fit the loops before the
         correction, shape (n_points,), float32, 0..1; 0 where every loop closes
+    change_fraction : str, optional
+        output: fraction of the interferograms of every point whose whole cycles in `ts` differ from `unw_ph`,
+        shape (n_points,), float32, 0..1; 0 where `unw_ph` was kept; large values mark points whose input
+        unwrapping was poor (e.g. to be masked)
     region : str, optional
         output: region of every point, shape (n_points,), int32: 0 .. n_regions - 1, or -1 for the points of
         regions smaller than `min_region_points`, corrected one by one (e.g. to be masked)
@@ -457,6 +470,8 @@ def unwrap_correct_closure_pc(
     pairs = _image_pairs(image_pairs, nimages)
     if pairs.shape[0] != n_pairs:
         raise ValueError(f'image_pairs: {pairs.shape[0]} pairs for {n_pairs} columns of unw_ph')
+    if not 0 <= int(ref) < nimages:
+        raise ValueError(f'ref must be an image index of 0 .. {nimages - 1}, got {ref}')
     if not max_edge_factor > 1:
         raise ValueError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
     if int(min_region_points) < 1:
@@ -464,6 +479,7 @@ def unwrap_correct_closure_pc(
     if out_chunks is None:
         out_chunks = unw_zarr.chunks[0]
     order, parent, n_loops = _closure._pair_forest(pairs, nimages)
+    _closure._check_connected(parent)
 
     gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
     if gix_data.shape != (n_points, 2):
@@ -481,67 +497,86 @@ def unwrap_correct_closure_pc(
         z = zarr.open(region, mode='w', shape=(n_points,), dtype=np.int32, chunks=(out_chunks,))
         logger.zarr_info(region, z)
         z[:] = reg
-    out_zarr = zarr.open(unw_cor, mode='w', shape=(n_points, n_pairs), dtype=np.float32, chunks=(out_chunks, 1))
-    logger.zarr_info(unw_cor, out_zarr)
-    mis_zarr = None
-    if misclosure_fraction is not None:
-        mis_zarr = zarr.open(misclosure_fraction, mode='w', shape=(n_points,), dtype=np.float32,
-                             chunks=(out_chunks,))
-        logger.zarr_info(misclosure_fraction, mis_zarr)
+    ts_zarr = zarr.open(ts, mode='w', shape=(n_points, nimages), dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(ts, ts_zarr)
 
-    if n_loops == 0:
-        warnings.warn('the image pairs close no loop: nothing to correct')
-        logger.warning('the image pairs close no loop: nothing to correct')
-        for k in range(n_pairs):
-            out_zarr[:, k] = unw_zarr[:, k]
-        if mis_zarr is not None:
-            mis_zarr[:] = 0
-        return
-
-    tmp = Path(str(unw_cor) + '.tmp')
+    tmp = Path(str(ts) + '.tmp')
     if tmp.exists():
         shutil.rmtree(tmp)
     tmp.mkdir(parents=True)
-
-    # per point corrections per block of points (one chunk of every image and interferogram); the next block
-    # is read while the current one is computed (the kernel is parallel itself)
     block = unw_zarr.chunks[0]
-    d_zarr = zarr.open(str(tmp / 'd.zarr'), mode='w', shape=(n_points, n_pairs), dtype=np.int8, chunks=(block, 1))
-    mis = np.empty(n_points, np.float32)
-
-    def read_block(start):
-        sl = slice(start, min(start + block, n_points))
-        return sl, ph_zarr[sl], unw_zarr[sl]
-
     starts = list(range(0, n_points, block))
-    logger.info(f'per point corrections: {len(starts)} blocks of {block} points')
-    with ThreadPoolExecutor(max_workers=1) as reader:
-        future = reader.submit(read_block, starts[0])
-        for j in range(len(starts)):
-            sl, ph_rows, unw_rows = future.result()
-            if j + 1 < len(starts):
-                future = reader.submit(read_block, starts[j + 1])
-            d, mis[sl], dev = _closure._closure_estimate(np.ascontiguousarray(ph_rows),
-                                                         np.ascontiguousarray(unw_rows, dtype=np.float32),
-                                                         pairs, order, parent)
-            if dev > 0.1:
-                raise ValueError(f'unw_ph does not rewrap to the interferograms of ph (up to {dev:.2f} cycles off)')
+
+    def per_block(stacks, kernel, desc):
+        """Map `kernel(sl, ph rows, rows of every stack)` over the blocks of points (one chunk of every image and
+        interferogram); the next block is read while the current one is computed (the kernels are parallel
+        themselves)."""
+        def read_block(start):
+            sl = slice(start, min(start + block, n_points))
+            return sl, ph_zarr[sl], [s[sl] for s in stacks]
+
+        logger.info(f'{desc}: {len(starts)} blocks of {block} points')
+        with ThreadPoolExecutor(max_workers=1) as reader:
+            future = reader.submit(read_block, starts[0])
+            for j in range(len(starts)):
+                sl, ph_rows, rows = future.result()
+                if j + 1 < len(starts):
+                    future = reader.submit(read_block, starts[j + 1])
+                kernel(sl, np.ascontiguousarray(ph_rows),
+                       *[np.ascontiguousarray(r, dtype=np.float32) for r in rows])
+
+    mis = np.zeros(n_points, np.float32)
+    if n_loops == 0:
+        warnings.warn('the image pairs close no loop: nothing to correct')
+        logger.warning('the image pairs close no loop: nothing to correct')
+        cor_zarr = unw_zarr
+    else:
+        # per point corrections, per block of points
+        d_zarr = zarr.open(str(tmp / 'd.zarr'), mode='w', shape=(n_points, n_pairs), dtype=np.int8,
+                           chunks=(block, 1))
+
+        def estimate(sl, ph_rows, unw_rows):
+            d, mis[sl], dev = _closure._closure_estimate(ph_rows, unw_rows, pairs, order, parent)
+            _closure._check_rewrap(dev, 'unw_ph')
             d_zarr[sl] = d
-    if mis_zarr is not None:
-        mis_zarr[:] = mis
-    logger.info(f'loops do not close at {np.mean(mis > 0):.1%} of the points, mean fraction of interferograms '
-                f'that do not fit {mis.mean():.3f}')
 
-    # correction per interferogram, in dask threads
-    def correct(k):
-        col = np.ascontiguousarray(unw_zarr[:, k], dtype=np.float32)
-        _closure._closure_apply(col, d_zarr[:, k], reg, n_regions)
-        out_zarr[:, k] = col
-        return k
+        per_block([unw_zarr], estimate, 'per point corrections')
+        logger.info(f'loops do not close at {np.mean(mis > 0):.1%} of the points, mean fraction of interferograms '
+                    f'that do not fit {mis.mean():.3f}')
 
-    if not n_workers:
-        n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // (16 * n_points + 1))))
-    logger.info(f'correction: {n_pairs} interferograms, {n_workers} at the same time')
-    dask.compute(*[delayed(correct)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+        # correction per region and interferogram, in dask threads
+        cor_zarr = zarr.open(str(tmp / 'cor.zarr'), mode='w', shape=(n_points, n_pairs), dtype=np.float32,
+                             chunks=(block, 1))
+
+        def correct(k):
+            col = np.ascontiguousarray(unw_zarr[:, k], dtype=np.float32)
+            _closure._closure_apply(col, d_zarr[:, k], reg, n_regions)
+            cor_zarr[:, k] = col
+            return k
+
+        if not n_workers:
+            n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // (16 * n_points + 1))))
+        logger.info(f'correction: {n_pairs} interferograms, {n_workers} at the same time')
+        dask.compute(*[delayed(correct)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+    if misclosure_fraction is not None:
+        z = zarr.open(misclosure_fraction, mode='w', shape=(n_points,), dtype=np.float32, chunks=(out_chunks,))
+        logger.zarr_info(misclosure_fraction, z)
+        z[:] = mis
+
+    # image phases, per block of points
+    chg = np.empty(n_points, np.float32)
+
+    def image_phases(sl, ph_rows, cor_rows, unw_rows):
+        ts_rows, chg[sl], dev = _closure._closure_ts(ph_rows, cor_rows, unw_rows, pairs, order, parent, int(ref))
+        _closure._check_rewrap(dev, 'unw_ph')
+        ts_zarr[sl] = ts_rows
+
+    per_block([cor_zarr, unw_zarr], image_phases, 'image phases')
+    logger.info(f'unw_ph changed at {np.mean(chg > 0):.1%} of the points, mean fraction of changed interferograms '
+                f'{chg.mean():.4f}')
+    if change_fraction is not None:
+        z = zarr.open(change_fraction, mode='w', shape=(n_points,), dtype=np.float32, chunks=(out_chunks,))
+        logger.zarr_info(change_fraction, z)
+        z[:] = chg
     shutil.rmtree(tmp)
     logger.info('done.')

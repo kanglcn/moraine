@@ -465,9 +465,14 @@ def islands_exact(seed=0, side=200):
     return d, pairs, exact
 
 
+def ts_intf(ts, pairs):
+    """Interferograms of image phases ts (n_points, nimages)."""
+    return ts[:, pairs[:, 0]] - ts[:, pairs[:, 1]]
+
+
 def test_closure_restores_shifted_regions():
     """Whole islands shifted by a cycle in some interferograms (what spatial unwrapping across water does) are
-    shifted back; the islands are the regions."""
+    shifted back; the islands are the regions; the image phases are the true ones relative to the reference."""
     d, pairs, exact = islands_exact()
     island = d['island']
     assert island.max() >= 2
@@ -475,25 +480,49 @@ def test_closure_restores_shifted_regions():
     wrong[island == 1, 4] += 2 * np.pi
     wrong[island == 2, 9] -= 2 * np.pi
     wrong[island == 2, 20] += 4 * np.pi
-    cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], wrong, pairs)
-    assert cor.dtype == np.float32 and mis.dtype == np.float32 and region.dtype == np.int32
-    np.testing.assert_allclose(cor, exact, atol=1e-4)
-    assert (mis[(island == 1) | (island == 2)] > 0).all() and (mis[(island != 1) & (island != 2)] == 0).all()
+    for ref in (0, 5):
+        ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], wrong, pairs, ref=ref)
+        assert ts.dtype == np.float32 and mis.dtype == np.float32 and chg.dtype == np.float32
+        assert region.dtype == np.int32 and ts.shape == d['ph'].shape
+        assert (ts[:, ref] == 0).all()
+        np.testing.assert_allclose(ts, d['true'] - d['true'][:, [ref]], atol=1e-4)
+        assert (mis[(island == 1) | (island == 2)] > 0).all() and (mis[(island != 1) & (island != 2)] == 0).all()
+        K = len(pairs)
+        assert (chg[island == 1] == np.float32(1 / K)).all() and (chg[island == 2] == np.float32(2 / K)).all()
+        assert (chg[(island != 1) & (island != 2)] == 0).all()
     for i in np.unique(island):                                            # one region per island
         assert len(np.unique(region[island == i])) == 1
 
 
 def test_closure_no_salt_and_pepper():
-    """A single wrong point in a large region is left as it is (the region decides, not its own loops), and
-    the rest of the region is not changed."""
+    """A single point wrong in a few interferograms of a large region is not shifted with the region (whose
+    median correction is 0) and gets the image phases fitting most of its loops; the rest is not changed."""
     d, pairs, exact = islands_exact()
     i = np.flatnonzero(d['island'] == 0)[10]
     wrong = exact.copy()
     wrong[i, [3, 7]] += 2 * np.pi
-    cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], wrong, pairs)
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], wrong, pairs)
     assert region[i] >= 0
-    np.testing.assert_array_equal(cor, wrong)
+    np.testing.assert_allclose(ts, d['true'] - d['true'][:, [0]], atol=1e-4)
     assert mis[i] > 0 and (np.delete(mis, i) == 0).all()
+    assert chg[i] == pytest.approx(2 / len(pairs)) and (np.delete(chg, i) == 0).all()
+
+
+def test_closure_region_median_not_fitting_points():
+    """Where the median correction of a region breaks the loops of some of its points, they are decided point by
+    point: their input is kept (change_fraction 0) and the image phases close every loop."""
+    d, pairs, exact = islands_exact()
+    island = d['island']
+    wrong = exact.copy()
+    sel = np.flatnonzero(island == 1)
+    wrong[sel, 4] += 2 * np.pi                                             # the whole island, corrected by the median
+    j = sel[:len(sel) // 4]
+    wrong[j, 4] -= 2 * np.pi                                               # except a quarter, right at first
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], wrong, pairs)
+    assert (chg[j] == 0).all() and (chg[np.setdiff1d(sel, j)] == np.float32(1 / len(pairs))).all()
+    assert (np.delete(chg, sel) == 0).all()
+    np.testing.assert_allclose(ts, d['true'] - d['true'][:, [0]], atol=1e-4)
+    assert loops_close(ts_intf(ts, pairs), d['ph'], pairs).all()
 
 
 def test_closure_small_regions_point_by_point():
@@ -502,25 +531,30 @@ def test_closure_small_regions_point_by_point():
     d, pairs, exact = islands_exact()
     x, y = np.r_[d['x'], -500.0], np.r_[d['y'], -500.0]
     ph = np.r_[d['ph'], d['ph'][:1]]
-    ex = np.r_[exact, exact[:1]]
-    wrong = ex.copy()
+    true = np.r_[d['true'], d['true'][:1]]
+    wrong = np.r_[exact, exact[:1]]
     wrong[-1, 5] += 2 * np.pi
-    cor, mis, region = mr.unwrap_correct_closure_pc(x, y, ph, wrong, pairs)
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(x, y, ph, wrong, pairs)
     assert region[-1] == -1 and (region[:-1] >= 0).all()
-    np.testing.assert_allclose(cor, ex, atol=1e-4)
-    cor, mis, region = mr.unwrap_correct_closure_pc(x, y, ph, wrong, pairs, min_region_points=1)
+    np.testing.assert_allclose(ts, true - true[:, [0]], atol=1e-4)
+    assert mis[-1] > 0 and chg[-1] == np.float32(1 / len(pairs)) and (chg[:-1] == 0).all()
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(x, y, ph, wrong, pairs, min_region_points=1)
     assert region[-1] >= 0
 
 
 def test_closure_after_unwrapping_islands():
-    """After spatial unwrapping of the islands, the correction removes wrong cycles and keeps the result
-    consistent with the wrapped phase."""
+    """After spatial unwrapping of the islands, the correction removes wrong cycles; the image phases rewrap to
+    the phase history and close every loop."""
     d = make_islands(seed=0)
     pairs = hop3(len(d['t']))
     intf = d['ph'][:, pairs[:, 0]] * d['ph'][:, pairs[:, 1]].conj()
     unw = np.stack([mcf_pc(d['x'], d['y'], intf[:, k]) for k in range(len(pairs))], -1)
-    cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs)
-    assert np.abs(wrap(cor - np.angle(intf))).max() < 1e-3
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs, ref=3)
+    assert np.abs(wrap(ts - np.angle(d['ph'] * d['ph'][:, [3]].conj()))).max() < 1e-3
+    cor = ts_intf(ts, pairs)
+    assert loops_close(cor, d['ph'], pairs).all()
+    np.testing.assert_array_equal(chg, np.mean(np.rint((cor - unw) / (2 * np.pi)) != 0, 1).astype(np.float32))
+    assert (chg > 0).any()
     w0, e0 = scores(unw, pairs, d['true'], d['x'], d['y'])
     w1, e1 = scores(cor, pairs, d['true'], d['x'], d['y'])
     assert w1 < 0.9 * w0 and e1 <= e0 * 1.01                             # measured 2026-09-30: 0.033 -> 0.027
@@ -531,16 +565,24 @@ def test_closure_without_loops_and_errors():
     seq = np.c_[np.arange(11), np.arange(1, 12)]
     unw = (d['true'][:, seq[:, 0]] - d['true'][:, seq[:, 1]]).astype(np.float32)
     with pytest.warns(UserWarning, match='no loop'):
-        cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, seq)
-    np.testing.assert_array_equal(cor, unw)
-    assert (mis == 0).all()
+        ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, seq)
+    np.testing.assert_allclose(ts_intf(ts, seq), unw, atol=1e-4)
+    np.testing.assert_allclose(ts, d['true'] - d['true'][:, [0]], atol=1e-4)
+    assert (mis == 0).all() and (chg == 0).all()
     x, y, ph = d['x'], d['y'], d['ph']
     with pytest.raises(ValueError, match='rewrap'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact + 1.0, pairs)
+    with pytest.warns(UserWarning, match='no loop'), pytest.raises(ValueError, match='rewrap'):
+        mr.unwrap_correct_closure_pc(x, y, ph, unw + 1.0, seq)
     with pytest.raises(ValueError, match='image_pairs'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact[:, :-1], pairs)
     with pytest.raises(ValueError, match='two different images'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, np.where(pairs == 11, 12, pairs))
+    two = np.r_[hop3(6), hop3(6) + 6]                                      # images 0..5 and 6..11 not linked
+    with pytest.raises(ValueError, match='connect all images'):
+        mr.unwrap_correct_closure_pc(x, y, ph, (d['true'][:, two[:, 0]] - d['true'][:, two[:, 1]]), two)
+    with pytest.raises(ValueError, match='ref'):
+        mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, ref=12)
     with pytest.raises(ValueError, match='max_edge_factor'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, max_edge_factor=1.0)
     with pytest.raises(ValueError, match='min_region_points'):
@@ -621,18 +663,19 @@ def test_cli_unwrap_correct_closure_pc(tmp_path, chunk):
     import zarr
     import moraine.cli as mc
     d, pairs, unw, paths = _islands_files(tmp_path, chunk)
-    out = str(tmp_path / 'cor.zarr')
+    out = str(tmp_path / 'ts.zarr')
     mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs, out, range_pixel_spacing=1.0,
-                                 azimuth_pixel_spacing=1.0, misclosure_fraction=str(tmp_path / 'mis.zarr'),
-                                 region=str(tmp_path / 'region.zarr'))
-    cor, mis, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs)
+                                 azimuth_pixel_spacing=1.0, ref=2, misclosure_fraction=str(tmp_path / 'mis.zarr'),
+                                 change_fraction=str(tmp_path / 'chg.zarr'), region=str(tmp_path / 'region.zarr'))
+    ts, mis, chg, region = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs, ref=2)
     z = zarr.open(out, mode='r')
-    assert z.dtype == np.float32 and z.chunks == (chunk, 1)
-    np.testing.assert_array_equal(z[:], cor)
+    assert z.dtype == np.float32 and z.chunks == (chunk, 1) and z.shape == d['ph'].shape
+    np.testing.assert_array_equal(z[:], ts)
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'mis.zarr'), mode='r')[:], mis)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'chg.zarr'), mode='r')[:], chg)
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'region.zarr'), mode='r')[:], region)
-    assert (cor != unw).any()                                             # something was corrected
-    assert not (tmp_path / 'cor.zarr.tmp').exists()
+    assert (ts_intf(ts, pairs) != unw).any()                              # something was corrected
+    assert not (tmp_path / 'ts.zarr.tmp').exists()
 
 
 def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
@@ -640,21 +683,28 @@ def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
     import moraine.cli as mc
     d, pairs, unw, paths = _islands_files(tmp_path, 500)
     args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
-    out = str(tmp_path / 'cor.zarr')
+    out = str(tmp_path / 'ts.zarr')
     rows = _write_zarr(tmp_path / 'unw_rows.zarr', unw, (500, unw.shape[1]))
     with pytest.raises(ValueError, match='one image'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], rows, pairs, out, **args)
     shifted = _write_zarr(tmp_path / 'unw_shifted.zarr', unw + 1.0, (500, 1))
     with pytest.raises(ValueError, match='rewrap'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], shifted, pairs, out, **args)
-    assert (tmp_path / 'cor.zarr.tmp').exists()                           # kept when the command fails
+    assert (tmp_path / 'ts.zarr.tmp').exists()                            # kept when the command fails
     with pytest.raises(ValueError, match='columns'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs[:-1], out, **args)
+    with pytest.raises(ValueError, match='ref'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs, out, ref=-1, **args)
+    two = np.r_[hop3(6), hop3(6) + 6]
+    two_unw = _write_zarr(tmp_path / 'unw_two.zarr', unw[:, :len(two)].copy(), (500, 1))
+    with pytest.raises(ValueError, match='connect all images'):
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], two_unw, two, out, **args)
     seq = np.c_[np.arange(11), np.arange(1, 12)]
-    seq_unw = _write_zarr(tmp_path / 'unw_seq.zarr', unw[:, :11].copy(), (500, 1))
+    seq_unw = (d['true'][:, seq[:, 0]] - d['true'][:, seq[:, 1]]).astype(np.float32)
+    seq_path = _write_zarr(tmp_path / 'unw_seq.zarr', seq_unw, (500, 1))
     with pytest.warns(UserWarning, match='no loop'):
-        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], seq_unw, seq, out, **args)
-    np.testing.assert_array_equal(zarr.open(out, mode='r')[:], unw[:, :11])
+        mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], seq_path, seq, out, **args)
+    np.testing.assert_allclose(zarr.open(out, mode='r')[:], d['true'] - d['true'][:, [0]], atol=1e-4)
 
 
 @pytest.mark.parametrize('chunk', [97, 2000])
@@ -688,12 +738,13 @@ def test_emcf_benchmark():
     DEM error, atmosphere, noise from coherence and snow), 8 realisations, Hop-3: EMCF, then the closure
     correction, must stay clearly better than unwrapping every interferogram alone. Reference (2026-09-30,
     default costs), share of wrong (point, interferogram), median / max: mcf_pc 0.0154 / 0.066, emcf_pc
-    0.0083 / 0.066, emcf_pc + closure 0.0081 / 0.044; wrong edges median: 0.0023, 0.0014, 0.0015."""
+    0.0083 / 0.066, emcf_pc + closure 0.0081 / 0.044 (0.0081 / 0.045 from the image phases, 2026-10-02); wrong edges
+    median: 0.0023, 0.0014, 0.0015."""
     r = []
     for seed in range(8):
         d = make(seed=seed)
         unw, pairs = mr.emcf_pc(d['x'], d['y'], d['ph'], d['t'])
-        cor = mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs)[0]
+        cor = ts_intf(mr.unwrap_correct_closure_pc(d['x'], d['y'], d['ph'], unw, pairs)[0], pairs)
         r.append(scores(unw, pairs, d['true'], d['x'], d['y']) + scores(cor, pairs, d['true'], d['x'], d['y']))
     r = np.array(r)
     assert np.median(r[:, 0]) < 0.012 and np.median(r[:, 2]) < 0.012

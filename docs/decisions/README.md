@@ -29,6 +29,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0019](0019-chunks-space-blocks-one-image.md) | Data are chunked by blocks in space and one image per chunk | Accepted |
 | [0020](0020-emcf-any-image-pair-network.md) | EMCF on any network of image pairs, in steps of their own units | Accepted |
 | [0021](0021-closure-correction-by-regions.md) | Unwrapping errors are corrected by phase closure per region, as in MintPy | Accepted |
+| [0022](0022-closure-correction-outputs-phase-time-series.md) | The phase closure correction outputs the phase time series; no least squares inversion | Accepted |
 
 ## Writing a record
 

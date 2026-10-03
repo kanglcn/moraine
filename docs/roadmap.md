@@ -20,8 +20,9 @@ with images made decorrelated on purpose.
 
 ## Next stages of decision 0012
 
-Time series inversion (stage 4) and deformation products (stage 5): see
-`docs/decisions/0012-network-emcf-inversion.md`.
+Deformation products (stage 5), starting with the spatial reference (reference point or area) of the
+image phases of `unwrap-correct-closure-pc`: see `docs/decisions/0012-network-emcf-inversion.md`. Stage 4
+(time series inversion) is replaced by those image phases (decision 0022).
 
 ## Small issues
 

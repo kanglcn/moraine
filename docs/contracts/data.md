@@ -46,6 +46,8 @@ Decision 0019.
   `(n_points, n_pairs)` in the order of `numpy.triu_indices(nimages, 1)` unless image pairs are given;
   `moraine.uncompress_coh` restores full matrices.
 - Unwrapped phase: float32 radians, `(n_points, n_pairs)`.
+- Unwrapped phase of the images (phase time series): float32 radians, `(n_points, nimages)`, relative to a
+  reference image whose column is 0; interferogram (a, b) is `ts[:, a] - ts[:, b]` (decision 0022).
 
 ## Polygons
 

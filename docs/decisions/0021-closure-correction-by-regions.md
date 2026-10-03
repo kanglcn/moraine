@@ -40,7 +40,8 @@ by water with point x image decorrelation; Hop-3 networks; after `mcf_pc` and `e
 ## Decision
 
 - New API function `unwrap_correct_closure_pc(pc_x, pc_y, ph, unw, image_pairs, max_edge_factor=4.0,
-  min_region_points=30) -> (unw_cor, misclosure_fraction, region)`, separate from the unwrappers.
+  min_region_points=30) -> (unw_cor, misclosure_fraction, region)`, separate from the unwrappers (its outputs
+  are changed by decision 0022: the image phases `ts` instead of `unw_cor`, and `change_fraction`).
 - Per point, the correction d = A N - c closest to c in L1 with unit weights (`_l1_fit`, exact integer
   solution, any network, no triplets).
 - Regions: connected components of the point triangulation without the edges longer than `max_edge_factor`

@@ -22,6 +22,13 @@ from .mcf import _TWO_PI, _mcf_edges
 # 3. per interferogram (`_closure_apply`): every region large enough gets the median of d_k of its points; the points
 #    of smaller regions (e.g. isolated points between clusters) have nothing to share with and get their own d_k.
 #    MintPy leaves them out (and masks them later); moraine keeps them and returns the regions for masking.
+# 4. per block of points (`_closure_ts`): `_l1_fit` once more on the corrected interferograms gives the cycles N of
+#    the images, integrated along the spanning forest; the phase of image j is angle(ph_j) + 2 pi N_j, relative to
+#    the reference image (decision 0022). Where the region median closes every loop, nothing changes; elsewhere the
+#    fit decides per point. The median is taken over d, not N: d is constant in a region shifted by spatial
+#    unwrapping, N holds the spatial unwrapping of every point. `change_fraction` compares the result with the input
+#    (steps 2 and 4 together); on synthetic data it predicts wrong points better than the misclosure or the changes
+#    of step 4 alone, but not errors that close every loop (decision 0022).
 # The value of image pair k = (a, b) is always image a - image b.
 
 
@@ -156,6 +163,56 @@ def _l1_fit(pairs, m, cost, order, parent, z):
 
 
 @njit(cache=True, parallel=True)
+def _closure_ts(ph, unw, unw_in, pairs, order, parent, ref):
+    """Phase time series of a block of points (`ph` (n, nimages), `unw` (n, n_pairs) after the region correction,
+    `unw_in` the input before it, same shape): unwrapped phase of every image relative to image `ref`,
+    (n, nimages) float32, the fraction of the interferograms whose whole cycles in the result differ from
+    `unw_in`, (n,) float32, and the largest distance of unw - (phi_a - phi_b) from whole cycles, in cycles. The
+    image pairs must connect all images (one root in `parent`)."""
+    n = unw.shape[0]
+    K = pairs.shape[0]
+    V = ph.shape[1]
+    ts = np.zeros((n, V), np.float32)
+    frac = np.zeros(n, np.float32)
+    dev = np.zeros(n, np.float64)
+    cost = np.ones(K, np.int64)
+    for i in prange(n):
+        ang = np.empty(V, np.float64)
+        for j in range(V):
+            ang[j] = np.arctan2(ph[i, j].imag, ph[i, j].real)
+        m = np.empty(K, np.int64)
+        worst = 0.0
+        for k in range(K):
+            c = (unw[i, k] - (ang[pairs[k, 0]] - ang[pairs[k, 1]])) / _TWO_PI
+            m[k] = -int(np.round(c))
+            worst = max(worst, abs(c + m[k]))
+        dev[i] = worst
+        z = np.empty(K, np.int64)
+        _l1_fit(pairs, m, cost, order, parent, z)
+        # N_a - N_b = z_k - m_k on every pair; integrated from the root along the spanning forest
+        cyc = np.zeros(V, np.int64)
+        for o in range(V):
+            v = order[o]
+            k = parent[v]
+            if k >= 0:
+                if pairs[k, 1] == v:
+                    cyc[v] = cyc[pairs[k, 0]] - (z[k] - m[k])
+                else:
+                    cyc[v] = cyc[pairs[k, 1]] + (z[k] - m[k])
+        for j in range(V):
+            ts[i, j] = ang[j] - ang[ref] + _TWO_PI * (cyc[j] - cyc[ref])
+        n_changed = 0
+        for k in range(K):
+            a = pairs[k, 0]
+            b = pairs[k, 1]
+            c_in = int(np.round((unw_in[i, k] - (ang[a] - ang[b])) / _TWO_PI))
+            if cyc[a] - cyc[b] != c_in:
+                n_changed += 1
+        frac[i] = n_changed / K
+    return ts, frac, dev.max() if n else 0.0
+
+
+@njit(cache=True, parallel=True)
 def _closure_estimate(ph, unw, pairs, order, parent):
     """Per point corrections on a block of points (`ph` (n, nimages), `unw` (n, n_pairs)): whole cycles to add to
     every interferogram so that every loop of image pairs closes, (n, n_pairs) int8, the fraction of the
@@ -260,18 +317,23 @@ def unwrap_correct_closure_pc(
     ph:np.ndarray,
     unw:np.ndarray,
     image_pairs:np.ndarray,
+    ref:int=0,
     max_edge_factor:float=4.0,
     min_region_points:int=30,
 ):
-    """Correction of unwrapping errors of point cloud interferograms by phase closure.
+    """Correction of unwrapping errors of point cloud interferograms by phase closure, to the unwrapped phase of
+    every image.
 
     The unwrapped phases of every loop of image pairs should add up to zero, e.g.
     unw(a, b) + unw(b, c) = unw(a, c). Where they do not, the interferograms are corrected by whole cycles,
     changing as few interferograms as possible, by the same amount for all points of a region: the points
     connected by edges of the point network no longer than `max_edge_factor` times the median edge length.
-    Points of smaller regions than `min_region_points` are corrected one by one.
-    The correction assumes that most interferograms of a region are right: where most are wrong, it makes them
-    worse.
+    Points of smaller regions than `min_region_points` are corrected one by one. The correction assumes
+    that most interferograms of a region are right: where most are wrong, it makes them worse. Where a point
+    still does not fit the loops after the correction of its region, the interferograms fitting most of its
+    loops are kept. The result is the unwrapped phase of every image, whose differences close every loop.
+    Errors that close every loop (e.g. the same whole cycles in every interferogram of one image) are neither
+    corrected nor reported.
 
     Parameters
     ----------
@@ -286,8 +348,10 @@ def unwrap_correct_closure_pc(
         `emcf_pc`; rewrapped, it must be the phase of ph[:, reference] * conj(ph[:, secondary])
     image_pairs : np.ndarray
         the interferograms: (reference, secondary) image indices of the columns of `unw`, shape (n_pairs, 2),
-        int; the network needs loops (e.g. every image paired with the next three), otherwise nothing is
-        corrected (a warning is given)
+        int; the pairs must connect all images; the network needs loops (e.g. every image paired with the
+        next three) to correct anything, otherwise only the image phases are computed (a warning is given)
+    ref : int, default: 0
+        index of the reference image, 0 .. nimages - 1: the image phases are relative to it
     max_edge_factor : float, default: 4.0
         edges of the point network longer than this times the median edge length do not connect a region,
         e.g. edges across water or decorrelated areas; larger than 1
@@ -296,12 +360,17 @@ def unwrap_correct_closure_pc(
 
     Returns
     -------
-    unw_cor : np.ndarray
-        corrected unwrapped phase in radians, shape (n_points, n_pairs), np.float32: `unw` plus whole cycles,
-        the same for all points of a region and interferogram
+    ts : np.ndarray
+        unwrapped phase of every image relative to image `ref` in radians, shape (n_points, nimages),
+        np.float32; ts[:, ref] is 0; rewrapped, ts[:, j] is the phase of ph[:, j] * conj(ph[:, ref]); the
+        corrected interferogram (a, b) is ts[:, a] - ts[:, b]
     misclosure_fraction : np.ndarray
         fraction of the interferograms of every point that do not fit the loops before the correction,
         shape (n_points,), np.float32, 0..1; 0 where every loop closes
+    change_fraction : np.ndarray
+        fraction of the interferograms of every point whose whole cycles in the result differ from `unw`,
+        shape (n_points,), np.float32, 0..1; 0 where `unw` was kept; large values mark points whose input
+        unwrapping was poor (e.g. to be masked)
     region : np.ndarray
         region of every point, shape (n_points,), np.int32: 0 .. n_regions - 1, or -1 for the points of
         regions smaller than `min_region_points`, corrected one by one (e.g. to be masked)
@@ -315,23 +384,39 @@ def unwrap_correct_closure_pc(
         raise ValueError(f'image_pairs must be integers of shape ({unw.shape[1]}, 2), got {pairs.dtype} {pairs.shape}')
     if pairs.min() < 0 or pairs.max() >= ph.shape[1] or (pairs[:, 0] == pairs[:, 1]).any():
         raise ValueError(f'image_pairs must pair two different images of 0 .. {ph.shape[1] - 1}')
+    if not 0 <= int(ref) < ph.shape[1]:
+        raise ValueError(f'ref must be an image index of 0 .. {ph.shape[1] - 1}, got {ref}')
     if not max_edge_factor > 1:
         raise ValueError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
     if int(min_region_points) < 1:
         raise ValueError(f'min_region_points must be at least 1, got {min_region_points}')
     pairs = np.ascontiguousarray(pairs, dtype=np.int64)
-    unw_cor = np.array(unw, dtype=np.float32)
     order, parent, n_loops = _pair_forest(pairs, ph.shape[1])
+    _check_connected(parent)
+    unw_cor = np.array(unw, dtype=np.float32)
     x = np.asarray(pc_x, dtype=np.float64)
     y = np.asarray(pc_y, dtype=np.float64)
     edges = _mcf_edges(x, y)[3]
     region, n_regions = _closure_regions(x, y, edges, float(max_edge_factor), int(min_region_points))
     if n_loops == 0:
         warnings.warn('the image pairs close no loop: nothing to correct')
-        return unw_cor, np.zeros(ph.shape[0], np.float32), region
+        misclosure_fraction = np.zeros(ph.shape[0], np.float32)
+    else:
+        d, misclosure_fraction, dev = _closure_estimate(ph, unw_cor, pairs, order, parent)
+        _check_rewrap(dev)
+        _closure_apply_all(unw_cor, d, region, n_regions)
+    ts, change_fraction, dev = _closure_ts(ph, unw_cor, np.asarray(unw, dtype=np.float32), pairs, order, parent,
+                                           int(ref))
+    _check_rewrap(dev)
+    return ts, misclosure_fraction, change_fraction, region
 
-    d, misclosure_fraction, dev = _closure_estimate(ph, unw_cor, pairs, order, parent)
+
+def _check_connected(parent):
+    n_parts = int((parent < 0).sum())
+    if n_parts > 1:
+        raise ValueError(f'image_pairs must connect all images, they make {n_parts} separate groups of images')
+
+
+def _check_rewrap(dev, name='unw'):
     if dev > 0.1:
-        raise ValueError(f'unw does not rewrap to the interferograms of ph (up to {dev:.2f} cycles off)')
-    _closure_apply_all(unw_cor, d, region, n_regions)
-    return unw_cor, misclosure_fraction, region
+        raise ValueError(f'{name} does not rewrap to the interferograms of ph (up to {dev:.2f} cycles off)')
