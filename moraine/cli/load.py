@@ -102,6 +102,7 @@ def load_gamma_flatten_rslc(
     scratch_dir:str,
     rslc:str,
     chunks:tuple[int,int]=(1000,1000),
+    gamma_threads:int=min(64, os.cpu_count() or 1),
     processes=False,
     n_workers=1,
     threads_per_worker=1,
@@ -125,6 +126,8 @@ def load_gamma_flatten_rslc(
         output: flattened rslc stack, shape (nlines, width, nimages), complex64
     chunks : tuple[int, int], default: (1000, 1000)
         rslc chunk size
+    gamma_threads : int, default: min(64, number of CPU cores)
+        number of threads of each GAMMA program run for an image (`phase_sim_orb`, set with OMP_NUM_THREADS)
     processes : default: False
         use process for dask worker or thread
     n_workers : default: 1
@@ -166,7 +169,8 @@ def load_gamma_flatten_rslc(
         logger.info('run command: ' + create_offset_command)
         os.system(create_offset_command)
         sim_orb = scratch_dir/(reference+'_'+date+'.sim_orb')
-        phase_sim_orb_command = f'phase_sim_orb {str(ref_rslc_par)} {str(rslc_par)} {str(off_par)} {str(hgt)} {str(sim_orb)} {str(ref_rslc_par)} - - 1 1 >> {str(scratch_dir/"gamma.log")}'
+        # GAMMA uses 8 threads when OMP_NUM_THREADS is not set
+        phase_sim_orb_command = f'OMP_NUM_THREADS={gamma_threads} phase_sim_orb {str(ref_rslc_par)} {str(rslc_par)} {str(off_par)} {str(hgt)} {str(sim_orb)} {str(ref_rslc_par)} - - 1 1 >> {str(scratch_dir/"gamma.log")}'
         if sim_orb.exists():
             logger.info(f'{sim_orb} exists. skip runing {phase_sim_orb_command}')
         else:

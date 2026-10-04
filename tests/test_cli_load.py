@@ -1,4 +1,5 @@
 """Loading GAMMA results. Needs the GAMMA software on PATH and the sample GAMMA output."""
+import os
 import shutil
 
 import numpy as np
@@ -66,3 +67,26 @@ def test_load_gamma_flatten_rslc(gamma, tmp_path):
     z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='r')
     assert z.shape == (NLINES, WIDTH, NIMAGES)
     assert np.iscomplexobj(z[:10, :10, 0])
+
+
+class _Stop(Exception):
+    pass
+
+
+def test_load_gamma_flatten_rslc_gamma_threads(tmp_path, monkeypatch):
+    rslc_dir = data_path('gamma', 'rslc')
+    commands = []
+
+    def system(command):
+        commands.append(command)
+        if 'phase_sim_orb' in command:
+            raise _Stop
+
+    monkeypatch.setattr(os, 'system', system)
+    for kwargs, threads in (({'gamma_threads': 3}, 3), ({}, min(64, os.cpu_count() or 1))):
+        commands.clear()
+        with pytest.raises(_Stop):
+            mc.load_gamma_flatten_rslc(str(rslc_dir), REF, str(tmp_path / 'hgt'), str(tmp_path / 'scratch'),
+                                       str(tmp_path / 'rslc.zarr'), **kwargs)
+        assert commands[-1].startswith(f'OMP_NUM_THREADS={threads} phase_sim_orb ')
+        assert not any('OMP_NUM_THREADS' in c for c in commands if 'create_offset' in c)

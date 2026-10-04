@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`load-gamma-flatten-rslc` has the argument `gamma_threads` (default: the number of CPU cores, at most 64): the number of threads of each `phase_sim_orb` run (GAMMA uses 8 without it); on 128 cores one image takes 1.5 s instead of 10 s with the same result
+
 `moraine quicklook --extent` and `view(...).png(..., extent=...)` draw a part of the scene, from the finest pyramid level that fits, down to the data (degrees on web mercator maps, pixels on the radar grid); the title gives the extent and the level, `repr` of a view the extent and the finest cell of every layer, so that agents can zoom into what they look at
 
 Data conventions (`docs/contracts/data.md`): stacks are chunked by blocks in space and one image (or image pair) per chunk; commands expect this layout (decision 0019)
