@@ -1,4 +1,4 @@
-# DS processing (tutorial: nbs/Tutorials/CLI/ds_processing.ipynb). Needs 01_load.toml.
+# DS processing (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/03_ds.ipynb). Needs 01_load.toml.
 #
 #   moraine run examples/03_ds.toml --workdir WORK
 #

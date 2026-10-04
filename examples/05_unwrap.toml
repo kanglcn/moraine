@@ -1,4 +1,4 @@
-# Phase unwrapping of the refined points (tutorial: nbs/Tutorials/CLI/phase_unwrapping.ipynb).
+# Phase unwrapping of the refined points (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/05_unwrap.ipynb).
 # Needs 04_refine.toml. Uses moraine's own minimum cost flow (no GAMMA needed); `gamma-mcf-pt` is the
 # GAMMA alternative.
 #

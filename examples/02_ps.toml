@@ -1,4 +1,4 @@
-# PS candidates (tutorial: nbs/Tutorials/CLI/ps_processing.ipynb). Needs 01_load.toml.
+# PS candidates (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/02_ps.ipynb). Needs 01_load.toml.
 #
 #   moraine run examples/02_ps.toml --workdir WORK
 #

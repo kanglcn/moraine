@@ -1,6 +1,6 @@
 # 01 Load GAMMA results
 
-Pipeline: `examples/01_load.toml`. Tutorial: `nbs/Tutorials/CLI/load_data.ipynb`.
+Pipeline: `examples/01_load.toml`. Tutorials: `nbs/Tutorials/CLI/Xinpu/01_load.ipynb`, `nbs/Tutorials/CLI/CampiFlegrei/01_load.ipynb`.
 
 ## Input
 
