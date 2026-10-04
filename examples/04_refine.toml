@@ -1,5 +1,5 @@
 # Merge PS candidates and DS, refine them with Noise2Fringe Transformer (tutorial:
-# nbs/Tutorials/CLI/pixel_refinement.ipynb). Needs 02_ps.toml and 03_ds.toml.
+# nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/04_refine.ipynb). Needs 02_ps.toml and 03_ds.toml.
 #
 #   moraine run examples/04_refine.toml --workdir WORK
 #

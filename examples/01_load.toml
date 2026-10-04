@@ -1,4 +1,4 @@
-# Load GAMMA results into zarr (tutorial: nbs/Tutorials/CLI/load_data.ipynb).
+# Load GAMMA results into zarr (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/01_load.ipynb).
 # Needs the GAMMA software on PATH.
 #
 #   moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20220620

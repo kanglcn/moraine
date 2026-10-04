@@ -1,6 +1,6 @@
 # 05 Phase unwrapping
 
-Pipeline: `examples/05_unwrap.toml`. Tutorial: `nbs/Tutorials/CLI/phase_unwrapping.ipynb`.
+Pipeline: `examples/05_unwrap.toml`. Tutorials: `nbs/Tutorials/CLI/Xinpu/05_unwrap.ipynb`, `nbs/Tutorials/CLI/CampiFlegrei/05_unwrap.ipynb`.
 Needs `04_refine`.
 
 ```bash

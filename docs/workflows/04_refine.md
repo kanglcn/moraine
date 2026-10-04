@@ -1,6 +1,6 @@
 # 04 Merge PS and DS, refine with n2ft
 
-Pipeline: `examples/04_refine.toml`. Tutorial: `nbs/Tutorials/CLI/pixel_refinement.ipynb`.
+Pipeline: `examples/04_refine.toml`. Tutorials: `nbs/Tutorials/CLI/Xinpu/04_refine.ipynb`, `nbs/Tutorials/CLI/CampiFlegrei/04_refine.ipynb`.
 Needs `02_ps` and `03_ds`.
 
 ```bash
