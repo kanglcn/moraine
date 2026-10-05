@@ -67,14 +67,14 @@ def test_emi_ill_conditioned_closing_phases(rng):
     nimages = 20
     theta = rng.uniform(-np.pi, np.pi, (20, nimages))
     coh_mag = np.full((nimages, nimages), 1 - 1e-3) + 1e-3 * np.eye(nimages)
-    ph, quality = emi(_compress(_consistent_coh(theta, coh_mag)).astype(np.complex64))
+    ph, quality = emi(_compress(_consistent_coh(theta, coh_mag)).astype(np.complex64), regularize=False)
     assert _phase_error(ph, theta).max() < 1e-3
     np.testing.assert_allclose(quality, 1, atol=1e-2)
 
 
 def test_emi_regularize_not_positive_definite(not_pd):
     coh, theta = not_pd
-    ph, quality = emi(coh)
+    ph, quality = emi(coh, regularize=False)
     assert np.mean(quality < 0) > 0.5                       # EMI fails where |coh| is not positive definite
     ph_reg, quality_reg = emi(coh, regularize=True)
     assert (quality_reg > 0).all()
@@ -86,7 +86,7 @@ def test_emi_regularize_not_positive_definite(not_pd):
 def test_emi_regularize_keeps_positive_definite(ds_coh):
     pd = _well_conditioned_pd(ds_coh)
     assert pd.sum() > 100
-    ph, quality = emi(ds_coh)
+    ph, quality = emi(ds_coh, regularize=False)
     ph_reg, quality_reg = emi(ds_coh, regularize=True)
     np.testing.assert_array_equal(ph_reg[pd], ph[pd])
     np.testing.assert_array_equal(quality_reg[pd], quality[pd])
@@ -100,7 +100,7 @@ def test_emi_regularized_closing_phases_exact(rng, beta):
     theta = rng.uniform(-np.pi, np.pi, (5, nimages))
     t = np.arange(nimages)
     coh = _compress(_consistent_coh(theta, 0.9 ** np.abs(t[:, None] - t[None, :])))
-    ph, quality = emi((coh * (1 - beta)).astype(np.complex64))
+    ph, quality = emi((coh * (1 - beta)).astype(np.complex64), regularize=False)
     assert _phase_error(ph, theta).max() < 1e-4
     np.testing.assert_allclose(quality, 1, atol=1e-4)
 
@@ -125,7 +125,7 @@ def test_emi_regularize_gpu(not_pd, ds_coh):
         np.testing.assert_allclose(ph_gpu, ph, atol=1e-2)
         np.testing.assert_allclose(quality_gpu, quality, rtol=1e-2, atol=1e-2)
     pd = _well_conditioned_pd(ds_coh)
-    ph, quality = (a.get() for a in emi(cp.asarray(ds_coh)))
+    ph, quality = (a.get() for a in emi(cp.asarray(ds_coh), regularize=False))
     ph_reg, quality_reg = (a.get() for a in emi(cp.asarray(ds_coh), regularize=True))
     # batched GPU eigen solvers may round differently when other matrices of the batch change
     np.testing.assert_allclose(ph_reg[pd], ph[pd], atol=1e-5)

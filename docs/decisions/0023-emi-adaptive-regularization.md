@@ -68,7 +68,7 @@ magnitude was 0.53 at 12 days and 0.35 at 960 days. The sample data (17 images) 
   137 ms per point and thread.
 - The default stays False so that the verified examples do not change. Making it the default and
   selecting the DS of `examples/03_ds.toml` by temporal coherence is a separate change with a rerun of
-  the examples (decision 0009).
+  the examples (decision 0009); done by decision 0026.
 
 ## Do not
 

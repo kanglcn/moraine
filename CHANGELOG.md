@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`emi` and `emperical-co-emi-temp-coh-pc` regularize by default (`regularize` True): without it most DS candidates of stacks with many images get a phase history of noise. `examples/03_ds.toml` selects DS by temporal coherence alone (the EMI quality is not comparable between regularized points); use `regularize = false` to get the old results (decision 0026)
+
 New `shp_n_looks`: the effective number of independent looks of the SHP set of each point from the speckle correlation (`slc_correlation`) and the SHP positions; `emperical-co-emi-temp-coh-pc --rho2` uses it for the weighted temporal coherence instead of number of SHPs / `oversampling` (scattered SHPs: up to 40 % more looks than n / oversampling). CPU numba, GPU numba.cuda (decision 0025)
 
 New `slc_correlation` and command `slc-correlation`: the spatial correlation |rho|^2 of the speckle of an rslc stack and its sum, the oversampling (pixels per independent look), e.g. for `oversampling` of `emperical-co-emi-temp-coh-pc`: n SHPs count as n / oversampling independent looks. Robust to azimuth phase ramps (TOPS), texture and masked pixels. Sentinel-1 IW: 2.59 on Campi Flegrei, 2.75 on Xinpu, so 121 SHPs are about 45 independent looks (decision 0025)

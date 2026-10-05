@@ -2,8 +2,9 @@
 #
 #   moraine run examples/03_ds.toml --workdir WORK
 #
-# Statistically homogeneous pixels (SHP) -> DS candidates -> coherence matrix, EMI phase linking and
-# temporal coherence (fused, per raster chunk) -> DS refinement by EMI quality and temporal coherence.
+# Statistically homogeneous pixels (SHP) -> DS candidates -> coherence matrix, EMI phase linking (coherence
+# matrices that are not positive definite regularized, decision 0023) and temporal coherence (fused, per
+# raster chunk) -> DS selection by temporal coherence (decision 0026).
 # Outputs in WORK/ds/: ds_can_* (all candidates, hilbert order) and ds_hix, ds_ph, ds_gix, ds_e, ds_n
 # (refined DS).
 
@@ -107,29 +108,14 @@ out_dir = "ds/ds_can_emi_quality_pyramid"
 yx = "ds/ds_can_gix.zarr"
 ras_resolution = 2
 
-# ---- DS refinement
+# ---- DS selection by temporal coherence (the EMI quality is not comparable between regularized points)
 [[step]]
-name = "ds_r1"                    # good EMI fit
-run = "pc-logic-pc"
-idx_in = "ds/ds_can_hix.zarr"
-pc_in = "ds/ds_can_emi_quality.zarr"
-idx = "ds/ds_r1_hix.zarr"
-operation = "(pc_in>=1.0)&(pc_in<=1.05)"
-
-[[step]]
-name = "ds_r2"                    # high temporal coherence
+name = "ds"                       # high temporal coherence
 run = "pc-logic-pc"
 idx_in = "ds/ds_can_hix.zarr"
 pc_in = "ds/ds_can_t_coh.zarr"
-idx = "ds/ds_r2_hix.zarr"
-operation = "(pc_in>=0.8)&(pc_in<=1.0)"
-
-[[step]]
-name = "ds"                       # both (use pc-union if too few points are left)
-run = "pc-intersect"
-idx1 = "ds/ds_r1_hix.zarr"
-idx2 = "ds/ds_r2_hix.zarr"
 idx = "ds/ds_hix.zarr"
+operation = "(pc_in>=0.8)&(pc_in<=1.0)"
 
 [[step]]
 name = "ds_data"

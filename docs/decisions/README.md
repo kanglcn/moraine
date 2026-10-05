@@ -33,6 +33,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0023](0023-emi-adaptive-regularization.md) | EMI regularizes coherence matrices that are not positive definite, adaptively per point | Accepted |
 | [0024](0024-weighted-ds-temporal-coherence.md) | Weighted DS temporal coherence with noise-free squared coherence weights | Accepted |
 | [0025](0025-oversampling-from-speckle-correlation.md) | The oversampling of the SLCs is measured from the speckle correlation | Accepted |
+| [0026](0026-emi-regularized-by-default.md) | EMI is regularized by default; DS are selected by temporal coherence | Accepted |
 
 ## Writing a record
 

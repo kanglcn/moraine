@@ -124,7 +124,7 @@ def _emi_numba(
 
 def emi(coh:np.ndarray,
         ref:int=0,
-        regularize:bool=False,
+        regularize:bool=True,
        )-> tuple[np.ndarray,np.ndarray]:
     """Phase linking with the EMI estimator.
 
@@ -135,7 +135,7 @@ def emi(coh:np.ndarray,
         dtype complex64, shape (n_points, n_image_pairs), numpy or cupy
     ref : int, default: 0
         index of the reference image, its phase is set to 0
-    regularize : bool, default: False
+    regularize : bool, default: True
         regularize the coherence matrix of the points whose coherence magnitude matrix is not positive
         definite or numerically singular (e.g. when the number of images approaches the number of
         SHPs); points with a well conditioned positive definite matrix are not changed
@@ -145,10 +145,10 @@ def emi(coh:np.ndarray,
     tuple[np.ndarray, np.ndarray]
         phase history `ph`, dtype complex64, shape (n_points, nimages), unit amplitude, the phase of
         image `ref` is 0; EMI quality (minimum eigenvalue), dtype float32, shape (n_points,): 1 for a
-        coherence matrix whose phases close, negative where the coherence magnitude matrix is not
-        positive definite (the phase history of such points is not reliable without `regularize`);
-        regularized points get qualities closer to 1 for the same misfit, so their qualities are not
-        comparable with those of other points (select by the temporal coherence instead)
+        coherence matrix whose phases close; with `regularize` (default), regularized points get
+        qualities closer to 1 for the same misfit, so the qualities are not comparable between points
+        (select by the temporal coherence instead); without it negative where the coherence magnitude
+        matrix is not positive definite (the phase history of such points is then not reliable)
     """
     xp = get_array_module(coh)
     nimages = mr.nimage_from_npair(coh.shape[-1])
@@ -377,7 +377,7 @@ def emperical_co_emi_temp_coh_pc(
     idx:np.ndarray,
     pc_is_shp:np.ndarray,
     batch_size:int=1000,
-    regularize:bool=False,
+    regularize:bool=True,
     weighted:bool=False,
     oversampling:float=1.0,
     rho2:np.ndarray=None,
@@ -391,7 +391,7 @@ def emperical_co_emi_temp_coh_pc(
     pc_is_shp : np.ndarray
         shp bool, dtype:'np.bool'
     batch_size : int, default: 1000
-    regularize : bool, default: False
+    regularize : bool, default: True
         regularize the coherence matrix in the phase linking as in `emi`; the temporal coherence is
         computed with the coherence matrix as estimated
     weighted : bool, default: False

@@ -29,7 +29,7 @@ def emi(
     ph:str,
     emi_quality:str,
     ref:int=0,
-    regularize:bool=False,
+    regularize:bool=True,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -48,14 +48,14 @@ def emi(
     ph : str
         output: phase history of the points, complex, shape (n_points, nimages)
     emi_quality : str
-        output: EMI quality (minimum eigenvalue) of the points, shape (n_points,); close to 1 means a
-        good fit, the tutorials keep 1.0 <= quality < 1.2; negative where the coherence magnitude matrix
-        is not positive definite (the phase history is then not reliable, see `regularize`); with
-        `regularize`, regularized points get qualities closer to 1 for the same misfit and are not
-        comparable with the others (select by the temporal coherence instead)
+        output: EMI quality (minimum eigenvalue) of the points, shape (n_points,); 1 for a coherence
+        matrix whose phases close; with `regularize` (default), regularized points get qualities closer
+        to 1 for the same misfit and the qualities are not comparable between points (select DS by the
+        temporal coherence instead); without it negative where the coherence magnitude matrix is not
+        positive definite (the phase history is then not reliable)
     ref : int, default: 0
         index of the reference image, its phase is set to 0
-    regularize : bool, default: False
+    regularize : bool, default: True
         regularize the coherence matrix of the points whose coherence magnitude matrix is not positive
         definite or numerically singular (many negative qualities, e.g. when the number of images
         approaches the number of SHPs); points with a well conditioned positive definite matrix are not
@@ -287,7 +287,7 @@ def emperical_co_emi_temp_coh_pc(
     t_coh_w_dir:str=None,
     eff_n_pairs_dir:str=None,
     batch_size:int=1000,
-    regularize:bool=False,
+    regularize:bool=True,
     oversampling:float=1.0,
     rho2:str=None,
     chunks:tuple[int,int]=None,
@@ -328,7 +328,7 @@ def emperical_co_emi_temp_coh_pc(
         temporal coherence of few effective pairs is not reliable
     batch_size : int, default: 1000
         number of points processed at once, limits the memory use
-    regularize : bool, default: False
+    regularize : bool, default: True
         regularize the coherence matrix in the phase linking as `regularize` of `emi`; the temporal
         coherence is computed with the coherence matrix as estimated
     oversampling : float, default: 1.0
