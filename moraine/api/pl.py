@@ -380,6 +380,7 @@ def emperical_co_emi_temp_coh_pc(
     regularize:bool=False,
     weighted:bool=False,
     oversampling:float=1.0,
+    rho2:np.ndarray=None,
 ):
     """Parameters
     ----------
@@ -398,7 +399,11 @@ def emperical_co_emi_temp_coh_pc(
         `ds_temp_coh_weighted`, with n_looks = number of SHPs / `oversampling`
     oversampling : float, default: 1.0
         number of pixels per independent look of the SLCs (>= 1, the sum of `slc_correlation`), only used
-        with `weighted`
+        with `weighted` and without `rho2`
+    rho2 : np.ndarray, optional
+        |rho|^2 of the speckle from `slc_correlation`, dtype float32, shape (2*max_az+1, 2*max_r+1); with
+        `weighted`, n_looks is then the effective number of looks of the SHP set of each point
+        (`shp_n_looks`) instead of number of SHPs / `oversampling`
 
     Returns
     -------
@@ -425,7 +430,10 @@ def emperical_co_emi_temp_coh_pc(
         ph[start:stop],emi_quality[start:stop] = emi(_coh,regularize=regularize)
         t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
         if weighted:
-            n_looks = xp.count_nonzero(pc_is_shp[start:stop],axis=(1,2)).astype(np.float32)/np.float32(oversampling)
+            if rho2 is None:
+                n_looks = xp.count_nonzero(pc_is_shp[start:stop],axis=(1,2)).astype(np.float32)/np.float32(oversampling)
+            else:
+                n_looks = mr.shp_n_looks(pc_is_shp[start:stop],rho2)
             t_coh_w[start:stop],eff_n_pairs[start:stop] = ds_temp_coh_weighted(_coh,ph[start:stop],n_looks)
     if weighted:
         return ph, emi_quality, t_coh, t_coh_w, eff_n_pairs

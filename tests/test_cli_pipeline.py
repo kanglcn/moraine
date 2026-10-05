@@ -160,6 +160,16 @@ def test_emperical_co_emi_temp_coh_pc_weighted(pl):
     t_coh_w, eff_n_pairs = mr.ds_temp_coh_weighted(coh, mr.emi(coh)[0], n_looks)
     np.testing.assert_array_equal(r(d / 't_coh_w_w.zarr'), t_coh_w)
     np.testing.assert_array_equal(r(d / 'eff_n_pairs_w.zarr'), eff_n_pairs)
+    # with the speckle correlation: effective number of looks of each SHP set
+    rho2 = mr.slc_correlation(r(d / 'rslc.zarr')[:, :, 0])
+    zarr.open(str(d / 'rho2_w.zarr'), mode='w', shape=rho2.shape, dtype=rho2.dtype)[:] = rho2
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / f'{n}_r') for n in names[:3]], t_coh_w_dir=str(d / 'tw_rho2'),
+                                    chunks=CHUNKS, rho2=str(d / 'rho2_w.zarr'))
+    mc.pc_concat([str(d / 'tw_rho2')], [str(d / 'tw_rho2.zarr')], key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    is_shp = r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]]
+    t_coh_w = mr.ds_temp_coh_weighted(coh, mr.emi(coh)[0], mr.shp_n_looks(is_shp, rho2))[0]
+    np.testing.assert_array_equal(r(d / 'tw_rho2.zarr'), t_coh_w)
 
 
 @pytest.mark.parametrize('cuda', GPU)

@@ -1,7 +1,7 @@
 """Covariance and coherence matrix estimation"""
 
 __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc',
-           'isPD', 'nearestPD', 'regularize_spectral', 'slc_correlation']
+           'isPD', 'nearestPD', 'regularize_spectral', 'slc_correlation', 'shp_n_looks']
 
 import math
 import numpy as np
@@ -620,6 +620,101 @@ def slc_correlation(slc:np.ndarray,
     rho2 -= np.nanmean(rho2[outer])
     rho2[max_az, max_r] = 1.0
     return rho2.astype(np.float32)
+
+# Effective number of looks of an SHP set S (decision 0025): n^2 / sum_{p,q in S} |rho(p-q)|^2, the number
+# of independent looks with the same variance of second order estimates; |rho|^2 from slc_correlation,
+# negative values (noise of the estimate) taken as 0, lags outside the table as 0.
+@ngpjit
+def _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r):
+    n_points, az_win, r_win = pc_is_shp.shape
+    win = az_win*r_win
+    n_looks = np.empty(n_points, dtype=np.float32)
+    for i in prange(n_points):
+        n = 0; s = 0.0
+        for p in range(win):
+            pa = p//r_win; pr = p%r_win
+            if not pc_is_shp[i,pa,pr]: continue
+            n += 1
+            for q in range(win):
+                qa = q//r_win; qr = q%r_win
+                if not pc_is_shp[i,qa,qr]: continue
+                da = qa-pa; dr = qr-pr
+                if abs(da) <= max_az and abs(dr) <= max_r:
+                    v = rho2[da+max_az,dr+max_r]
+                    if v > 0: s += v
+        n_looks[i] = n*n/s if n > 0 else 0.0
+    return n_looks
+
+if is_cuda_available():
+    from numba import cuda
+
+    @cuda.jit
+    def _shp_n_looks_cuda(pc_is_shp, rho2, max_az, max_r, n_looks):
+        # one warp per point: the lanes take the SHPs p of the window in turn, then reduce by shuffles
+        i = cuda.grid(1)//32
+        if i >= pc_is_shp.shape[0]:   # the same for all lanes of a warp
+            return
+        lane = cuda.laneid
+        az_win = pc_is_shp.shape[1]; r_win = pc_is_shp.shape[2]
+        win = az_win*r_win
+        n = np.float32(0.0); s = np.float32(0.0)
+        for p in range(lane, win, 32):
+            pa = p//r_win; pr = p%r_win
+            if pc_is_shp[i,pa,pr]:
+                n += np.float32(1.0)
+                for q in range(win):
+                    qa = q//r_win; qr = q%r_win
+                    if pc_is_shp[i,qa,qr]:
+                        da = qa-pa; dr = qr-pr
+                        if abs(da) <= max_az and abs(dr) <= max_r:
+                            v = rho2[da+max_az,dr+max_r]
+                            if v > 0: s += v
+        offset = 16
+        while offset > 0:
+            n += cuda.shfl_down_sync(0xffffffff, n, offset)
+            s += cuda.shfl_down_sync(0xffffffff, s, offset)
+            offset //= 2
+        if lane == 0:
+            n_looks[i] = n*n/s if n > 0 else np.float32(0.0)
+
+def shp_n_looks(pc_is_shp:np.ndarray,
+                rho2:np.ndarray,
+                block_size:int=128,
+               )-> np.ndarray:
+    """Effective number of independent looks of the SHP set of each point.
+
+    The SHPs are correlated pixels; their effective number of looks is the number of independent looks
+    that gives the same variance of second order estimates such as coherence (it is smaller for compact
+    SHP sets than for scattered ones of the same size).
+
+    Parameters
+    ----------
+    pc_is_shp : np.ndarray
+        SHP masks of the points, dtype bool, shape (n_points, az_win, r_win), numpy or cupy
+    rho2 : np.ndarray
+        |rho|^2 of the speckle at the lag (azimuth, range) = index - (shape - 1) / 2, dtype float32, shape
+        (2*max_az+1, 2*max_r+1), e.g. from `slc_correlation`; lags outside it count as uncorrelated
+    block_size : int, default: 128
+        the CUDA block size, a multiple of 32, only affects the speed
+
+    Returns
+    -------
+    np.ndarray
+        effective number of looks of each point, dtype float32, shape (n_points,), between 1 and the
+        number of SHPs (number of SHPs for uncorrelated pixels), 0 for points without SHP
+    """
+    xp = get_array_module(pc_is_shp)
+    max_az, max_r = (rho2.shape[0]-1)//2, (rho2.shape[1]-1)//2
+    rho2 = xp.ascontiguousarray(xp.asarray(rho2, dtype=np.float32))
+    pc_is_shp = xp.ascontiguousarray(pc_is_shp)
+    if xp is np:
+        return _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r)
+    n_points = pc_is_shp.shape[0]
+    n_looks = cp.empty(n_points, dtype=cp.float32)
+    if n_points > 0:
+        n_blocks = (n_points*32+block_size-1)//block_size
+        _shp_n_looks_cuda[n_blocks, block_size](pc_is_shp, rho2, np.int32(max_az), np.int32(max_r), n_looks)
+    return n_looks
 
 def regularize_spectral(coh:np.ndarray,
                         beta:Union[float, np.ndarray],

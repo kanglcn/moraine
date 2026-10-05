@@ -289,6 +289,7 @@ def emperical_co_emi_temp_coh_pc(
     batch_size:int=1000,
     regularize:bool=False,
     oversampling:float=1.0,
+    rho2:str=None,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -333,7 +334,12 @@ def emperical_co_emi_temp_coh_pc(
     oversampling : float, default: 1.0
         number of pixels per independent look of the SLCs (>= 1), e.g. the attribute `oversampling` of the
         output of `slc-correlation` (Sentinel-1 IW: about 2.6-2.8); the effective number of looks of a
-        point is its number of SHPs divided by it; only used for `t_coh_w_dir` and `eff_n_pairs_dir`
+        point is its number of SHPs divided by it; only used for `t_coh_w_dir` and `eff_n_pairs_dir`,
+        not with `rho2`
+    rho2 : str, optional
+        input: |rho|^2 of the speckle, the output of `slc-correlation`; with it the effective number of
+        looks of each point is computed from the positions of its SHPs (`moraine.shp_n_looks`, more
+        accurate for scattered SHPs) instead of number of SHPs / `oversampling`
     chunks : tuple[int, int], optional
         parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
@@ -357,6 +363,7 @@ def emperical_co_emi_temp_coh_pc(
     emi_quality_dir = Path(emi_quality_dir); mk_clean_dir(emi_quality_dir)
     t_coh_dir = Path(t_coh_dir); mk_clean_dir(t_coh_dir)
     weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None)
+    rho2_table = None if rho2 is None else np.asarray(zarr.open(rho2,mode='r')[:],dtype=np.float32)
     if t_coh_w_dir is not None: t_coh_w_dir = Path(t_coh_w_dir); mk_clean_dir(t_coh_w_dir)
     if eff_n_pairs_dir is not None: eff_n_pairs_dir = Path(eff_n_pairs_dir); mk_clean_dir(eff_n_pairs_dir)
 
@@ -441,7 +448,8 @@ def emperical_co_emi_temp_coh_pc(
                     is_shp = cpu_is_shp
                 is_shp_delayed = is_shp.to_delayed()[0,0,0]
                 outs = tuple(emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,
-                                                                  regularize=regularize,weighted=weighted,oversampling=oversampling))
+                                                                  regularize=regularize,weighted=weighted,oversampling=oversampling,
+                                                                  rho2=rho2_table))
                 ph_delayed, emi_quality_delayed, t_coh_delayed = outs[:3]
 
                 ph = da.from_delayed(ph_delayed,shape=(pc_chunksize[j],nimage),meta=xp.array((),dtype=rslc_overlap.dtype))

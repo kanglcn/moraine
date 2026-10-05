@@ -151,3 +151,40 @@ def test_slc_correlation_robust(rng):
     holes[rng.random(slc.shape) < 0.02] = np.nan
     for s in (texture, holes):
         np.testing.assert_allclose(slc_correlation(s), true, atol=0.01)
+
+
+def _rho2_separable():
+    """|rho|^2 table (lags -4..4, -6..6) of a separable correlation like Sentinel-1 IW."""
+    az = {0: 1.0, 1: 0.64 ** 2, 2: 0.15 ** 2}
+    rg = {0: 1.0, 1: 0.43 ** 2, 2: 0.03 ** 2}
+    return np.array([[az.get(abs(a), 0) * rg.get(abs(r), 0) for r in range(-6, 7)] for a in range(-4, 5)], np.float32)
+
+
+def _shp_masks(rng):
+    full = np.ones((11, 11), bool)
+    blob = np.zeros((11, 11), bool); blob[2:9, 2:9] = True; blob[5, 1] = True
+    scattered = np.zeros(121, bool); scattered[rng.choice(121, 50, replace=False)] = True
+    return np.stack([full, blob, scattered.reshape(11, 11), np.zeros((11, 11), bool)])
+
+
+def test_shp_n_looks(rng):
+    from moraine.api.co import shp_n_looks
+    masks, rho2 = _shp_masks(rng), _rho2_separable()
+    n_looks = shp_n_looks(masks, rho2)
+    assert n_looks.dtype == np.float32 and n_looks.shape == (4,)
+    for k in range(3):                                           # n^2 / sum_{p,q} |rho(p - q)|^2 from its definition
+        p = np.argwhere(masks[k]); d = p[:, None] - p[None]
+        inside = (np.abs(d[..., 0]) <= 4) & (np.abs(d[..., 1]) <= 6)
+        s = np.where(inside, rho2[np.clip(d[..., 0] + 4, 0, 8), np.clip(d[..., 1] + 6, 0, 12)], 0).sum()
+        assert n_looks[k] == pytest.approx(len(p) ** 2 / s, rel=1e-5)
+    assert n_looks[1] < n_looks[2] < 50 and n_looks[3] == 0     # compact < scattered < number of SHPs
+    white = np.pad([[1.0]], ((4, 4), (6, 6))).astype(np.float32)
+    np.testing.assert_array_equal(shp_n_looks(masks, white), masks.sum(axis=(1, 2)))
+
+
+@pytest.mark.gpu
+def test_shp_n_looks_gpu(rng):
+    import cupy as cp
+    from moraine.api.co import shp_n_looks
+    masks = rng.random((5000, 11, 11)) < 0.6
+    np.testing.assert_allclose(shp_n_looks(cp.asarray(masks), _rho2_separable()).get(), shp_n_looks(masks, _rho2_separable()), rtol=1e-5)

@@ -226,6 +226,16 @@ def test_emperical_co_emi_temp_coh_pc_weighted(ds_can, ds_coh):
     np.testing.assert_array_equal(eff_n_pairs, eff_n_pairs_)
 
 
+def test_emperical_co_emi_temp_coh_pc_weighted_rho2(ds_can, ds_coh):
+    """With the speckle correlation the effective number of looks comes from the SHP positions."""
+    rho2 = mr.slc_correlation(np.asarray(ds_can['rslc'][:, :, 0]))
+    *_, t_coh_w, eff_n_pairs = emperical_co_emi_temp_coh_pc(
+        ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000, regularize=True, weighted=True, rho2=rho2)
+    t_coh_w_, eff_n_pairs_ = ds_temp_coh_weighted(ds_coh, emi(ds_coh, regularize=True)[0], mr.shp_n_looks(ds_can['is_shp'], rho2))
+    np.testing.assert_array_equal(t_coh_w, t_coh_w_)
+    np.testing.assert_array_equal(eff_n_pairs, eff_n_pairs_)
+
+
 @pytest.mark.parametrize('regularize', [False, True])
 def test_emperical_co_emi_temp_coh_pc(ds_can, ds_coh, regularize):
     ph, quality, t_coh = emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000,
