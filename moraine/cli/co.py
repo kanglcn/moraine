@@ -1,6 +1,6 @@
 """Covariance and coherence matrix estimation (CLI)"""
 
-__all__ = ['emperical_co_pc']
+__all__ = ['emperical_co_pc', 'slc_correlation']
 
 import logging
 import time
@@ -181,3 +181,49 @@ def emperical_co_pc(
         da.compute(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
+
+@mc_logger
+def slc_correlation(
+    rslc:str,
+    rho2:str,
+    max_lag:tuple[int,int]=(4,6),
+    block:tuple[int,int]=(1000,1000),
+    n_images:int=10,
+):
+    """Spatial correlation of the speckle of an rslc stack and its oversampling (pixels per independent look).
+
+    Parameters
+    ----------
+    rslc : str
+        input: rslc stack, shape (nlines, width, nimages)
+    rho2 : str
+        output: |rho|^2 of the speckle at the lag (azimuth, range) = index - max_lag, float32, shape
+        (2*max_lag[0]+1, 2*max_lag[1]+1), median over the images (see `moraine.slc_correlation`); its
+        attribute `oversampling` is the sum, the number of pixels per independent look, e.g. for the
+        `oversampling` of `emperical-co-emi-temp-coh-pc`
+    max_lag : tuple[int, int], default: (4, 6)
+        largest (azimuth, range) lag in pixels; the correlation must be about 0 at the largest lags
+    block : tuple[int, int], default: (1000, 1000)
+        (azimuth, range) size of the central block of each image that is used (the whole image if smaller)
+    n_images : int, default: 10
+        number of images used, evenly spaced in the stack (all if fewer)
+    """
+    logger = logging.getLogger(__name__)
+    rslc_zarr = zarr.open(rslc,mode='r')
+    logger.zarr_info(rslc,rslc_zarr)
+    nlines, width, nimages = rslc_zarr.shape
+    a0 = max(0,(nlines-block[0])//2); a1 = min(nlines,a0+block[0])
+    r0 = max(0,(width-block[1])//2); r1 = min(width,r0+block[1])
+    images = np.unique(np.linspace(0,nimages-1,min(n_images,nimages)).round().astype(int))
+    logger.info(f'block: azimuth {a0}:{a1}, range {r0}:{r1}; images {images.tolist()}')
+    tables = np.stack([mr.slc_correlation(np.asarray(rslc_zarr[a0:a1,r0:r1,k]),max_lag=max_lag) for k in images])
+    sums = tables.sum(axis=(1,2))
+    logger.info(f'oversampling of the images: min {sums.min():.3f}, median {np.median(sums):.3f}, max {sums.max():.3f}')
+    table = np.median(tables,axis=0).astype(np.float32)
+    rho2_zarr = zarr.open(rho2,mode='w',shape=table.shape,dtype=np.float32,chunks=table.shape)
+    rho2_zarr[:] = table
+    rho2_zarr.attrs['oversampling'] = float(table.sum())
+    rho2_zarr.attrs['images'] = images.tolist()
+    rho2_zarr.attrs['block'] = [int(a0),int(a1),int(r0),int(r1)]
+    logger.zarr_info(rho2,rho2_zarr)
+    logger.info(f'oversampling (pixels per independent look): {table.sum():.3f}')

@@ -1,7 +1,7 @@
 """Covariance and coherence matrix estimation"""
 
 __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc',
-           'isPD', 'nearestPD', 'regularize_spectral']
+           'isPD', 'nearestPD', 'regularize_spectral', 'slc_correlation']
 
 import math
 import numpy as np
@@ -543,6 +543,83 @@ def nearestPD(co:np.ndarray,
         A3 += (~is_pd[...,None,None] * I) * (-mineig * k**2 + spacing)[...,None,None]
     #print(k)
     return A3
+
+# Speckle correlation (decision 0025). The SLC is first divided by the square root of its local mean power
+# (_SLC_CORRELATION_TEXTURE_WIN pixels square) so that bright extended structures (buildings), whose
+# neighbouring pixels are much more correlated than speckle, do not dominate. |rho|^2 at lag (da, dr) is
+# estimated per azimuth line pair (y, y+da) as |sum_x a conj(b)|^2 / (sum |a|^2 sum |b|^2) - 1/m over the
+# m valid pixel pairs of the lines, then averaged over the line pairs: an azimuth phase ramp (TOPS) is
+# constant along a line pair, so it does not reduce |rho| as an average over many lines would. 1/m is the
+# expectation of the estimate for rho = 0 with independent pixels; the pixels of a line are correlated in
+# range, which leaves a bias of about (f_range - 1)/m per lag. It is removed with the mean of the outermost
+# lags (no correlation there), which sums up to 4 % of the oversampling otherwise (117 lags).
+_SLC_CORRELATION_MIN_PIXELS = 100
+_SLC_CORRELATION_TEXTURE_WIN = 15
+
+@ngpjit
+def _slc_correlation_numba(slc, max_az, max_r):
+    nlines, width = slc.shape
+    n_az = 2*max_az+1; n_r = 2*max_r+1
+    rho2 = np.empty((n_az, n_r), dtype=np.float64)
+    for idx in prange(n_az*n_r):
+        da = idx//n_r-max_az; dr = idx%n_r-max_r
+        acc = 0.0; n_pairs = 0
+        for y in range(max(0, -da), min(nlines, nlines-da)):
+            num_r = 0.0; num_i = 0.0; pa = 0.0; pb = 0.0; m = 0
+            for x in range(max(0, -dr), min(width, width-dr)):
+                a = slc[y,x]; b = slc[y+da,x+dr]
+                aa = np.float64(a.real)**2+np.float64(a.imag)**2
+                bb = np.float64(b.real)**2+np.float64(b.imag)**2
+                if aa > 0 and bb > 0 and np.isfinite(aa) and np.isfinite(bb):
+                    num_r += np.float64(a.real)*b.real+np.float64(a.imag)*b.imag
+                    num_i += np.float64(a.imag)*b.real-np.float64(a.real)*b.imag
+                    pa += aa; pb += bb; m += 1
+            if m >= _SLC_CORRELATION_MIN_PIXELS:
+                acc += (num_r*num_r+num_i*num_i)/(pa*pb)-1.0/m
+                n_pairs += 1
+        rho2[da+max_az, dr+max_r] = acc/n_pairs if n_pairs > 0 else np.nan
+    rho2[max_az, max_r] = 1.0
+    return rho2
+
+def slc_correlation(slc:np.ndarray,
+                    max_lag:tuple[int,int]=(4,6),
+                   )-> np.ndarray:
+    """Squared magnitude of the spatial correlation coefficient of the speckle of an SLC.
+
+    Its sum over all lags is the number of pixels per independent look (the oversampling): an estimate of
+    second order statistics (e.g. coherence) from n pixels of a compact area counts as about n / sum
+    independent looks.
+
+    Parameters
+    ----------
+    slc : np.ndarray
+        one SLC, dtype complex64, shape (nlines, width), numpy; pixels that are 0 or not finite are
+        ignored; not affected by azimuth phase ramps (e.g. TOPS)
+    max_lag : tuple[int, int], default: (4, 6)
+        largest (azimuth, range) lag in pixels; the correlation must be about 0 at the largest lags
+        (they calibrate the noise of the estimate)
+
+    Returns
+    -------
+    np.ndarray
+        `rho2`, dtype float32, shape (2*max_lag[0]+1, 2*max_lag[1]+1): |rho|^2 of the speckle at the lag
+        (azimuth, range) = index - max_lag, 1 at the center, the noise bias of the estimate removed
+        (values near 0 can be slightly negative); NaN where no azimuth line pair has 100 valid pixel pairs
+    """
+    from scipy.ndimage import uniform_filter
+    max_az, max_r = int(max_lag[0]), int(max_lag[1])
+    slc = np.asarray(slc)
+    power = (slc.real.astype(np.float64)**2+slc.imag.astype(np.float64)**2)
+    valid = np.isfinite(power) & (power > 0)
+    power = np.where(valid, power, 0.0)
+    local_power = uniform_filter(power, _SLC_CORRELATION_TEXTURE_WIN)/np.maximum(
+        uniform_filter(valid.astype(np.float64), _SLC_CORRELATION_TEXTURE_WIN), 1e-12)
+    slc = np.where(valid & (local_power > 0), slc/np.sqrt(np.where(local_power > 0, local_power, 1.0)), 0).astype(np.complex64)
+    rho2 = _slc_correlation_numba(slc, max_az, max_r)
+    outer = np.ones(rho2.shape, dtype=bool); outer[1:-1,1:-1] = False
+    rho2 -= np.nanmean(rho2[outer])
+    rho2[max_az, max_r] = 1.0
+    return rho2.astype(np.float32)
 
 def regularize_spectral(coh:np.ndarray,
                         beta:Union[float, np.ndarray],

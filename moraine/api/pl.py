@@ -340,7 +340,7 @@ def ds_temp_coh_weighted(coh:np.ndarray,
         phase history of the points, dtype complex64, shape (n_points, nimages), unit amplitude
     n_looks : float or np.ndarray
         effective number of independent looks of the coherence of each point, float or shape (n_points,),
-        e.g. the number of SHPs divided by the oversampling of the SLCs; `np.inf` weights by the squared
+        e.g. the number of SHPs divided by the oversampling of the SLCs (`slc_correlation`); `np.inf` weights by the squared
         coherence without noise correction; points with n_looks <= 1 get NaN
     image_pairs : np.ndarray, optional
         image pairs of `coh`, dtype int32, shape (n_image_pairs, 2), all image pairs by default
@@ -397,7 +397,8 @@ def emperical_co_emi_temp_coh_pc(
         also return the weighted temporal coherence and the effective number of image pairs of
         `ds_temp_coh_weighted`, with n_looks = number of SHPs / `oversampling`
     oversampling : float, default: 1.0
-        number of pixels per independent look of the SLCs (>= 1), only used with `weighted`
+        number of pixels per independent look of the SLCs (>= 1, the sum of `slc_correlation`), only used
+        with `weighted`
 
     Returns
     -------

@@ -110,3 +110,44 @@ def test_isPD_cpu_gpu_agree(rng):
     a = (a + np.swapaxes(a, -1, -2)) / 2
     a[:25] += 6 * np.eye(6)                       # half of them positive definite
     np.testing.assert_array_equal(isPD(a), isPD(cp.asarray(a)).get())
+
+
+def _correlated_speckle(rng, shape=(600, 800)):
+    """Speckle filtered with a separable kernel (azimuth [1, 0.8], range [0.5, 1, 0.5]) and its true |rho|^2
+    on the lags (-4..4, -6..6)."""
+    from scipy.signal import convolve2d
+    w = ((rng.standard_normal(shape) + 1j * rng.standard_normal(shape)) / np.sqrt(2)).astype(np.complex64)
+    k = np.outer([1.0, 0.8], [0.5, 1.0, 0.5])
+    ac = np.abs(convolve2d(k, k[::-1, ::-1])) ** 2
+    ac /= ac.max()
+    true = np.zeros((9, 13))
+    ca, cr = np.array(ac.shape) // 2
+    true[4 - ca:4 + ca + 1, 6 - cr:6 + cr + 1] = ac
+    return w, convolve2d(w, k, mode='valid').astype(np.complex64), true
+
+
+def test_slc_correlation(rng):
+    from moraine.api.co import slc_correlation
+    white, slc, true = _correlated_speckle(rng)
+    rho2 = slc_correlation(white)
+    assert rho2.shape == (9, 13) and rho2.dtype == np.float32 and rho2[4, 6] == 1
+    assert abs(rho2.sum() - 1) < 0.02
+    rho2 = slc_correlation(slc)
+    np.testing.assert_allclose(rho2, true, atol=0.01)
+    assert abs(rho2.sum() / true.sum() - 1) < 0.03
+
+
+def test_slc_correlation_robust(rng):
+    """Azimuth phase ramps (TOPS), texture, 0 and NaN pixels do not change the estimate."""
+    from moraine.api.co import slc_correlation
+    _, slc, true = _correlated_speckle(rng)
+    ref = slc_correlation(slc)
+    y = np.arange(slc.shape[0])[:, None]
+    ramp = (slc * np.exp(1j * 0.02 * y ** 2)).astype(np.complex64)
+    np.testing.assert_allclose(slc_correlation(ramp), ref, atol=1e-4)
+    texture = (slc * (1 + 3 * (np.arange(slc.shape[1]) % 200 < 100))).astype(np.complex64)
+    holes = slc.copy()
+    holes[rng.random(slc.shape) < 0.1] = 0
+    holes[rng.random(slc.shape) < 0.02] = np.nan
+    for s in (texture, holes):
+        np.testing.assert_allclose(slc_correlation(s), true, atol=0.01)

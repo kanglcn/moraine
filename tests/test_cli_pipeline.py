@@ -107,6 +107,18 @@ def test_emi_ds_temp_coh(pl):
     np.testing.assert_array_almost_equal(r(d / 'ds_can_t_coh.zarr'), mr.ds_temp_coh(coh, ph))
 
 
+def test_slc_correlation(work):
+    d, crop = work
+    mc.slc_correlation(str(d / 'rslc.zarr'), str(d / 'rho2.zarr'), n_images=5)
+    z = zarr.open(str(d / 'rho2.zarr'), mode='r')
+    rho2 = z[:]
+    assert rho2.shape == (9, 13) and rho2[4, 6] == 1
+    assert z.attrs['oversampling'] == pytest.approx(float(rho2.sum()), rel=1e-6)
+    assert 1 < z.attrs['oversampling'] < 5
+    ks = z.attrs['images']
+    np.testing.assert_allclose(rho2, np.median([mr.slc_correlation(crop[:, :, k]) for k in ks], axis=0), atol=1e-6)
+
+
 def test_emi_ref(pl):
     d = pl
     mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ph_ref3.zarr'), str(d / 'emi_quality_ref3.zarr'), ref=3)

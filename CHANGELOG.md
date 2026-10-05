@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+New `slc_correlation` and command `slc-correlation`: the spatial correlation |rho|^2 of the speckle of an rslc stack and its sum, the oversampling (pixels per independent look), e.g. for `oversampling` of `emperical-co-emi-temp-coh-pc`: n SHPs count as n / oversampling independent looks. Robust to azimuth phase ramps (TOPS), texture and masked pixels. Sentinel-1 IW: 2.59 on Campi Flegrei, 2.75 on Xinpu, so 121 SHPs are about 45 independent looks (decision 0025)
+
 `ds_temp_coh` on the GPU is 6 times faster (numba.cuda kernel with one warp per point; 100 000 points x 4186 image pairs: 3.6 ms instead of 22 ms on an A100); the results differ only by float32 rounding
 
 New `ds_temp_coh_weighted`: DS temporal coherence with the image pairs weighted by their squared coherence without the noise bias of the number of looks, so that incoherent pairs (long time spans in vegetation) do not lower it, and the effective number of image pairs to select with it; the command `emperical-co-emi-temp-coh-pc` writes both with `t_coh_w_dir`, `eff_n_pairs_dir` (`oversampling`: pixels per independent look, default 1.0). On Xinpu, among the points with temporal coherence < 0.6, those with a weighted one >= 0.8 agree with their neighbours (0.51 against 0.15 for the others). CPU numba, GPU numba.cuda: 5 ms for 100 000 points x 4186 image pairs on an A100 (decision 0024)

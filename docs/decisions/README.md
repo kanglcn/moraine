@@ -32,6 +32,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0022](0022-closure-correction-outputs-phase-time-series.md) | The phase closure correction outputs the phase time series; no least squares inversion | Accepted |
 | [0023](0023-emi-adaptive-regularization.md) | EMI regularizes coherence matrices that are not positive definite, adaptively per point | Accepted |
 | [0024](0024-weighted-ds-temporal-coherence.md) | Weighted DS temporal coherence with noise-free squared coherence weights | Accepted |
+| [0025](0025-oversampling-from-speckle-correlation.md) | The oversampling of the SLCs is measured from the speckle correlation | Accepted |
 
 ## Writing a record
 

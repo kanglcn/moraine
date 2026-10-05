@@ -331,7 +331,8 @@ def emperical_co_emi_temp_coh_pc(
         regularize the coherence matrix in the phase linking as `regularize` of `emi`; the temporal
         coherence is computed with the coherence matrix as estimated
     oversampling : float, default: 1.0
-        number of pixels per independent look of the SLCs (>= 1); the effective number of looks of a
+        number of pixels per independent look of the SLCs (>= 1), e.g. the attribute `oversampling` of the
+        output of `slc-correlation` (Sentinel-1 IW: about 2.6-2.8); the effective number of looks of a
         point is its number of SHPs divided by it; only used for `t_coh_w_dir` and `eff_n_pairs_dir`
     chunks : tuple[int, int], optional
         parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]

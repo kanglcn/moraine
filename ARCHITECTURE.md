@@ -50,7 +50,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/calamp.py` | SLC amplitude and amplitude calibration | `rslc2amp`, `calamp` |
 | `moraine/api/ps.py` | amplitude dispersion index for PS selection | `amp_disp` |
 | `moraine/api/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| `moraine/api/co.py` | interferograms, covariance / coherence matrices, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
+| `moraine/api/co.py` | interferograms, covariance / coherence matrices, positive definiteness, regularization, speckle correlation (oversampling) | `emperical_co_pc`, `uncompress_coh`, `slc_correlation` |
 | `moraine/api/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
 | `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
@@ -80,7 +80,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/pc.py` | point cloud operations on zarr | `ras2pc`, `pc-union`, `pc-sort`, ... |
 | `moraine/cli/ps.py` | amplitude dispersion index | `amp-disp` |
 | `moraine/cli/shp.py` | SHP test and selection | `shp-test`, `select-shp` |
-| `moraine/cli/co.py` | coherence of point clouds per raster chunk | `emperical-co-pc` |
+| `moraine/cli/co.py` | coherence of point clouds per raster chunk, speckle correlation of an rslc stack | `emperical-co-pc`, `slc-correlation` |
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
 | `moraine/cli/pqm.py` | temporal coherence | `temp-coh` |
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
