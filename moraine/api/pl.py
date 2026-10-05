@@ -58,6 +58,9 @@ def _emi_numba(
         _coh = mr.uncompress_single_coh_numba(coh[i],n_images,image_pairs)
         coh_mag = np.abs(_coh)
         coh_mag_inv = np.linalg.inv(coh_mag)
+        # the inverse of the symmetric coh_mag is symmetric; the float32 LU inverse is not exactly, and the
+        # EMI quality amplifies the difference by the condition number (0.1 at 2e4)
+        coh_mag_inv = (coh_mag_inv+coh_mag_inv.T)*np.float32(0.5)
         min_eigval, min_eig = np.linalg.eigh(coh_mag_inv*_coh)
         min_eigval = min_eigval[0]
         min_eig = min_eig[:,0]*np.conj(min_eig[ref,0])

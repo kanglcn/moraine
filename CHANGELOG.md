@@ -42,6 +42,8 @@ Commands recognize outputs named without `/` or `.` (e.g. `--out_dir pyr`); `mai
 
 `emi` command: `ref` was ignored, the first image was always the reference
 
+`emi` on the CPU: the EMI quality of points with an ill-conditioned coherence magnitude matrix was wrong (by 0.1 at a condition number of 2·10⁴, more above) because the float32 inverse was not symmetric; the phase histories change only by rounding
+
 Bugs squashed: CPU `ad_intf_pc` (undefined name), `isPD`/`nearestPD` on numpy arrays, `HilbertRtree.save`/`load` with zarr 3
 
 ## 0.9.0
