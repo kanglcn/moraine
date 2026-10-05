@@ -40,6 +40,8 @@ New command `polygon-mask`: bool mask of a raster or point cloud inside or outsi
 
 Commands recognize outputs named without `/` or `.` (e.g. `--out_dir pyr`); `main()` returns 1 for a failed pipeline instead of raising `SystemExit`
 
+`emi` command: `ref` was ignored, the first image was always the reference
+
 Bugs squashed: CPU `ad_intf_pc` (undefined name), `isPD`/`nearestPD` on numpy arrays, `HilbertRtree.save`/`load` with zarr 3
 
 ## 0.9.0

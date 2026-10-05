@@ -107,6 +107,14 @@ def test_emi_ds_temp_coh(pl):
     np.testing.assert_array_almost_equal(r(d / 'ds_can_t_coh.zarr'), mr.ds_temp_coh(coh, ph))
 
 
+def test_emi_ref(pl):
+    d = pl
+    mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ph_ref3.zarr'), str(d / 'emi_quality_ref3.zarr'), ref=3)
+    ph, quality = mr.emi(r(d / 'ds_can_coh.zarr'), ref=3)
+    np.testing.assert_array_almost_equal(r(d / 'ph_ref3.zarr'), ph)
+    np.testing.assert_array_almost_equal(r(d / 'emi_quality_ref3.zarr'), quality)
+
+
 @pytest.mark.parametrize('cuda', GPU)
 def test_emperical_co_emi_temp_coh_pc(pl, cuda):
     """The fused chunkwise version equals emperical_co_pc -> emi -> ds_temp_coh on the same device.

@@ -115,7 +115,7 @@ def emi(
         with np.nditer(coh_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
             for block in it:
                 idx = it.multi_index
-                ph_delayed[idx], emi_quality_delayed[idx] = emi_delayed(coh_delayed[idx])
+                ph_delayed[idx], emi_quality_delayed[idx] = emi_delayed(coh_delayed[idx],ref=ref)
                 ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=(coh.blocks[idx].shape[0],n_image),meta=xp.array((),dtype=coh.dtype))
                 emi_quality_delayed[idx] = da.from_delayed(emi_quality_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
