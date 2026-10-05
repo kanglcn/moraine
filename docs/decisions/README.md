@@ -34,6 +34,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0024](0024-weighted-ds-temporal-coherence.md) | Weighted DS temporal coherence with noise-free squared coherence weights | Accepted |
 | [0025](0025-oversampling-from-speckle-correlation.md) | The oversampling of the SLCs is measured from the speckle correlation | Accepted |
 | [0026](0026-emi-regularized-by-default.md) | EMI is regularized by default; DS are selected by temporal coherence | Accepted |
+| [0027](0027-small-ds-quality-interface.md) | Weighted temporal coherence through `ds_temp_coh`; no EMI quality output; speckle correlation internal | Accepted |
 
 ## Writing a record
 

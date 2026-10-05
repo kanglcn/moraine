@@ -6,6 +6,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
+from moraine.api.co import _slc_correlation, _rslc_rho2, _shp_n_looks
 from conftest import synthetic_shp
 
 
@@ -127,30 +128,28 @@ def _correlated_speckle(rng, shape=(600, 800)):
 
 
 def test_slc_correlation(rng):
-    from moraine.api.co import slc_correlation
     white, slc, true = _correlated_speckle(rng)
-    rho2 = slc_correlation(white)
+    rho2 = _slc_correlation(white)
     assert rho2.shape == (9, 13) and rho2.dtype == np.float32 and rho2[4, 6] == 1
     assert abs(rho2.sum() - 1) < 0.02
-    rho2 = slc_correlation(slc)
+    rho2 = _slc_correlation(slc)
     np.testing.assert_allclose(rho2, true, atol=0.01)
     assert abs(rho2.sum() / true.sum() - 1) < 0.03
 
 
 def test_slc_correlation_robust(rng):
     """Azimuth phase ramps (TOPS), texture, 0 and NaN pixels do not change the estimate."""
-    from moraine.api.co import slc_correlation
     _, slc, true = _correlated_speckle(rng)
-    ref = slc_correlation(slc)
+    ref = _slc_correlation(slc)
     y = np.arange(slc.shape[0])[:, None]
     ramp = (slc * np.exp(1j * 0.02 * y ** 2)).astype(np.complex64)
-    np.testing.assert_allclose(slc_correlation(ramp), ref, atol=1e-4)
+    np.testing.assert_allclose(_slc_correlation(ramp), ref, atol=1e-4)
     texture = (slc * (1 + 3 * (np.arange(slc.shape[1]) % 200 < 100))).astype(np.complex64)
     holes = slc.copy()
     holes[rng.random(slc.shape) < 0.1] = 0
     holes[rng.random(slc.shape) < 0.02] = np.nan
     for s in (texture, holes):
-        np.testing.assert_allclose(slc_correlation(s), true, atol=0.01)
+        np.testing.assert_allclose(_slc_correlation(s), true, atol=0.01)
 
 
 def _rho2_separable():
@@ -168,9 +167,8 @@ def _shp_masks(rng):
 
 
 def test_shp_n_looks(rng):
-    from moraine.api.co import shp_n_looks
     masks, rho2 = _shp_masks(rng), _rho2_separable()
-    n_looks = shp_n_looks(masks, rho2)
+    n_looks = _shp_n_looks(masks, rho2)
     assert n_looks.dtype == np.float32 and n_looks.shape == (4,)
     for k in range(3):                                           # n^2 / sum_{p,q} |rho(p - q)|^2 from its definition
         p = np.argwhere(masks[k]); d = p[:, None] - p[None]
@@ -179,12 +177,55 @@ def test_shp_n_looks(rng):
         assert n_looks[k] == pytest.approx(len(p) ** 2 / s, rel=1e-5)
     assert n_looks[1] < n_looks[2] < 50 and n_looks[3] == 0     # compact < scattered < number of SHPs
     white = np.pad([[1.0]], ((4, 4), (6, 6))).astype(np.float32)
-    np.testing.assert_array_equal(shp_n_looks(masks, white), masks.sum(axis=(1, 2)))
+    np.testing.assert_array_equal(_shp_n_looks(masks, white), masks.sum(axis=(1, 2)))
 
 
 @pytest.mark.gpu
 def test_shp_n_looks_gpu(rng):
     import cupy as cp
-    from moraine.api.co import shp_n_looks
     masks = rng.random((5000, 11, 11)) < 0.6
-    np.testing.assert_allclose(shp_n_looks(cp.asarray(masks), _rho2_separable()).get(), shp_n_looks(masks, _rho2_separable()), rtol=1e-5)
+    np.testing.assert_allclose(_shp_n_looks(cp.asarray(masks), _rho2_separable()).get(), _shp_n_looks(masks, _rho2_separable()), rtol=1e-5)
+
+
+def _correlated_stack(rng, nimages=3):
+    """rslc stack (600, 800, nimages) of independent speckle with the correlation of `_correlated_speckle` and
+    its true |rho|^2."""
+    images = [_correlated_speckle(rng) for _ in range(nimages)]
+    return np.stack([s for _, s, _ in images], axis=-1), images[0][2].astype(np.float32)
+
+
+def _n_looks_case(rng):
+    stack, true = _correlated_stack(rng)
+    idx = np.array([[100, 100], [200, 300], [300, 500]], np.int32)
+    return stack, idx, _shp_masks(rng)[:3], true
+
+
+def test_emperical_co_pc_n_looks(rng):
+    """The effective number of looks from the SHP positions and the speckle correlation of the rslc stack."""
+    stack, idx, masks, true = _n_looks_case(rng)
+    coh, n_looks = emperical_co_pc(stack, idx, masks, return_n_looks=True)
+    np.testing.assert_array_equal(coh, emperical_co_pc(stack, idx, masks))
+    np.testing.assert_array_equal(n_looks, _shp_n_looks(masks, _rslc_rho2(stack)))
+    np.testing.assert_allclose(n_looks, _shp_n_looks(masks, true), rtol=0.03)
+
+
+def test_emperical_co_pc_n_looks_small(rng):
+    """An rslc stack too small to estimate the speckle correlation: the number of SHPs."""
+    rslc, is_shp = synthetic_shp(rng, p_true=0.5)
+    _, idx, ds_is_shp = _ds_can(is_shp)
+    assert _rslc_rho2(rslc) is None
+    _, n_looks = emperical_co_pc(rslc, idx, ds_is_shp, return_n_looks=True)
+    assert n_looks.dtype == np.float32
+    np.testing.assert_array_equal(n_looks, ds_is_shp.sum(axis=(1, 2)))
+
+
+@pytest.mark.gpu
+def test_emperical_co_pc_n_looks_gpu(rng):
+    import cupy as cp
+    stack, idx, masks, _ = _n_looks_case(rng)
+    rslc, is_shp = synthetic_shp(rng, p_true=0.5)
+    _, small_idx, small_is_shp = _ds_can(is_shp)
+    for s, i, m in ((stack, idx, masks), (rslc, small_idx, small_is_shp)):
+        _, n_looks = emperical_co_pc(s, i, m, return_n_looks=True)
+        _, n_looks_gpu = emperical_co_pc(cp.asarray(s), cp.asarray(i), cp.asarray(m), return_n_looks=True)
+        np.testing.assert_allclose(n_looks_gpu.get(), n_looks, rtol=1e-5)
