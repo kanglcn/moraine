@@ -107,6 +107,71 @@ def test_emi_ds_temp_coh(pl):
     np.testing.assert_array_almost_equal(r(d / 'ds_can_t_coh.zarr'), mr.ds_temp_coh(coh, ph))
 
 
+def test_slc_correlation(work):
+    d, crop = work
+    mc.slc_correlation(str(d / 'rslc.zarr'), str(d / 'rho2.zarr'), n_images=5)
+    z = zarr.open(str(d / 'rho2.zarr'), mode='r')
+    rho2 = z[:]
+    assert rho2.shape == (9, 13) and rho2[4, 6] == 1
+    assert z.attrs['oversampling'] == pytest.approx(float(rho2.sum()), rel=1e-6)
+    assert 1 < z.attrs['oversampling'] < 5
+    ks = z.attrs['images']
+    np.testing.assert_allclose(rho2, np.median([mr.slc_correlation(crop[:, :, k]) for k in ks], axis=0), atol=1e-6)
+
+
+def test_emi_ref(pl):
+    d = pl
+    mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ph_ref3.zarr'), str(d / 'emi_quality_ref3.zarr'), ref=3)
+    ph, quality = mr.emi(r(d / 'ds_can_coh.zarr'), ref=3)
+    np.testing.assert_array_almost_equal(r(d / 'ph_ref3.zarr'), ph)
+    np.testing.assert_array_almost_equal(r(d / 'emi_quality_ref3.zarr'), quality)
+
+
+def test_emi_regularize(pl):
+    """`regularize` of the commands gives the result of the API."""
+    d = pl
+    coh = r(d / 'ds_can_coh.zarr')
+    ph, quality = mr.emi(coh, regularize=True)
+    mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ph_reg.zarr'), str(d / 'emi_quality_reg.zarr'), regularize=True)
+    np.testing.assert_array_equal(r(d / 'ph_reg.zarr'), ph)
+    np.testing.assert_array_equal(r(d / 'emi_quality_reg.zarr'), quality)
+    names = [f'{n}_fused_reg' for n in ('ph', 'emi_quality', 't_coh')]
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / n) for n in names], chunks=CHUNKS, regularize=True)
+    chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
+    mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names],
+                 key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    for n, ref in zip(names, (ph, quality, mr.ds_temp_coh(coh, ph))):
+        np.testing.assert_array_equal(r(d / f'{n}.zarr'), ref)
+
+
+def test_emperical_co_emi_temp_coh_pc_weighted(pl):
+    """The weighted temporal coherence outputs of the command give the result of the API."""
+    d = pl
+    names = [f'{n}_w' for n in ('ph', 'emi_quality', 't_coh', 't_coh_w', 'eff_n_pairs')]
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / n) for n in names[:3]], t_coh_w_dir=str(d / names[3]),
+                                    eff_n_pairs_dir=str(d / names[4]), chunks=CHUNKS, oversampling=2.0)
+    chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
+    mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names],
+                 key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    coh, gix = r(d / 'ds_can_coh.zarr'), r(d / 'ds_can_gix.zarr')
+    n_looks = np.count_nonzero(r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]], axis=(1, 2)) / 2
+    t_coh_w, eff_n_pairs = mr.ds_temp_coh_weighted(coh, mr.emi(coh)[0], n_looks)
+    np.testing.assert_array_equal(r(d / 't_coh_w_w.zarr'), t_coh_w)
+    np.testing.assert_array_equal(r(d / 'eff_n_pairs_w.zarr'), eff_n_pairs)
+    # with the speckle correlation: effective number of looks of each SHP set
+    rho2 = mr.slc_correlation(r(d / 'rslc.zarr')[:, :, 0])
+    zarr.open(str(d / 'rho2_w.zarr'), mode='w', shape=rho2.shape, dtype=rho2.dtype)[:] = rho2
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / f'{n}_r') for n in names[:3]], t_coh_w_dir=str(d / 'tw_rho2'),
+                                    chunks=CHUNKS, rho2=str(d / 'rho2_w.zarr'))
+    mc.pc_concat([str(d / 'tw_rho2')], [str(d / 'tw_rho2.zarr')], key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    is_shp = r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]]
+    t_coh_w = mr.ds_temp_coh_weighted(coh, mr.emi(coh)[0], mr.shp_n_looks(is_shp, rho2))[0]
+    np.testing.assert_array_equal(r(d / 'tw_rho2.zarr'), t_coh_w)
+
+
 @pytest.mark.parametrize('cuda', GPU)
 def test_emperical_co_emi_temp_coh_pc(pl, cuda):
     """The fused chunkwise version equals emperical_co_pc -> emi -> ds_temp_coh on the same device.

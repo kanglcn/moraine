@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+`emi` and `emperical-co-emi-temp-coh-pc` regularize by default (`regularize` True): without it most DS candidates of stacks with many images get a phase history of noise. `examples/03_ds.toml` selects DS by temporal coherence alone (the EMI quality is not comparable between regularized points); use `regularize = false` to get the old results (decision 0026)
+
+New `shp_n_looks`: the effective number of independent looks of the SHP set of each point from the speckle correlation (`slc_correlation`) and the SHP positions; `emperical-co-emi-temp-coh-pc --rho2` uses it for the weighted temporal coherence instead of number of SHPs / `oversampling` (scattered SHPs: up to 40 % more looks than n / oversampling). CPU numba, GPU numba.cuda (decision 0025)
+
+New `slc_correlation` and command `slc-correlation`: the spatial correlation |rho|^2 of the speckle of an rslc stack and its sum, the oversampling (pixels per independent look), e.g. for `oversampling` of `emperical-co-emi-temp-coh-pc`: n SHPs count as n / oversampling independent looks. Robust to azimuth phase ramps (TOPS), texture and masked pixels. Sentinel-1 IW: 2.59 on Campi Flegrei, 2.75 on Xinpu, so 121 SHPs are about 45 independent looks (decision 0025)
+
+`ds_temp_coh` on the GPU is 6 times faster (numba.cuda kernel with one warp per point; 100 000 points x 4186 image pairs: 3.6 ms instead of 22 ms on an A100); the results differ only by float32 rounding
+
+New `ds_temp_coh_weighted`: DS temporal coherence with the image pairs weighted by their squared coherence without the noise bias of the number of looks, so that incoherent pairs (long time spans in vegetation) do not lower it, and the effective number of image pairs to select with it; the command `emperical-co-emi-temp-coh-pc` writes both with `t_coh_w_dir`, `eff_n_pairs_dir` (`oversampling`: pixels per independent look, default 1.0). On Xinpu, among the points with temporal coherence < 0.6, those with a weighted one >= 0.8 agree with their neighbours (0.51 against 0.15 for the others). CPU numba, GPU numba.cuda: 5 ms for 100 000 points x 4186 image pairs on an A100 (decision 0024)
+
+`emi` and `emperical_co_emi_temp_coh_pc` (commands `emi`, `emperical-co-emi-temp-coh-pc`) have the argument `regularize` (default False). EMI needs a positive definite coherence magnitude matrix, which most DS candidates lack when the number of images approaches the number of SHPs: their EMI quality is negative and their phase history is noise (Campi Flegrei, 92 images, 11 x 11 window: 97 % of 1.79 million candidates). With `regularize` such points get the coherence matrix (1 - beta) coh + beta I with the smallest beta their data need (median 0.27 there); points with a well conditioned positive definite matrix do not change. On Campi Flegrei 1 187 702 candidates reach a temporal coherence of 0.8 instead of 49 089, with continuous fringes of the caldera uplift. The EMI quality of regularized points is not comparable with that of other points: select DS by temporal coherence (decision 0023)
+
 `load-gamma-flatten-rslc` has the argument `gamma_threads` (default: the number of CPU cores, at most 64): the number of threads of each `phase_sim_orb` run (GAMMA uses 8 without it); on 128 cores one image takes 1.5 s instead of 10 s with the same result
 
 The CLI tutorials (`nbs/Tutorials/CLI/`) use two sample data sets, one folder each with the same five notebooks (`01_load` ... `05_unwrap`): `Xinpu/` (landslide, Three Gorges, Sentinel-1 ascending) and `CampiFlegrei/` (caldera uplift, Sentinel-1 descending); the data are in `data/` and read from the GAMMA results
@@ -39,6 +51,10 @@ New command `polygon-mask`: bool mask of a raster or point cloud inside or outsi
 `pc_pyramid` / `pc-pyramid`: the grid reaches the cells of the largest coordinates; the points of the last line and column were merged into the previous cells (one point per cell kept), and whether they were depended on rounding for coordinates that are not multiples of `ras_resolution`. Rebuild point cloud pyramids to see those points
 
 Commands recognize outputs named without `/` or `.` (e.g. `--out_dir pyr`); `main()` returns 1 for a failed pipeline instead of raising `SystemExit`
+
+`emi` command: `ref` was ignored, the first image was always the reference
+
+`emi` on the CPU: the EMI quality of points with an ill-conditioned coherence magnitude matrix was wrong (by 0.1 at a condition number of 2·10⁴, more above) because the float32 inverse was not symmetric; the phase histories change only by rounding
 
 Bugs squashed: CPU `ad_intf_pc` (undefined name), `isPD`/`nearestPD` on numpy arrays, `HilbertRtree.save`/`load` with zarr 3
 

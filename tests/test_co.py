@@ -110,3 +110,81 @@ def test_isPD_cpu_gpu_agree(rng):
     a = (a + np.swapaxes(a, -1, -2)) / 2
     a[:25] += 6 * np.eye(6)                       # half of them positive definite
     np.testing.assert_array_equal(isPD(a), isPD(cp.asarray(a)).get())
+
+
+def _correlated_speckle(rng, shape=(600, 800)):
+    """Speckle filtered with a separable kernel (azimuth [1, 0.8], range [0.5, 1, 0.5]) and its true |rho|^2
+    on the lags (-4..4, -6..6)."""
+    from scipy.signal import convolve2d
+    w = ((rng.standard_normal(shape) + 1j * rng.standard_normal(shape)) / np.sqrt(2)).astype(np.complex64)
+    k = np.outer([1.0, 0.8], [0.5, 1.0, 0.5])
+    ac = np.abs(convolve2d(k, k[::-1, ::-1])) ** 2
+    ac /= ac.max()
+    true = np.zeros((9, 13))
+    ca, cr = np.array(ac.shape) // 2
+    true[4 - ca:4 + ca + 1, 6 - cr:6 + cr + 1] = ac
+    return w, convolve2d(w, k, mode='valid').astype(np.complex64), true
+
+
+def test_slc_correlation(rng):
+    from moraine.api.co import slc_correlation
+    white, slc, true = _correlated_speckle(rng)
+    rho2 = slc_correlation(white)
+    assert rho2.shape == (9, 13) and rho2.dtype == np.float32 and rho2[4, 6] == 1
+    assert abs(rho2.sum() - 1) < 0.02
+    rho2 = slc_correlation(slc)
+    np.testing.assert_allclose(rho2, true, atol=0.01)
+    assert abs(rho2.sum() / true.sum() - 1) < 0.03
+
+
+def test_slc_correlation_robust(rng):
+    """Azimuth phase ramps (TOPS), texture, 0 and NaN pixels do not change the estimate."""
+    from moraine.api.co import slc_correlation
+    _, slc, true = _correlated_speckle(rng)
+    ref = slc_correlation(slc)
+    y = np.arange(slc.shape[0])[:, None]
+    ramp = (slc * np.exp(1j * 0.02 * y ** 2)).astype(np.complex64)
+    np.testing.assert_allclose(slc_correlation(ramp), ref, atol=1e-4)
+    texture = (slc * (1 + 3 * (np.arange(slc.shape[1]) % 200 < 100))).astype(np.complex64)
+    holes = slc.copy()
+    holes[rng.random(slc.shape) < 0.1] = 0
+    holes[rng.random(slc.shape) < 0.02] = np.nan
+    for s in (texture, holes):
+        np.testing.assert_allclose(slc_correlation(s), true, atol=0.01)
+
+
+def _rho2_separable():
+    """|rho|^2 table (lags -4..4, -6..6) of a separable correlation like Sentinel-1 IW."""
+    az = {0: 1.0, 1: 0.64 ** 2, 2: 0.15 ** 2}
+    rg = {0: 1.0, 1: 0.43 ** 2, 2: 0.03 ** 2}
+    return np.array([[az.get(abs(a), 0) * rg.get(abs(r), 0) for r in range(-6, 7)] for a in range(-4, 5)], np.float32)
+
+
+def _shp_masks(rng):
+    full = np.ones((11, 11), bool)
+    blob = np.zeros((11, 11), bool); blob[2:9, 2:9] = True; blob[5, 1] = True
+    scattered = np.zeros(121, bool); scattered[rng.choice(121, 50, replace=False)] = True
+    return np.stack([full, blob, scattered.reshape(11, 11), np.zeros((11, 11), bool)])
+
+
+def test_shp_n_looks(rng):
+    from moraine.api.co import shp_n_looks
+    masks, rho2 = _shp_masks(rng), _rho2_separable()
+    n_looks = shp_n_looks(masks, rho2)
+    assert n_looks.dtype == np.float32 and n_looks.shape == (4,)
+    for k in range(3):                                           # n^2 / sum_{p,q} |rho(p - q)|^2 from its definition
+        p = np.argwhere(masks[k]); d = p[:, None] - p[None]
+        inside = (np.abs(d[..., 0]) <= 4) & (np.abs(d[..., 1]) <= 6)
+        s = np.where(inside, rho2[np.clip(d[..., 0] + 4, 0, 8), np.clip(d[..., 1] + 6, 0, 12)], 0).sum()
+        assert n_looks[k] == pytest.approx(len(p) ** 2 / s, rel=1e-5)
+    assert n_looks[1] < n_looks[2] < 50 and n_looks[3] == 0     # compact < scattered < number of SHPs
+    white = np.pad([[1.0]], ((4, 4), (6, 6))).astype(np.float32)
+    np.testing.assert_array_equal(shp_n_looks(masks, white), masks.sum(axis=(1, 2)))
+
+
+@pytest.mark.gpu
+def test_shp_n_looks_gpu(rng):
+    import cupy as cp
+    from moraine.api.co import shp_n_looks
+    masks = rng.random((5000, 11, 11)) < 0.6
+    np.testing.assert_allclose(shp_n_looks(cp.asarray(masks), _rho2_separable()).get(), shp_n_looks(masks, _rho2_separable()), rtol=1e-5)

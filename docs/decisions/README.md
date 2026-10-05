@@ -30,6 +30,10 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0020](0020-emcf-any-image-pair-network.md) | EMCF on any network of image pairs, in steps of their own units | Accepted |
 | [0021](0021-closure-correction-by-regions.md) | Unwrapping errors are corrected by phase closure per region, as in MintPy | Accepted |
 | [0022](0022-closure-correction-outputs-phase-time-series.md) | The phase closure correction outputs the phase time series; no least squares inversion | Accepted |
+| [0023](0023-emi-adaptive-regularization.md) | EMI regularizes coherence matrices that are not positive definite, adaptively per point | Accepted |
+| [0024](0024-weighted-ds-temporal-coherence.md) | Weighted DS temporal coherence with noise-free squared coherence weights | Accepted |
+| [0025](0025-oversampling-from-speckle-correlation.md) | The oversampling of the SLCs is measured from the speckle correlation | Accepted |
+| [0026](0026-emi-regularized-by-default.md) | EMI is regularized by default; DS are selected by temporal coherence | Accepted |
 
 ## Writing a record
 
