@@ -115,6 +115,24 @@ def test_emi_ref(pl):
     np.testing.assert_array_almost_equal(r(d / 'emi_quality_ref3.zarr'), quality)
 
 
+def test_emi_regularize(pl):
+    """`regularize` of the commands gives the result of the API."""
+    d = pl
+    coh = r(d / 'ds_can_coh.zarr')
+    ph, quality = mr.emi(coh, regularize=True)
+    mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ph_reg.zarr'), str(d / 'emi_quality_reg.zarr'), regularize=True)
+    np.testing.assert_array_equal(r(d / 'ph_reg.zarr'), ph)
+    np.testing.assert_array_equal(r(d / 'emi_quality_reg.zarr'), quality)
+    names = [f'{n}_fused_reg' for n in ('ph', 'emi_quality', 't_coh')]
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / n) for n in names], chunks=CHUNKS, regularize=True)
+    chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
+    mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names],
+                 key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    for n, ref in zip(names, (ph, quality, mr.ds_temp_coh(coh, ph))):
+        np.testing.assert_array_equal(r(d / f'{n}.zarr'), ref)
+
+
 @pytest.mark.parametrize('cuda', GPU)
 def test_emperical_co_emi_temp_coh_pc(pl, cuda):
     """The fused chunkwise version equals emperical_co_pc -> emi -> ds_temp_coh on the same device.

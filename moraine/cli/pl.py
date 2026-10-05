@@ -29,6 +29,7 @@ def emi(
     ph:str,
     emi_quality:str,
     ref:int=0,
+    regularize:bool=False,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -48,9 +49,17 @@ def emi(
         output: phase history of the points, complex, shape (n_points, nimages)
     emi_quality : str
         output: EMI quality (minimum eigenvalue) of the points, shape (n_points,); close to 1 means a
-        good fit, the tutorials keep 1.0 <= quality < 1.2
+        good fit, the tutorials keep 1.0 <= quality < 1.2; negative where the coherence magnitude matrix
+        is not positive definite (the phase history is then not reliable, see `regularize`); with
+        `regularize`, regularized points get qualities closer to 1 for the same misfit and are not
+        comparable with the others (select by the temporal coherence instead)
     ref : int, default: 0
         index of the reference image, its phase is set to 0
+    regularize : bool, default: False
+        regularize the coherence matrix of the points whose coherence magnitude matrix is not positive
+        definite or numerically singular (many negative qualities, e.g. when the number of images
+        approaches the number of SHPs); points with a well conditioned positive definite matrix are not
+        changed
     chunks : int, optional
         point chunk size of the output data, same as `coh` by default
     cuda : bool, default: False
@@ -115,7 +124,7 @@ def emi(
         with np.nditer(coh_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
             for block in it:
                 idx = it.multi_index
-                ph_delayed[idx], emi_quality_delayed[idx] = emi_delayed(coh_delayed[idx],ref=ref)
+                ph_delayed[idx], emi_quality_delayed[idx] = emi_delayed(coh_delayed[idx],ref=ref,regularize=regularize)
                 ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=(coh.blocks[idx].shape[0],n_image),meta=xp.array((),dtype=coh.dtype))
                 emi_quality_delayed[idx] = da.from_delayed(emi_quality_delayed[idx],shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32))
 
@@ -276,6 +285,7 @@ def emperical_co_emi_temp_coh_pc(
     emi_quality_dir:str,
     t_coh_dir:str,
     batch_size:int=1000,
+    regularize:bool=False,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -300,12 +310,15 @@ def emperical_co_emi_temp_coh_pc(
         zarr per raster chunk; merge with `pc_concat` and the key of `ras2pc_ras_chunk`
     emi_quality_dir : str
         output: directory with the EMI quality of the points, shape (n_points,), one zarr per raster
-        chunk
+        chunk; as `emi_quality` of `emi`
     t_coh_dir : str
         output: directory with the temporal coherence of the points, shape (n_points,), one zarr per
         raster chunk
     batch_size : int, default: 1000
         number of points processed at once, limits the memory use
+    regularize : bool, default: False
+        regularize the coherence matrix in the phase linking as `regularize` of `emi`; the temporal
+        coherence is computed with the coherence matrix as estimated
     chunks : tuple[int, int], optional
         parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
@@ -409,7 +422,7 @@ def emperical_co_emi_temp_coh_pc(
                 else:
                     is_shp = cpu_is_shp
                 is_shp_delayed = is_shp.to_delayed()[0,0,0]
-                ph_delayed, emi_quality_delayed, t_coh_delayed = emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size)
+                ph_delayed, emi_quality_delayed, t_coh_delayed = emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,regularize=regularize)
 
                 ph = da.from_delayed(ph_delayed,shape=(pc_chunksize[j],nimage),meta=xp.array((),dtype=rslc_overlap.dtype))
                 emi_quality = da.from_delayed(emi_quality_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=xp.float32))

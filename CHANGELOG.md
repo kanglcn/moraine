@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`emi` and `emperical_co_emi_temp_coh_pc` (commands `emi`, `emperical-co-emi-temp-coh-pc`) have the argument `regularize` (default False). EMI needs a positive definite coherence magnitude matrix, which most DS candidates lack when the number of images approaches the number of SHPs: their EMI quality is negative and their phase history is noise (Campi Flegrei, 92 images, 11 x 11 window: 97 % of 1.79 million candidates). With `regularize` such points get the coherence matrix (1 - beta) coh + beta I with the smallest beta their data need (median 0.27 there); points with a well conditioned positive definite matrix do not change. On Campi Flegrei 1 187 702 candidates reach a temporal coherence of 0.8 instead of 49 089, with continuous fringes of the caldera uplift. The EMI quality of regularized points is not comparable with that of other points: select DS by temporal coherence (decision 0023)
+
 `load-gamma-flatten-rslc` has the argument `gamma_threads` (default: the number of CPU cores, at most 64): the number of threads of each `phase_sim_orb` run (GAMMA uses 8 without it); on 128 cores one image takes 1.5 s instead of 10 s with the same result
 
 The CLI tutorials (`nbs/Tutorials/CLI/`) use two sample data sets, one folder each with the same five notebooks (`01_load` ... `05_unwrap`): `Xinpu/` (landslide, Three Gorges, Sentinel-1 ascending) and `CampiFlegrei/` (caldera uplift, Sentinel-1 descending); the data are in `data/` and read from the GAMMA results
