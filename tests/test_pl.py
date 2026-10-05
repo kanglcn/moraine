@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api.pl import emi, ds_temp_coh, emperical_co_emi_temp_coh_pc
+from moraine.api.pl import emi, ds_temp_coh, ds_temp_coh_weighted, emperical_co_emi_temp_coh_pc
 
 
 @pytest.fixture(scope='module')
@@ -137,6 +137,80 @@ def test_ds_temp_coh_gpu(ds_coh):
     import cupy as cp
     ph = emi(ds_coh)[0]
     np.testing.assert_array_almost_equal(ds_temp_coh(ds_coh, ph), ds_temp_coh(cp.asarray(ds_coh), cp.asarray(ph)).get())
+
+
+def _ds_temp_coh_weighted_ref(coh, ph, n_looks):
+    """float64 numpy version of `ds_temp_coh_weighted` from its definition."""
+    pairs = mr.TempNet.from_bandwidth(ph.shape[1]).image_pairs
+    mag2 = np.abs(coh).astype(np.float64) ** 2
+    inv = 1 / np.broadcast_to(np.asarray(n_looks, np.float64), (coh.shape[0],))[:, None]
+    w = np.where(inv < 1, np.maximum(0, (mag2 - inv) / np.where(inv < 1, 1 - inv, 1)), 0)
+    e = np.where(w > 0, coh / np.where(mag2 > 0, np.abs(coh), 1) * ph[:, pairs[:, 0]].conj() * ph[:, pairs[:, 1]], 0)
+    sw = w.sum(axis=1)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        t_coh, eff_n_pairs = np.abs((w * e).sum(axis=1)) / sw, sw ** 2 / (w ** 2).sum(axis=1)
+    t_coh[sw == 0], eff_n_pairs[sw == 0] = np.nan, 0
+    return t_coh, eff_n_pairs
+
+
+@pytest.fixture(scope='module')
+def intermittent():
+    """Coherence exp(-time span / 1.5 images), 60 looks: only short time spans are coherent."""
+    rng = np.random.default_rng(2)
+    nimages = 30
+    theta = rng.uniform(-np.pi, np.pi, nimages)
+    t = np.arange(nimages)
+    coh = _compress(_sample_coh(rng, theta, np.exp(-np.abs(t[:, None] - t[None, :]) / 1.5), 500, 60)).astype(np.complex64)
+    return coh, emi(coh, regularize=True)[0]
+
+
+@pytest.mark.parametrize('n_looks', [60.0, np.inf, 'per point'])
+def test_ds_temp_coh_weighted(intermittent, n_looks):
+    coh, ph = intermittent
+    if n_looks == 'per point':
+        n_looks = np.random.default_rng(3).uniform(30, 120, coh.shape[0]).astype(np.float32)
+    t_coh, eff_n_pairs = ds_temp_coh_weighted(coh, ph, n_looks)
+    assert t_coh.dtype == eff_n_pairs.dtype == np.float32 and t_coh.shape == eff_n_pairs.shape == (coh.shape[0],)
+    t_ref, eff_ref = _ds_temp_coh_weighted_ref(coh, ph, n_looks)
+    np.testing.assert_allclose(t_coh, t_ref, rtol=1e-4)
+    np.testing.assert_allclose(eff_n_pairs, eff_ref, rtol=1e-4)
+
+
+def test_ds_temp_coh_weighted_intermittent(intermittent):
+    """Incoherent long time spans lower the temporal coherence, not the weighted one."""
+    coh, ph = intermittent
+    t_coh, eff_n_pairs = ds_temp_coh_weighted(coh, ph, 60.0)
+    assert np.median(ds_temp_coh(coh, ph)) < 0.5 < 0.8 < np.median(t_coh)
+    assert np.median(eff_n_pairs) < 0.2 * coh.shape[1]
+
+
+def test_ds_temp_coh_weighted_no_information(intermittent):
+    coh, ph = intermittent
+    t_coh, eff_n_pairs = ds_temp_coh_weighted(coh * np.float32(0.5), ph, 2.0)     # |coh|^2 < 1/n_looks
+    assert np.isnan(t_coh).all() and (eff_n_pairs == 0).all()
+    t_coh, eff_n_pairs = ds_temp_coh_weighted(coh, ph, np.r_[1.0, 0.5, np.full(coh.shape[0] - 2, 60.0)])
+    assert np.isnan(t_coh[:2]).all() and (eff_n_pairs[:2] == 0).all() and np.isfinite(t_coh[2:]).all()
+
+
+@pytest.mark.gpu
+def test_ds_temp_coh_weighted_gpu(intermittent, ds_coh):
+    import cupy as cp
+    coh, ph = intermittent
+    n_looks = np.random.default_rng(3).uniform(1.5, 120, coh.shape[0]).astype(np.float32)
+    for c, p, n in ((coh, ph, n_looks), (ds_coh, emi(ds_coh)[0], 60.0)):
+        t_coh, eff_n_pairs = ds_temp_coh_weighted(c, p, n)
+        t_gpu, eff_gpu = (a.get() for a in ds_temp_coh_weighted(cp.asarray(c), cp.asarray(p), cp.asarray(n)))
+        np.testing.assert_allclose(t_gpu, t_coh, rtol=1e-5, atol=1e-6)
+        np.testing.assert_allclose(eff_gpu, eff_n_pairs, rtol=1e-5)
+
+
+def test_emperical_co_emi_temp_coh_pc_weighted(ds_can, ds_coh):
+    ph, quality, t_coh, t_coh_w, eff_n_pairs = emperical_co_emi_temp_coh_pc(
+        ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000, regularize=True, weighted=True, oversampling=2.0)
+    n_looks = np.count_nonzero(ds_can['is_shp'], axis=(1, 2)) / 2
+    t_coh_w_, eff_n_pairs_ = ds_temp_coh_weighted(ds_coh, emi(ds_coh, regularize=True)[0], n_looks)
+    np.testing.assert_array_equal(t_coh_w, t_coh_w_)
+    np.testing.assert_array_equal(eff_n_pairs, eff_n_pairs_)
 
 
 @pytest.mark.parametrize('regularize', [False, True])

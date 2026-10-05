@@ -284,8 +284,11 @@ def emperical_co_emi_temp_coh_pc(
     ph_dir:str,
     emi_quality_dir:str,
     t_coh_dir:str,
+    t_coh_w_dir:str=None,
+    eff_n_pairs_dir:str=None,
     batch_size:int=1000,
     regularize:bool=False,
+    oversampling:float=1.0,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -314,11 +317,22 @@ def emperical_co_emi_temp_coh_pc(
     t_coh_dir : str
         output: directory with the temporal coherence of the points, shape (n_points,), one zarr per
         raster chunk
+    t_coh_w_dir : str, optional
+        output: directory with the weighted temporal coherence of the points (image pairs weighted by
+        their squared coherence without the noise bias, see `ds_temp_coh_weighted`), shape (n_points,),
+        float32, 0..1, NaN where no image pair is above the noise level, one zarr per raster chunk
+    eff_n_pairs_dir : str, optional
+        output: directory with the effective number of image pairs of the weighted temporal coherence,
+        shape (n_points,), float32, one zarr per raster chunk; use it with `t_coh_w_dir`, a high weighted
+        temporal coherence of few effective pairs is not reliable
     batch_size : int, default: 1000
         number of points processed at once, limits the memory use
     regularize : bool, default: False
         regularize the coherence matrix in the phase linking as `regularize` of `emi`; the temporal
         coherence is computed with the coherence matrix as estimated
+    oversampling : float, default: 1.0
+        number of pixels per independent look of the SLCs (>= 1); the effective number of looks of a
+        point is its number of SHPs divided by it; only used for `t_coh_w_dir` and `eff_n_pairs_dir`
     chunks : tuple[int, int], optional
         parallel processing (azimuth, range) chunk size. Default: rslc.chunks[:2]
     cuda : bool, default: False
@@ -341,6 +355,9 @@ def emperical_co_emi_temp_coh_pc(
     ph_dir = Path(ph_dir); mk_clean_dir(ph_dir)
     emi_quality_dir = Path(emi_quality_dir); mk_clean_dir(emi_quality_dir)
     t_coh_dir = Path(t_coh_dir); mk_clean_dir(t_coh_dir)
+    weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None)
+    if t_coh_w_dir is not None: t_coh_w_dir = Path(t_coh_w_dir); mk_clean_dir(t_coh_w_dir)
+    if eff_n_pairs_dir is not None: eff_n_pairs_dir = Path(eff_n_pairs_dir); mk_clean_dir(eff_n_pairs_dir)
 
     logger = logging.getLogger(__name__)
 
@@ -395,7 +412,7 @@ def emperical_co_emi_temp_coh_pc(
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        emperical_co_emi_temp_coh_pc_delayed = delayed(mr.emperical_co_emi_temp_coh_pc,pure=True,nout=3)
+        emperical_co_emi_temp_coh_pc_delayed = delayed(mr.emperical_co_emi_temp_coh_pc,pure=True,nout=5 if weighted else 3)
 
         cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path, (*chunks, rslc_zarr.shape[2]), depth)
         logger.darr_info('rslc_overlap', cpu_rslc_overlap)
@@ -422,7 +439,9 @@ def emperical_co_emi_temp_coh_pc(
                 else:
                     is_shp = cpu_is_shp
                 is_shp_delayed = is_shp.to_delayed()[0,0,0]
-                ph_delayed, emi_quality_delayed, t_coh_delayed = emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,regularize=regularize)
+                outs = tuple(emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,
+                                                                  regularize=regularize,weighted=weighted,oversampling=oversampling))
+                ph_delayed, emi_quality_delayed, t_coh_delayed = outs[:3]
 
                 ph = da.from_delayed(ph_delayed,shape=(pc_chunksize[j],nimage),meta=xp.array((),dtype=rslc_overlap.dtype))
                 emi_quality = da.from_delayed(emi_quality_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=xp.float32))
@@ -448,6 +467,11 @@ def emperical_co_emi_temp_coh_pc(
                 _t_coh = dask_to_zarr(cpu_t_coh,t_coh_dir/f'{j}.zarr',chunks=(cpu_t_coh.shape[0],),log_zarr=do_log)
 
                 futures.extend((_ph,_emi_quality,_t_coh))
+                for out_delayed, out_dir in zip(outs[3:], (t_coh_w_dir, eff_n_pairs_dir)):
+                    if out_dir is None: continue
+                    out = da.from_delayed(out_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=xp.float32))
+                    if cuda: out = out.map_blocks(cp.asnumpy)
+                    futures.append(dask_to_zarr(out,out_dir/f'{j}.zarr',chunks=(out.shape[0],),log_zarr=do_log))
 
         logger.info('computing graph setted. doing all the computing.')
         futures = client.persist(futures)

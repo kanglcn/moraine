@@ -133,6 +133,23 @@ def test_emi_regularize(pl):
         np.testing.assert_array_equal(r(d / f'{n}.zarr'), ref)
 
 
+def test_emperical_co_emi_temp_coh_pc_weighted(pl):
+    """The weighted temporal coherence outputs of the command give the result of the API."""
+    d = pl
+    names = [f'{n}_w' for n in ('ph', 'emi_quality', 't_coh', 't_coh_w', 'eff_n_pairs')]
+    mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                                    *[str(d / n) for n in names[:3]], t_coh_w_dir=str(d / names[3]),
+                                    eff_n_pairs_dir=str(d / names[4]), chunks=CHUNKS, oversampling=2.0)
+    chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
+    mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names],
+                 key=str(d / 'ds_can_key.zarr'), chunks=chunks)
+    coh, gix = r(d / 'ds_can_coh.zarr'), r(d / 'ds_can_gix.zarr')
+    n_looks = np.count_nonzero(r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]], axis=(1, 2)) / 2
+    t_coh_w, eff_n_pairs = mr.ds_temp_coh_weighted(coh, mr.emi(coh)[0], n_looks)
+    np.testing.assert_array_equal(r(d / 't_coh_w_w.zarr'), t_coh_w)
+    np.testing.assert_array_equal(r(d / 'eff_n_pairs_w.zarr'), eff_n_pairs)
+
+
 @pytest.mark.parametrize('cuda', GPU)
 def test_emperical_co_emi_temp_coh_pc(pl, cuda):
     """The fused chunkwise version equals emperical_co_pc -> emi -> ds_temp_coh on the same device.
