@@ -190,26 +190,27 @@ def _ds_temp_coh_numba(
     return temp_coh
 
 if is_cuda_available():
-    _ds_temp_coh_kernel = cp.ElementwiseKernel(
-        'raw T coh, raw T ph, raw I image_pairs, int32 n_points, int32 nimages, int32 n_image_pairs',
-        'raw float32 temp_coh',
-        '''
-        if (i >= n_points) return;
-        T _t_coh = T(0.0,0.0);
-        int j; int n; int k;
-        int coh_idx; int ph_n_idx; int ph_k_idx;
-        for (j = 0; j< n_image_pairs; j++){
-            n = image_pairs[j*2];
-            k = image_pairs[j*2+1];
-            coh_idx = i*n_image_pairs+j;
-            ph_n_idx = i*nimages+n;
-            ph_k_idx = i*nimages+k;
-            _t_coh += coh[coh_idx]/sqrt(norm(coh[coh_idx]))*conj(ph[ph_n_idx])*ph[ph_k_idx];
-        }
-        temp_coh[i] = abs(_t_coh)/n_image_pairs;
-        ''',
-        name = 'ds_temp_coh_kernel',no_return=True,
-    )
+    @cuda.jit
+    def _ds_temp_coh_cuda(coh, ph, ref, sec, temp_coh):
+        # one warp per point: the 32 lanes read consecutive image pairs (coalesced), then reduce by shuffles
+        i = cuda.grid(1)//32
+        if i >= coh.shape[0]:   # the same for all lanes of a warp
+            return
+        lane = cuda.laneid
+        sr = np.float32(0.0); si = np.float32(0.0)
+        for k in range(lane, coh.shape[1], 32):
+            c = coh[i,k]
+            p = c*ph[i,ref[k]].conjugate()*ph[i,sec[k]]
+            s = np.float32(1.0)/math.sqrt(c.real*c.real+c.imag*c.imag)
+            sr += s*p.real
+            si += s*p.imag
+        offset = 16
+        while offset > 0:
+            sr += cuda.shfl_down_sync(0xffffffff, sr, offset)
+            si += cuda.shfl_down_sync(0xffffffff, si, offset)
+            offset //= 2
+        if lane == 0:
+            temp_coh[i] = math.sqrt(sr*sr+si*si)/coh.shape[1]
 
 def ds_temp_coh(coh:np.ndarray,
                 ph:np.ndarray,
@@ -225,7 +226,7 @@ def ds_temp_coh(coh:np.ndarray,
     image_pairs : np.ndarray, optional
         image pairs, all image pairs by default
     block_size : int, default: 128
-        the CUDA block size, only applied for cuda
+        the CUDA block size, a multiple of 32, only applied for cuda
     """
     xp = get_array_module(coh)
     n_points = ph.shape[0]
@@ -238,9 +239,11 @@ def ds_temp_coh(coh:np.ndarray,
         return _ds_temp_coh_numba(coh,ph,image_pairs)
     else:
         image_pairs = cp.asarray(image_pairs)
-        n_image_pairs = image_pairs.shape[0]
+        ref = cp.ascontiguousarray(image_pairs[:,0]); sec = cp.ascontiguousarray(image_pairs[:,1])
         temp_coh = cp.empty(n_points, dtype=cp.float32)
-        _ds_temp_coh_kernel(coh, ph, image_pairs, cp.int32(n_points),cp.int32(nimages),cp.int32(n_image_pairs), temp_coh, size=n_points, block_size=block_size)
+        if n_points > 0:
+            n_blocks = (n_points*32+block_size-1)//block_size
+            _ds_temp_coh_cuda[n_blocks, block_size](cp.ascontiguousarray(coh), cp.ascontiguousarray(ph), ref, sec, temp_coh)
         return temp_coh
 
 # Weighted DS temporal coherence (decision 0024): t = |sum_k w_k exp(j psi_k)| / sum_k w_k over the image

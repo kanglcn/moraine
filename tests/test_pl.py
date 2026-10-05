@@ -139,6 +139,19 @@ def test_ds_temp_coh_gpu(ds_coh):
     np.testing.assert_array_almost_equal(ds_temp_coh(ds_coh, ph), ds_temp_coh(cp.asarray(ds_coh), cp.asarray(ph)).get())
 
 
+@pytest.mark.gpu
+def test_ds_temp_coh_gpu_image_pairs(intermittent):
+    """A subset of the image pairs (every image with the next three)."""
+    import cupy as cp
+    coh, ph = intermittent
+    all_pairs = mr.TempNet.from_bandwidth(ph.shape[1]).image_pairs
+    pairs = mr.TempNet.from_bandwidth(ph.shape[1], bandwidth=3).image_pairs
+    sub = coh[:, [np.flatnonzero((all_pairs == p).all(-1))[0] for p in pairs]]
+    t_coh = ds_temp_coh(sub, ph, image_pairs=pairs)
+    np.testing.assert_allclose(ds_temp_coh(cp.asarray(sub), cp.asarray(ph), image_pairs=pairs).get(), t_coh, rtol=1e-5, atol=1e-6)
+    assert np.median(t_coh) > np.median(ds_temp_coh(coh, ph))      # short time spans are the coherent ones
+
+
 def _ds_temp_coh_weighted_ref(coh, ph, n_looks):
     """float64 numpy version of `ds_temp_coh_weighted` from its definition."""
     pairs = mr.TempNet.from_bandwidth(ph.shape[1]).image_pairs

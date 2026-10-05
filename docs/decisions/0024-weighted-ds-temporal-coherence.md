@@ -45,7 +45,9 @@ pairs still carry about half of the weight. Measured with the phases of regulari
 - The CPU version is numba (one point per iteration); the GPU version is a numba.cuda kernel with one
   warp per point (coalesced reads of the image pairs, shuffle reduction), as asked by the maintainer: on an
   A100 100 000 points x 4186 pairs take 5 ms (`ds_temp_coh` with a thread per point: 22 ms); CPU with 128
-  threads as fast as `ds_temp_coh`. numba.cuda kernels take cupy arrays without a copy.
+  threads as fast as `ds_temp_coh`. numba.cuda kernels take cupy arrays without a copy. The GPU version
+  of `ds_temp_coh` uses the same kernel structure instead of a cupy kernel with a thread per point
+  (uncoalesced reads): 3.6 ms instead of 22 ms for the same case.
 
 ## Consequences
 
