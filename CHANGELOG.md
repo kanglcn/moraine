@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`emi` (also in the commands `emi` and `emperical-co-emi-temp-coh-pc`) with the default `regularize=True` runs in a numba.cuda kernel on the GPU instead of cupy (decision 0031): on 20 000 Campi Flegrei DS candidates (92 images) on an A100 10 instead of 43 µs per point, and no GPU memory beyond the input and output instead of 445 kB per point (8.5 GiB for 20 000 points); the fused command takes 39 instead of 72 µs per point (batch 1000) and 35 instead of 68 µs with batches of 10 000 points, which need 2.0 instead of 6.0 GiB. The phases are closer to the CPU (max difference per point p99 3e-4 instead of 2e-3 rad); on the sample data the selected DS do not change. With 30 or fewer images the speed is about the same as before (10 images: 0.5 instead of 0.2 µs). With many images the GPU slows down faster than the CPU (128 images 31 µs, 196 images 132 µs per point; 128 CPU cores: 24, 54): see the 03 guide. `regularize=False` and more than 198 images (A100) still use cupy
+
 With numba-cuda, GPU kernels failed to compile when the python of a conda environment was run without activating it (libnvvm not found: e.g. scripts, batch jobs or the pre-commit hook calling the python by its path); moraine now sets `CUDA_HOME` to that environment when neither `CUDA_HOME`, `CUDA_PATH` nor `CONDA_PREFIX` is set
 
 `numba-cuda` (NVIDIA) is a GPU dependency, installed with conda like cupy (README): the GPU kernels are numba.cuda kernels (decision 0030), and it starts them about 4 times faster than the deprecated CUDA target built into numba (110 instead of 450 us per launch)

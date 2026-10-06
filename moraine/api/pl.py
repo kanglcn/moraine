@@ -203,6 +203,12 @@ def _emi(coh, ref=0, regularize=True):
         with _single_thread_blas():
             return _emi_numba(coh,nimages,image_pairs,ref,regularize)
     else:
+        # decision 0031: own kernel for the regularized EMI; cupy without regularization (no pivoting in the kernel)
+        # and for more images than its shared memory holds
+        if regularize:
+            from .emi_cuda_ import emi_cuda, emi_cuda_supported
+            if emi_cuda_supported(nimages):
+                return emi_cuda(coh,nimages,ref)
         return _emi_cp(coh,nimages,image_pairs,ref,regularize)
 
 def emi(coh:np.ndarray,

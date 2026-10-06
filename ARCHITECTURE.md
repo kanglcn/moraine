@@ -52,6 +52,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
 | `moraine/api/co.py` | interferograms, covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
+| `moraine/api/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
 | `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
 | `moraine/api/unwrap/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
