@@ -2,6 +2,7 @@
 
 __all__ = ['temp_coh']
 
+import math
 import numpy as np
 import moraine as mr
 from .utils_ import is_cuda_available, get_array_module
@@ -71,53 +72,32 @@ def _temp_coh_pc_numba(
         temp_coh[i] = _t_coh
     return temp_coh
 
-# if is_cuda_available():
-#     _temp_coh_pc_kernel = cp.ElementwiseKernel(
-#         'raw T intf, raw T rslc, raw I image_pairs, int32 n_points, int32 nimages, int32 n_image_pairs',
-#         'raw float32 temp_coh',
-#         '''
-#         if (i >= n_points) return;
-#         float t_coh_ = 0;
-#         int j; int n; int k;
-#         int intf_idx; int rslc_n_idx; int rslc_k_idx;
-#         float norm_factor = 0;
-#         for (j = 0; j< n_image_pairs; j++){
-#             n = image_pairs[j*2];
-#             k = image_pairs[j*2+1];
-#             intf_idx = i*n_image_pairs+j;
-#             rslc_n_idx = i*nimages+n;
-#             rslc_k_idx = i*nimages+k;
-#             norm_factor = sqrt(norm(intf[intf_idx])*norm(rslc[rslc_n_idx])*norm(rslc[rslc_k_idx]));
-#             t_coh_ += real(intf[intf_idx]*conj(rslc[rslc_n_idx])*rslc[rslc_k_idx]/norm_factor);
-#         }
-#         temp_coh[i] = t_coh_/n_image_pairs;
-#         ''',
-#         name = 'temp_coh_pc_kernel',no_return=True,
-#     )
-
 if is_cuda_available():
-    _temp_coh_pc_kernel = cp.ElementwiseKernel(
-        'raw T intf, raw T rslc, raw I image_pairs, int32 n_points, int32 nimages, int32 n_image_pairs',
-        'raw float32 temp_coh',
-        '''
-        if (i >= n_points) return;
-        T t_coh_ = T(0.0,0.0);
-        int j; int n; int k;
-        int intf_idx; int rslc_n_idx; int rslc_k_idx;
-        float norm_factor = 0;
-        for (j = 0; j< n_image_pairs; j++){
-            n = image_pairs[j*2];
-            k = image_pairs[j*2+1];
-            intf_idx = i*n_image_pairs+j;
-            rslc_n_idx = i*nimages+n;
-            rslc_k_idx = i*nimages+k;
-            norm_factor = sqrt(norm(intf[intf_idx])*norm(rslc[rslc_n_idx])*norm(rslc[rslc_k_idx]));
-            t_coh_ += intf[intf_idx]*conj(rslc[rslc_n_idx])*rslc[rslc_k_idx]/norm_factor;
-        }
-        temp_coh[i] = abs(t_coh_)/n_image_pairs;
-        ''',
-        name = 'temp_coh_pc_kernel',no_return=True,
-    )
+    from numba import cuda
+
+    @cuda.jit
+    def _temp_coh_pc_cuda(intf, rslc, ref, sec, temp_coh):
+        # one warp per point: the lanes read consecutive image pairs (coalesced), then reduce by shuffles;
+        # |sum over the image pairs of the unit interferogram times the unit conj(ref) sec| / n_pairs
+        i = cuda.grid(1)//32
+        if i >= intf.shape[0]:   # the same for all lanes of a warp
+            return
+        lane = cuda.laneid
+        n_pairs = intf.shape[1]
+        sr = np.float32(0.0); si = np.float32(0.0)
+        for j in range(lane, n_pairs, 32):
+            c = intf[i,j]; a = rslc[i,ref[j]]; b = rslc[i,sec[j]]
+            p = c*a.conjugate()*b
+            norm = math.sqrt((c.real*c.real+c.imag*c.imag)*(a.real*a.real+a.imag*a.imag)*(b.real*b.real+b.imag*b.imag))
+            sr += p.real/norm
+            si += p.imag/norm
+        offset = 16
+        while offset > 0:
+            sr += cuda.shfl_down_sync(0xffffffff, sr, offset)
+            si += cuda.shfl_down_sync(0xffffffff, si, offset)
+            offset //= 2
+        if lane == 0:
+            temp_coh[i] = math.sqrt(sr*sr+si*si)/n_pairs
 
 def temp_coh(
     intf:np.ndarray,
@@ -136,7 +116,7 @@ def temp_coh(
     image_pairs : np.ndarray, optional
         image pairs
     block_size : int, default: 128
-        the CUDA block size, only applied for cuda
+        the CUDA block size, a multiple of 32, only applied for cuda
     """
     xp = get_array_module(intf)
     assert intf.ndim == rslc.ndim
@@ -159,10 +139,11 @@ def temp_coh(
     if xp is np:
         out_temp_coh = _temp_coh_pc_numba(intf,rslc,image_pairs)
     else:
-        image_pairs = cp.asarray(image_pairs)
-        n_image_pairs = image_pairs.shape[0]
         out_temp_coh = cp.empty(n_points, dtype=cp.float32)
-        _temp_coh_pc_kernel(intf, rslc, image_pairs, cp.int32(n_points),cp.int32(nimages),cp.int32(n_image_pairs), out_temp_coh, size=n_points, block_size=block_size)
+        if n_points > 0:
+            _temp_coh_pc_cuda[(n_points*32+block_size-1)//block_size, block_size](
+                cp.ascontiguousarray(intf), cp.ascontiguousarray(rslc), cp.asarray(image_pairs[:,0]),
+                cp.asarray(image_pairs[:,1]), out_temp_coh)
 
     if is_ras:
         out_temp_coh = out_temp_coh.reshape((height,width))

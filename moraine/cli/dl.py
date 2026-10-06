@@ -68,40 +68,21 @@ def _cli_pre_infer_n2f_numba(
     return out, mask
 
 if is_cuda_available():
-    _cli_pre_infer_n2f_kernel = cp.ElementwiseKernel(
-            'raw T ref_, raw T sec_, int32 nlines, int32 width',
-            'raw float32 out, raw bool mask',
-            '''
-            int npixels = nlines*width;
-            if (i >= npixels) return;
+    from numba import cuda
 
-            T intf_i = ref_[i]*conj(sec_[i]);
-            if (isnan(intf_i.real())){
-                mask[i] = true;
-            }
-            else{
-                mask[i] = false;
-                float amp = abs(intf_i);
-                out[i] = intf_i.real()/amp;
-                out[npixels+i] = intf_i.imag()/amp;
-            }
-            ''',
-            #preamble = '#include "curand.h"',
-            # I do not find an easy way to generate random number with cupy kernel
-            name = 'cli_pre_infer_n2f_kernel',reduce_dims=False,no_return=True)
+    @cuda.jit
+    def _intf_cuda(ref, sec, out):
+        t = cuda.grid(1)
+        if t >= out.size:
+            return
+        i = t//out.shape[1]; j = t%out.shape[1]
+        out[i,j] = ref[i,j]*sec[i,j].conjugate()
 
-if is_cuda_available():
     def _cli_pre_infer_n2f_cp(ref,sec):
-        nlines, width = ref.shape
-        out = cp.empty((1,2,nlines,width),dtype=cp.float32)
-        mask = cp.empty((nlines,width),dtype=bool)
-        _cli_pre_infer_n2f_kernel(ref,sec,cp.int32(nlines),cp.int32(width),out,mask,size=nlines*width,block_size=128)
-
-        nan_pos = cp.where(mask)
-        random_phase = cp.random.uniform(-cp.pi,cp.pi,len(nan_pos[0]))
-        out[0,0,nan_pos[0],nan_pos[1]] = cp.cos(random_phase)
-        out[0,1,nan_pos[0],nan_pos[1]] = cp.sin(random_phase)
-        return out, mask
+        intf = cp.empty_like(ref)
+        if intf.size > 0:
+            _intf_cuda[(intf.size+127)//128, 128](ref, sec, intf)
+        return mr.api.dl._pre_infer_n2f_cp(intf)
 
 def _cli_n2f_cpu(
     ref,
