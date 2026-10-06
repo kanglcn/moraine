@@ -234,9 +234,15 @@ def process_chunk(i, bound, x, y, k, chunks, rtree_bounds_tree, bound_ratio_init
 
     return in_idx, slice(start, end), map_idx
 
-def chunkwise_knn_mapping(x, y, chunks, k=128, n_jobs=-1, bound_ratio_init=0.1, bound_ratio_step=0.1):
+def chunkwise_knn_mapping(x, y, chunks, k=128, n_jobs=-1, bound_ratio_init=0.1, bound_ratio_step=0.1, bounds=None):
     """
     Compute KNN mapping chunkwise with halo expansion.
+
+    Parameters
+    ----------
+    bounds : np.ndarray, optional
+        start of every chunk and the number of points, increasing, shape (n_chunks+1,); chunks of `chunks`
+        points by default
 
     Returns
     -------
@@ -248,9 +254,12 @@ def chunkwise_knn_mapping(x, y, chunks, k=128, n_jobs=-1, bound_ratio_init=0.1, 
         Mapping indices inside halo arrays.
     """
     n = y.shape[0]
-    bound = np.arange(0, n + chunks, chunks)
-    if bound[-1] > n:
-        bound[-1] = n
+    if bounds is None:
+        bound = np.arange(0, n + chunks, chunks)
+        if bound[-1] > n:
+            bound[-1] = n
+    else:
+        bound = np.asarray(bounds)
 
     # Build spatial index
     rtree = HilbertRtree.build(x, y, page_size=chunks)
