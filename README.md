@@ -124,7 +124,9 @@ conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11
 ```
 
 The numba-cuda package is NVIDIA's package of the numba CUDA target that moraine's GPU kernels use; without it the
-deprecated CUDA target built into numba is used, which starts every kernel about 4 times slower.
+deprecated CUDA target built into numba is used, which starts every kernel about 4 times slower. numba-cuda finds
+the CUDA libraries through `CONDA_PREFIX` (an activated environment) or `CUDA_HOME`; if none is set, moraine sets
+`CUDA_HOME` to the conda environment of the python that runs it.
 
 Then
 

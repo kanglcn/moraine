@@ -6,6 +6,7 @@ __all__ = ['mjit', 'ngjit', 'ngpjit', 'is_cuda_available', 'get_n_cpus_avail', '
 import hashlib
 import os
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -67,6 +68,16 @@ def mjit(**options):
 # Adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license.
 ngjit = mjit(nopython=True, nogil=True)
 ngpjit = mjit(nopython=True, nogil=True, parallel=True)
+
+def _default_cuda_home():
+    """In a conda environment that is not activated, point CUDA_HOME to the environment, so that numba-cuda finds
+    its CUDA libraries (libnvvm) as the CUDA target built into numba did; variables already set are kept."""
+    if any(os.environ.get(v) for v in ('CUDA_HOME', 'CUDA_PATH', 'CONDA_PREFIX')):
+        return
+    if (Path(sys.prefix)/'nvvm').is_dir():
+        os.environ['CUDA_HOME'] = sys.prefix
+
+_default_cuda_home()
 
 def is_cuda_available():
     # an empty CUDA_VISIBLE_DEVICES or -1 hides all GPUs
