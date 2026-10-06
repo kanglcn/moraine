@@ -25,35 +25,44 @@ def _amp_disp_numba(rslc):
         amp_disp[i] = std/mean
     return amp_disp.reshape(nlines,width)
 
-# already robust enough for nan value
 if is_cuda_available():
-    _amp_disp_kernel = cp.ElementwiseKernel(
-        'raw T rmli_stack, int32 nlines, int32 width, int32 nimages',
-        'raw T amp_disp_stack',
-        '''
-        int k;
-        float mean = 0;
-        float f_nimages = nimages;
-        for (k=0;k<nimages;k++) {
-            mean += rmli_stack[i*nimages+k];
-        }
-        mean /= f_nimages;
-        float std = 0;
-        for (k=0;k<nimages;k++) {
-            std += powf(rmli_stack[i*nimages+k]-mean,2);
-        }
-        std = sqrt(std/f_nimages);
-        amp_disp_stack[i] = std/mean;
-        ''',
-        name = 'amp_disp_kernel',no_return=True)
+    from numba import cuda
 
-if is_cuda_available():
-    def _amp_disp_cp(rslc):
-        rmli = cp.abs(rslc)
-        nlines,width,nimages = rmli.shape
+    @cuda.jit
+    def _amp_disp_cuda(rslc, out):
+        # one warp per pixel: the lanes read consecutive images (coalesced); mean, then the deviations from it
+        w = cuda.grid(1)//32
+        nlines, width, nimages = rslc.shape
+        if w >= nlines*width:   # the same for all lanes of a warp
+            return
+        lane = cuda.laneid
+        i = w//width; j = w%width
+        s = np.float32(0.0)
+        for k in range(lane, nimages, 32):
+            v = rslc[i,j,k]
+            s += math.sqrt(v.real*v.real+v.imag*v.imag)
+        offset = 16
+        while offset > 0:
+            s += cuda.shfl_xor_sync(0xffffffff, s, offset)
+            offset //= 2
+        mean = s/np.float32(nimages)
+        s = np.float32(0.0)
+        for k in range(lane, nimages, 32):
+            v = rslc[i,j,k]
+            d = math.sqrt(v.real*v.real+v.imag*v.imag)-mean
+            s += d*d
+        offset = 16
+        while offset > 0:
+            s += cuda.shfl_xor_sync(0xffffffff, s, offset)
+            offset //= 2
+        if lane == 0:
+            out[i,j] = math.sqrt(s/np.float32(nimages))/mean
+
+    def _amp_disp_cp(rslc, block_size=128):
+        nlines, width, nimages = rslc.shape
         amp_disp = cp.empty((nlines,width),dtype=cp.float32)
-        _amp_disp_kernel(rmli,cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                         amp_disp,size=nlines*width,block_size=128)
+        if nlines*width > 0:
+            _amp_disp_cuda[(nlines*width*32+block_size-1)//block_size, block_size](rslc, amp_disp)
         return amp_disp
 
 def amp_disp(rslc:np.ndarray,

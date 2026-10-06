@@ -176,41 +176,45 @@ def _pre_infer_n2f_numba(intf):
     return out, mask
 
 if is_cuda_available():
-    _pre_infer_n2f_kernel = cp.ElementwiseKernel(
-            'raw T intf, int32 nlines, int32 width',
-            'raw float32 out, raw bool mask',
-            '''
-            int npixels = nlines*width;
-            if (i >= npixels) return;
+    from numba import cuda
 
-            //int az = i/width;
-            //int r = i-az*width;
-            T intf_i = intf[i];
-            if (isnan(intf_i.real())){
-                mask[i] = true;
-            }
-            else{
-                mask[i] = false;
-                float amp = abs(intf_i);
-                out[i] = intf_i.real()/amp;
-                out[npixels+i] = intf_i.imag()/amp;
-            }
-            ''',
-            #preamble = '#include "curand.h"',
-            # I do not find an easy way to generate random number with cupy kernel
-            name = 'pre_infer_n2f_kernel',no_return=True)
-
-if is_cuda_available():
-    def _pre_infer_n2f_cp(intf):
+    @cuda.jit
+    def _pre_infer_cuda(intf, adi, out, mask):
+        # one thread per pixel: unit interferogram in the last two channels of out, adi (if not empty) in the first
+        t = cuda.grid(1)
         nlines, width = intf.shape
-        out = cp.empty((1,2,nlines,width),dtype=cp.float32)
+        if t >= nlines*width:
+            return
+        i = t//width; j = t%width
+        c0 = out.shape[1]-2
+        v = intf[i,j]
+        masked = math.isnan(v.real)
+        if adi.size > 0:
+            masked = masked or math.isnan(adi[i,j])
+            out[0,0,i,j] = np.float32(1.0) if masked else adi[i,j]
+        mask[i,j] = masked
+        if not masked:
+            amp = abs(v)
+            out[0,c0,i,j] = v.real/amp
+            out[0,c0+1,i,j] = v.imag/amp
+
+    def _pre_infer_cp(intf, adi=None):
+        """model input (1, 2 or 3, nlines, width) float32 and the mask of pixels without data; random phase there"""
+        nlines, width = intf.shape
+        out = cp.empty((1,2 if adi is None else 3,nlines,width),dtype=cp.float32)
         mask = cp.empty((nlines,width),dtype=cp.bool_)
-        _pre_infer_n2f_kernel(intf,cp.int32(nlines),cp.int32(width),out,mask,size=nlines*width,block_size=128)
+        adi = cp.empty((0,0),dtype=cp.float32) if adi is None else adi
+        if nlines*width > 0:
+            _pre_infer_cuda[(nlines*width+127)//128, 128](intf, adi, out, mask)
+        c = out.shape[1]-2
         nan_pos = cp.where(mask)
         random_phase = cp.random.uniform(-cp.pi,cp.pi,len(nan_pos[0]))
-        out[0,0,nan_pos[0],nan_pos[1]] = cp.cos(random_phase)
-        out[0,1,nan_pos[0],nan_pos[1]] = cp.sin(random_phase)
+        out[0,c,nan_pos[0],nan_pos[1]] = cp.cos(random_phase)
+        out[0,c+1,nan_pos[0],nan_pos[1]] = cp.sin(random_phase)
         return out, mask
+
+    def _pre_infer_n2f_cp(intf):
+        return _pre_infer_cp(intf)
 
 @ngpjit
 def _after_infer_n2f_numba(
@@ -228,28 +232,23 @@ def _after_infer_n2f_numba(
     return out
 
 if is_cuda_available():
-    _after_infer_n2f_kernel = cp.ElementwiseKernel(
-            'raw float32 infer_out, raw bool mask, int32 nlines, int32 width',
-            'raw T out',
-            '''
-            int npixels = nlines*width;
-            if (i >= npixels) return;
+    @cuda.jit
+    def _after_infer_n2f_cuda(infer_out, mask, out):
+        t = cuda.grid(1)
+        nlines, width = mask.shape
+        if t >= nlines*width:
+            return
+        i = t//width; j = t%width
+        if mask[i,j]:
+            out[i,j] = complex(math.nan, math.nan)
+        else:
+            out[i,j] = complex(infer_out[0,0,i,j], infer_out[0,1,i,j])
 
-            if (mask[i]){
-                out[i] = T(CUDART_NAN,CUDART_NAN);
-            }
-            else{
-                out[i] = T(infer_out[i],infer_out[npixels+i]);
-            }
-            ''',
-            preamble = '#include <cupy/math_constants.h>',
-            name = 'after_infer_n2f_kernel',no_return=True)
-
-if is_cuda_available():
     def _after_infer_n2f_cp(infer_out,mask):
         nlines, width = mask.shape
         out = cp.empty((nlines,width),dtype=cp.complex64)
-        _after_infer_n2f_kernel(infer_out,mask,cp.int32(nlines),cp.int32(width),out,size=nlines*width,block_size=128)
+        if nlines*width > 0:
+            _after_infer_n2f_cuda[(nlines*width+127)//128, 128](infer_out, mask, out)
         return out
 
 def _infer_n2f_cpu(
@@ -361,44 +360,8 @@ def _pre_infer_n2fs3d_numba(adi,intf):
     return out, mask
 
 if is_cuda_available():
-    _pre_infer_n2fs3d_kernel = cp.ElementwiseKernel(
-            'raw float32 adi, raw T intf, int32 nlines, int32 width',
-            'raw float32 out, raw bool mask',
-            '''
-            int npixels = nlines*width;
-            if (i >= npixels) return;
-
-            //int az = i/width;
-            //int r = i-az*width;
-            T intf_i = intf[i];
-            float adi_i = adi[i];
-            if (isnan(intf_i.real())||isnan(adi_i) ){
-                mask[i] = true;
-                out[i] = 1.0;
-            }
-            else{
-                mask[i] = false;
-                float amp = abs(intf_i);
-                out[i] = adi_i;
-                out[npixels+i] = intf_i.real()/amp;
-                out[2*npixels+i] = intf_i.imag()/amp;
-            }
-            ''',
-            #preamble = '#include "curand.h"',
-            # I do not find an easy way to generate random number with cupy kernel
-            name = 'pre_infer_n2f_kernel',no_return=True)
-
-if is_cuda_available():
     def _pre_infer_n2fs3d_cp(adi,intf):
-        nlines, width = intf.shape
-        out = cp.empty((1,3,nlines,width),dtype=cp.float32)
-        mask = cp.empty((nlines,width),dtype=cp.bool_)
-        _pre_infer_n2fs3d_kernel(adi,intf,cp.int32(nlines),cp.int32(width),out,mask,size=nlines*width,block_size=128)
-        nan_pos = cp.where(mask)
-        random_phase = cp.random.uniform(-cp.pi,cp.pi,len(nan_pos[0]))
-        out[0,1,nan_pos[0],nan_pos[1]] = cp.cos(random_phase)
-        out[0,2,nan_pos[0],nan_pos[1]] = cp.sin(random_phase)
-        return out, mask
+        return _pre_infer_cp(intf, adi)
 
 def _infer_n2fs3d_cpu(
     adi,

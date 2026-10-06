@@ -8,6 +8,7 @@ import numpy as np
 from .utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
+    from numba import cuda
 from typing import Union
 import moraine as mr
 from .utils_ import ngpjit, ngjit
@@ -68,62 +69,6 @@ def intf(
     intf = intf.reshape(shape)
     return intf
 
-if is_cuda_available():
-    _emperical_co_kernel = cp.ElementwiseKernel(
-        'raw T rslc, raw bool is_shp, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win',
-        'raw T cov, raw T coh',
-        '''
-        if (i >= nlines*width) return;
-        int az_win = 2*az_half_win+1;
-        int r_win = 2*r_half_win+1;
-        int win = az_win*r_win;
-
-        int ref_az = i/width;
-        int ref_r = i -ref_az*width;
-
-        int sec_az, sec_r;
-
-        int m,j; // index of each coherence matrix
-        int k,l; // index of search window
-        T _cov; // covariance
-        float _amp2_m; // sum of amplitude square for image i
-        float _amp2_j; // sum of amplitude aquare for image j
-        int rslc_inx_m, rslc_inx_j;
-        int n; // number of shp
-
-        for (m = 0; m < nimages; m++) {
-            for (j = 0; j < nimages; j++) {
-                _cov = T(0.0, 0.0);
-                _amp2_m = 0.0;
-                _amp2_j = 0.0;
-                n = 0;
-                for (k = 0; k < az_win; k++) {
-                    for (l = 0; l < r_win; l++) {
-                        sec_az = ref_az-az_half_win+k;
-                        sec_r = ref_r-r_half_win+l;
-                        if (is_shp[i*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
-                            rslc_inx_m = (sec_az*width+sec_r)*nimages+m;
-                            rslc_inx_j = (sec_az*width+sec_r)*nimages+j;
-                            _amp2_m += norm(rslc[rslc_inx_m]);
-                            _amp2_j += norm(rslc[rslc_inx_j]);
-                            _cov += rslc[rslc_inx_m]*conj(rslc[rslc_inx_j]);
-                            n += 1;
-                            //if (i == 0 && m ==3 && j == 1) {
-                            //    printf("%f",_cov.real());
-                            //}
-                        }
-                    }
-                }
-                cov[(i*nimages+m)*nimages+j] = _cov/(float)n;
-                //if ( i == 0 && m==3 && j ==1 ) printf("%d",((i*nimages+m)*nimages+j));
-                _amp2_m = sqrt(_amp2_m*_amp2_j);
-                coh[(i*nimages+m)*nimages+j] = _cov/_amp2_m;
-            }
-        }
-        ''',
-        name = 'emperical_co_kernel',reduce_dims = False,no_return=True
-    )
-
 def emperical_co(rslc:np.ndarray,
                  is_shp:np.ndarray,
                  block_size:int=128,
@@ -137,7 +82,7 @@ def emperical_co(rslc:np.ndarray,
     is_shp : np.ndarray
         shp bool, dtype: `cupy.bool`
     block_size : int, default: 128
-        the CUDA block size, it only affects the calculation speed
+        no effect, kept for compatibility
 
     Returns
     -------
@@ -152,12 +97,15 @@ def emperical_co(rslc:np.ndarray,
     az_half_win = (az_win-1)//2
     r_half_win = (r_win-1)//2
 
-    cov = cp.empty((nlines,width,nimages,nimages),dtype=rslc.dtype)
-    coh = cp.empty((nlines,width,nimages,nimages),dtype=rslc.dtype)
-
-    _emperical_co_kernel(rslc, is_shp, cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                    cp.int32(az_half_win),cp.int32(r_half_win),cov,coh,size = nlines*width,block_size=block_size)
-    return cov,coh
+    cov = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
+    coh = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
+    az_idx, r_idx = (cp.asarray(i.ravel(), dtype=cp.int32) for i in np.meshgrid(np.arange(nlines), np.arange(width), indexing='ij'))
+    for start, stop, c, n in _shp_products_cp(rslc, az_idx, r_idx, is_shp.reshape(-1, az_win, r_win)):
+        c = c.conj()     # sum x_m conj(x_j)
+        cov[start:stop] = c/n[:,None,None].astype(cp.float32)
+        d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
+        coh[start:stop] = c*(d[:,:,None]*d[:,None,:])
+    return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
 # Coherence of the SHP samples X (n_shp, nimages) of a point: X^H X normalized by its diagonal, with BLAS on the
 # CPU (one BLAS thread per numba thread, see moraine.api.pl._single_thread_blas) and batched matrix products on the
@@ -209,15 +157,15 @@ def _emperical_co_pc_numba(
     return coh
 
 if is_cuda_available():
-    def _emperical_co_pc_cp(rslc, az_idx, r_idx, pc_is_shp, image_pairs, max_bytes=2**30):
+    def _shp_products_cp(rslc, az_idx, r_idx, pc_is_shp, max_bytes=2**30):
+        """for batches of points: (start, stop, c, n) with c = X^H X of the SHP samples X (n_shp, nimages) of every
+        point, (b, nimages, nimages), and the number of SHPs n, (b,)"""
         nlines, width, nimages = rslc.shape
         n_pc = az_idx.shape[0]
         az_win, r_win = pc_is_shp.shape[1:]
         win = az_win*r_win
         da, dr = np.meshgrid(np.arange(az_win)-az_win//2, np.arange(r_win)-r_win//2, indexing='ij')
         da = cp.asarray(da.ravel(), dtype=cp.int32); dr = cp.asarray(dr.ravel(), dtype=cp.int32)
-        ref = cp.asarray(image_pairs[:,0]); sec = cp.asarray(image_pairs[:,1])
-        coh = cp.empty((n_pc, image_pairs.shape[0]), dtype=rslc.dtype)
         # samples, their conjugate transpose and the product of every point of a batch, complex64
         batch = max(1, int(max_bytes//(8*(2*win*nimages+2*nimages*nimages))))
         for start in range(0, n_pc, batch):
@@ -228,6 +176,12 @@ if is_cuda_available():
             x = cp.where(valid[...,None], x, 0)       # not x*valid: nan outside the SHPs must not count
             c = cp.matmul(x.conj().swapaxes(1,2), x)                                             # (b, nimages, nimages)
             del x
+            yield start, stop, c, cp.count_nonzero(valid, axis=1)
+
+    def _emperical_co_pc_cp(rslc, az_idx, r_idx, pc_is_shp, image_pairs):
+        ref = cp.asarray(image_pairs[:,0]); sec = cp.asarray(image_pairs[:,1])
+        coh = cp.empty((az_idx.shape[0], image_pairs.shape[0]), dtype=rslc.dtype)
+        for start, stop, c, _ in _shp_products_cp(rslc, az_idx, r_idx, pc_is_shp):
             d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
             coh[start:stop] = c[:,ref,sec].conj()*(d[:,ref]*d[:,sec])
         return coh
@@ -364,43 +318,26 @@ def _ad_intf_pc_numba(
     return inf
 
 if is_cuda_available():
-    _ad_intf_pc_kernel = cp.ElementwiseKernel(
-        'raw T ref_rslc, raw T sec_rslc, raw I az_idx, raw I r_idx, raw bool pc_is_shp, int32 nlines, int32 width, int32 az_half_win, int32 r_half_win, int32 n_pc',
-        'raw T intf',
-        '''
-        if (i >= n_pc) return;
-        int az_win = 2*az_half_win+1;
-        int r_win = 2*r_half_win+1;
-        int win = az_win*r_win;
-
-        int ref_az = az_idx[i];
-        int ref_r = r_idx[i];
-
-        int sec_az, sec_r;
-
-        int k,l; // index of search window
-        T _co_nume = T(0.0, 0.0); // covariance/coherence numerator
-        T _intf; // coherence
-        float _ref_amp2 = 0.0; // sum of amplitude square for ref image
-        float _sec_amp2 = 0.0; // sum of amplitude aquare for sec image
-        int _rslc_idx;
-        for (k = 0; k < az_win; k++) {
-            for (l = 0; l < r_win; l++) {
-                sec_az = ref_az-az_half_win+k;
-                sec_r = ref_r-r_half_win+l;
-                if (pc_is_shp[i*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
-                    _rslc_idx = sec_az*width+sec_r;
-                    _ref_amp2 += norm(ref_rslc[_rslc_idx]);
-                    _sec_amp2 += norm(sec_rslc[_rslc_idx]);
-                    _co_nume += ref_rslc[_rslc_idx]*conj(sec_rslc[_rslc_idx]);
-                }
-            }
-        }
-        _intf = _co_nume/sqrt(_ref_amp2*_sec_amp2);
-        intf[i] = _intf;
-        ''',
-        name = 'ad_intf_pc_kernel',reduce_dims = False,no_return=True
-    )
+    @cuda.jit
+    def _ad_intf_pc_cuda(ref_rslc, sec_rslc, az_idx, r_idx, pc_is_shp, intf):
+        # one thread per point: sum over its SHPs of ref conj(sec), normalized by the powers
+        i = cuda.grid(1)
+        if i >= intf.shape[0]:
+            return
+        nlines, width = ref_rslc.shape
+        az_win, r_win = pc_is_shp.shape[1], pc_is_shp.shape[2]
+        nr = np.float32(0.0); ni = np.float32(0.0); pr = np.float32(0.0); ps = np.float32(0.0)
+        for k in range(az_win):
+            for l in range(r_win):
+                a = az_idx[i]-az_win//2+k; r = r_idx[i]-r_win//2+l
+                if a >= 0 and a < nlines and r >= 0 and r < width and pc_is_shp[i,k,l]:
+                    x = ref_rslc[a,r]; y = sec_rslc[a,r]
+                    nr += x.real*y.real+x.imag*y.imag
+                    ni += x.imag*y.real-x.real*y.imag
+                    pr += x.real*x.real+x.imag*x.imag
+                    ps += y.real*y.real+y.imag*y.imag
+        d = math.sqrt(pr*ps)
+        intf[i] = complex(nr/d, ni/d)
 
 def ad_intf_pc(
     ref_rslc:np.ndarray,
@@ -433,23 +370,13 @@ def ad_intf_pc(
     if xp is np:
         return _ad_intf_pc_numba(ref_rslc, sec_rslc, idx[:,0], idx[:,1], pc_is_shp)
     else:
-        nlines, width = ref_rslc.shape
         n_pc = idx.shape[0]
-        az_win, r_win = pc_is_shp.shape[-2:]
-        az_half_win = (az_win-1)//2
-        r_half_win = (r_win-1)//2
-        inf = cp.empty(n_pc,dtype=ref_rslc.dtype)
-        _ad_intf_pc_kernel(
-            ref_rslc, sec_rslc,
-            idx[:,0], idx[:,1],
-            pc_is_shp,
-            cp.int32(nlines), cp.int32(width),
-            cp.int32(az_half_win), cp.int32(r_half_win),
-            cp.int32(n_pc),
-            inf,
-            size = n_pc, block_size=block_size
-        )
-        return inf
+        intf = cp.empty(n_pc,dtype=ref_rslc.dtype)
+        if n_pc > 0:
+            idx = cp.asarray(idx, dtype=cp.int32)
+            _ad_intf_pc_cuda[(n_pc+block_size-1)//block_size, block_size](
+                ref_rslc, sec_rslc, idx[:,0], idx[:,1], pc_is_shp, intf)
+        return intf
 
 def isPD(co:np.ndarray,
          )-> np.ndarray:
