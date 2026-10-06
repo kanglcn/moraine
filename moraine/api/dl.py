@@ -268,6 +268,12 @@ def _infer_n2f_gpu(
     infer_out = _infer_unet(model, input_intf)
     return _after_infer_n2f_cp(infer_out,mask)
 
+def _nan_where_zero(x):
+    """copy of `x` (numpy or cupy) with NaN where |x| < 1e-30, the input is not changed"""
+    # GAMMA writes 0 where there are no data; should be done when loading the GAMMA results and removed here
+    xp = get_array_module(x)
+    return xp.where(xp.abs(x)<1e-30, x.dtype.type(np.nan+1j*np.nan), x)
+
 def n2f(
     intf:np.ndarray,
     chunks:tuple=None,
@@ -290,16 +296,15 @@ def n2f(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = xp.empty_like(intf)
-    intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
         model = _get_model('n2f', model, 'cpu')
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2f_cpu(intf[in_slice],model)[map_slice]
+            out[out_slice] = _infer_n2f_cpu(_nan_where_zero(intf[in_slice]),model)[map_slice]
     else:
         model = _get_model('n2f', model, _cuda_device())
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2f_gpu(intf[in_slice],model)[map_slice]
+            out[out_slice] = _infer_n2f_gpu(_nan_where_zero(intf[in_slice]),model)[map_slice]
 
     return out
 
@@ -326,11 +331,10 @@ def _n2f_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
-    intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     model = _get_model('n2f', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        out[out_slice] = _infer_n2f_gpu(cp.asarray(intf[in_slice]),model)[map_slice].get()
+        out[out_slice] = _infer_n2f_gpu(_nan_where_zero(cp.asarray(intf[in_slice])),model)[map_slice].get()
     return out
 
 @ngpjit
@@ -439,16 +443,15 @@ def n2fs3d(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = xp.empty_like(intf)
-    intf[xp.abs(intf)<1e-30] = xp.nan+1j*xp.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     if xp is np:
         model = _get_model('n2fs3d', model, 'cpu')
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2fs3d_cpu(adi[in_slice],intf[in_slice],model)[map_slice]
+            out[out_slice] = _infer_n2fs3d_cpu(adi[in_slice],_nan_where_zero(intf[in_slice]),model)[map_slice]
     else:
         model = _get_model('n2fs3d', model, _cuda_device())
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-            out[out_slice] = _infer_n2fs3d_gpu(adi[in_slice],intf[in_slice],model)[map_slice]
+            out[out_slice] = _infer_n2fs3d_gpu(adi[in_slice],_nan_where_zero(intf[in_slice]),model)[map_slice]
 
     return out
 
@@ -478,11 +481,10 @@ def _n2fs3d_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
-    intf[np.abs(intf)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     model = _get_model('n2fs3d', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        out[out_slice] = _infer_n2fs3d_gpu(cp.asarray(adi[in_slice]),cp.asarray(intf[in_slice]),model)[map_slice].get()
+        out[out_slice] = _infer_n2fs3d_gpu(cp.asarray(adi[in_slice]),_nan_where_zero(cp.asarray(intf[in_slice])),model)[map_slice].get()
     return out
 
 @ngpjit

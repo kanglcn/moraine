@@ -69,28 +69,43 @@ def test_missing_model_file(tmp_path):
 
 @pytest.mark.parametrize('gpu', GPU)
 def test_n2f(intf, gpu):
-    out = n2f(intf.copy(), chunks=(300, 300), depths=(32, 32))
-    np.testing.assert_array_equal(np.isnan(out), np.isnan(intf) | (np.abs(intf) < 1e-30))
+    x = intf.copy(); x[0, 0] = 0  # GAMMA writes 0 where there are no data
+    x0 = x.copy()
+    out = n2f(x, chunks=(300, 300), depths=(32, 32))
+    np.testing.assert_array_equal(x, x0)  # the input is not changed
+    assert np.isnan(out[0, 0])
+    np.testing.assert_array_equal(np.isnan(out), np.isnan(x) | (np.abs(x) < 1e-30))
     np.testing.assert_allclose(np.abs(out[np.isfinite(out)]), 1, rtol=1e-4)
     if gpu:
         import cupy as cp
-        out_cp = n2f(cp.asarray(intf), chunks=(300, 300), depths=(32, 32))
+        x_cp = cp.asarray(x)
+        out_cp = n2f(x_cp, chunks=(300, 300), depths=(32, 32))
         assert isinstance(out_cp, cp.ndarray)
+        np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         # NaN pixels are filled with random phase, compare medians; TF32 adds ~1e-3 rad
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
-        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2f_np_in_gpu(intf.copy())), np.isnan(out))
+        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2f_np_in_gpu(x)), np.isnan(out))
+        np.testing.assert_array_equal(x, x0)
 
 
 @pytest.mark.parametrize('gpu', GPU)
 def test_n2fs3d(adi, intf, gpu):
-    out = n2fs3d(adi, intf.copy())
+    x = intf.copy(); x[0, 0] = 0  # GAMMA writes 0 where there are no data
+    x0 = x.copy()
+    out = n2fs3d(adi, x)
+    np.testing.assert_array_equal(x, x0)  # the input is not changed
+    assert np.isnan(out[0, 0])
     assert np.isnan(out).sum() >= np.isnan(intf).sum()
     if gpu:
         import cupy as cp
-        out_cp = n2fs3d(cp.asarray(adi), cp.asarray(intf))
+        x_cp = cp.asarray(x)
+        out_cp = n2fs3d(cp.asarray(adi), x_cp)
+        np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
+        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2fs3d_np_in_gpu(adi, x)), np.isnan(out))
+        np.testing.assert_array_equal(x, x0)
 
 
 @pytest.fixture(scope='module')

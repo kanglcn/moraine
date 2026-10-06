@@ -27,7 +27,7 @@ from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
 from ..api.co import intf as intf_func
 from .dask_ import parallel_read_zarr
-from ..api.dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft
+from ..api.dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft, _nan_where_zero
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
@@ -125,12 +125,10 @@ def _cli_n2f_cpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(ref)
-    ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
-    sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     model = _get_model('n2f', model, 'cpu')
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        input_intf_slice, mask_slice = _cli_pre_infer_n2f_numba(ref[in_slice],sec[in_slice])
+        input_intf_slice, mask_slice = _cli_pre_infer_n2f_numba(_nan_where_zero(ref[in_slice]),_nan_where_zero(sec[in_slice]))
         infer_out_slice = _infer_unet(model, input_intf_slice)
         out[out_slice] = mr.api.dl._after_infer_n2f_numba(infer_out_slice,mask_slice)[map_slice]
     return out
@@ -157,13 +155,11 @@ def _cli_n2f_np_in_gpu(
     if chunks is None: chunks = shape
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(ref)
-    ref[np.abs(ref)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
-    sec[np.abs(sec)<1e-30] = np.nan+1j*np.nan # in case gamma has nan value, should be done in the load gamma function and remove in the future.
 
     model = _get_model('n2f', model, _cuda_device())
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        ref_slice = cp.asarray(ref[in_slice])
-        sec_slice = cp.asarray(sec[in_slice])
+        ref_slice = _nan_where_zero(cp.asarray(ref[in_slice]))
+        sec_slice = _nan_where_zero(cp.asarray(sec[in_slice]))
         input_intf_slice, mask_slice = _cli_pre_infer_n2f_cp(ref_slice,sec_slice)
         output_intf_slice = _infer_unet(model, input_intf_slice)
         out[out_slice] = (mr.api.dl._after_infer_n2f_cp(output_intf_slice,mask_slice)[map_slice]).get()
