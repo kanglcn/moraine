@@ -66,4 +66,4 @@ pairs still carry about half of the weight. Measured with the phases of regulari
 - Do not weight by |γ̂|² without the noise correction: on Xinpu it only shifts the uniform temporal
   coherence.
 - Do not use the Fisher weights |γ̂|² / (1 − |γ̂|²) without a limit: a few pairs close to 1 dominate.
-- Do not select by the weighted temporal coherence without the effective number of image pairs.
+- Do not select by the weighted temporal coherence without the effective number of image pairs (Changed by decision 0028: without `n_components`, not `eff_n_pairs`.)

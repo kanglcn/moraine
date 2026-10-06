@@ -134,10 +134,10 @@ def test_weighted_temp_coh(pl):
     by ds-temp-coh with `n_looks`."""
     d = pl
     key, chunks = str(d / 'ds_can_key.zarr'), zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
-    names = [f'{n}_w' for n in ('ph', 't_coh', 't_coh_w', 'eff_n_pairs')]
+    names = [f'{n}_w' for n in ('ph', 't_coh', 't_coh_w', 'eff_n_pairs', 'n_components')]
     mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
                                     *[str(d / n) for n in names[:2]], t_coh_w_dir=str(d / names[2]),
-                                    eff_n_pairs_dir=str(d / names[3]), chunks=CHUNKS)
+                                    eff_n_pairs_dir=str(d / names[3]), n_components_dir=str(d / names[4]), chunks=CHUNKS)
     mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names], key=key, chunks=chunks)
     mc.emperical_co_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
                        str(d / 'coh_n'), n_looks_dir=str(d / 'n_looks'), chunks=CHUNKS)
@@ -146,8 +146,8 @@ def test_weighted_temp_coh(pl):
     np.testing.assert_array_equal(r(d / 'coh_n.zarr'), r(d / 'ds_can_coh.zarr'))
     mc.ds_temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), str(d / 't_coh_s.zarr'),
                    n_looks=str(d / 'n_looks.zarr'), t_coh_w=str(d / 't_coh_w_s.zarr'),
-                   eff_n_pairs=str(d / 'eff_n_pairs_s.zarr'))
-    for n in ('ph', 't_coh', 't_coh_w', 'eff_n_pairs'):
+                   eff_n_pairs=str(d / 'eff_n_pairs_s.zarr'), n_components=str(d / 'n_components_s.zarr'))
+    for n in ('ph', 't_coh', 't_coh_w', 'eff_n_pairs', 'n_components'):
         a = r(d / f'{n}_w.zarr')
         b = r(d / 'ds_can_ph.zarr') if n == 'ph' else r(d / f'{n}_s.zarr')
         np.testing.assert_array_equal(a, b)
@@ -155,7 +155,7 @@ def test_weighted_temp_coh(pl):
     n_shp = np.count_nonzero(r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]], axis=(1, 2))
     assert n_looks.dtype == np.float32 and ((1 <= n_looks) & (n_looks <= n_shp)).all()
     for a, b in zip(mr.ds_temp_coh(coh, r(d / 'ds_can_ph.zarr'), n_looks=n_looks),
-                    (r(d / 't_coh_s.zarr'), r(d / 't_coh_w_s.zarr'), r(d / 'eff_n_pairs_s.zarr'))):
+                    (r(d / 't_coh_s.zarr'), r(d / 't_coh_w_s.zarr'), r(d / 'eff_n_pairs_s.zarr'), r(d / 'n_components_s.zarr'))):
         np.testing.assert_array_equal(a, b)
     with pytest.raises(ValueError, match='need n_looks'):
         mc.ds_temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), t_coh_w=str(d / 'x.zarr'))

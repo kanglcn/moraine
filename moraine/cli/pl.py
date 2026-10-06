@@ -146,6 +146,8 @@ def ds_temp_coh(
     n_looks:str=None,
     t_coh_w:str=None,
     eff_n_pairs:str=None,
+    n_components:str=None,
+    alpha:float=1e-3,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
     processes=None,
@@ -179,6 +181,15 @@ def ds_temp_coh(
         output: effective number of image pairs the weighted temporal coherence rests on, float32, shape
         (n_points,), 0..n_image_pairs; a high weighted temporal coherence of few effective pairs is not
         reliable
+    n_components : str, optional
+        output: number of connected components of the graph whose nodes are the images and whose edges are
+        the coherent image pairs, int16, shape (n_points,), 1..nimages; 1 means every image is linked to
+        every other by coherent pairs, with more the phase between the groups of images is not constrained
+        by any coherent pair, whatever the weighted temporal coherence is; needs `n_looks`
+    alpha : float, default: 1e-3
+        probability that a point without any coherent image pair (pure noise) has all images connected
+        (`n_components` 1); it sets the squared coherence above which an image pair counts as coherent,
+        depending on the number of looks and of images; 1e-6 <= alpha <= 0.5; only with `n_looks`
     chunks : int, optional
         point cloud chunk size, same as coh by default
     cuda : bool, default: False
@@ -199,9 +210,9 @@ def ds_temp_coh(
     ph_path = ph
     t_coh_path = t_coh
     n_looks_path = n_looks
-    weighted = (t_coh_w is not None) or (eff_n_pairs is not None)
+    weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
     if weighted and n_looks_path is None:
-        raise ValueError('t_coh_w and eff_n_pairs need n_looks')
+        raise ValueError('t_coh_w, eff_n_pairs and n_components need n_looks')
 
     logger = logging.getLogger(__name__)
     coh_zarr = zarr.open(coh_path,mode='r'); logger.zarr_info(coh_path,coh_zarr)
@@ -255,19 +266,20 @@ def ds_temp_coh(
             cpu_n_looks = dask_from_zarr(n_looks_path,chunks=(chunks,))
             logger.darr_info('n_looks', cpu_n_looks)
             n_looks_delayed = (cpu_n_looks.map_blocks(cp.asarray) if cuda else cpu_n_looks).to_delayed()
-        n_out = 3 if weighted else 1
+        n_out = 4 if weighted else 1
+        out_dtypes = (xp.float32, xp.float32, xp.float32, xp.int16)
         ds_temp_coh_delayed = delayed(mr.ds_temp_coh,pure=True,nout=n_out)
 
         outs_blocks = [[] for _ in range(n_out)]
         for idx in range(coh_delayed.shape[0]):
             kwargs = {'image_pairs':image_pairs}
-            if weighted: kwargs['n_looks'] = n_looks_delayed[idx]
+            if weighted: kwargs['n_looks'] = n_looks_delayed[idx]; kwargs['alpha'] = alpha
             outs = ds_temp_coh_delayed(coh_delayed[idx],ph_delayed[idx],**kwargs)
             outs = tuple(outs) if weighted else (outs,)
             for o, out in enumerate(outs):
-                outs_blocks[o].append(da.from_delayed(out,shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=xp.float32)))
+                outs_blocks[o].append(da.from_delayed(out,shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=out_dtypes[o])))
         futures = []
-        for blocks, path, name in zip(outs_blocks, (t_coh_path, t_coh_w, eff_n_pairs), ('t_coh', 't_coh_w', 'eff_n_pairs')):
+        for blocks, path, name in zip(outs_blocks, (t_coh_path, t_coh_w, eff_n_pairs, n_components), ('t_coh', 't_coh_w', 'eff_n_pairs', 'n_components')):
             if path is None: continue
             out = da.concatenate(blocks)
             if cuda: out = out.map_blocks(cp.asnumpy)
@@ -291,6 +303,8 @@ def emperical_co_emi_temp_coh_pc(
     t_coh_dir:str,
     t_coh_w_dir:str=None,
     eff_n_pairs_dir:str=None,
+    n_components_dir:str=None,
+    alpha:float=1e-3,
     batch_size:int=1000,
     regularize:bool=True,
     chunks:tuple[int,int]=None,
@@ -327,6 +341,14 @@ def emperical_co_emi_temp_coh_pc(
         output: directory with the effective number of image pairs of the weighted temporal coherence,
         shape (n_points,), float32, one zarr per raster chunk; a high weighted temporal coherence of few
         effective pairs is not reliable
+    n_components_dir : str, optional
+        output: directory with the number of connected components of the graph whose nodes are the images
+        and whose edges are the coherent image pairs (see `ds-temp-coh`), shape (n_points,), int16,
+        1..nimages, one zarr per raster chunk; 1 means every image is linked to every other by coherent
+        pairs
+    alpha : float, default: 1e-3
+        probability that a point without any coherent image pair (pure noise) has all images connected;
+        1e-6 <= alpha <= 0.5; see `ds-temp-coh`; only with one of the weighted outputs
     batch_size : int, default: 1000
         number of points processed at once, limits the memory use
     regularize : bool, default: True
@@ -353,9 +375,10 @@ def emperical_co_emi_temp_coh_pc(
     gix_path = gix
     ph_dir = Path(ph_dir); mk_clean_dir(ph_dir)
     t_coh_dir = Path(t_coh_dir); mk_clean_dir(t_coh_dir)
-    weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None)
+    weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None) or (n_components_dir is not None)
     if t_coh_w_dir is not None: t_coh_w_dir = Path(t_coh_w_dir); mk_clean_dir(t_coh_w_dir)
     if eff_n_pairs_dir is not None: eff_n_pairs_dir = Path(eff_n_pairs_dir); mk_clean_dir(eff_n_pairs_dir)
+    if n_components_dir is not None: n_components_dir = Path(n_components_dir); mk_clean_dir(n_components_dir)
 
     logger = logging.getLogger(__name__)
 
@@ -410,7 +433,7 @@ def emperical_co_emi_temp_coh_pc(
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
         if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        emperical_co_emi_temp_coh_pc_delayed = delayed(mr.emperical_co_emi_temp_coh_pc,pure=True,nout=4 if weighted else 2)
+        emperical_co_emi_temp_coh_pc_delayed = delayed(mr.emperical_co_emi_temp_coh_pc,pure=True,nout=5 if weighted else 2)
 
         cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path, (*chunks, rslc_zarr.shape[2]), depth)
         logger.darr_info('rslc_overlap', cpu_rslc_overlap)
@@ -438,7 +461,7 @@ def emperical_co_emi_temp_coh_pc(
                     is_shp = cpu_is_shp
                 is_shp_delayed = is_shp.to_delayed()[0,0,0]
                 outs = tuple(emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,
-                                                                  regularize=regularize,weighted=weighted))
+                                                                  regularize=regularize,weighted=weighted,alpha=alpha))
                 ph_delayed, t_coh_delayed = outs[:2]
 
                 ph = da.from_delayed(ph_delayed,shape=(pc_chunksize[j],nimage),meta=xp.array((),dtype=rslc_overlap.dtype))
@@ -460,9 +483,9 @@ def emperical_co_emi_temp_coh_pc(
                 _t_coh = dask_to_zarr(cpu_t_coh,t_coh_dir/f'{j}.zarr',chunks=(cpu_t_coh.shape[0],),log_zarr=do_log)
 
                 futures.extend((_ph,_t_coh))
-                for out_delayed, out_dir in zip(outs[2:], (t_coh_w_dir, eff_n_pairs_dir)):
+                for out_delayed, out_dir, out_dtype in zip(outs[2:], (t_coh_w_dir, eff_n_pairs_dir, n_components_dir), (xp.float32, xp.float32, xp.int16)):
                     if out_dir is None: continue
-                    out = da.from_delayed(out_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=xp.float32))
+                    out = da.from_delayed(out_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=out_dtype))
                     if cuda: out = out.map_blocks(cp.asnumpy)
                     futures.append(dask_to_zarr(out,out_dir/f'{j}.zarr',chunks=(out.shape[0],),log_zarr=do_log))
 

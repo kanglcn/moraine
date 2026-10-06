@@ -3,13 +3,15 @@
 #   moraine run examples/03_ds.toml --workdir WORK
 #
 # Statistically homogeneous pixels (SHP) -> DS candidates -> coherence matrix, EMI phase linking (coherence
-# matrices that are not positive definite regularized, decision 0023) and temporal coherence (fused, per
-# raster chunk) -> DS selection by temporal coherence (decision 0026).
+# matrices that are not positive definite regularized, decision 0023) and weighted temporal coherence with
+# the number of connected components of the coherent image pairs (fused, per raster chunk, decisions 0024 and
+# 0028) -> DS selection: all images connected by coherent pairs and a high weighted temporal coherence.
 # Outputs in WORK/ds/: ds_can_* (all candidates, hilbert order) and ds_hix, ds_ph, ds_gix, ds_e, ds_n
 # (refined DS).
 
 [vars]
 shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+t_coh_w_min = "0.9"               # DS: minimum weighted temporal coherence (not comparable with the plain one: 0.9 here ~ 0.8 plain)
 
 [defaults]
 cuda = true                       # set to false without a GPU
@@ -63,6 +65,9 @@ is_shp_dir = "ds/chunks/ds_can_is_shp"
 gix = "ds/ds_can_gix_ras_order.zarr"
 ph_dir = "ds/chunks/ds_can_ph"
 t_coh_dir = "ds/chunks/ds_can_t_coh"
+t_coh_w_dir = "ds/chunks/ds_can_t_coh_w"
+n_components_dir = "ds/chunks/ds_can_n_components"
+alpha = 1e-3                      # a point without any coherent image pair has all images connected with this probability
 chunks = [1000, 1000]
 
 # ---- hilbert order
@@ -86,27 +91,51 @@ key = "ds/chunks/gix2hix_key.zarr"
 [[step]]
 name = "ds_can_concat"            # chunks -> one array each, in hilbert order
 run = "pc-concat"
-pcs = ["ds/chunks/ds_can_ph", "ds/chunks/ds_can_t_coh"]
-pc = ["ds/ds_can_ph.zarr", "ds/ds_can_t_coh.zarr"]
+pcs = ["ds/chunks/ds_can_ph", "ds/chunks/ds_can_t_coh", "ds/chunks/ds_can_t_coh_w", "ds/chunks/ds_can_n_components"]
+pc = ["ds/ds_can_ph.zarr", "ds/ds_can_t_coh.zarr", "ds/ds_can_t_coh_w.zarr", "ds/ds_can_n_components.zarr"]
 key = ["ds/chunks/ds_can_key.zarr", "ds/chunks/gix2hix_key.zarr"]
 chunks = 200000
 
 [[step]]
-name = "ds_can_t_coh_pyramid"
+name = "ds_can_t_coh_w_pyramid"
 run = "pc-pyramid"
-pc = "ds/ds_can_t_coh.zarr"
-out_dir = "ds/ds_can_t_coh_pyramid"
+pc = "ds/ds_can_t_coh_w.zarr"
+out_dir = "ds/ds_can_t_coh_w_pyramid"
 yx = "ds/ds_can_gix.zarr"
 ras_resolution = 2
 
-# ---- DS selection by temporal coherence
 [[step]]
-name = "ds"                       # high temporal coherence
+name = "ds_can_n_components_pyramid"
+run = "pc-pyramid"
+pc = "ds/ds_can_n_components.zarr"
+out_dir = "ds/ds_can_n_components_pyramid"
+yx = "ds/ds_can_gix.zarr"
+ras_resolution = 2
+
+# ---- DS selection: all images connected by coherent image pairs and a high weighted temporal coherence
+[[step]]
+name = "ds_connected"             # one connected component
 run = "pc-logic-pc"
 idx_in = "ds/ds_can_hix.zarr"
-pc_in = "ds/ds_can_t_coh.zarr"
+pc_in = "ds/ds_can_n_components.zarr"
+idx = "ds/ds_connected_hix.zarr"
+operation = "pc_in==1"
+
+[[step]]
+name = "ds_connected_t_coh_w"     # the weighted temporal coherence of those points
+run = "pc-select-data"
+idx_in = "ds/ds_can_hix.zarr"
+idx = "ds/ds_connected_hix.zarr"
+pc_in = ["ds/ds_can_t_coh_w.zarr"]
+pc = ["ds/ds_connected_t_coh_w.zarr"]
+
+[[step]]
+name = "ds"                       # high weighted temporal coherence
+run = "pc-logic-pc"
+idx_in = "ds/ds_connected_hix.zarr"
+pc_in = "ds/ds_connected_t_coh_w.zarr"
 idx = "ds/ds_hix.zarr"
-operation = "(pc_in>=0.8)&(pc_in<=1.0)"
+operation = "(pc_in>=${t_coh_w_min})&(pc_in<=1.0)"
 
 [[step]]
 name = "ds_data"

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc
+from moraine.api.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc, _edge_pfa
 
 
 @pytest.fixture(scope='module')
@@ -155,6 +155,30 @@ def _ds_temp_coh_weighted_ref(coh, ph, n_looks):
     return t_coh_w, eff_n_pairs
 
 
+def _n_components_ref(coh, n_looks, n_images, alpha):
+    """float64 python version of the number of connected components of the graph of the coherent image pairs."""
+    pairs = mr.TempNet.from_bandwidth(n_images).image_pairs
+    n_looks = np.broadcast_to(np.asarray(n_looks, np.float64), (coh.shape[0],))
+    p = _edge_pfa(n_images, alpha)
+    out = np.empty(coh.shape[0], np.int16)
+    for i in range(coh.shape[0]):
+        if n_looks[i] <= 1:
+            out[i] = n_images
+            continue
+        thr = -np.expm1(np.log(p) / (n_looks[i] - 1))
+        parent = list(range(n_images))
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+        for k in np.flatnonzero(np.abs(coh[i]).astype(np.float64) ** 2 > thr):
+            a, b = find(pairs[k, 0]), find(pairs[k, 1])
+            if a != b: parent[max(a, b)] = min(a, b)
+        out[i] = sum(parent[x] == x for x in range(n_images))
+    return out
+
+
 @pytest.fixture(scope='module')
 def intermittent():
     """Coherence exp(-time span / 1.5 images), 60 looks: only short time spans are coherent."""
@@ -184,28 +208,92 @@ def test_ds_temp_coh_weighted(intermittent, n_looks):
     coh, ph = intermittent
     if n_looks == 'per point':
         n_looks = np.random.default_rng(3).uniform(30, 120, coh.shape[0]).astype(np.float32)
-    t_coh, t_coh_w, eff_n_pairs = ds_temp_coh(coh, ph, n_looks=n_looks)
+    t_coh, t_coh_w, eff_n_pairs, n_components = ds_temp_coh(coh, ph, n_looks=n_looks)
     assert t_coh_w.dtype == eff_n_pairs.dtype == np.float32 and t_coh_w.shape == eff_n_pairs.shape == (coh.shape[0],)
+    assert n_components.dtype == np.int16 and n_components.shape == (coh.shape[0],)
     np.testing.assert_array_equal(t_coh, ds_temp_coh(coh, ph))    # the uniform one does not depend on n_looks
     t_ref, eff_ref = _ds_temp_coh_weighted_ref(coh, ph, n_looks)
     np.testing.assert_allclose(t_coh_w, t_ref, rtol=1e-4)
     np.testing.assert_allclose(eff_n_pairs, eff_ref, rtol=1e-4)
+    np.testing.assert_array_equal(n_components, _n_components_ref(coh, n_looks, ph.shape[1], 1e-3))
 
 
 def test_ds_temp_coh_weighted_intermittent(intermittent):
     """Incoherent long time spans lower the temporal coherence, not the weighted one."""
     coh, ph = intermittent
-    t_coh, t_coh_w, eff_n_pairs = ds_temp_coh(coh, ph, n_looks=60.0)
+    t_coh, t_coh_w, eff_n_pairs, n_components = ds_temp_coh(coh, ph, n_looks=60.0)
     assert np.median(t_coh) < 0.5 < 0.8 < np.median(t_coh_w)
     assert np.median(eff_n_pairs) < 0.2 * coh.shape[1]
+    assert np.median(n_components) == 1      # the short time spans link all images
 
 
 def test_ds_temp_coh_weighted_no_information(intermittent):
     coh, ph = intermittent
-    _, t_coh_w, eff_n_pairs = ds_temp_coh(coh * np.float32(0.5), ph, n_looks=2.0)     # |coh|^2 < 1/n_looks
-    assert np.isnan(t_coh_w).all() and (eff_n_pairs == 0).all()
-    _, t_coh_w, eff_n_pairs = ds_temp_coh(coh, ph, n_looks=np.r_[1.0, 0.5, np.full(coh.shape[0] - 2, 60.0)])
+    _, t_coh_w, eff_n_pairs, n_components = ds_temp_coh(coh * np.float32(0.5), ph, n_looks=2.0)     # |coh|^2 < 1/n_looks
+    assert np.isnan(t_coh_w).all() and (eff_n_pairs == 0).all() and (n_components == ph.shape[1]).all()
+    _, t_coh_w, eff_n_pairs, n_components = ds_temp_coh(coh, ph, n_looks=np.r_[1.0, 0.5, np.full(coh.shape[0] - 2, 60.0)])
     assert np.isnan(t_coh_w[:2]).all() and (eff_n_pairs[:2] == 0).all() and np.isfinite(t_coh_w[2:]).all()
+    assert (n_components[:2] == ph.shape[1]).all()      # n_looks <= 1: every image is alone
+
+
+def _graph_coh(n_images, magnitude):
+    """Coherence of one point with the given symmetric magnitude (n_images, n_images) and phases that close."""
+    pairs = mr.TempNet.from_bandwidth(n_images).image_pairs
+    return magnitude[pairs[:, 0], pairs[:, 1]][None].astype(np.complex64), np.ones((1, n_images), np.complex64)
+
+
+def _graph_cases():
+    n = 10
+    two_groups = np.full((n, n), 0.02); two_groups[:5, :5] = 0.9; two_groups[5:, 5:] = 0.9
+    one_alone = np.full((n, n), 0.9); one_alone[9, :] = one_alone[:, 9] = 0.02
+    two_pairs = np.full((n, n), 0.02); two_pairs[0, 1] = two_pairs[2, 3] = 0.9
+    return n, [(np.full((n, n), 0.9), 1), (two_groups, 2), (one_alone, 2), (np.full((n, n), 0.02), n), (two_pairs, n - 2)]
+
+
+def test_ds_temp_coh_components():
+    """Images that are linked by coherent pairs form one component, whatever the phases of the pairs are."""
+    n, cases = _graph_cases()
+    for magnitude, expected in cases:
+        coh, ph = _graph_coh(n, magnitude)
+        assert ds_temp_coh(coh, ph, n_looks=50.0)[3][0] == expected
+
+
+@pytest.mark.gpu
+def test_ds_temp_coh_components_gpu():
+    import cupy as cp
+    n, cases = _graph_cases()
+    for magnitude, expected in cases:
+        coh, ph = _graph_coh(n, magnitude)
+        assert ds_temp_coh(cp.asarray(coh), cp.asarray(ph), n_looks=cp.asarray(50.0))[3].get()[0] == expected
+
+
+def test_edge_pfa():
+    """p so that a random graph with n nodes and edge probability p is connected with probability alpha."""
+    assert _edge_pfa(2, 1e-3) == pytest.approx(1e-3, rel=1e-6)       # one edge
+    assert _edge_pfa(3, 0.5) == pytest.approx(0.5, rel=1e-6)         # 3 p^2 - 2 p^3 = 1/2
+    assert _edge_pfa(5, 0.01) > _edge_pfa(17, 0.01) > _edge_pfa(92, 0.01) > _edge_pfa(400, 0.01)
+    assert _edge_pfa(17, 1e-2) > _edge_pfa(17, 1e-3) > _edge_pfa(17, 1e-4)
+
+
+@pytest.mark.parametrize('alpha', [0.0, 1e-7, 0.6])
+def test_ds_temp_coh_alpha(intermittent, alpha):
+    coh, ph = intermittent
+    with pytest.raises(ValueError, match='alpha'):
+        ds_temp_coh(coh, ph, n_looks=60.0, alpha=alpha)
+
+
+def test_ds_temp_coh_components_noise():
+    """A point without any coherent image pair is connected with probability alpha."""
+    rng = np.random.default_rng(5)
+    n_images, n_looks, n_points, alpha = 17, 46, 3000, 0.05
+    x = rng.standard_normal((n_points, n_images, n_looks, 2)).astype(np.float32).view(np.complex64)[..., 0]
+    x /= np.linalg.norm(x, axis=-1, keepdims=True)
+    pairs = mr.TempNet.from_bandwidth(n_images).image_pairs
+    coh = np.einsum('pk,pk->p', x[:, pairs[:, 0]].reshape(-1, n_looks), x[:, pairs[:, 1]].conj().reshape(-1, n_looks))
+    coh = coh.reshape(n_points, -1).astype(np.complex64)
+    ph = np.ones((n_points, n_images), np.complex64)
+    connected = (ds_temp_coh(coh, ph, n_looks=float(n_looks), alpha=alpha)[3] == 1).mean()
+    assert abs(connected - alpha) < 4 * np.sqrt(alpha * (1 - alpha) / n_points)
 
 
 @pytest.mark.gpu
@@ -218,6 +306,8 @@ def test_ds_temp_coh_weighted_gpu(intermittent, ds_coh):
         gpu = [a.get() for a in ds_temp_coh(cp.asarray(c), cp.asarray(p), n_looks=cp.asarray(n))]
         for a, b in zip(gpu, cpu):
             np.testing.assert_allclose(a, b, rtol=1e-5, atol=1e-6)
+        assert gpu[3].dtype == np.int16
+        np.testing.assert_array_equal(gpu[3], cpu[3])
         np.testing.assert_array_equal(gpu[0], ds_temp_coh(cp.asarray(c), cp.asarray(p)).get())
 
 
@@ -232,13 +322,13 @@ def test_emperical_co_emi_temp_coh_pc(ds_can, ds_coh, regularize):
 
 def test_emperical_co_emi_temp_coh_pc_weighted(ds_can, ds_coh):
     """The effective number of looks is that of emperical_co_pc(..., return_n_looks=True)."""
-    ph, t_coh, t_coh_w, eff_n_pairs = emperical_co_emi_temp_coh_pc(
+    ph, t_coh, t_coh_w, eff_n_pairs, n_components = emperical_co_emi_temp_coh_pc(
         ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000, weighted=True)
     coh, n_looks = mr.emperical_co_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], return_n_looks=True)
     np.testing.assert_array_equal(coh, ds_coh)
     assert ((1 <= n_looks) & (n_looks <= np.count_nonzero(ds_can['is_shp'], axis=(1, 2)))).all()
     ref = ds_temp_coh(ds_coh, emi(ds_coh), n_looks=n_looks)
-    for a, b in zip((t_coh, t_coh_w, eff_n_pairs), ref):
+    for a, b in zip((t_coh, t_coh_w, eff_n_pairs, n_components), ref):
         np.testing.assert_array_equal(a, b)
 
 
