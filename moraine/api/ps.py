@@ -7,11 +7,12 @@ import numpy as np
 import math
 import numba
 from .utils_ import is_cuda_available, get_array_module
+from .utils_ import mjit
 if is_cuda_available():
     import cupy as cp
 
 # already robust enough for nan value
-@numba.jit(nopython=True, cache=True,parallel=True)
+@mjit(nopython=True, parallel=True)
 def _amp_disp_numba(rslc):
     nlines, width, nimages = rslc.shape
     npixels = nlines*width

@@ -17,6 +17,7 @@ import time
 
 import numpy as np
 import numba
+from ..api.utils_ import mjit
 import pandas as pd
 from scipy.constants import speed_of_light
 from dask import array as da
@@ -87,7 +88,7 @@ def _fetch_slc_par_date(rslc_dir,
     rslcs_df = pd.DataFrame({'date':dates,'rslc':rslcs,'par':rslc_pars})
     return rslcs_df
 
-@numba.jit(nopython=True, cache=True,parallel=True,nogil=True)
+@mjit(nopython=True, parallel=True, nogil=True)
 def _flatten_rslc(sim_orb,rslc):
     y = np.empty(rslc.shape, rslc.dtype)
     for i in numba.prange(len(rslc)):

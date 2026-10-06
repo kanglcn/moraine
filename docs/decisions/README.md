@@ -36,6 +36,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0026](0026-emi-regularized-by-default.md) | EMI is regularized by default; DS are selected by temporal coherence | Accepted |
 | [0027](0027-small-ds-quality-interface.md) | Weighted temporal coherence through `ds_temp_coh`; no EMI quality output; speckle correlation internal | Accepted |
 | [0028](0028-ds-selection-by-connected-image-pairs.md) | DS are selected by the connectivity of the coherent image pairs, not by the number of effective pairs | Accepted |
+| [0029](0029-numba-cache-by-source-hash.md) | Compiled numba functions are cached in a directory named after the hash of the sources | Accepted |
 
 ## Writing a record
 

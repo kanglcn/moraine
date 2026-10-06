@@ -6,10 +6,11 @@ import numpy as np
 import math
 import numba
 from .utils_ import is_cuda_available, get_array_module
+from .utils_ import mjit
 if is_cuda_available():
     import cupy as cp
 
-@numba.jit(nopython=True, cache=True,parallel=True)
+@mjit(nopython=True, parallel=True)
 def _rslc2amp_numba(rslc):
     # support rslc and rslc stack
     rslc_shape = rslc.shape
@@ -43,7 +44,7 @@ def rslc2amp(rslc:np.ndarray,
     else:
         return _rslc2amp_cp(rslc)
 
-@numba.jit(nopython=True, cache=True,parallel=True)
+@mjit(nopython=True, parallel=True)
 def _calamp_numba(amp):
     nlines, width = amp.shape
     npixels = nlines*width
