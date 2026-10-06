@@ -35,6 +35,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0025](0025-oversampling-from-speckle-correlation.md) | The oversampling of the SLCs is measured from the speckle correlation | Accepted |
 | [0026](0026-emi-regularized-by-default.md) | EMI is regularized by default; DS are selected by temporal coherence | Accepted |
 | [0027](0027-small-ds-quality-interface.md) | Weighted temporal coherence through `ds_temp_coh`; no EMI quality output; speckle correlation internal | Accepted |
+| [0028](0028-ds-selection-by-connected-image-pairs.md) | DS are selected by the connectivity of the coherent image pairs, not by the number of effective pairs | Accepted |
 
 ## Writing a record
 
