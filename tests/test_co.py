@@ -80,7 +80,7 @@ def test_ad_intf_pc(rng, gpu):
     ifg = ad_intf_pc(rslc[:, :, 0], rslc[:, :, 1], idx, ds_is_shp)
     if gpu:
         coh, ifg = coh.get(), ifg.get()
-    np.testing.assert_array_equal(coh[:, 0], ifg)
+    np.testing.assert_allclose(coh[:, 0], ifg, rtol=1e-6, atol=1e-6)  # float32 sums in another order
 
 
 @pytest.mark.gpu
@@ -260,3 +260,29 @@ def test_emperical_co_pc_n_looks_gpu(rng):
         _, n_looks = emperical_co_pc(s, i, m, return_n_looks=True)
         _, n_looks_gpu = emperical_co_pc(cp.asarray(s), cp.asarray(i), cp.asarray(m), return_n_looks=True)
         np.testing.assert_allclose(n_looks_gpu.get(), n_looks, rtol=1e-5)
+
+
+GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
+
+
+@pytest.mark.parametrize('gpu', GPU)
+def test_emperical_co_pc_reference(rng, gpu):
+    # coherence of the SHP samples in float64; nan pixels that are not SHPs of a point must not count
+    rslc, is_shp = synthetic_shp(rng, shape=(6, 9), nimages=7, half_az_win=1, half_r_win=2)
+    rslc[2, 4, 3] = np.nan
+    idx = np.stack(np.meshgrid(np.arange(6), np.arange(9), indexing='ij'), -1).reshape(-1, 2)
+    pc_is_shp = is_shp.reshape(-1, *is_shp.shape[2:])
+    pairs = mr.TempNet.from_bandwidth(7).image_pairs
+    expected = np.empty((idx.shape[0], pairs.shape[0]), np.complex128)
+    for i, (a, r) in enumerate(idx):
+        k, l = np.nonzero(pc_is_shp[i])
+        x = rslc[a + k - 1, r + l - 2].astype(np.complex128)    # (n_shp, nimages); synthetic SHPs stay inside
+        for p, (m, j) in enumerate(pairs):
+            expected[i, p] = (x[:, m] * x[:, j].conj()).sum() / np.sqrt((np.abs(x[:, m])**2).sum() * (np.abs(x[:, j])**2).sum())
+    if gpu:
+        import cupy as cp
+        coh = emperical_co_pc(cp.asarray(rslc), cp.asarray(idx), cp.asarray(pc_is_shp)).get()
+    else:
+        coh = emperical_co_pc(rslc, idx, pc_is_shp)
+    assert np.isnan(coh).any() and not np.isnan(coh).all()
+    np.testing.assert_allclose(coh, expected, rtol=1e-5, atol=1e-6)

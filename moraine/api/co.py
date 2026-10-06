@@ -159,58 +159,9 @@ def emperical_co(rslc:np.ndarray,
                     cp.int32(az_half_win),cp.int32(r_half_win),cov,coh,size = nlines*width,block_size=block_size)
     return cov,coh
 
-if is_cuda_available():
-    _emperical_co_pc_kernel = cp.ElementwiseKernel(
-        'raw T rslc, raw I az_idx, raw I r_idx, raw bool pc_is_shp, raw I image_pair_ref, raw I image_pair_sec, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win, int32 n_pc, int32 n_image_pair',
-        'raw T coh',
-        '''
-        if (i >= n_pc) return;
-        int az_win = 2*az_half_win+1;
-        int r_win = 2*r_half_win+1;
-        int win = az_win*r_win;
-
-        int ref_az = az_idx[i];
-        int ref_r = r_idx[i];
-
-        int sec_az, sec_r;
-
-        int m,j; // index of each coherence matrix
-        int pair_i; // index of image pairs
-        int k,l; // index of search window
-        T _co_nume; // covariance/coherence numerator
-        T _coh; // coherence
-        float _amp2_m; // sum of amplitude square for image i
-        float _amp2_j; // sum of amplitude aquare for image j
-        int rslc_inx_m, rslc_inx_j;
-
-        for (pair_i=0; pair_i < n_image_pair; pair_i++){
-            m = image_pair_ref[pair_i];
-            j = image_pair_sec[pair_i];
-
-            _co_nume = T(0.0, 0.0);
-            _amp2_m = 0.0;
-            _amp2_j = 0.0;
-            for (k = 0; k < az_win; k++) {
-                for (l = 0; l < r_win; l++) {
-                    sec_az = ref_az-az_half_win+k;
-                    sec_r = ref_r-r_half_win+l;
-                    if (pc_is_shp[i*win+k*r_win+l] && sec_az >= 0 && sec_az < nlines && sec_r >= 0 && sec_r < width) {
-                        rslc_inx_m = (sec_az*width+sec_r)*nimages+m;
-                        rslc_inx_j = (sec_az*width+sec_r)*nimages+j;
-                        _amp2_m += norm(rslc[rslc_inx_m]);
-                        _amp2_j += norm(rslc[rslc_inx_j]);
-                        _co_nume += rslc[rslc_inx_m]*conj(rslc[rslc_inx_j]);
-                    }
-                }
-            }
-            _amp2_m = sqrt(_amp2_m*_amp2_j);
-            _coh = _co_nume/_amp2_m;
-            coh[i*n_image_pair+pair_i] = _coh;
-        }
-        ''',
-        name = 'emperical_co_pc_kernel',reduce_dims = False,no_return=True
-    )
-
+# Coherence of the SHP samples X (n_shp, nimages) of a point: X^H X normalized by its diagonal, with BLAS on the
+# CPU (one BLAS thread per numba thread, see moraine.api.pl._single_thread_blas) and batched matrix products on the
+# GPU; every image pair of the point reads the same samples, so all pairs come from one matrix product.
 @ngpjit
 def _emperical_co_pc_numba(
     rslc,
@@ -228,24 +179,58 @@ def _emperical_co_pc_numba(
     coh = np.empty((n_pc, npairs),dtype=rslc.dtype)
 
     for i in prange(n_pc):
+        n_shp = 0
+        for k in range(az_win):
+            for l in range(r_win):
+                az_idx_ = az_idx[i] - az_half_win + k
+                r_idx_ = r_idx[i] - r_half_win + l
+                if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
+                    n_shp += 1
+        if n_shp == 0:
+            for pair_i in range(npairs):
+                coh[i,pair_i] = np.nan
+            continue
+        x = np.empty((n_shp, nimages), dtype=rslc.dtype)
+        n_shp = 0
+        for k in range(az_win):
+            for l in range(r_win):
+                az_idx_ = az_idx[i] - az_half_win + k
+                r_idx_ = r_idx[i] - r_half_win + l
+                if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
+                    x[n_shp] = rslc[az_idx_, r_idx_]
+                    n_shp += 1
+        c = np.dot(np.conj(x).T, x)    # c[m, j] = sum conj(x_m) x_j
+        d = np.empty(nimages, dtype=np.float32)
+        for m in range(nimages):
+            d[m] = 1/math.sqrt(c[m,m].real)
         for pair_i in range(npairs):
             m, j = image_pairs[pair_i]
-            _co_nume = 0.0 + 0.0j
-            _amp2_m = 0.0
-            _amp2_j = 0.0
-            for k in range(az_win):
-                for l in range(r_win):
-                    az_idx_ = az_idx[i] - az_half_win + k
-                    r_idx_ = r_idx[i] - r_half_win + l
-                    if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
-                        rslc_m = rslc[az_idx_, r_idx_, m]
-                        rslc_j = rslc[az_idx_, r_idx_, j]
-                        _amp2_m += rslc_m.real**2 + rslc_m.imag**2
-                        _amp2_j += rslc_j.real**2 + rslc_j.imag**2
-                        _co_nume += rslc_m*np.conj(rslc_j)
-            _coh = _co_nume/math.sqrt(_amp2_m*_amp2_j)
-            coh[i,pair_i] = _coh
+            coh[i,pair_i] = np.conj(c[m,j])*(d[m]*d[j])
     return coh
+
+if is_cuda_available():
+    def _emperical_co_pc_cp(rslc, az_idx, r_idx, pc_is_shp, image_pairs, max_bytes=2**30):
+        nlines, width, nimages = rslc.shape
+        n_pc = az_idx.shape[0]
+        az_win, r_win = pc_is_shp.shape[1:]
+        win = az_win*r_win
+        da, dr = np.meshgrid(np.arange(az_win)-az_win//2, np.arange(r_win)-r_win//2, indexing='ij')
+        da = cp.asarray(da.ravel(), dtype=cp.int32); dr = cp.asarray(dr.ravel(), dtype=cp.int32)
+        ref = cp.asarray(image_pairs[:,0]); sec = cp.asarray(image_pairs[:,1])
+        coh = cp.empty((n_pc, image_pairs.shape[0]), dtype=rslc.dtype)
+        # samples, their conjugate transpose and the product of every point of a batch, complex64
+        batch = max(1, int(max_bytes//(8*(2*win*nimages+2*nimages*nimages))))
+        for start in range(0, n_pc, batch):
+            stop = min(start+batch, n_pc)
+            a = az_idx[start:stop,None]+da; r = r_idx[start:stop,None]+dr                          # (b, win)
+            valid = pc_is_shp[start:stop].reshape(-1, win) & (a >= 0) & (a < nlines) & (r >= 0) & (r < width)
+            x = rslc[cp.clip(a, 0, nlines-1), cp.clip(r, 0, width-1)]                             # (b, win, nimages)
+            x = cp.where(valid[...,None], x, 0)       # not x*valid: nan outside the SHPs must not count
+            c = cp.matmul(x.conj().swapaxes(1,2), x)                                             # (b, nimages, nimages)
+            del x
+            d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
+            coh[start:stop] = c[:,ref,sec].conj()*(d[:,ref]*d[:,sec])
+        return coh
 
 def emperical_co_pc(rslc:np.ndarray,
                     idx:np.ndarray,
@@ -265,7 +250,7 @@ def emperical_co_pc(rslc:np.ndarray,
     pc_is_shp : np.ndarray
         shp bool, dtype: `bool`
     block_size : int, default: 128
-        the CUDA block size, it only affects the calculation speed
+        no effect, kept for compatibility
     image_pairs : np.ndarray, optional
         only coherence of those image pairs will estimated, dtype: `np.int32`, shape: (n_image_pair, 2)
     return_n_looks : bool, default: False
@@ -294,18 +279,11 @@ def emperical_co_pc(rslc:np.ndarray,
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
-        coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
+        from .pl import _single_thread_blas
+        with _single_thread_blas():
+            coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     else:
-        image_pairs = cp.asarray(image_pairs)
-        coh = cp.empty((n_pc,image_pairs.shape[0]),dtype=rslc.dtype)
-        _emperical_co_pc_kernel(
-            rslc, az_idx, r_idx, pc_is_shp, image_pairs[:,0], image_pairs[:,1],
-            cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-            cp.int32(az_half_win),cp.int32(r_half_win),
-            cp.int32(n_pc), cp.int32(image_pairs.shape[0]),
-            coh,
-            size = n_pc,block_size=block_size
-        )
+        coh = _emperical_co_pc_cp(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     if not return_n_looks:
         return coh
     return coh, _n_looks(pc_is_shp, _rslc_rho2(rslc))

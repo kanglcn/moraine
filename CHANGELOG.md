@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`emperical_co_pc` (also in `emperical-co-pc` and `emperical-co-emi-temp-coh-pc`) computes the coherence of all image pairs of a point from one matrix product of its SHP samples: on 20 000 Campi Flegrei DS candidates (92 images, 4186 pairs) 2.0 instead of 37 µs per point on an A100 and 2.8 instead of 13 µs on 128 CPU cores; the fused command takes 73 instead of 258 µs per point on the GPU and 30 instead of 45 µs on the CPU. The GPU uses up to 1 GiB more memory. The coherence changes by float32 rounding (at most 2e-6), the DS selected on that sample do not change; `block_size` has no effect any more
+
 `n2ft` (command) filters one output chunk of points with all image pairs per task instead of all points per image pair: the sampling and neighbour structure of every processing chunk is computed once instead of once per image pair, and a worker holds the rslc of its chunk instead of whole images. 531 k points (Campi Flegrei PS candidates) on one A100: 62 s instead of 438 s for 91 image pairs, worker peak memory 1.4 instead of 2.8 GB; on the CPU 289 s instead of 351 s for 10 image pairs. 10 million points, 2 image pairs: 125 s instead of 200 s, worker 1.4 instead of 2.3 GB, main process 1.1 instead of 1.2 GB. The results are identical; the processing chunks no longer cross the output chunks, and when `chunks` divides `out_chunks` (as in the examples) they are the same as before
 
 Errors of the parallel zarr reads and writes of the commands (e.g. a corrupted chunk, a read-only output) are raised; before, a failed read returned uninitialized values and a failed write was ignored
