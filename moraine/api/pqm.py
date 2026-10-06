@@ -57,17 +57,15 @@ def _temp_coh_pc_numba(
     n_image_pairs = image_pairs.shape[0]
     temp_coh = np.empty(n_points,dtype=np.float32)
     for i in prange(n_points):
-        rslc_ = rslc[i]
-        intf_ = intf[i]
+        # unit amplitude values in local variables: the inputs are not changed
+        rslc_ = np.empty(nimages, dtype=rslc.dtype)
         for j in range(nimages):
-            rslc_[j] = rslc_[j]/abs(rslc_[j])
-        for j in range(n_image_pairs):
-            intf_[j] = intf_[j]/abs(intf_[j])
+            rslc_[j] = rslc[i,j]/abs(rslc[i,j])
         _t_coh = np.complex64(0.0)
         for j in range(n_image_pairs):
             n, k = image_pairs[j,0],image_pairs[j,1]
             rslc_intf_ = np.conjugate(rslc_[n])*rslc_[k]
-            diff_ph = intf_[j]*rslc_intf_
+            diff_ph = intf[i,j]/abs(intf[i,j])*rslc_intf_
             _t_coh += diff_ph
         _t_coh = np.abs(_t_coh)/n_image_pairs
         temp_coh[i] = _t_coh
