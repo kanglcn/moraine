@@ -119,9 +119,12 @@ you can install the needed `cudatoolkit`, `cupy`, `dask_cuda` by:
 
 ``` bash
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
-conda install -c conda-forge cupy cuda-version=11.8
+conda install -c conda-forge cupy numba-cuda cuda-version=11.8
 conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
 ```
+
+The numba-cuda package is NVIDIA's package of the numba CUDA target that moraine's GPU kernels use; without it the
+deprecated CUDA target built into numba is used, which starts every kernel about 4 times slower.
 
 Then
 
