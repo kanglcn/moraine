@@ -1074,9 +1074,9 @@ def pc_select_data(
     Parameters
     ----------
     idx_in : str
-        input: grid index or hillbert index of the input point cloud
+        input: grid index or hillbert index of the input point cloud, sorted
     idx : str
-        input: grid index or hillbert index of the points to select, a subset of `idx_in`
+        input: grid index or hillbert index of the points to select, a subset of `idx_in`, sorted
     pc_in : str | list
         input: path or list of paths of the input point cloud data
     pc : str | list

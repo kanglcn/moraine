@@ -52,7 +52,7 @@ def _check_idx_sorted(idx,shape=None):
         idx_1d = _ravel_gix(idx,dims=shape)
     else:
         idx_1d = idx
-    assert (xp.diff(idx_1d)>0).any(), "idx is not sorted or unique!"
+    assert (xp.diff(idx_1d)>0).all(), "idx is not sorted or unique!"
 
 # Some functions adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license,
 # Which is Initially based on https://github.com/galtay/hilbert_curve, but specialized
@@ -397,9 +397,9 @@ def pc_union(idx1:np.ndarray,
     Parameters
     ----------
     idx1 : np.ndarray
-        int array, grid index or hillbert index of the first point cloud
+        int array, grid index or hillbert index of the first point cloud, sorted, without duplicates
     idx2 : np.ndarray
-        int array, grid index or hillbert index of the second point cloud
+        int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
         image shape, faster if provided for grid index input
 
@@ -473,9 +473,9 @@ def pc_intersect(idx1:np.ndarray,
     Parameters
     ----------
     idx1 : np.ndarray
-        int array, grid index or hillbert index of the first point cloud
+        int array, grid index or hillbert index of the first point cloud, sorted, without duplicates
     idx2 : np.ndarray
-        int array, grid index or hillbert index of the second point cloud
+        int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
         image shape, faster if provided for grid index input
 
@@ -511,9 +511,9 @@ def pc_diff(idx1:np.ndarray,
     Parameters
     ----------
     idx1 : np.ndarray
-        int array, grid index or hillbert index of the first point cloud
+        int array, grid index or hillbert index of the first point cloud, sorted, without duplicates
     idx2 : np.ndarray
-        int array, grid index or hillbert index of the second point cloud
+        int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
         image shape, faster if provided for grid index input
 

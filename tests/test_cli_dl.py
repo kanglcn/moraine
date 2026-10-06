@@ -41,6 +41,19 @@ def test_cli_pre_infer_n2f_gpu(rslc):
     np.testing.assert_array_almost_equal(x[:, :, ~mask], x_cp[:, :, ~mask_cp].get())
 
 
+@pytest.mark.parametrize('gpu', GPU)
+def test_cli_n2f_keeps_input(rslc, gpu):
+    # the image blocks are shared by the dask tasks of several image pairs and must not change
+    from moraine.cli.dl import _cli_n2f_cpu, _cli_n2f_np_in_gpu
+    ref, sec = rslc[:400, :400, 0], rslc[:400, :400, 1]
+    ref[0, 0] = 0  # GAMMA writes 0 where there are no data
+    ref0, sec0 = ref.copy(), sec.copy()
+    out = (_cli_n2f_np_in_gpu if gpu else _cli_n2f_cpu)(ref, sec, chunks=(200, 200), depths=(32, 32))
+    np.testing.assert_array_equal(ref, ref0)
+    np.testing.assert_array_equal(sec, sec0)
+    assert np.isnan(out[0, 0])
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize('cuda', GPU)
 def test_cli_n2f(rslc, tmp_path, cuda):

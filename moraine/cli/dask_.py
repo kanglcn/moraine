@@ -64,8 +64,10 @@ def parallel_read_zarr(data_zarr,slices,thread_pool_size=None,fill_slice=True):
     out = np.empty(out_shape,dtype=data_zarr.dtype)
 
     with concurrent.futures.ThreadPoolExecutor(thread_pool_size) as executor:
-        for zarr_1chunk_slice,out_1chunk_slice in zip(zarr_1chunk_slices,out_1chunk_slices):
-            future = executor.submit(_read_one_chunk,data_zarr,out,zarr_1chunk_slice,out_1chunk_slice)
+        futures = [executor.submit(_read_one_chunk,data_zarr,out,zarr_1chunk_slice,out_1chunk_slice)
+                   for zarr_1chunk_slice,out_1chunk_slice in zip(zarr_1chunk_slices,out_1chunk_slices)]
+    for future in futures:
+        future.result() # raise the errors of the reads
     return out
 
 def dask_from_zarr(
@@ -190,8 +192,10 @@ def _parallel_read_pc_dir(
         out[out_slice] = data_zarr[idx]
 
     with concurrent.futures.ThreadPoolExecutor(thread_pool_size) as executor:
-        for zarr_path,out_slice in zip(zarr_dir.zarr_path_list,out_slices):
-            future = executor.submit(_read_one_zarr_one_chunk,zarr_path,out,idx,out_slice)
+        futures = [executor.submit(_read_one_zarr_one_chunk,zarr_path,out,idx,out_slice)
+                   for zarr_path,out_slice in zip(zarr_dir.zarr_path_list,out_slices)]
+    for future in futures:
+        future.result() # raise the errors of the reads
     return out
 
 def _dask_from_pc_zarr_dir(zarrs):
@@ -221,8 +225,10 @@ def parallel_write_zarr(data,data_zarr,slices,thread_pool_size=None,fill_slice=T
     _one_chunk_slices_and_out_shape(data_zarr,slices)[:2]
 
     with concurrent.futures.ThreadPoolExecutor(thread_pool_size) as executor:
-        for zarr_1chunk_slice,data_1chunk_slice in zip(zarr_1chunk_slices,data_1chunk_slices):
-            future = executor.submit(_write_one_chunk,data_zarr,data,zarr_1chunk_slice,data_1chunk_slice)
+        futures = [executor.submit(_write_one_chunk,data_zarr,data,zarr_1chunk_slice,data_1chunk_slice)
+                   for zarr_1chunk_slice,data_1chunk_slice in zip(zarr_1chunk_slices,data_1chunk_slices)]
+    for future in futures:
+        future.result() # raise the errors of the writes
 
 def _all_chunk_slices_except_pdims(data_zarr, pdims):
     out_slices = []
