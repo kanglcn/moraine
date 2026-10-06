@@ -14,7 +14,7 @@ request before running anything.
 - Python >= 3.11. Install with `pip install -e '.[dev,dl]'` (`dl` = PyTorch, needed only by the deep
   learning filters `n2f`, `n2ft`). Download the trained models once:
   `python -c "import moraine; moraine.download_dl_model()"`.
-- GPU processing (`--cuda`, `cuda = true`) needs cupy, dask-cuda and rmm, installed with conda for the
+- GPU processing (`--cuda`, `cuda = true`) needs cupy, numba-cuda, dask-cuda and rmm, installed with conda for the
   local CUDA version (see README). moraine treats a GPU as available only when `CUDA_VISIBLE_DEVICES`
   is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all GPUs listed
   there (one dask worker per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.

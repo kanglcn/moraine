@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`numba-cuda` (NVIDIA) is a GPU dependency, installed with conda like cupy (README): the GPU kernels are numba.cuda kernels (decision 0030), and it starts them about 4 times faster than the deprecated CUDA target built into numba (110 instead of 450 us per launch)
+
 No cupy ElementwiseKernel is left; the GPU kernels are numba.cuda kernels or cupy matrix products. `temp_coh` (one warp per point) takes 1.8 instead of 7.9 ms for 981 x 1000 points and 91 image pairs on an A100, `amp_disp` (one warp per pixel) 1.7 instead of 2.2 ms for 981 x 1000 x 92, `emperical_co` 9 instead of 64 ms for 100 x 100 x 92; the small per pixel kernels of `n2f` / `n2fs3d` and `ad_intf_pc` take 0.1-1 ms more per call, the launch overhead of numba.cuda. The results are the same, or differ by float32 rounding; `emperical_co` ignores `block_size`
 
 Compiled numba functions are cached on disk, in a directory named after a hash of the moraine sources (`~/.cache/moraine/numba/`, decision 0029): the first call in a process takes 0.4 instead of 11 s for the fused DS step and 0.2 instead of 5 s for the SHP test, once a version of the code has run. The functions that used numba's own cache (unwrapping, chunking, amplitude) could keep old machine code after a change of another file; they use the new cache too
