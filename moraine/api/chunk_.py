@@ -10,6 +10,7 @@ from .rtree import HilbertRtree
 from scipy.spatial import KDTree
 from joblib import Parallel, delayed
 from numba import njit
+from .utils_ import mjit
 
 def fill_slice(
     shape,
@@ -125,7 +126,7 @@ def chunkwise_slicing_mapping(
     map_slices = list(itertools.product(*map_slices))
     return in_slices, out_slices, map_slices
 
-@njit(fastmath=True, cache=True, nogil=True)
+@mjit(nopython=True, fastmath=True, nogil=True)
 def normalize_xy_stack(x_chunk, y_chunk):
     """
     Normalize x, y to [0, 1] range and stack into shape (N, 2).
@@ -152,7 +153,7 @@ def normalize_xy_stack(x_chunk, y_chunk):
 
     return pos_norm, x_min, x_max, y_min, y_max
 
-@njit(fastmath=True, cache=True, nogil=True)
+@mjit(nopython=True, fastmath=True, nogil=True)
 def get_boundary_idx(x_norm, y_norm, k=128, bound_ratio_init=0.05, bound_ratio_step=0.05):
     """
     Select boundary point indices from normalized coordinates.
@@ -186,7 +187,7 @@ def get_boundary_idx(x_norm, y_norm, k=128, bound_ratio_init=0.05, bound_ratio_s
 
         br += bound_ratio_step
 
-@njit(fastmath=True, cache=True, nogil=True)
+@mjit(nopython=True, fastmath=True, nogil=True)
 def normalize_and_get_boundary(x_chunk, y_chunk, k=128, bound_ratio_init=0.05, bound_ratio_step=0.05):
     """
     Combined normalization and boundary index selection.

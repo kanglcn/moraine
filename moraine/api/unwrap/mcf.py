@@ -4,6 +4,7 @@ __all__ = ['mcf_pc']
 
 import numpy as np
 from numba import njit
+from ..utils_ import mjit
 
 from .delaunay_ import delaunay_halfedges
 
@@ -15,7 +16,7 @@ from .delaunay_ import delaunay_halfedges
 _TWO_PI = 2 * np.pi
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _hull_halfedges(half):
     n = 0
     for e in range(half.shape[0]):
@@ -60,7 +61,7 @@ def _mcf_edges(x, y):
     return tri, half, hull, edges, edge_of_half, sign_of_half
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _mcf_residues(psi, tri):
     """Residue of every triangle (sum of wrapped phase differences along its half-edges / 2 pi); the
     last element is the earth, which balances the total."""
@@ -79,14 +80,14 @@ def _mcf_residues(psi, tri):
     return r
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _grow(a):
     b = np.empty(a.shape[0] * 2, a.dtype)
     b[:a.shape[0]] = a
     return b
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _mcf_ssp(tri, half, hull, supply, earth_cost, cost=None):
     """Min cost flow by successive shortest paths.
 
@@ -216,7 +217,7 @@ def _mcf_ssp(tri, half, hull, supply, earth_cost, cost=None):
     return f
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _mcf_integrate(psi, tri, half, f, n_points):
     """Breadth first search over the triangles from the first point; the unwrapped gradient along
     half-edge e is wrap(psi[b] - psi[a]) - 2 pi f[e]. The first point keeps its wrapped phase."""
@@ -257,7 +258,7 @@ def _mcf_integrate(psi, tri, half, f, n_points):
     return unw
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _mcf_solve(ph, tri, half, hull, earth_cost, cost):
     psi = np.empty(ph.shape[0], np.float32)
     for i in range(ph.shape[0]):

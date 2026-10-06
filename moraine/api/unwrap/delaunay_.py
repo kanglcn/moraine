@@ -35,15 +35,16 @@ __all__ = ['delaunay_halfedges', 'delaunay']
 
 import numpy as np
 from numba import njit
+from ..utils_ import mjit
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _orient(px, py, qx, qy, rx, ry):
     """True if p, q, r are clockwise in this convention (the seed triangle and all triangles are made so)."""
     return (qy - py) * (rx - qx) - (qx - px) * (ry - qy) < 0
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _in_circle(ax, ay, bx, by, cx, cy, px, py):
     dx = ax - px
     dy = ay - py
@@ -57,7 +58,7 @@ def _in_circle(ax, ay, bx, by, cx, cy, px, py):
     return dx * (ey * cp - bp * fy) - dy * (ex * cp - bp * fx) + ap * (ex * fy - ey * fx) < 0
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _circumradius2(ax, ay, bx, by, cx, cy):
     dx = bx - ax
     dy = by - ay
@@ -74,7 +75,7 @@ def _circumradius2(ax, ay, bx, by, cx, cy):
     return x * x + y * y
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _circumcenter(ax, ay, bx, by, cx, cy):
     dx = bx - ax
     dy = by - ay
@@ -86,7 +87,7 @@ def _circumcenter(ax, ay, bx, by, cx, cy):
     return ax + (ey * bl - dy * cl) * d, ay + (dx * cl - ex * bl) * d
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _less(d1, x1, y1, d2, x2, y2):
     """Lexicographic (d, x, y) comparison: ties are decided by the coordinates, not the index."""
     if d1 != d2:
@@ -96,7 +97,7 @@ def _less(d1, x1, y1, d2, x2, y2):
     return y1 < y2
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _seeds(xf, yf):
     n = xf.shape[0]
     cx = (xf.min() + xf.max()) / 2
@@ -129,25 +130,25 @@ def _seeds(xf, yf):
     return i0, i1, i2
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _pseudo_angle(dx, dy):
     p = dx / (abs(dx) + abs(dy))
     return (3 - p if dy > 0 else 1 + p) / 4
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _hash_key(x, y, cx, cy, size):
     return int(np.floor(_pseudo_angle(x - cx, y - cy) * size)) % size
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _link(halfedges, a, b):
     halfedges[a] = b
     if b != -1:
         halfedges[b] = a
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _sweep(X, Y, xf, yf, ids, i0, i1, i2, cx, cy):
     n = X.shape[0]
     max_tri = max(2 * n - 5, 1)
@@ -251,7 +252,7 @@ def _sweep(X, Y, xf, yf, ids, i0, i1, i2, cx, cy):
     return triangles[:tlen], halfedges[:tlen], skipped
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _legalize(a, triangles, halfedges, X, Y, hull_tri, hull_prev, hull_start, stack):
     i = 0
     ar = 0
@@ -301,7 +302,7 @@ def _legalize(a, triangles, halfedges, X, Y, hull_tri, hull_prev, hull_start, st
     return ar, hull_start
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _coordinates(xf, yf):
     """Integer coordinates with a span < 2**15 get exact int64 predicates (relative to the minimum)."""
     n = xf.shape[0]
@@ -322,7 +323,7 @@ def _coordinates(xf, yf):
     return integer, X, Y
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _distances(xf, yf, cx, cy):
     d = np.empty(xf.shape[0], np.float64)
     for i in range(xf.shape[0]):
@@ -330,7 +331,7 @@ def _distances(xf, yf, cx, cy):
     return d
 
 
-@njit(cache=True)
+@mjit(nopython=True)
 def _break_ties(ids, d, xf, yf):
     """Within runs of equal distance, order by (x, y), so the order does not depend on the input order
     (insertion sort: runs are short)."""

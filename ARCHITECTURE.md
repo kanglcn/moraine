@@ -39,7 +39,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/__init__.py` | version; re-exports the public API as `moraine.*` | |
 | `moraine/__main__.py` | `python -m moraine` entry point | |
 | `moraine/api/__init__.py` | re-exports the public API of the modules below | |
-| `moraine/api/utils_.py` | numba decorators, GPU detection, numpy / cupy dispatch | `ngjit`, `is_cuda_available`, `get_array_module` |
+| `moraine/api/utils_.py` | numba decorators with the compiled code cached by source hash, GPU detection, numpy / cupy dispatch | `mjit`, `ngjit`, `is_cuda_available`, `get_array_module` |
 | `moraine/api/chunk_.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
 | `moraine/api/coord_.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/gamma_.py` | read / write GAMMA binary files | `read_gamma_image` |

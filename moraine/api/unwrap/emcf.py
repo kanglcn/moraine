@@ -10,6 +10,7 @@ from numba import njit, prange
 
 from ..tnet import TempNet
 from ..utils_ import get_mem_avail, get_n_cpus_avail
+from ..utils_ import mjit
 from .closure import _l1_fit, _pair_forest
 from .mcf import _SPATIAL_COST_RANGE, _TWO_PI, _edge_length, _mcf_edges, _mcf_ssp
 
@@ -38,7 +39,7 @@ def _pair_costs(t, pairs, mode):
     return cost
 
 
-@njit(cache=True, inline='always')
+@mjit(nopython=True, inline='always')
 def _gradient(rp, rq, sp, sq):
     """Wrapped gradient from p to q of the interferogram of images r and s (phases rp, rq, sp, sq)."""
     a = rq * np.conj(rp)
@@ -47,7 +48,7 @@ def _gradient(rp, rq, sp, sq):
     return np.arctan2(z.imag, z.real)
 
 
-@njit(cache=True, parallel=True)
+@mjit(nopython=True, parallel=True)
 def _emcf_temporal(ph, p, q, pairs, pair_cost, order, parent):
     """Temporal step on a block of edges (p[i], q[i]), rows of `ph` (n_rows, nimages): whole cycles to add to
     the wrapped gradient of every interferogram, (n_edges, n_pairs) int8; correcting interferogram k costs
@@ -129,7 +130,7 @@ def _spatial_worker_bytes(n_points, n_edges, n_tri, flags):
     return b
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _emcf_spatial(ph_ref, ph_sec, cycles, tri, half, hull, edges, edge_of_half, sign_of_half, earth_cost, flags,
                   edge_length, weight):
     """Spatial step of one interferogram (images `ph_ref`, `ph_sec`, (n_points,)) with the cycles of the temporal

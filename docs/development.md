@@ -33,6 +33,10 @@ the design decisions are in `docs/decisions/`, the promised formats in `docs/con
 - Bugs found on the way are fixed in their own commit (or reported), not mixed into the feature.
 - Stop when the maintainer says so.
 
+- numba CPU functions use `mjit`, `ngjit` or `ngpjit` of `moraine/api/utils_.py`, never `cache=True` (decision
+  0029). Their compiled code is cached in `~/.cache/moraine/numba/<hash of the sources>`; a change of any moraine
+  file compiles everything once again.
+
 ### Parallel work in git worktrees
 
 Several agents (or people) work at the same time in separate worktrees, one topic each:

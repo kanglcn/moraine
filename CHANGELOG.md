@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+Compiled numba functions are cached on disk, in a directory named after a hash of the moraine sources (`~/.cache/moraine/numba/`, decision 0029): the first call in a process takes 0.4 instead of 11 s for the fused DS step and 0.2 instead of 5 s for the SHP test, once a version of the code has run. The functions that used numba's own cache (unwrapping, chunking, amplitude) could keep old machine code after a change of another file; they use the new cache too
+
 `ks_test` (command `shp-test`) looks the p value up in a table of the n + 1 possible KS statistics and uses the symmetry of the test: 2.2 times faster on the CPU (300 x 1000 pixels, 92 images, 11 x 11 window: 158 instead of 344 ms), the same p values bit for bit; on the GPU a numba.cuda kernel replaces the cupy kernels (43 instead of 53 ms) and the results are now the same as on the CPU (they differed by up to 2e-7). With `return_dist` the CPU left `dist` uninitialized where the other pixel is nan; it is nan there now
 
 `emperical_co_pc` (also in `emperical-co-pc` and `emperical-co-emi-temp-coh-pc`) computes the coherence of all image pairs of a point from one matrix product of its SHP samples: on 20 000 Campi Flegrei DS candidates (92 images, 4186 pairs) 2.0 instead of 37 µs per point on an A100 and 2.8 instead of 13 µs on 128 CPU cores; the fused command takes 73 instead of 258 µs per point on the GPU and 30 instead of 45 µs on the CPU. The GPU uses up to 1 GiB more memory. The coherence changes by float32 rounding (at most 2e-6), the DS selected on that sample do not change; `block_size` has no effect any more

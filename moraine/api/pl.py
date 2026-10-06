@@ -3,11 +3,12 @@
 __all__ = ['emi', 'ds_temp_coh', 'emperical_co_emi_temp_coh_pc']
 
 import contextlib
-import ctypes
+import llvmlite.binding as _ll
 import functools
 import math
 import threading
 import numpy as np
+from numba import types as _nbtypes
 from numba.extending import get_cython_function_address
 from threadpoolctl import ThreadpoolController
 import moraine as mr
@@ -120,9 +121,10 @@ class _single_thread_blas:
 # (tridiagonalization, then one eigenvector by MRRR and its back transformation) instead of all of them
 # (2.2 times faster for 60-92 images). It is the LAPACK numba's np.linalg calls, through scipy. A numba
 # array in C order is the Fortran order of its transpose, the conjugate of a Hermitian matrix, so the
-# eigenvector comes out conjugated.
-_P = ctypes.c_void_p
-_cheevr = ctypes.CFUNCTYPE(None, *([_P]*23))(get_cython_function_address('scipy.linalg.cython_lapack', 'cheevr'))
+# eigenvector comes out conjugated. It is called by symbol name, not through a ctypes pointer, so that the kernels
+# can be cached (decision 0029).
+_ll.add_symbol('moraine_cheevr', get_cython_function_address('scipy.linalg.cython_lapack', 'cheevr'))
+_cheevr = _nbtypes.ExternalFunction('moraine_cheevr', _nbtypes.void(*([_nbtypes.voidptr]*23)))
 # after loading scipy's LAPACK (pip wheels of numpy and scipy bring separate BLAS libraries; numba calls scipy's)
 _blas_controller = ThreadpoolController()
 

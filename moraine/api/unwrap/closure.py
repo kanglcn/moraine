@@ -6,6 +6,7 @@ import warnings
 
 import numpy as np
 from numba import njit, prange
+from ..utils_ import mjit
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
@@ -57,7 +58,7 @@ def _pair_forest(pairs, n_images):
     return np.array(order, np.int64), parent, pairs.shape[0] - int((parent >= 0).sum())
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _pred_cycle(pairs, pred, mark):
     """An image on a cycle of the predecessor arcs, or -1."""
     mark[:] = -1
@@ -74,7 +75,7 @@ def _pred_cycle(pairs, pred, mark):
     return -1
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _l1_fit(pairs, m, cost, order, parent, z):
     """Integer n of the images minimizing sum_k cost[k] |m[k] + n[a_k] - n[b_k]| on any graph of image pairs;
     z = m + n[a] - n[b] (the correction of every pair at the optimum), into z.
@@ -162,7 +163,7 @@ def _l1_fit(pairs, m, cost, order, parent, z):
         z[k] = z[k] - d[pairs[k, 0]] + d[pairs[k, 1]]
 
 
-@njit(cache=True, parallel=True)
+@mjit(nopython=True, parallel=True)
 def _closure_ts(ph, unw, unw_in, pairs, order, parent, ref):
     """Phase time series of a block of points (`ph` (n, nimages), `unw` (n, n_pairs) after the region correction,
     `unw_in` the input before it, same shape): unwrapped phase of every image relative to image `ref`,
@@ -212,7 +213,7 @@ def _closure_ts(ph, unw, unw_in, pairs, order, parent, ref):
     return ts, frac, dev.max() if n else 0.0
 
 
-@njit(cache=True, parallel=True)
+@mjit(nopython=True, parallel=True)
 def _closure_estimate(ph, unw, pairs, order, parent):
     """Per point corrections on a block of points (`ph` (n, nimages), `unw` (n, n_pairs)): whole cycles to add to
     every interferogram so that every loop of image pairs closes, (n, n_pairs) int8, the fraction of the
@@ -262,7 +263,7 @@ def _closure_regions(x, y, edges, max_edge_factor, min_region_points):
     return index[lab], int(big.sum())
 
 
-@njit(cache=True, nogil=True)
+@mjit(nopython=True, nogil=True)
 def _closure_apply(unw, d, region, n_regions):
     """Correction of one interferogram (`unw` (n_points,), in place) by the median of the per point corrections
     `d` (n_points,) in every region (`region` (n_points,); -1: small region, every point gets its own correction).
@@ -305,7 +306,7 @@ def _closure_apply(unw, d, region, n_regions):
             unw[i] += _TWO_PI * c
 
 
-@njit(cache=True, parallel=True)
+@mjit(nopython=True, parallel=True)
 def _closure_apply_all(unw, d, region, n_regions):
     for k in prange(unw.shape[1]):
         _closure_apply(unw[:, k], d[:, k], region, n_regions)
