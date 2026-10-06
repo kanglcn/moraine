@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+Errors of the parallel zarr reads and writes of the commands (e.g. a corrupted chunk, a read-only output) are raised; before, a failed read returned uninitialized values and a failed write was ignored
+
 `emi` on the CPU (also inside `emperical-co-emi-temp-coh-pc`) was about 2·10⁴ times slower than it should be on many-core machines: the multithreaded BLAS (MKL, OpenBLAS) started its own threads in every call from the numba threads (128 x 128 threads on 128 cores; 187 ms instead of 7.6 µs per point for 60 images). Its threads are now limited to one while the kernel runs (new dependency `threadpoolctl`). The kernel also computes only the smallest eigenpair (LAPACK `cheevr`) instead of all: 1.5-1.8 times faster, 3.4-5 µs per point for 60 images, 8-12 µs for 92 images on 128 cores; the phase histories change only by float32 rounding
 
 Faster CPU kernels of decisions 0024 and 0025: `ds_temp_coh` 1.6-3 times (real arithmetic; 100 000 points x 4186 image pairs: 46 instead of 86 ms), the effective number of looks of the SHP sets 30-95 times (pair counts per lag by popcount; identical results), the speckle correlation of a 1000 x 1000 chunk 6 times (local power normalization in numba instead of scipy, 9 instead of 57 ms)

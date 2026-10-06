@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import dask.array as da
 import numpy as np
+import pytest
 import zarr
 
 from moraine.cli.dask_ import (parallel_read_zarr, parallel_write_zarr, dask_from_zarr, dask_from_zarr_overlap,
@@ -53,3 +56,41 @@ def test_pc_zarr_dir(tmp_path, rng):
     both = np.concatenate((d1, d2), axis=0)
     np.testing.assert_array_equal(_parallel_read_pc_dir(ZarrDir.from_dir(str(tmp_path / 'pc')), 2), both[:, 2])
     np.testing.assert_array_equal(_dask_from_pc_zarr_dir(str(tmp_path / 'pc')).compute(), both)
+
+
+def _corrupt_chunks(path):
+    """Overwrite every chunk file of a zarr array with bytes that cannot be decoded."""
+    for f in Path(path).rglob('*'):
+        if f.is_file() and f.name not in ('zarr.json', '.zarray', '.zattrs', '.zgroup', '.zmetadata'):
+            f.write_bytes(b'not a compressed chunk')
+
+
+def test_parallel_read_zarr_raises(tmp_path, rng):
+    _stack(tmp_path, rng)
+    _corrupt_chunks(tmp_path / 'data.zarr')
+    z = zarr.open(str(tmp_path / 'data.zarr'), mode='r')
+    with pytest.raises(Exception) as direct:
+        z[:, :, 2:3]
+    with pytest.raises(direct.type):
+        parallel_read_zarr(z, (slice(0, 130), slice(0, 170), slice(2, 3)))
+
+
+def test_parallel_write_zarr_raises(tmp_path, rng):
+    data, _ = _stack(tmp_path, rng)
+    z = zarr.open(str(tmp_path / 'data.zarr'), mode='r')
+    with pytest.raises(Exception) as direct:
+        z[:, :, 0:1] = data[:, :, 0:1]
+    with pytest.raises(direct.type):
+        parallel_write_zarr(data[:, :, 0:1], z, (slice(0, 130), slice(0, 170), slice(0, 1)))
+
+
+def test_parallel_read_pc_dir_raises(tmp_path, rng):
+    for name in ('1.zarr', '2.zarr'):
+        d = rng.random((32, 10)).astype(np.float32)
+        z = zarr.open(str(tmp_path / 'pc' / name), mode='w', shape=d.shape, dtype=d.dtype, chunks=(d.shape[0], 1))
+        z[:] = d
+    _corrupt_chunks(tmp_path / 'pc' / '2.zarr')
+    with pytest.raises(Exception) as direct:
+        zarr.open(str(tmp_path / 'pc' / '2.zarr'), mode='r')[:, 2]
+    with pytest.raises(direct.type):
+        _parallel_read_pc_dir(ZarrDir.from_dir(str(tmp_path / 'pc')), 2)
