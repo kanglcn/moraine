@@ -49,7 +49,7 @@ magnitude was 0.53 at 12 days and 0.35 at 960 days. The sample data (17 images) 
   smallest β that the data of the point prove necessary; a rule from the number of SHPs would need the
   effective number of independent looks, unknown for oversampled and resampled SLCs.
 - β is not an output. The EMI quality of a regularized point is the smallest eigenvalue of the
-  regularized problem (at least β, Schur's inequality). The temporal coherence is computed with Γ as
+  regularized problem (at least β, Schur's inequality; no longer an output since decision 0027). The temporal coherence is computed with Γ as
   estimated; it depends only on the phases of Γ, which the regularization does not change.
 
 ## Consequences

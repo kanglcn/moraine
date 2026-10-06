@@ -1,7 +1,7 @@
 """Covariance and coherence matrix estimation"""
 
 __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc',
-           'isPD', 'nearestPD', 'regularize_spectral', 'slc_correlation', 'shp_n_looks']
+           'isPD', 'nearestPD', 'regularize_spectral']
 
 import math
 import numpy as np
@@ -252,7 +252,8 @@ def emperical_co_pc(rslc:np.ndarray,
                     pc_is_shp:np.ndarray,
                     block_size:int=128,
                     image_pairs:np.ndarray=None,
-                   )-> np.ndarray:
+                    return_n_looks:bool=False,
+                   ):
     """Maximum likelihood covariance estimator for point cloud data.
 
     Parameters
@@ -267,11 +268,17 @@ def emperical_co_pc(rslc:np.ndarray,
         the CUDA block size, it only affects the calculation speed
     image_pairs : np.ndarray, optional
         only coherence of those image pairs will estimated, dtype: `np.int32`, shape: (n_image_pair, 2)
+    return_n_looks : bool, default: False
+        also return the effective number of independent looks of the SHP set of each point
 
     Returns
     -------
-    np.ndarray
-        `coh`, dtype:`np.complex64`, shape(n_pc, n_image_pair)
+    np.ndarray or tuple[np.ndarray, np.ndarray]
+        `coh`, dtype:`np.complex64`, shape(n_pc, n_image_pair); with `return_n_looks` also `n_looks`, dtype
+        float32, shape (n_pc,): the number of independent looks with the same variance of the coherence
+        estimate as the correlated SHPs of the point (between 1 and the number of SHPs; smaller for compact
+        SHP sets than for scattered ones of the same size), from the positions of the SHPs and the speckle
+        correlation of `rslc`; the number of SHPs where `rslc` is too small to estimate the correlation
     """
     xp = get_array_module(rslc)
     nlines, width, nimages = rslc.shape
@@ -287,8 +294,7 @@ def emperical_co_pc(rslc:np.ndarray,
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
-        return _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
-
+        coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     else:
         image_pairs = cp.asarray(image_pairs)
         coh = cp.empty((n_pc,image_pairs.shape[0]),dtype=rslc.dtype)
@@ -300,7 +306,9 @@ def emperical_co_pc(rslc:np.ndarray,
             coh,
             size = n_pc,block_size=block_size
         )
+    if not return_n_looks:
         return coh
+    return coh, _n_looks(pc_is_shp, _rslc_rho2(rslc))
 
 @ngjit
 def uncompress_single_coh_numba(coh, nimages, image_pairs):
@@ -581,9 +589,9 @@ def _slc_correlation_numba(slc, max_az, max_r):
     rho2[max_az, max_r] = 1.0
     return rho2
 
-def slc_correlation(slc:np.ndarray,
-                    max_lag:tuple[int,int]=(4,6),
-                   )-> np.ndarray:
+def _slc_correlation(slc:np.ndarray,
+                     max_lag:tuple[int,int]=(4,6),
+                    )-> np.ndarray:
     """Squared magnitude of the spatial correlation coefficient of the speckle of an SLC.
 
     Its sum over all lags is the number of pixels per independent look (the oversampling): an estimate of
@@ -617,12 +625,25 @@ def slc_correlation(slc:np.ndarray,
     slc = np.where(valid & (local_power > 0), slc/np.sqrt(np.where(local_power > 0, local_power, 1.0)), 0).astype(np.complex64)
     rho2 = _slc_correlation_numba(slc, max_az, max_r)
     outer = np.ones(rho2.shape, dtype=bool); outer[1:-1,1:-1] = False
-    rho2 -= np.nanmean(rho2[outer])
+    noise = rho2[outer][np.isfinite(rho2[outer])]
+    if noise.size > 0: rho2 -= noise.mean()
     rho2[max_az, max_r] = 1.0
     return rho2.astype(np.float32)
 
+def _rslc_rho2(rslc, n_images:int=3):
+    """|rho|^2 of the speckle of an rslc stack (nlines, width, nimages), numpy or cupy: median of
+    `_slc_correlation` of `n_images` evenly spaced images; None if the block is too small to estimate it."""
+    nimages = rslc.shape[2]
+    tables = []
+    for k in np.unique(np.linspace(0, nimages-1, min(n_images, nimages)).round().astype(int)):
+        slc = rslc[:,:,k]
+        if get_array_module(slc) is not np: slc = slc.get()
+        tables.append(_slc_correlation(slc))
+    rho2 = np.median(np.stack(tables), axis=0)
+    return rho2.astype(np.float32) if np.isfinite(rho2).all() else None
+
 # Effective number of looks of an SHP set S (decision 0025): n^2 / sum_{p,q in S} |rho(p-q)|^2, the number
-# of independent looks with the same variance of second order estimates; |rho|^2 from slc_correlation,
+# of independent looks with the same variance of second order estimates; |rho|^2 from _slc_correlation,
 # negative values (noise of the estimate) taken as 0, lags outside the table as 0.
 @ngpjit
 def _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r):
@@ -677,10 +698,17 @@ if is_cuda_available():
         if lane == 0:
             n_looks[i] = n*n/s if n > 0 else np.float32(0.0)
 
-def shp_n_looks(pc_is_shp:np.ndarray,
-                rho2:np.ndarray,
-                block_size:int=128,
-               )-> np.ndarray:
+def _n_looks(pc_is_shp, rho2):
+    """Effective number of looks of the SHP sets with the speckle correlation `rho2`, or the number of
+    SHPs if `rho2` is None."""
+    if rho2 is None:
+        return get_array_module(pc_is_shp).count_nonzero(pc_is_shp, axis=(1,2)).astype(np.float32)
+    return _shp_n_looks(pc_is_shp, rho2)
+
+def _shp_n_looks(pc_is_shp:np.ndarray,
+                 rho2:np.ndarray,
+                 block_size:int=128,
+                )-> np.ndarray:
     """Effective number of independent looks of the SHP set of each point.
 
     The SHPs are correlated pixels; their effective number of looks is the number of independent looks
@@ -693,7 +721,7 @@ def shp_n_looks(pc_is_shp:np.ndarray,
         SHP masks of the points, dtype bool, shape (n_points, az_win, r_win), numpy or cupy
     rho2 : np.ndarray
         |rho|^2 of the speckle at the lag (azimuth, range) = index - (shape - 1) / 2, dtype float32, shape
-        (2*max_az+1, 2*max_r+1), e.g. from `slc_correlation`; lags outside it count as uncorrelated
+        (2*max_az+1, 2*max_r+1), e.g. from `_slc_correlation`; lags outside it count as uncorrelated
     block_size : int, default: 128
         the CUDA block size, a multiple of 32, only affects the speed
 

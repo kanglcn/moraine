@@ -160,8 +160,8 @@ def test_mcf_edge_cases():
 
 @pytest.fixture(scope='module')
 def ds_ph(ds_can):
-    ph, quality, t_coh = mr.emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000)
-    keep = (quality >= 1.0) & (quality < 1.2) & (t_coh > 0.7) & (t_coh <= 1.0)
+    ph, t_coh = mr.emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000)
+    keep = (t_coh > 0.7) & (t_coh <= 1.0)
     gix, ph = ds_can['gix'][keep], ph[keep]
     key = mr.pc_sort(mr.pc_hix(gix, shape=ds_can['rslc'].shape[:2]))
     gix, ph = gix[key], ph[key]

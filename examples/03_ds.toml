@@ -62,7 +62,6 @@ rslc = "raw/rslc.zarr"
 is_shp_dir = "ds/chunks/ds_can_is_shp"
 gix = "ds/ds_can_gix_ras_order.zarr"
 ph_dir = "ds/chunks/ds_can_ph"
-emi_quality_dir = "ds/chunks/ds_can_emi_quality"
 t_coh_dir = "ds/chunks/ds_can_t_coh"
 chunks = [1000, 1000]
 
@@ -87,8 +86,8 @@ key = "ds/chunks/gix2hix_key.zarr"
 [[step]]
 name = "ds_can_concat"            # chunks -> one array each, in hilbert order
 run = "pc-concat"
-pcs = ["ds/chunks/ds_can_ph", "ds/chunks/ds_can_emi_quality", "ds/chunks/ds_can_t_coh"]
-pc = ["ds/ds_can_ph.zarr", "ds/ds_can_emi_quality.zarr", "ds/ds_can_t_coh.zarr"]
+pcs = ["ds/chunks/ds_can_ph", "ds/chunks/ds_can_t_coh"]
+pc = ["ds/ds_can_ph.zarr", "ds/ds_can_t_coh.zarr"]
 key = ["ds/chunks/ds_can_key.zarr", "ds/chunks/gix2hix_key.zarr"]
 chunks = 200000
 
@@ -100,15 +99,7 @@ out_dir = "ds/ds_can_t_coh_pyramid"
 yx = "ds/ds_can_gix.zarr"
 ras_resolution = 2
 
-[[step]]
-name = "ds_can_emi_quality_pyramid"
-run = "pc-pyramid"
-pc = "ds/ds_can_emi_quality.zarr"
-out_dir = "ds/ds_can_emi_quality_pyramid"
-yx = "ds/ds_can_gix.zarr"
-ras_resolution = 2
-
-# ---- DS selection by temporal coherence (the EMI quality is not comparable between regularized points)
+# ---- DS selection by temporal coherence
 [[step]]
 name = "ds"                       # high temporal coherence
 run = "pc-logic-pc"

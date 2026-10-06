@@ -23,7 +23,8 @@ example's selection by EMI quality (1.0 to 1.05) and temporal coherence no longe
 - `regularize` defaults to True in `emi` and `emperical_co_emi_temp_coh_pc` (API and commands). Points
   with a positive definite, well conditioned coherence magnitude matrix are unchanged.
 - `examples/03_ds.toml` selects DS by temporal coherence alone (0.8 to 1.0); the EMI quality range and the
-  intersection are removed. The EMI quality pyramid stays as a diagnostic.
+  intersection are removed. The EMI quality pyramid stays as a diagnostic (removed with the EMI quality
+  output by decision 0027).
 
 ## Consequences
 

@@ -41,10 +41,11 @@ candidates had a coherence magnitude matrix that is not positive definite.
     total) is removed with the mean of the outermost lags, where the correlation is 0.
 - The command `slc-correlation` writes the median table over evenly spaced images of a central block,
   with the sum as attribute `oversampling`, the value for `oversampling` of
-  `emperical-co-emi-temp-coh-pc` (nₑ = number of SHPs / f; decision 0024).
+  `emperical-co-emi-temp-coh-pc` (nₑ = number of SHPs / f; decision 0024). (Removed by decision 0027:
+  the commands measure the table themselves, per raster chunk.)
 - `shp_n_looks(pc_is_shp, rho2)` returns the exact nₑ of each SHP set, n² / Σ_{p,q∈S} |ρ(p − q)|² (negative
   table values as 0, lags outside the table as 0); `emperical-co-emi-temp-coh-pc --rho2` uses it for the
-  weighted temporal coherence instead of n / `oversampling` (CPU numba, GPU numba.cuda with a warp per
+  weighted temporal coherence instead of n / `oversampling` (decision 0027: always, internally) (CPU numba, GPU numba.cuda with a warp per
   point: 200 000 points in 0.18 s on 128 cores, 27 ms on an A100).
 
 ## Consequences

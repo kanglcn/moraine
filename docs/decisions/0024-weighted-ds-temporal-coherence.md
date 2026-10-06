@@ -39,9 +39,11 @@ pairs still carry about half of the weight. Measured with the phases of regulari
   squared coherence without the noise bias; exact in mean at γ = 0 and γ = 1; close to the Fisher weight
   for small coherence and without its divergence at |γ| → 1) and the effective number of image pairs
   (Σw)² / Σw². NaN and 0 where no pair has a positive weight or n_looks ≤ 1. `ds_temp_coh` is unchanged.
+  (Changed by decision 0027: `ds_temp_coh(..., n_looks=)` returns them, `ds_temp_coh_weighted` is internal.)
 - `emperical_co_emi_temp_coh_pc` (API `weighted`, command `t_coh_w_dir`, `eff_n_pairs_dir`) computes both
   with n_looks = number of SHPs / `oversampling` (pixels per independent look, default 1.0: no assumption,
-  the weaker noise correction).
+  the weaker noise correction). (Changed by decision 0027: always the effective number of looks of the
+  SHP set of decision 0025, no parameter.)
 - The CPU version is numba (one point per iteration); the GPU version is a numba.cuda kernel with one
   warp per point (coalesced reads of the image pairs, shuffle reduction), as asked by the maintainer: on an
   A100 100 000 points x 4186 pairs take 5 ms (`ds_temp_coh` with a thread per point: 22 ms); CPU with 128

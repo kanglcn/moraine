@@ -9,7 +9,7 @@ from moraine.api.pqm import temp_coh
 def test_temp_coh_ds_gpu(ds_can):
     import cupy as cp
     coh = mr.emperical_co_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'])
-    ph = mr.emi(coh)[0]
+    ph = mr.emi(coh)
     np.testing.assert_array_almost_equal(temp_coh(coh, ph), temp_coh(cp.asarray(coh), cp.asarray(ph)).get())
 
 

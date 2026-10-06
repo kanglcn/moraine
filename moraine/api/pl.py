@@ -1,6 +1,6 @@
 """Phase linking"""
 
-__all__ = ['emi', 'ds_temp_coh', 'ds_temp_coh_weighted', 'emperical_co_emi_temp_coh_pc']
+__all__ = ['emi', 'ds_temp_coh', 'emperical_co_emi_temp_coh_pc']
 
 import math
 import numpy as np
@@ -11,6 +11,7 @@ if is_cuda_available():
     from numba import cuda
 from numba import prange
 from .utils_ import ngpjit, ngjit
+from .co import _rslc_rho2, _n_looks
 
 # Adaptive regularization of EMI (decision 0023): the coherence matrix coh of a point is replaced by
 # (1-beta)*coh + beta*I, i.e. the off-diagonal elements are scaled by 1-beta, with the smallest beta
@@ -122,10 +123,20 @@ def _emi_numba(
         emi_quality[i] = min_eigval
     return ph, emi_quality
 
+def _emi(coh, ref=0, regularize=True):
+    """`emi` that also returns the EMI quality (minimum eigenvalue, float32, (n_points,)), for tests."""
+    xp = get_array_module(coh)
+    nimages = mr.nimage_from_npair(coh.shape[-1])
+    image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+    if xp is np:
+        return _emi_numba(coh,nimages,image_pairs,ref,regularize)
+    else:
+        return _emi_cp(coh,nimages,image_pairs,ref,regularize)
+
 def emi(coh:np.ndarray,
         ref:int=0,
         regularize:bool=True,
-       )-> tuple[np.ndarray,np.ndarray]:
+       )-> np.ndarray:
     """Phase linking with the EMI estimator.
 
     Parameters
@@ -138,152 +149,60 @@ def emi(coh:np.ndarray,
     regularize : bool, default: True
         regularize the coherence matrix of the points whose coherence magnitude matrix is not positive
         definite or numerically singular (e.g. when the number of images approaches the number of
-        SHPs); points with a well conditioned positive definite matrix are not changed
+        independent looks of the SHPs; without it their phase history is not reliable); points with a
+        well conditioned positive definite matrix are not changed
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
+    np.ndarray
         phase history `ph`, dtype complex64, shape (n_points, nimages), unit amplitude, the phase of
-        image `ref` is 0; EMI quality (minimum eigenvalue), dtype float32, shape (n_points,): 1 for a
-        coherence matrix whose phases close; with `regularize` (default), regularized points get
-        qualities closer to 1 for the same misfit, so the qualities are not comparable between points
-        (select by the temporal coherence instead); without it negative where the coherence magnitude
-        matrix is not positive definite (the phase history of such points is then not reliable)
+        image `ref` is 0
     """
-    xp = get_array_module(coh)
-    nimages = mr.nimage_from_npair(coh.shape[-1])
-    image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
-    if xp is np:
-        return _emi_numba(coh,nimages,image_pairs,ref,regularize)
-    else:
-        return _emi_cp(coh,nimages,image_pairs,ref,regularize)
+    return _emi(coh,ref,regularize)[0]
 
+# DS temporal coherence t = |sum_k exp(j psi_k)| / n_pairs over the image pairs k, with the residual phase
+# psi_k of the phase history. Weighted (decision 0024): t_w = |sum_k w_k exp(j psi_k)| / sum_k w_k and
+# eff_n_pairs = (sum w)^2 / sum w^2, with w_k = max(0, (|coh_k|^2 - 1/n_looks) / (1 - 1/n_looks)), the squared
+# coherence without the noise bias E|coh|^2 = 1/n_looks of incoherent pairs (pairs at the noise level get 0);
+# NaN and 0 where n_looks <= 1 or no pair has a positive weight. One kernel per device computes both
+# (1/n_looks = 1 skips the weights), so t is the same bit for bit with and without n_looks; two kernels do not
+# guarantee that on the GPU (the compiler places fused multiply-adds differently).
 @ngpjit
-def _ds_temp_coh_numba(
-    coh:np.ndarray,
-    ph:np.ndarray,
-    image_pairs:np.ndarray,
-):
-    """Parameters
-    ----------
-    coh : np.ndarray
-        complex coherence metrix, dtype np.complex64
-    ph : np.ndarray
-        complex phase history, dtype np.complex64
-    image_pairs : np.ndarray
-        image pairs
-    """
-    nimages = ph.shape[-1]
-    n_points = ph.shape[0]
-    n_image_pairs = image_pairs.shape[0]
-    temp_coh = np.empty(n_points,dtype=np.float32)
-    for i in prange(n_points):
-        _ph = ph[i]
-        _coh = coh[i]
-        _t_coh = np.complex64(0.0)
-        for j in range(n_image_pairs):
-            n, k = image_pairs[j,0],image_pairs[j,1]
-            int_conj_ph = np.conjugate(_ph[n])*_ph[k]
-            diff_ph = _coh[j]*int_conj_ph/np.abs(_coh[j])
-            _t_coh += diff_ph
-        temp_coh[i] = np.abs(_t_coh)/n_image_pairs
-    return temp_coh
-
-if is_cuda_available():
-    @cuda.jit
-    def _ds_temp_coh_cuda(coh, ph, ref, sec, temp_coh):
-        # one warp per point: the 32 lanes read consecutive image pairs (coalesced), then reduce by shuffles
-        i = cuda.grid(1)//32
-        if i >= coh.shape[0]:   # the same for all lanes of a warp
-            return
-        lane = cuda.laneid
-        sr = np.float32(0.0); si = np.float32(0.0)
-        for k in range(lane, coh.shape[1], 32):
-            c = coh[i,k]
-            p = c*ph[i,ref[k]].conjugate()*ph[i,sec[k]]
-            s = np.float32(1.0)/math.sqrt(c.real*c.real+c.imag*c.imag)
-            sr += s*p.real
-            si += s*p.imag
-        offset = 16
-        while offset > 0:
-            sr += cuda.shfl_down_sync(0xffffffff, sr, offset)
-            si += cuda.shfl_down_sync(0xffffffff, si, offset)
-            offset //= 2
-        if lane == 0:
-            temp_coh[i] = math.sqrt(sr*sr+si*si)/coh.shape[1]
-
-def ds_temp_coh(coh:np.ndarray,
-                ph:np.ndarray,
-                image_pairs:np.ndarray=None,
-                block_size:int=128,
-            ):
-    """Parameters
-    ----------
-    coh : np.ndarray
-        complex coherence metrix, np.complex64 or cp.complex64
-    ph : np.ndarray
-        complex phase history, np.complex64 or cp.complex64
-    image_pairs : np.ndarray, optional
-        image pairs, all image pairs by default
-    block_size : int, default: 128
-        the CUDA block size, a multiple of 32, only applied for cuda
-    """
-    xp = get_array_module(coh)
-    n_points = ph.shape[0]
-    nimages = ph.shape[-1]
-    if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
-    image_pairs = image_pairs.astype(np.int32)
-
-    if xp is np:
-        return _ds_temp_coh_numba(coh,ph,image_pairs)
-    else:
-        image_pairs = cp.asarray(image_pairs)
-        ref = cp.ascontiguousarray(image_pairs[:,0]); sec = cp.ascontiguousarray(image_pairs[:,1])
-        temp_coh = cp.empty(n_points, dtype=cp.float32)
-        if n_points > 0:
-            n_blocks = (n_points*32+block_size-1)//block_size
-            _ds_temp_coh_cuda[n_blocks, block_size](cp.ascontiguousarray(coh), cp.ascontiguousarray(ph), ref, sec, temp_coh)
-        return temp_coh
-
-# Weighted DS temporal coherence (decision 0024): t = |sum_k w_k exp(j psi_k)| / sum_k w_k over the image
-# pairs k with the residual phase psi_k of the phase history, and eff_n_pairs = (sum w)^2 / sum w^2, with
-# w_k = max(0, (|coh_k|^2 - 1/n_looks) / (1 - 1/n_looks)), the squared coherence without the noise bias
-# E|coh|^2 = 1/n_looks of incoherent pairs (pairs at the noise level get 0). One pass over the pairs of a
-# point, float32 sums; NaN and 0 where n_looks <= 1 or no pair has a positive weight.
-@ngpjit
-def _ds_temp_coh_weighted_numba(coh, ph, ref, sec, inv_n):
+def _ds_temp_coh_numba(coh, ph, ref, sec, inv_n):
     n_points, n_pairs = coh.shape
     t_coh = np.empty(n_points, dtype=np.float32)
+    t_coh_w = np.empty(n_points, dtype=np.float32)
     eff_n_pairs = np.empty(n_points, dtype=np.float32)
     zero = np.float32(0.0); one = np.float32(1.0)
     for i in prange(n_points):
         inv = inv_n[i]
+        weighted = inv < one
+        denom = one-inv
+        acc = np.complex64(0.0)
         sr = zero; si = zero; sw = zero; sw2 = zero
-        if inv < one:
-            denom = one-inv
-            for k in range(n_pairs):
-                c = coh[i,k]
-                mag2 = c.real*c.real+c.imag*c.imag
-                w = (mag2-inv)/denom
+        for k in range(n_pairs):
+            c = coh[i,k]
+            e = c*(np.conjugate(ph[i,ref[k]])*ph[i,sec[k]])/np.abs(c)
+            acc += e
+            if weighted:
+                w = (c.real*c.real+c.imag*c.imag-inv)/denom
                 if w > zero:
-                    p = c*np.conj(ph[i,ref[k]])*ph[i,sec[k]]
-                    s = w/np.sqrt(mag2)
-                    sr += s*p.real
-                    si += s*p.imag
+                    sr += w*e.real
+                    si += w*e.imag
                     sw += w
                     sw2 += w*w
+        t_coh[i] = np.abs(acc)/n_pairs
         if sw > zero:
-            t_coh[i] = np.sqrt(sr*sr+si*si)/sw
+            t_coh_w[i] = np.sqrt(sr*sr+si*si)/sw
             eff_n_pairs[i] = sw*sw/sw2
         else:
-            t_coh[i] = np.nan
+            t_coh_w[i] = np.nan
             eff_n_pairs[i] = zero
-    return t_coh, eff_n_pairs
+    return t_coh, t_coh_w, eff_n_pairs
 
 if is_cuda_available():
     @cuda.jit
-    def _ds_temp_coh_weighted_cuda(coh, ph, ref, sec, inv_n, t_coh, eff_n_pairs):
+    def _ds_temp_coh_cuda(coh, ph, ref, sec, inv_n, t_coh, t_coh_w, eff_n_pairs):
         # one warp per point: the 32 lanes read consecutive image pairs (coalesced), then reduce by shuffles
         i = cuda.grid(1)//32
         if i >= coh.shape[0]:   # the same for all lanes of a warp
@@ -291,45 +210,48 @@ if is_cuda_available():
         lane = cuda.laneid
         zero = np.float32(0.0); one = np.float32(1.0)
         inv = inv_n[i]
-        sr = zero; si = zero; sw = zero; sw2 = zero
-        if inv < one:
-            denom = one-inv
-            for k in range(lane, coh.shape[1], 32):
-                c = coh[i,k]
-                mag2 = c.real*c.real+c.imag*c.imag
+        weighted = inv < one
+        denom = one-inv
+        ur = zero; ui = zero; sr = zero; si = zero; sw = zero; sw2 = zero
+        for k in range(lane, coh.shape[1], 32):
+            c = coh[i,k]
+            mag2 = c.real*c.real+c.imag*c.imag
+            p = c*ph[i,ref[k]].conjugate()*ph[i,sec[k]]
+            s = one/math.sqrt(mag2)
+            ur += s*p.real
+            ui += s*p.imag
+            if weighted:
                 w = (mag2-inv)/denom
                 if w > zero:
-                    p = c*ph[i,ref[k]].conjugate()*ph[i,sec[k]]
-                    s = w/math.sqrt(mag2)
-                    sr += s*p.real
-                    si += s*p.imag
+                    sr += w*(s*p.real)
+                    si += w*(s*p.imag)
                     sw += w
                     sw2 += w*w
         offset = 16
         while offset > 0:
+            ur += cuda.shfl_down_sync(0xffffffff, ur, offset)
+            ui += cuda.shfl_down_sync(0xffffffff, ui, offset)
             sr += cuda.shfl_down_sync(0xffffffff, sr, offset)
             si += cuda.shfl_down_sync(0xffffffff, si, offset)
             sw += cuda.shfl_down_sync(0xffffffff, sw, offset)
             sw2 += cuda.shfl_down_sync(0xffffffff, sw2, offset)
             offset //= 2
         if lane == 0:
+            t_coh[i] = math.sqrt(ur*ur+ui*ui)/coh.shape[1]
             if sw > zero:
-                t_coh[i] = math.sqrt(sr*sr+si*si)/sw
+                t_coh_w[i] = math.sqrt(sr*sr+si*si)/sw
                 eff_n_pairs[i] = sw*sw/sw2
             else:
-                t_coh[i] = np.nan
+                t_coh_w[i] = np.nan
                 eff_n_pairs[i] = zero
 
-def ds_temp_coh_weighted(coh:np.ndarray,
-                         ph:np.ndarray,
-                         n_looks,
-                         image_pairs:np.ndarray=None,
-                         block_size:int=128,
-                        )-> tuple[np.ndarray,np.ndarray]:
-    """DS temporal coherence with the image pairs weighted by their coherence.
-
-    The image pairs are weighted by their squared coherence without the noise bias of `n_looks` looks, so
-    that incoherent pairs (e.g. long time spans in vegetation) do not lower the temporal coherence.
+def ds_temp_coh(coh:np.ndarray,
+                ph:np.ndarray,
+                image_pairs:np.ndarray=None,
+                block_size:int=128,
+                n_looks=None,
+            ):
+    """DS temporal coherence, optionally also weighted by the coherence of the image pairs.
 
     Parameters
     ----------
@@ -338,39 +260,43 @@ def ds_temp_coh_weighted(coh:np.ndarray,
         complex64, shape (n_points, n_image_pairs), numpy or cupy
     ph : np.ndarray
         phase history of the points, dtype complex64, shape (n_points, nimages), unit amplitude
-    n_looks : float or np.ndarray
-        effective number of independent looks of the coherence of each point, float or shape (n_points,),
-        e.g. the number of SHPs divided by the oversampling of the SLCs (`slc_correlation`); `np.inf` weights by the squared
-        coherence without noise correction; points with n_looks <= 1 get NaN
     image_pairs : np.ndarray, optional
         image pairs of `coh`, dtype int32, shape (n_image_pairs, 2), all image pairs by default
     block_size : int, default: 128
-        the CUDA block size, a multiple of 32, only affects the speed
+        the CUDA block size, a multiple of 32, only applied for cuda
+    n_looks : float or np.ndarray, optional
+        effective number of independent looks of the coherence of each point, float or shape (n_points,),
+        e.g. from `emperical_co_pc(..., return_n_looks=True)`; with it also the weighted temporal coherence
+        and the effective number of image pairs are returned; points with n_looks <= 1 get NaN and 0
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray]
-        weighted temporal coherence `t_coh`, dtype float32, shape (n_points,), 0..1, NaN where no image
-        pair is above the noise level; effective number of image pairs `eff_n_pairs` (number of equally
-        weighted pairs with the same weight distribution), dtype float32, shape (n_points,),
-        0..n_image_pairs, 0 where `t_coh` is NaN
+    np.ndarray or tuple[np.ndarray, np.ndarray, np.ndarray]
+        temporal coherence `t_coh`, dtype float32, shape (n_points,), 0..1, every image pair weighted the
+        same; with `n_looks` also the weighted temporal coherence `t_coh_w`, dtype float32, shape
+        (n_points,), 0..1: the image pairs weighted by their squared coherence without the noise bias of
+        `n_looks` looks, so that incoherent pairs (e.g. long time spans in vegetation) do not lower it, NaN
+        where no image pair is above the noise level; and the effective number of image pairs it rests on
+        `eff_n_pairs` ((sum of the weights)^2 / sum of the squared weights), dtype float32, shape (n_points,),
+        0..n_image_pairs, 0 where `t_coh_w` is NaN; a high `t_coh_w` of few effective pairs is not reliable
     """
     xp = get_array_module(coh)
-    n_points, nimages = ph.shape
+    n_points = ph.shape[0]
     if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+        image_pairs = mr.TempNet.from_bandwidth(ph.shape[-1]).image_pairs
     image_pairs = xp.asarray(image_pairs, dtype=np.int32)
     ref = xp.ascontiguousarray(image_pairs[:,0]); sec = xp.ascontiguousarray(image_pairs[:,1])
-    inv_n = xp.ascontiguousarray(xp.broadcast_to(1/xp.asarray(n_looks, dtype=np.float32), (n_points,)))
+    inv_n = xp.ones((), dtype=np.float32) if n_looks is None else 1/xp.asarray(n_looks, dtype=np.float32)
+    inv_n = xp.ascontiguousarray(xp.broadcast_to(inv_n, (n_points,)))
     coh = xp.ascontiguousarray(coh); ph = xp.ascontiguousarray(ph)
     if xp is np:
-        return _ds_temp_coh_weighted_numba(coh, ph, ref, sec, inv_n)
-    t_coh = cp.empty(n_points, dtype=cp.float32)
-    eff_n_pairs = cp.empty(n_points, dtype=cp.float32)
-    if n_points > 0:
-        n_blocks = (n_points*32+block_size-1)//block_size
-        _ds_temp_coh_weighted_cuda[n_blocks, block_size](coh, ph, ref, sec, inv_n, t_coh, eff_n_pairs)
-    return t_coh, eff_n_pairs
+        out = _ds_temp_coh_numba(coh, ph, ref, sec, inv_n)
+    else:
+        out = tuple(cp.empty(n_points, dtype=cp.float32) for _ in range(3))
+        if n_points > 0:
+            n_blocks = (n_points*32+block_size-1)//block_size
+            _ds_temp_coh_cuda[n_blocks, block_size](coh, ph, ref, sec, inv_n, *out)
+    return out[0] if n_looks is None else out
 
 def emperical_co_emi_temp_coh_pc(
     rslc:np.ndarray,
@@ -379,62 +305,56 @@ def emperical_co_emi_temp_coh_pc(
     batch_size:int=1000,
     regularize:bool=True,
     weighted:bool=False,
-    oversampling:float=1.0,
-    rho2:np.ndarray=None,
 ):
-    """Parameters
+    """Coherence matrix estimation, EMI phase linking and DS temporal coherence of points in one pass,
+    without keeping the coherence matrices.
+
+    Parameters
     ----------
     rslc : np.ndarray
-        rslc stack, dtype:'np.complex64'
+        rslc stack, dtype complex64, shape (nlines, width, nimages), numpy or cupy
     idx : np.ndarray
-        index of point target (azimuth_index, range_index), dtype: `np.int32`, shape: (n_pc, 2)
+        grid index of the points (azimuth, range) in `rslc`, dtype int32, shape (n_points, 2)
     pc_is_shp : np.ndarray
-        shp bool, dtype:'np.bool'
+        SHP masks of the points, dtype bool, shape (n_points, az_win, r_win)
     batch_size : int, default: 1000
+        number of points processed at once, limits the memory use
     regularize : bool, default: True
         regularize the coherence matrix in the phase linking as in `emi`; the temporal coherence is
         computed with the coherence matrix as estimated
     weighted : bool, default: False
         also return the weighted temporal coherence and the effective number of image pairs of
-        `ds_temp_coh_weighted`, with n_looks = number of SHPs / `oversampling`
-    oversampling : float, default: 1.0
-        number of pixels per independent look of the SLCs (>= 1, the sum of `slc_correlation`), only used
-        with `weighted` and without `rho2`
-    rho2 : np.ndarray, optional
-        |rho|^2 of the speckle from `slc_correlation`, dtype float32, shape (2*max_az+1, 2*max_r+1); with
-        `weighted`, n_looks is then the effective number of looks of the SHP set of each point
-        (`shp_n_looks`) instead of number of SHPs / `oversampling`
+        `ds_temp_coh`, with the effective number of looks of the SHPs of each point (as
+        `emperical_co_pc(..., return_n_looks=True)`)
 
     Returns
     -------
     tuple
-        phase history (n_pc, nimages) complex64, EMI quality (n_pc,) float32 and temporal coherence
-        (n_pc,) float32; with `weighted` also the weighted temporal coherence and the effective number of
-        image pairs, (n_pc,) float32 each
+        phase history `ph`, dtype complex64, shape (n_points, nimages), and temporal coherence `t_coh`,
+        dtype float32, shape (n_points,); with `weighted` also `t_coh_w` and `eff_n_pairs` of
+        `ds_temp_coh`, dtype float32, shape (n_points,) each
     """
     xp = get_array_module(rslc)
     n_pc = idx.shape[0]
     nimages = rslc.shape[2]
     ph = xp.empty((n_pc, nimages),dtype=xp.complex64)
-    emi_quality = xp.empty(n_pc,dtype=np.float32)
     t_coh = xp.empty(n_pc,dtype=np.float32)
     if weighted:
         t_coh_w = xp.empty(n_pc,dtype=np.float32)
         eff_n_pairs = xp.empty(n_pc,dtype=np.float32)
+        rho2 = _rslc_rho2(rslc)
     batch_bounds = np.arange(0,n_pc+batch_size,batch_size)
     # I forgot why I have to split data into batches, probably due to memory issue.
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
     for i in range(batch_bounds.shape[0]-1):
         start = batch_bounds[i]; stop = batch_bounds[i+1]
         _coh = mr.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
-        ph[start:stop],emi_quality[start:stop] = emi(_coh,regularize=regularize)
-        t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
+        ph[start:stop] = emi(_coh,regularize=regularize)
         if weighted:
-            if rho2 is None:
-                n_looks = xp.count_nonzero(pc_is_shp[start:stop],axis=(1,2)).astype(np.float32)/np.float32(oversampling)
-            else:
-                n_looks = mr.shp_n_looks(pc_is_shp[start:stop],rho2)
-            t_coh_w[start:stop],eff_n_pairs[start:stop] = ds_temp_coh_weighted(_coh,ph[start:stop],n_looks)
+            n_looks = _n_looks(pc_is_shp[start:stop],rho2)
+            t_coh[start:stop],t_coh_w[start:stop],eff_n_pairs[start:stop] = ds_temp_coh(_coh,ph[start:stop],n_looks=n_looks)
+        else:
+            t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
     if weighted:
-        return ph, emi_quality, t_coh, t_coh_w, eff_n_pairs
-    return ph, emi_quality, t_coh
+        return ph, t_coh, t_coh_w, eff_n_pairs
+    return ph, t_coh
