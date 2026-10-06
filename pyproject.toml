@@ -30,6 +30,7 @@ dependencies = [
     "numcodecs",
     "toml",
     "numba>=0.59",
+    "threadpoolctl",  # one BLAS thread inside the numba parallel loops (moraine.api.pl)
     "numexpr",
     "anywidget",  # interactive maps in VS Code and Jupyter notebooks (moraine.cli.view)
     "pyproj>=3.0",

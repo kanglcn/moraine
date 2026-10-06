@@ -564,6 +564,46 @@ def nearestPD(co:np.ndarray,
 _SLC_CORRELATION_MIN_PIXELS = 100
 _SLC_CORRELATION_TEXTURE_WIN = 15
 
+@ngjit
+def _reflect(i, n):
+    # index of a half-sample symmetric extension (d c b a | a b c d | d c b a), as scipy.ndimage 'reflect'
+    while i < 0 or i >= n:
+        i = -i-1 if i < 0 else 2*n-i-1
+    return i
+
+@ngpjit
+def _normalize_local_power(slc, half):
+    # slc / sqrt(local mean power over the valid pixels of a (2*half+1)^2 window, symmetric extension at the
+    # borders); 0 for invalid pixels. Window sums from integral images of the extended power and valid mask.
+    nl, nw = slc.shape
+    pl = nl+2*half; pw = nw+2*half
+    ip = np.zeros((pl+1, pw+1), np.float64); iv = np.zeros((pl+1, pw+1), np.float64)
+    for y in prange(pl):
+        sy = _reflect(y-half, nl)
+        sp = 0.0; sv = 0.0
+        for c in range(pw):
+            v = slc[sy, _reflect(c-half, nw)]
+            p = np.float64(v.real)**2+np.float64(v.imag)**2
+            if p > 0 and np.isfinite(p):
+                sp += p; sv += 1.0
+            ip[y+1, c+1] = sp; iv[y+1, c+1] = sv
+    for c in prange(1, pw+1):
+        for y in range(1, pl+1):
+            ip[y, c] += ip[y-1, c]; iv[y, c] += iv[y-1, c]
+    k = 2*half+1
+    out = np.zeros((nl, nw), np.complex64)
+    for y in prange(nl):
+        for c in range(nw):
+            v = slc[y, c]
+            p = np.float64(v.real)**2+np.float64(v.imag)**2
+            if p > 0 and np.isfinite(p):
+                sp = ip[y+k, c+k]-ip[y, c+k]-ip[y+k, c]+ip[y, c]
+                sv = iv[y+k, c+k]-iv[y, c+k]-iv[y+k, c]+iv[y, c]
+                lp = sp/max(sv, 1e-12)
+                if lp > 0:
+                    out[y, c] = v/np.float32(math.sqrt(lp))
+    return out
+
 @ngpjit
 def _slc_correlation_numba(slc, max_az, max_r):
     nlines, width = slc.shape
@@ -614,15 +654,9 @@ def _slc_correlation(slc:np.ndarray,
         (azimuth, range) = index - max_lag, 1 at the center, the noise bias of the estimate removed
         (values near 0 can be slightly negative); NaN where no azimuth line pair has 100 valid pixel pairs
     """
-    from scipy.ndimage import uniform_filter
     max_az, max_r = int(max_lag[0]), int(max_lag[1])
-    slc = np.asarray(slc)
-    power = (slc.real.astype(np.float64)**2+slc.imag.astype(np.float64)**2)
-    valid = np.isfinite(power) & (power > 0)
-    power = np.where(valid, power, 0.0)
-    local_power = uniform_filter(power, _SLC_CORRELATION_TEXTURE_WIN)/np.maximum(
-        uniform_filter(valid.astype(np.float64), _SLC_CORRELATION_TEXTURE_WIN), 1e-12)
-    slc = np.where(valid & (local_power > 0), slc/np.sqrt(np.where(local_power > 0, local_power, 1.0)), 0).astype(np.complex64)
+    slc = np.ascontiguousarray(slc, dtype=np.complex64)
+    slc = _normalize_local_power(slc, _SLC_CORRELATION_TEXTURE_WIN//2)
     rho2 = _slc_correlation_numba(slc, max_az, max_r)
     outer = np.ones(rho2.shape, dtype=bool); outer[1:-1,1:-1] = False
     noise = rho2[outer][np.isfinite(rho2[outer])]
@@ -644,26 +678,48 @@ def _rslc_rho2(rslc, n_images:int=3):
 
 # Effective number of looks of an SHP set S (decision 0025): n^2 / sum_{p,q in S} |rho(p-q)|^2, the number
 # of independent looks with the same variance of second order estimates; |rho|^2 from _slc_correlation,
-# negative values (noise of the estimate) taken as 0, lags outside the table as 0.
+# negative values (noise of the estimate) taken as 0, lags outside the table as 0. On the CPU the sum is
+# taken over the lags, sum_d |rho(d)|^2 C(d), with C(d) the number of SHP pairs at lag d counted by
+# popcount on the rows of the mask as bit fields (C(-d) = C(d), weighted by |rho(d)|^2 + |rho(-d)|^2);
+# about 100 times faster than the sum over the pairs.
+@ngjit
+def _popcount64(x):
+    x = x-((x >> np.uint64(1)) & np.uint64(0x5555555555555555))
+    x = (x & np.uint64(0x3333333333333333))+((x >> np.uint64(2)) & np.uint64(0x3333333333333333))
+    x = (x+(x >> np.uint64(4))) & np.uint64(0x0F0F0F0F0F0F0F0F)
+    return (x*np.uint64(0x0101010101010101)) >> np.uint64(56)
+
 @ngpjit
 def _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r):
     n_points, az_win, r_win = pc_is_shp.shape
-    win = az_win*r_win
     n_looks = np.empty(n_points, dtype=np.float32)
     for i in prange(n_points):
-        n = 0; s = 0.0
-        for p in range(win):
-            pa = p//r_win; pr = p%r_win
-            if not pc_is_shp[i,pa,pr]: continue
-            n += 1
-            for q in range(win):
-                qa = q//r_win; qr = q%r_win
-                if not pc_is_shp[i,qa,qr]: continue
-                da = qa-pa; dr = qr-pr
-                if abs(da) <= max_az and abs(dr) <= max_r:
-                    v = rho2[da+max_az,dr+max_r]
-                    if v > 0: s += v
-        n_looks[i] = n*n/s if n > 0 else 0.0
+        rows = np.empty(az_win, dtype=np.uint64)
+        n = 0
+        for a in range(az_win):
+            v = np.uint64(0)
+            for r in range(r_win):
+                if pc_is_shp[i,a,r]:
+                    v |= np.uint64(1) << np.uint64(r)
+            rows[a] = v
+            n += _popcount64(v)
+        if n == 0:
+            n_looks[i] = 0.0
+            continue
+        s = np.float64(n)*max(np.float64(rho2[max_az,max_r]), 0.0)
+        for da in range(0, min(max_az, az_win-1)+1):
+            for dr in range(-min(max_r, r_win-1), min(max_r, r_win-1)+1):
+                if da == 0 and dr <= 0:
+                    continue
+                w = max(np.float64(rho2[da+max_az,dr+max_r]), 0.0)+max(np.float64(rho2[max_az-da,max_r-dr]), 0.0)
+                if w <= 0:
+                    continue
+                c = np.uint64(0)
+                for a in range(az_win-da):
+                    y = rows[a+da] >> np.uint64(dr) if dr >= 0 else rows[a+da] << np.uint64(-dr)
+                    c += _popcount64(rows[a] & y)
+                s += w*np.float64(c)
+        n_looks[i] = np.float64(n)*n/s
     return n_looks
 
 if is_cuda_available():
@@ -732,6 +788,8 @@ def _shp_n_looks(pc_is_shp:np.ndarray,
         number of SHPs (number of SHPs for uncorrelated pixels), 0 for points without SHP
     """
     xp = get_array_module(pc_is_shp)
+    if pc_is_shp.shape[2] > 64:
+        raise ValueError('SHP windows wider than 64 pixels in range are not supported')
     max_az, max_r = (rho2.shape[0]-1)//2, (rho2.shape[1]-1)//2
     rho2 = xp.ascontiguousarray(xp.asarray(rho2, dtype=np.float32))
     pc_is_shp = xp.ascontiguousarray(pc_is_shp)
