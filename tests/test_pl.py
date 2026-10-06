@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 
@@ -238,3 +240,24 @@ def test_emperical_co_emi_temp_coh_pc_weighted(ds_can, ds_coh):
     ref = ds_temp_coh(ds_coh, emi(ds_coh), n_looks=n_looks)
     for a, b in zip((t_coh, t_coh_w, eff_n_pairs), ref):
         np.testing.assert_array_equal(a, b)
+
+
+def _blas_threads():
+    from threadpoolctl import threadpool_info
+    return [p['num_threads'] for p in threadpool_info() if p['user_api'] == 'blas']
+
+
+@pytest.mark.skipif(not os.path.isdir('/proc/self/task'), reason='counts threads in /proc')
+def test_emi_cpu_single_thread_blas(not_pd):
+    """The CPU kernel limits the BLAS threads while it runs (a multithreaded BLAS called from every numba
+    thread starts threads in each call), also when called from several threads, and restores them."""
+    import threading
+    before = _blas_threads()
+    coh = np.tile(not_pd[0], (20, 1))
+    workers = [threading.Thread(target=_emi, args=(coh,)) for _ in range(3)]
+    for w in workers:
+        w.start()
+    for w in workers:
+        w.join()
+    assert _blas_threads() == before
+    assert len(os.listdir('/proc/self/task')) < 4 * os.cpu_count() + 64

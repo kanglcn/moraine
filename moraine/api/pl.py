@@ -2,8 +2,13 @@
 
 __all__ = ['emi', 'ds_temp_coh', 'emperical_co_emi_temp_coh_pc']
 
+import contextlib
+import ctypes
 import math
+import threading
 import numpy as np
+from numba.extending import get_cython_function_address
+from threadpoolctl import ThreadpoolController
 import moraine as mr
 from .utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
@@ -87,6 +92,59 @@ if is_cuda_available():
             emi_quality[start:end] = min_eigval
         return ph, emi_quality
 
+# The CPU kernels call LAPACK inside numba parallel loops. A multithreaded BLAS (MKL, OpenBLAS) does not see
+# that it is called from many threads and starts its own threads in each call: with 128 cores 128 x 128
+# threads, about 2e4 times slower. Its threads are limited to 1 while a kernel runs; the limit is global, so
+# it is kept until the last of concurrent callers (e.g. dask threads) has finished.
+_blas_lock = threading.Lock()
+_blas_users = 0
+_blas_limit = None
+
+class _single_thread_blas:
+    def __enter__(self):
+        global _blas_users, _blas_limit
+        with _blas_lock:
+            if _blas_users == 0:
+                _blas_limit = _blas_controller.limit(limits=1, user_api='blas')
+            _blas_users += 1
+    def __exit__(self, *exc):
+        global _blas_users, _blas_limit
+        with _blas_lock:
+            _blas_users -= 1
+            if _blas_users == 0:
+                _blas_limit.restore_original_limits(); _blas_limit = None
+
+# Only the smallest eigenpair of the EMI matrix is needed: LAPACK cheevr with RANGE='I', IL=IU=1
+# (tridiagonalization, then one eigenvector by MRRR and its back transformation) instead of all of them
+# (2.2 times faster for 60-92 images). It is the LAPACK numba's np.linalg calls, through scipy. A numba
+# array in C order is the Fortran order of its transpose, the conjugate of a Hermitian matrix, so the
+# eigenvector comes out conjugated.
+_P = ctypes.c_void_p
+_cheevr = ctypes.CFUNCTYPE(None, *([_P]*23))(get_cython_function_address('scipy.linalg.cython_lapack', 'cheevr'))
+# after loading scipy's LAPACK (pip wheels of numpy and scipy bring separate BLAS libraries; numba calls scipy's)
+_blas_controller = ThreadpoolController()
+
+@ngjit
+def _cheevr_call(a, n_images, w, z, work, lwork, rwork, lrwork, iwork, liwork, isuppz, m, info):
+    jobz = np.array([ord('V')], np.int8); rng = np.array([ord('I')], np.int8); uplo = np.array([ord('L')], np.int8)
+    n = np.array([n_images], np.int32); one = np.array([1], np.int32)
+    vl = np.zeros(1, np.float32); vu = np.zeros(1, np.float32)
+    abstol = np.array([np.finfo(np.float32).tiny], np.float32)    # highest accuracy with MRRR
+    lw = np.array([lwork], np.int32); lrw = np.array([lrwork], np.int32); liw = np.array([liwork], np.int32)
+    _cheevr(jobz.ctypes, rng.ctypes, uplo.ctypes, n.ctypes, a.ctypes, n.ctypes, vl.ctypes, vu.ctypes, one.ctypes,
+            one.ctypes, abstol.ctypes, m.ctypes, w.ctypes, z.ctypes, n.ctypes, isuppz.ctypes, work.ctypes, lw.ctypes,
+            rwork.ctypes, lrw.ctypes, iwork.ctypes, liw.ctypes, info.ctypes)
+
+@ngjit
+def _cheevr_workspace(n_images):
+    """Optimal (lwork, lrwork, liwork) of cheevr for n_images x n_images."""
+    a = np.zeros((n_images, n_images), np.complex64)
+    w = np.empty(n_images, np.float32); z = np.empty((1, n_images), np.complex64)
+    work = np.empty(1, np.complex64); rwork = np.empty(1, np.float32); iwork = np.empty(1, np.int32)
+    isuppz = np.empty(2, np.int32); m = np.zeros(1, np.int32); info = np.zeros(1, np.int32)
+    _cheevr_call(a, n_images, w, z, work, -1, rwork, -1, iwork, -1, isuppz, m, info)
+    return (max(int(work[0].real), 2*n_images), max(int(rwork[0]), 24*n_images), max(int(iwork[0]), 10*n_images))
+
 @ngpjit
 def _emi_numba(
     coh,
@@ -98,6 +156,7 @@ def _emi_numba(
     n_points = coh.shape[0]
     ph = np.empty((n_points,n_images),dtype=coh.dtype)
     emi_quality = np.empty(n_points,dtype=np.float32)
+    lwork, lrwork, liwork = _cheevr_workspace(n_images)
     for i in prange(n_points):
         _coh = mr.uncompress_single_coh_numba(coh[i],n_images,image_pairs)
         coh_mag = np.abs(_coh)
@@ -115,12 +174,20 @@ def _emi_numba(
         # the inverse of the symmetric coh_mag is symmetric; the float32 LU inverse is not exactly, and the
         # EMI quality amplifies the difference by the condition number (0.1 at 2e4)
         coh_mag_inv = (coh_mag_inv+coh_mag_inv.T)*np.float32(0.5)
-        min_eigval, min_eig = np.linalg.eigh(coh_mag_inv*_coh)
-        min_eigval = min_eigval[0]
-        min_eig = min_eig[:,0]*np.conj(min_eig[ref,0])
+        a = coh_mag_inv*_coh
+        w = np.empty(n_images, np.float32); z = np.empty((1, n_images), np.complex64)
+        work = np.empty(lwork, np.complex64); rwork = np.empty(lrwork, np.float32)
+        iwork = np.empty(liwork, np.int32); isuppz = np.empty(2, np.int32)
+        m = np.zeros(1, np.int32); info = np.zeros(1, np.int32)
+        _cheevr_call(a, n_images, w, z, work, lwork, rwork, lrwork, iwork, liwork, isuppz, m, info)
+        if info[0] != 0 or m[0] != 1:
+            ph[i] = np.nan; emi_quality[i] = np.nan
+            continue
+        min_eig = np.conj(z[0])
+        min_eig = min_eig*np.conj(min_eig[ref])
         for j in range(ph.shape[-1]):
             ph[i,j] = min_eig[j]/abs(min_eig[j])
-        emi_quality[i] = min_eigval
+        emi_quality[i] = w[0]
     return ph, emi_quality
 
 def _emi(coh, ref=0, regularize=True):
@@ -129,7 +196,8 @@ def _emi(coh, ref=0, regularize=True):
     nimages = mr.nimage_from_npair(coh.shape[-1])
     image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
     if xp is np:
-        return _emi_numba(coh,nimages,image_pairs,ref,regularize)
+        with _single_thread_blas():
+            return _emi_numba(coh,nimages,image_pairs,ref,regularize)
     else:
         return _emi_cp(coh,nimages,image_pairs,ref,regularize)
 
@@ -169,6 +237,7 @@ def emi(coh:np.ndarray,
 # guarantee that on the GPU (the compiler places fused multiply-adds differently).
 @ngpjit
 def _ds_temp_coh_numba(coh, ph, ref, sec, inv_n):
+    # real float32 arithmetic: complex division and np.abs (hypot) were 2-3 times slower
     n_points, n_pairs = coh.shape
     t_coh = np.empty(n_points, dtype=np.float32)
     t_coh_w = np.empty(n_points, dtype=np.float32)
@@ -178,20 +247,23 @@ def _ds_temp_coh_numba(coh, ph, ref, sec, inv_n):
         inv = inv_n[i]
         weighted = inv < one
         denom = one-inv
-        acc = np.complex64(0.0)
-        sr = zero; si = zero; sw = zero; sw2 = zero
+        ur = zero; ui = zero; sr = zero; si = zero; sw = zero; sw2 = zero
         for k in range(n_pairs):
-            c = coh[i,k]
-            e = c*(np.conjugate(ph[i,ref[k]])*ph[i,sec[k]])/np.abs(c)
-            acc += e
+            c = coh[i,k]; a = ph[i,ref[k]]; b = ph[i,sec[k]]
+            cr = c.real; ci = c.imag
+            pr = a.real*b.real+a.imag*b.imag; pi = a.real*b.imag-a.imag*b.real    # conj(a)*b
+            mag2 = cr*cr+ci*ci
+            s = one/np.sqrt(mag2)
+            er = (cr*pr-ci*pi)*s; ei = (cr*pi+ci*pr)*s
+            ur += er; ui += ei
             if weighted:
-                w = (c.real*c.real+c.imag*c.imag-inv)/denom
+                w = (mag2-inv)/denom
                 if w > zero:
-                    sr += w*e.real
-                    si += w*e.imag
+                    sr += w*er
+                    si += w*ei
                     sw += w
                     sw2 += w*w
-        t_coh[i] = np.abs(acc)/n_pairs
+        t_coh[i] = np.sqrt(ur*ur+ui*ui)/n_pairs
         if sw > zero:
             t_coh_w[i] = np.sqrt(sr*sr+si*si)/sw
             eff_n_pairs[i] = sw*sw/sw2
@@ -346,15 +418,17 @@ def emperical_co_emi_temp_coh_pc(
     batch_bounds = np.arange(0,n_pc+batch_size,batch_size)
     # I forgot why I have to split data into batches, probably due to memory issue.
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
-    for i in range(batch_bounds.shape[0]-1):
-        start = batch_bounds[i]; stop = batch_bounds[i+1]
-        _coh = mr.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
-        ph[start:stop] = emi(_coh,regularize=regularize)
-        if weighted:
-            n_looks = _n_looks(pc_is_shp[start:stop],rho2)
-            t_coh[start:stop],t_coh_w[start:stop],eff_n_pairs[start:stop] = ds_temp_coh(_coh,ph[start:stop],n_looks=n_looks)
-        else:
-            t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
+    # one BLAS thread limit for all batches: setting it costs a few ms, about one batch of emi on the CPU
+    with (_single_thread_blas() if xp is np else contextlib.nullcontext()):
+        for i in range(batch_bounds.shape[0]-1):
+            start = batch_bounds[i]; stop = batch_bounds[i+1]
+            _coh = mr.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
+            ph[start:stop] = emi(_coh,regularize=regularize)
+            if weighted:
+                n_looks = _n_looks(pc_is_shp[start:stop],rho2)
+                t_coh[start:stop],t_coh_w[start:stop],eff_n_pairs[start:stop] = ds_temp_coh(_coh,ph[start:stop],n_looks=n_looks)
+            else:
+                t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
     if weighted:
         return ph, t_coh, t_coh_w, eff_n_pairs
     return ph, t_coh

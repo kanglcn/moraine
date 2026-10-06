@@ -6,7 +6,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
-from moraine.api.co import _slc_correlation, _rslc_rho2, _shp_n_looks
+from moraine.api.co import _slc_correlation, _rslc_rho2, _shp_n_looks, _normalize_local_power
 from conftest import synthetic_shp
 
 
@@ -178,6 +178,37 @@ def test_shp_n_looks(rng):
     assert n_looks[1] < n_looks[2] < 50 and n_looks[3] == 0     # compact < scattered < number of SHPs
     white = np.pad([[1.0]], ((4, 4), (6, 6))).astype(np.float32)
     np.testing.assert_array_equal(_shp_n_looks(masks, white), masks.sum(axis=(1, 2)))
+
+
+def test_shp_n_looks_asymmetric_table(rng):
+    """An estimated table is not exactly symmetric and has small negative values (taken as 0)."""
+    masks = np.concatenate([_shp_masks(rng), rng.random((50, 11, 11)) < 0.5])
+    rho2 = _rho2_separable() * (1 + 0.05 * rng.standard_normal((9, 13))).astype(np.float32) - np.float32(0.002)
+    rho2[4, 6] = 1
+    n_looks = _shp_n_looks(masks, rho2)
+    for k in range(len(masks)):
+        p = np.argwhere(masks[k]); d = p[:, None] - p[None]
+        inside = (np.abs(d[..., 0]) <= 4) & (np.abs(d[..., 1]) <= 6)
+        v = np.where(inside, rho2[np.clip(d[..., 0] + 4, 0, 8), np.clip(d[..., 1] + 6, 0, 12)], 0)
+        expected = len(p) ** 2 / np.maximum(v, 0).sum() if len(p) else 0
+        assert n_looks[k] == pytest.approx(expected, rel=1e-5)
+    with pytest.raises(ValueError, match='64'):
+        _shp_n_looks(np.ones((2, 3, 65), bool), rho2)
+
+
+def test_normalize_local_power(rng):
+    """The SLC divided by the square root of the local mean power of the valid pixels (15 x 15, symmetric
+    extension at the borders), against numpy."""
+    slc = ((rng.standard_normal((40, 57)) + 1j * rng.standard_normal((40, 57))) * rng.uniform(0.1, 10, (40, 57))).astype(np.complex64)
+    slc[3:9, 10:20] = 0
+    slc[20, 5] = np.nan
+    power = np.abs(slc.astype(np.complex128)) ** 2
+    valid = np.isfinite(power) & (power > 0)
+    def box(x):
+        c = np.pad(np.pad(x, 7, mode='symmetric').cumsum(0).cumsum(1), ((1, 0), (1, 0)))
+        return c[15:, 15:] - c[:-15, 15:] - c[15:, :-15] + c[:-15, :-15]
+    expected = np.where(valid, slc / np.sqrt(box(np.where(valid, power, 0)) / box(valid.astype(float))), 0)
+    np.testing.assert_allclose(_normalize_local_power(slc, 7), expected, rtol=1e-5, atol=1e-7)
 
 
 @pytest.mark.gpu

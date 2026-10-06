@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+`emi` on the CPU (also inside `emperical-co-emi-temp-coh-pc`) was about 2·10⁴ times slower than it should be on many-core machines: the multithreaded BLAS (MKL, OpenBLAS) started its own threads in every call from the numba threads (128 x 128 threads on 128 cores; 187 ms instead of 7.6 µs per point for 60 images). Its threads are now limited to one while the kernel runs (new dependency `threadpoolctl`). The kernel also computes only the smallest eigenpair (LAPACK `cheevr`) instead of all: 1.5-1.8 times faster, 3.4-5 µs per point for 60 images, 8-12 µs for 92 images on 128 cores; the phase histories change only by float32 rounding
+
+Faster CPU kernels of decisions 0024 and 0025: `ds_temp_coh` 1.6-3 times (real arithmetic; 100 000 points x 4186 image pairs: 46 instead of 86 ms), the effective number of looks of the SHP sets 30-95 times (pair counts per lag by popcount; identical results), the speckle correlation of a 1000 x 1000 chunk 6 times (local power normalization in numba instead of scipy, 9 instead of 57 ms)
+
 The DS tutorials (`nbs/Tutorials/CLI/*/03_ds.ipynb`, `nbs/Tutorials/DS_Processing.ipynb`) and `nbs/Introduction/software_architecture.ipynb` use `emi` without the EMI quality and select DS by temporal coherence, as `examples/03_ds.toml`; `Xinpu/03_ds.ipynb` also shows the effective number of looks of the SHPs (`emperical-co-pc --n_looks_dir`) and compares the temporal coherence with the weighted one and the effective number of image pairs (`ds-temp-coh --n_looks`, and the same from the fused command)
 
 `emi` returns the phase history only and `emperical_co_emi_temp_coh_pc` returns `(ph, t_coh)` (with `weighted=True` also `t_coh_w`, `eff_n_pairs`): the EMI quality is no longer an output, and the commands lose `emi_quality` (`emi`) and `emi_quality_dir` (`emperical-co-emi-temp-coh-pc`). With the regularization it is not comparable between points; select DS by temporal coherence. `ph, quality = emi(coh)` becomes `ph = emi(coh)` (`emi(coh)[0]` still runs, but gives the phase history of the first point) (decision 0027)
