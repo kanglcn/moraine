@@ -127,11 +127,54 @@ def test_emi_regularize_gpu(not_pd, ds_coh):
         # CPU and GPU eigen decompositions round differently in float32
         np.testing.assert_allclose(ph_gpu, ph, atol=1e-2)
         np.testing.assert_allclose(quality_gpu, quality, rtol=1e-2, atol=1e-2)
+    # well conditioned positive definite points are not changed by the regularization; the GPU solves the regularized
+    # and the plain EMI with different algorithms (decision 0031), so compare with the plain EMI on the CPU
     pd = _well_conditioned_pd(ds_coh)
-    ph = emi(cp.asarray(ds_coh), regularize=False).get()
-    ph_reg = emi(cp.asarray(ds_coh)).get()
-    # batched GPU eigen solvers may round differently when other matrices of the batch change
-    np.testing.assert_allclose(ph_reg[pd], ph[pd], atol=1e-5)
+    ph, quality = _emi(ds_coh[pd], regularize=False)
+    ph_reg, quality_reg = (a.get() for a in _emi(cp.asarray(ds_coh[pd]), regularize=True))
+    np.testing.assert_allclose(ph_reg, ph, atol=1e-2)
+    np.testing.assert_allclose(quality_reg, quality, rtol=1e-2, atol=1e-2)
+
+
+@pytest.mark.gpu
+def test_emi_gpu_memory():
+    """The regularized EMI on the GPU needs no GPU memory beyond its input and output (cupy: ~200 kB per point)."""
+    import cupy as cp
+    rng = np.random.default_rng(2)
+    nimages, n_points = 60, 500
+    theta = rng.uniform(-np.pi, np.pi, nimages)
+    coh = _compress(_sample_coh(rng, theta, 0.7 + 0.3 * np.eye(nimages), n_points, 30))
+    coh = cp.asarray(np.ascontiguousarray(coh, dtype=np.complex64))     # a strided input is copied once
+    pool = cp.get_default_memory_pool()
+    emi(coh[:10])                                     # compile, allocate the outputs of a few points
+    pool.free_all_blocks()
+    before = pool.total_bytes()
+    ph = emi(coh)
+    cp.cuda.Device().synchronize()
+    assert pool.total_bytes() - before <= ph.nbytes + n_points * 4 + 2**20
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize('nimages', [150, 200])
+def test_emi_gpu_many_images(nimages):
+    """More images than 48 kB of shared memory hold (150), and more than the GPU kernel handles (200, cupy)."""
+    import cupy as cp
+    rng = np.random.default_rng(3)
+    theta = rng.uniform(-np.pi, np.pi, nimages)
+    coh = _compress(_sample_coh(rng, theta, 0.7 + 0.3 * np.eye(nimages), 20, nimages // 2)).astype(np.complex64)
+    ph, quality = _emi(coh)
+    ph_gpu, quality_gpu = (a.get() for a in _emi(cp.asarray(coh)))
+    np.testing.assert_allclose(ph_gpu, ph, atol=1e-2)
+    np.testing.assert_allclose(quality_gpu, quality, rtol=1e-2, atol=1e-2)
+
+
+@pytest.mark.gpu
+def test_emi_gpu_empty_and_strided(ds_coh):
+    import cupy as cp
+    ph = emi(cp.asarray(ds_coh[:0]))
+    assert ph.shape == (0, mr.nimage_from_npair(ds_coh.shape[1]))
+    c = cp.asarray(ds_coh[:200])
+    np.testing.assert_array_equal(emi(cp.asfortranarray(c)).get(), emi(c).get())
 
 
 @pytest.mark.gpu

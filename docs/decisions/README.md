@@ -38,6 +38,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0028](0028-ds-selection-by-connected-image-pairs.md) | DS are selected by the connectivity of the coherent image pairs, not by the number of effective pairs | Accepted |
 | [0029](0029-numba-cache-by-source-hash.md) | Compiled numba functions are cached in a directory named after the hash of the sources | Accepted |
 | [0030](0030-gpu-kernels-in-numba-cuda.md) | GPU kernels are written with numba.cuda (numba-cuda), not as cupy C++ kernels | Accepted |
+| [0031](0031-gpu-emi-kernel.md) | The regularized EMI on the GPU is one numba.cuda thread block per point with its matrices in shared memory | Accepted |
 
 ## Writing a record
 
