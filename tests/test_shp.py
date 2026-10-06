@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from moraine.api.shp import ks_test, select_shp
+from moraine.api.shp import ks_test, select_shp, _ks_p_numba
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def test_ks_test_gpu(sample_stack):
     dist, p = ks_test(sample_stack, 5, 5, return_dist=True)
     dist_cp, p_cp = ks_test(cp.asarray(sample_stack), 5, 5, return_dist=True)
     np.testing.assert_array_equal(dist, cp.asnumpy(dist_cp))
-    np.testing.assert_array_almost_equal(p, cp.asnumpy(p_cp))
+    np.testing.assert_array_equal(p, cp.asnumpy(p_cp))
 
 
 def test_select_shp(rng):
@@ -49,3 +49,31 @@ def test_select_shp(rng):
     is_shp, shp_num = select_shp(p, 0.05)
     np.testing.assert_array_equal(is_shp, p < 0.05)
     np.testing.assert_array_equal(shp_num, np.count_nonzero(p < 0.05, axis=(-2, -1)).astype(np.int32))
+
+
+GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
+
+
+@pytest.mark.parametrize('gpu', GPU)
+def test_ks_test_reference(rng, gpu):
+    # the KS statistic and its p value pair by pair, nan where a pixel is nan or outside the image
+    n_az, n_r, n, ah, rh = 7, 9, 12, 2, 3
+    rmli = rng.random((n_az, n_r, n)).astype(np.float32)
+    rmli[1, 2, 5] = np.nan; rmli[4, 4, :] = np.nan
+    s = np.sort(rmli, axis=-1)
+    en = np.sqrt(n / 2)
+    dist = np.full((n_az, n_r, 2 * ah + 1, 2 * rh + 1), np.nan, np.float32); p = dist.copy()
+    for i, j, l, m in itertools.product(range(n_az), range(n_r), range(2 * ah + 1), range(2 * rh + 1)):
+        si, sj = i + l - ah, j + m - rh
+        if 0 <= si < n_az and 0 <= sj < n_r and not (np.isnan(s[i, j]).any() or np.isnan(s[si, sj]).any()):
+            x = np.concatenate((s[i, j], s[si, sj]))
+            k = np.abs(np.searchsorted(s[i, j], x, side='right') - np.searchsorted(s[si, sj], x, side='right')).max()
+            dist[i, j, l, m] = k / n
+            p[i, j, l, m] = _ks_p_numba((en + 0.12 + 0.11 / en) * (k / n))
+    if gpu:
+        import cupy as cp
+        d_out, p_out = (a.get() for a in ks_test(cp.asarray(rmli), ah, rh, return_dist=True))
+    else:
+        d_out, p_out = ks_test(rmli, ah, rh, return_dist=True)
+    np.testing.assert_array_equal(d_out, dist)
+    np.testing.assert_array_equal(p_out, p)

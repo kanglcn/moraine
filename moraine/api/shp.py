@@ -7,6 +7,7 @@ import numpy as np
 from .utils_ import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
+    from numba import cuda
 import math
 import numba
 from numba import prange
@@ -27,98 +28,75 @@ def _ks_p_numba(x):
             p2 = p
     return p
 
-@ngjit
-def _ks_d_numba(ref, sec, n_imag):
-    j1 = 0; j2 = 0; d = 0.0; dmax = 0.0
-    while (j1 < n_imag) and (j2 < n_imag):
+# The KS statistic of two samples of n values is k/n with an integer k = max |j2 - j1| over the merged order, so
+# the p value takes n + 1 values only: it is looked up in a table computed with _ks_p_numba (the same values as
+# evaluating the series for every pair). The test is symmetric, KS(a, b) = KS(b, a): on the CPU every pixel computes
+# the offsets after the centre of the window and writes both entries. The same _ks_k is compiled for the CPU and
+# the GPU, so both give the same results.
+def _ks_k(ref, sec, n):
+    """k = max |j2 - j1| of the merged sorted samples `ref`, `sec` of n values"""
+    j1 = 0; j2 = 0; kmax = 0
+    while (j1 < n) and (j2 < n):
         f1 = ref[j1]; f2 = sec[j2]
-        if f1 <= f2: j1 += 1;
-        if f1 >= f2: j2 += 1;
-        d = abs((j2-j1)/n_imag)
-        if (d > dmax): dmax = d
-    return dmax
+        if f1 <= f2: j1 += 1
+        if f1 >= f2: j2 += 1
+        k = abs(j2-j1)
+        if k > kmax: kmax = k
+    return kmax
 
-@ngpjit
-def _ks_test_no_dist_numba(
-    rmli,
-    az_half_win,
-    r_half_win,
-):
-    """Parameters
-    ----------
-    rmli
-        sorted rmli stack
-    az_half_win
-    r_half_win
-    """
-    n_az, n_r,n_imag = rmli.shape
-    p = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
-    for i in prange(n_az):
-        for j in prange(n_r):
-            ref_rmli = rmli[i,j]
-            if math.isnan(ref_rmli[-1]):
-                for l in range(-az_half_win, az_half_win+1):
-                    for m in range(-r_half_win,r_half_win+1):
-                        p[i,j,l+az_half_win,m+r_half_win] = np.nan
-            else:
-                for l in range(-az_half_win, az_half_win+1):
-                    for m in range(-r_half_win,r_half_win+1):
-                        sec_i = i+l
-                        sec_j = j+m
-                        if (sec_i<0) or (sec_i>=n_az) or (sec_j<0) or (sec_j>=n_r):
-                            p[i,j,l+az_half_win,m+r_half_win] = np.nan
-                        else:
-                            sec_rmli = rmli[sec_i, sec_j]
-                            if math.isnan(sec_rmli[-1]):
-                                p[i,j,l+az_half_win,m+r_half_win] = np.nan
-                            else:
-                                dmax = _ks_d_numba(ref_rmli, sec_rmli, n_imag)
-                                en = math.sqrt(n_imag/2)
-                                p[i,j,l+az_half_win,m+r_half_win] = _ks_p_numba((en+0.12+0.11/en)*dmax)
-    return p
+_ks_k_numba = ngjit(_ks_k)
+
+def _ks_p_table(n):
+    """p value of the KS statistic k/n of two samples of n values, k = 0..n, float64"""
+    en = math.sqrt(n/2)
+    return np.array([_ks_p_numba((en+0.12+0.11/en)*(k/n)) for k in range(n+1)])
 
 @ngpjit
 def _ks_test_numba(
     rmli,
     az_half_win,
     r_half_win,
+    p_table,
+    p,
+    dist,
 ):
-    """Parameters
-    ----------
-    rmli
-        sorted rmli stack
-    az_half_win
-    r_half_win
-    """
-    n_az, n_r,n_imag = rmli.shape
-    dist = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
-    p = np.empty((n_az,n_r,2*az_half_win+1,2*r_half_win+1),dtype=rmli.dtype)
+    """p (and dist if it is not empty) of the sorted rmli stack, both (n_az, n_r, az_win, r_win)"""
+    n_az, n_r, n = rmli.shape
+    aw = 2*az_half_win+1; rw = 2*r_half_win+1
+    with_dist = dist.size > 0
     for i in prange(n_az):
-        for j in prange(n_r):
-            ref_rmli = rmli[i,j]
-            if math.isnan(ref_rmli[-1]):
-                for l in range(-az_half_win, az_half_win+1):
-                    for m in range(-r_half_win,r_half_win+1):
-                        dist[i,j,l+az_half_win,m+r_half_win] = np.nan
-                        p[i,j,l+az_half_win,m+r_half_win] = np.nan
-            else:
-                for l in range(-az_half_win, az_half_win+1):
-                    for m in range(-r_half_win,r_half_win+1):
-                        sec_i = i+l
-                        sec_j = j+m
-                        if (sec_i<0) or (sec_i>=n_az) or (sec_j<0) or (sec_j>=n_r):
-                            dist[i,j,l+az_half_win,m+r_half_win] = np.nan
-                            p[i,j,l+az_half_win,m+r_half_win] = np.nan
-                        else:
-                            sec_rmli = rmli[sec_i, sec_j]
-                            if math.isnan(sec_rmli[-1]):
-                                p[i,j,l+az_half_win,m+r_half_win] = np.nan
-                            else:
-                                dmax = _ks_d_numba(ref_rmli, sec_rmli, n_imag)
-                                en = math.sqrt(n_imag/2)
-                                dist[i,j,l+az_half_win,m+r_half_win] = dmax
-                                p[i,j,l+az_half_win,m+r_half_win] = _ks_p_numba((en+0.12+0.11/en)*dmax)
-    return dist, p
+        for j in range(n_r):
+            ref = rmli[i,j]
+            ref_nan = math.isnan(ref[n-1])     # nan are sorted to the end
+            p[i,j,az_half_win,r_half_win] = np.nan if ref_nan else p_table[0]
+            if with_dist: dist[i,j,az_half_win,r_half_win] = np.nan if ref_nan else 0.0
+            # the offsets after the centre, and their mirror at the other pixel
+            for l in range(az_half_win, aw):
+                for m in range(rw):
+                    if l == az_half_win and m <= r_half_win:
+                        continue
+                    si = i+l-az_half_win; sj = j+m-r_half_win
+                    inside = (si < n_az) and (sj >= 0) and (sj < n_r)
+                    if (not inside) or ref_nan or math.isnan(rmli[si,sj,n-1]):
+                        k = -1
+                    else:
+                        k = _ks_k_numba(ref, rmli[si,sj], n)
+                    p_ = np.nan if k < 0 else p_table[k]
+                    p[i,j,l,m] = p_
+                    if inside: p[si,sj,aw-1-l,rw-1-m] = p_
+                    if with_dist:
+                        d_ = np.nan if k < 0 else k/n
+                        dist[i,j,l,m] = d_
+                        if inside: dist[si,sj,aw-1-l,rw-1-m] = d_
+            # the offsets before the centre whose other pixel is outside the image
+            for l in range(0, az_half_win+1):
+                for m in range(rw):
+                    if l == az_half_win and m >= r_half_win:
+                        continue
+                    si = i+l-az_half_win; sj = j+m-r_half_win
+                    if (si < 0) or (sj < 0) or (sj >= n_r):
+                        p[i,j,l,m] = np.nan
+                        if with_dist: dist[i,j,l,m] = np.nan
 
 @ngpjit
 def _sort_numba(
@@ -136,145 +114,27 @@ def _sort_numba(
             sorted_rmli[i,j] = np.sort(rmli[i,j])
     return sorted_rmli
 
-# It looks cupy do not support pointer to pointer: float** rmli_stack
 if is_cuda_available():
-    _ks_test_kernel = cp.ElementwiseKernel(
-        'raw T rmli_stack, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win',
-        'raw T dist, raw T p',
-        '''
-        int az_win = 2*az_half_win+1;
-        int r_win = 2*r_half_win+1;
-        int win = az_win*r_win;
+    _ks_k_cuda = cuda.jit(device=True)(_ks_k)
 
-        int ref_idx = i/win;
-        int ref_az = ref_idx/width;
-        int ref_r = ref_idx -ref_az*width;
-
-        int win_idx = i - ref_idx*win;
-        int win_az = win_idx/r_win;
-        int win_r = win_idx - win_az*r_win;
-        int sec_az = ref_az + win_az - az_half_win;
-        int sec_r = ref_r + win_r - r_half_win;
-        int sec_idx = sec_az*width + sec_r;
-
-        if (ref_r >= width && ref_az >= nlines) {
-            return;
-        }
-        if (sec_az < 0 || sec_az >= nlines || sec_r < 0 || sec_r >= width) {
-            dist[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            p[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            return;
-        }
-
-        // if data contain nan value, nan are sorted to the end
-        if (isnan(rmli_stack[ref_idx*nimages + nimages-1]) || isnan(rmli_stack[sec_idx*nimages + nimages-1])) {
-            dist[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            p[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            return;
-        }
-
-        // Compute the maximum difference between the cumulative distributions
-        int j1 = 0, j2 = 0;
-        T f1, f2, d, dmax = 0.0, en = nimages;
-
-        while (j1 < nimages && j2 < nimages) {
-            f1 = rmli_stack[ref_idx*nimages + j1];
-            f2 = rmli_stack[sec_idx*nimages + j2];
-            if (f1 <= f2) j1++;
-            if (f1 >= f2) j2++;
-            d = fabs((j2-j1)/en);
-            if (d > dmax) dmax = d;
-        }
-        en=sqrt(en/2);
-        p[ref_idx*win+win_az*r_win+win_r] = ks_p((en+0.12+0.11/en)*dmax);
-        dist[ref_idx*win+win_az*r_win+win_r] = dmax;
-        ''',
-        name = 'ks_test_kernel',no_return=True,
-        preamble = '''
-        #include <cupy/math_constants.h>
-        __device__ T ks_p(T x)
-        {
-            T x2 = -2.0*x*x;
-            int sign = 1;
-            T p = 0.0,p2 = 0.0;
-
-            for (int i = 1; i <= 100; i++) {
-                p += sign*2*exp(x2*i*i);
-                if (p==p2) return p;
-                sign = -sign;
-                p2 = p;
-            }
-            return p;
-        }
-        ''',)
-    _ks_test_no_dist_kernel = cp.ElementwiseKernel(
-        'raw T rmli_stack, int32 nlines, int32 width, int32 nimages, int32 az_half_win, int32 r_half_win',
-        'raw T p',
-        '''
-        int az_win = 2*az_half_win+1;
-        int r_win = 2*r_half_win+1;
-        int win = az_win*r_win;
-
-        int ref_idx = i/win;
-        int ref_az = ref_idx/width;
-        int ref_r = ref_idx -ref_az*width;
-
-        int win_idx = i - ref_idx*win;
-        int win_az = win_idx/r_win;
-        int win_r = win_idx - win_az*r_win;
-        int sec_az = ref_az + win_az - az_half_win;
-        int sec_r = ref_r + win_r - r_half_win;
-        int sec_idx = sec_az*width + sec_r;
-
-        if (ref_r >= width && ref_az >= nlines) {
-            return;
-        }
-        if (sec_az < 0 || sec_az >= nlines || sec_r < 0 || sec_r >= width) {
-            p[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            return;
-        }
-
-        // if data contain nan value, nan are sorted to the end
-        if (isnan(rmli_stack[ref_idx*nimages + nimages-1]) || isnan(rmli_stack[sec_idx*nimages + nimages-1])) {
-            p[ref_idx*win+win_az*r_win+win_r] = CUDART_NAN;
-            return;
-        }
-
-        // Compute the maximum difference between the cumulative distributions
-        int j1 = 0, j2 = 0;
-        T f1, f2, d, dmax = 0.0, en = nimages;
-
-        while (j1 < nimages && j2 < nimages) {
-            f1 = rmli_stack[ref_idx*nimages + j1];
-            f2 = rmli_stack[sec_idx*nimages + j2];
-            // check if there nan value in the data
-
-            if (f1 <= f2) j1++;
-            if (f1 >= f2) j2++;
-            d = fabs((j2-j1)/en);
-            if (d > dmax) dmax = d;
-        }
-        en=sqrt(en/2);
-        p[ref_idx*win+win_az*r_win+win_r] = ks_p((en+0.12+0.11/en)*dmax);
-        ''',
-        name = 'ks_test_no_dist_kernel',no_return=True,
-        preamble = '''
-        #include <cupy/math_constants.h>
-        __device__ T ks_p(T x)
-        {
-            T x2 = -2.0*x*x;
-            int sign = 1;
-            T p = 0.0,p2 = 0.0;
-
-            for (int i = 1; i <= 100; i++) {
-                p += sign*2*exp(x2*i*i);
-                if (p==p2) return p;
-                sign = -sign;
-                p2 = p;
-            }
-            return p;
-        }
-        ''',)
+    @cuda.jit
+    def _ks_test_cuda(rmli, az_half_win, r_half_win, p_table, p, dist):
+        # one thread per pixel and offset in its window
+        t = cuda.grid(1)
+        n_az, n_r, n = rmli.shape
+        aw = 2*az_half_win+1; rw = 2*r_half_win+1; win = aw*rw
+        if t >= n_az*n_r*win:
+            return
+        pix = t//win; o = t%win
+        i = pix//n_r; j = pix%n_r; l = o//rw; m = o%rw
+        si = i+l-az_half_win; sj = j+m-r_half_win
+        if si < 0 or si >= n_az or sj < 0 or sj >= n_r or math.isnan(rmli[i,j,n-1]) or math.isnan(rmli[si,sj,n-1]):
+            p[i,j,l,m] = math.nan
+            if dist.size > 0: dist[i,j,l,m] = math.nan
+            return
+        k = _ks_k_cuda(rmli[i,j], rmli[si,sj], n)
+        p[i,j,l,m] = p_table[k]
+        if dist.size > 0: dist[i,j,l,m] = k/n
 
 def ks_test(rmli:np.ndarray,
             az_half_win:int,
@@ -306,30 +166,18 @@ def ks_test(rmli:np.ndarray,
     az_win = 2*az_half_win+1
     r_win = 2*r_half_win+1
     nlines, width, nimages = rmli.shape
+    shape = (nlines, width, az_win, r_win)
+    p_table = _ks_p_table(nimages).astype(rmli.dtype)
+    p = xp.empty(shape, dtype=rmli.dtype)
+    dist = xp.empty(shape if return_dist else (0,0,0,0), dtype=rmli.dtype)
     if xp is np:
-        sorted_rmli = _sort_numba(rmli)
-        if return_dist:
-            return _ks_test_numba(sorted_rmli, az_half_win, r_half_win)
-        else:
-            return _ks_test_no_dist_numba(sorted_rmli, az_half_win, r_half_win)
-
+        _ks_test_numba(_sort_numba(rmli), az_half_win, r_half_win, p_table, p, dist)
     else:
-        sorted_rmli = cp.sort(rmli,axis=-1)
-        if return_dist:
-            dist = cp.empty((nlines,width,az_win,r_win),dtype=rmli.dtype)
-            p = cp.empty((nlines,width,az_win,r_win),dtype=rmli.dtype)
-
-            _ks_test_kernel(sorted_rmli,cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                            cp.int32(az_half_win),cp.int32(r_half_win),dist,p,
-                            size=width*nlines*r_win*az_win,block_size=block_size)
-            return dist,p
-        else:
-            p = cp.empty((nlines,width,az_win,r_win),dtype=rmli.dtype)
-
-            _ks_test_no_dist_kernel(sorted_rmli,cp.int32(nlines),cp.int32(width),cp.int32(nimages),
-                            cp.int32(az_half_win),cp.int32(r_half_win),p,
-                            size=width*nlines*r_win*az_win,block_size=block_size)
-            return p
+        n = p.size
+        if n > 0:
+            _ks_test_cuda[(n+block_size-1)//block_size, block_size](
+                cp.sort(rmli,axis=-1), np.int32(az_half_win), np.int32(r_half_win), cp.asarray(p_table), p, dist)
+    return (dist, p) if return_dist else p
 
 @ngpjit
 def select_shp(
