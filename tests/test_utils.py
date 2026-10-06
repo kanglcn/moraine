@@ -5,7 +5,7 @@ import numpy as np
 
 import moraine as mr
 from moraine.api import utils_
-from moraine.api.utils_ import _source_hash, mjit
+from moraine.api.utils_ import _source_hash, mjit, _default_cuda_home
 
 
 def test_source_hash(tmp_path):
@@ -44,3 +44,17 @@ def test_emi_kernel_cached(rng):
     assert mr.emi(coh).shape == (4, 6)
     if utils_._CACHE_DIR is not None:
         assert list(Path(_emi_numba._cache._cache_path).glob('pl._emi_numba-*.nbi'))
+
+
+def test_default_cuda_home(tmp_path, monkeypatch):
+    for v in ('CUDA_HOME', 'CUDA_PATH', 'CONDA_PREFIX'):
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setattr('sys.prefix', str(tmp_path))
+    _default_cuda_home()
+    assert 'CUDA_HOME' not in __import__('os').environ          # no CUDA libraries in this prefix
+    (tmp_path / 'nvvm').mkdir()
+    _default_cuda_home()
+    assert __import__('os').environ['CUDA_HOME'] == str(tmp_path)
+    monkeypatch.setenv('CUDA_HOME', '/somewhere/else')
+    _default_cuda_home()
+    assert __import__('os').environ['CUDA_HOME'] == '/somewhere/else'   # set by the user: kept

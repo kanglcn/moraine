@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+With numba-cuda, GPU kernels failed to compile when the python of a conda environment was run without activating it (libnvvm not found: e.g. scripts, batch jobs or the pre-commit hook calling the python by its path); moraine now sets `CUDA_HOME` to that environment when neither `CUDA_HOME`, `CUDA_PATH` nor `CONDA_PREFIX` is set
+
 `numba-cuda` (NVIDIA) is a GPU dependency, installed with conda like cupy (README): the GPU kernels are numba.cuda kernels (decision 0030), and it starts them about 4 times faster than the deprecated CUDA target built into numba (110 instead of 450 us per launch)
 
 No cupy ElementwiseKernel is left; the GPU kernels are numba.cuda kernels or cupy matrix products. `temp_coh` (one warp per point) takes 1.8 instead of 7.9 ms for 981 x 1000 points and 91 image pairs on an A100, `amp_disp` (one warp per pixel) 1.7 instead of 2.2 ms for 981 x 1000 x 92, `emperical_co` 9 instead of 64 ms for 100 x 100 x 92; the small per pixel kernels of `n2f` / `n2fs3d` and `ad_intf_pc` take 0.1-1 ms more per call, the launch overhead of numba.cuda. The results are the same, or differ by float32 rounding; `emperical_co` ignores `block_size`
