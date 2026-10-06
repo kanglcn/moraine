@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`n2ft` (command) filters one output chunk of points with all image pairs per task instead of all points per image pair: the sampling and neighbour structure of every processing chunk is computed once instead of once per image pair, and a worker holds the rslc of its chunk instead of whole images. 531 k points (Campi Flegrei PS candidates) on one A100: 62 s instead of 438 s for 91 image pairs, worker peak memory 1.4 instead of 2.8 GB; on the CPU 289 s instead of 351 s for 10 image pairs. 10 million points, 2 image pairs: 125 s instead of 200 s, worker 1.4 instead of 2.3 GB, main process 1.1 instead of 1.2 GB. The results are identical; the processing chunks no longer cross the output chunks, and when `chunks` divides `out_chunks` (as in the examples) they are the same as before
+
 Errors of the parallel zarr reads and writes of the commands (e.g. a corrupted chunk, a read-only output) are raised; before, a failed read returned uninitialized values and a failed write was ignored
 
 `pc_union`, `pc_intersect` and `pc_diff` (commands `pc-union`, `pc-intersect`, `pc-diff`, `pc-select-data`) check that the indices are sorted and without duplicates, as `docs/contracts/data.md` requires: the check let unsorted indices through (`pc_union` then merged them wrongly) and rejected point clouds of zero or one point

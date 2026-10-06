@@ -576,6 +576,56 @@ def _intf_redim_back(intf):
             out[i, j] = intf[j,i,0]+intf[j,i,1]*1j
     return out
 
+def _n2ft_structure(
+    x,
+    y,
+    device,
+):
+    """normalized positions and the sampling and neighbour indices of the points, as torch tensors on `device`;
+    they depend on the coordinates only and serve all interferograms of the points
+
+    Parameters
+    ----------
+    x
+        (n,)
+    y
+        (n,)
+    device
+        torch device
+    """
+    torch = _import_torch()
+    pos = _pos_norm(x,y)
+    keys = _sample_and_knn(pos)
+    pos = torch.from_numpy(pos).to(device).unsqueeze(0)
+    keys = tuple(torch.from_numpy(key).to(device).unsqueeze(0) for key in keys)
+    return pos, keys
+
+def _infer_n2ft_structure(
+    structure,
+    intf,
+    model,
+):
+    """Parameters
+    ----------
+    structure
+        of the points, from `_n2ft_structure` on the device of `model`
+    intf
+        (n,m)
+    model
+    """
+    torch = _import_torch()
+    device = next(model.parameters()).device
+    pos, keys = structure
+    intf = _intf_redim2torch(intf)
+    out = np.empty_like(intf)
+
+    with torch.inference_mode():
+        intf = torch.from_numpy(intf).to(device)
+        for i in range(intf.shape[0]):
+            out[i] = model(pos, intf[i:i+1], *keys).cpu().numpy()[0]
+    out = _intf_redim_back(out)
+    return out
+
 def _infer_n2ft(
     x,
     y,
@@ -592,22 +642,7 @@ def _infer_n2ft(
         (n,m)
     model
     """
-    torch = _import_torch()
-    device = next(model.parameters()).device
-
-    pos = _pos_norm(x,y)
-    keys = _sample_and_knn(pos)
-    intf = _intf_redim2torch(intf)
-    out = np.empty_like(intf)
-
-    with torch.inference_mode():
-        intf = torch.from_numpy(intf).to(device)
-        pos = torch.from_numpy(pos).to(device).unsqueeze(0)
-        keys = tuple(torch.from_numpy(key).to(device).unsqueeze(0) for key in keys)
-        for i in range(intf.shape[0]):
-            out[i] = model(pos, intf[i:i+1], *keys).cpu().numpy()[0]
-    out = _intf_redim_back(out)
-    return out
+    return _infer_n2ft_structure(_n2ft_structure(x, y, next(model.parameters()).device), intf, model)
 
 def n2ft(
     x:np.ndarray,

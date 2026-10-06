@@ -27,7 +27,7 @@ from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
 from ..api.co import intf as intf_func
 from .dask_ import parallel_read_zarr
-from ..api.dl import _get_model, _cuda_device, _infer_unet, _infer_n2ft, _nan_where_zero
+from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_structure, _infer_n2ft_structure, _nan_where_zero
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
@@ -277,54 +277,74 @@ def n2f(
         logger.info('computing finished.')
     logger.info('dask cluster closed.')
 
-def _cli_n2ft(
-    x:np.ndarray,
-    y:np.ndarray,
-    ref:np.ndarray,
-    sec:np.ndarray,
-    in_indices,
-    out_slices,
-    map_indices,
-    chunks:int=None,
-    k:int=128,
+def _n2ft_block_bounds(n, chunks, out_chunks):
+    """start of every processing chunk of `n` points and `n`: chunks of `chunks` points that do not cross the
+    output chunks of `out_chunks` points"""
+    starts = [s for o in range(0, n, out_chunks) for s in range(o, min(o+out_chunks, n), chunks)]
+    return np.array(starts+[n], dtype=np.int64)
+
+def _cli_n2ft_out_chunk(
+    x:str,
+    y:str,
+    rslc:str,
+    intf:str,
+    rows:tuple,
+    idx:np.ndarray,
+    blocks:list,
+    image_pairs:np.ndarray,
     model:str=None,
-    cuda:bool=False
+    cuda:bool=False,
 ):
-    """Parameters
+    """n2ft of all image pairs on the points of one output chunk, written into `intf`
+
+    Parameters
     ----------
-    x : np.ndarray
-        x coordinate, e.g., longitude, shape (n,) np.floating
-    y : np.ndarray
-        y coordinate, e.g., latitude, shape (n,) np.floating
-    ref : np.ndarray
-        reference slc, shape(n,) np.complex64
-    sec : np.ndarray
-        secondary slc, shape(n,) np.complex64
-    in_indices
-    out_slices
-    map_indices
-    chunks : int, optional
-        chunksize, intf.shape[0] by default
-    k : int, default: 128
-        halo size for chunkwise processing
+    x : str
+        zarr path of the x coordinate of all points, shape (n_points,)
+    y : str
+        zarr path of the y coordinate of all points, shape (n_points,)
+    rslc : str
+        zarr path of the rslc of all points, shape (n_points, nimages)
+    intf : str
+        zarr path of the output, shape (n_points, n_image_pairs); `rows` is one of its chunks
+    rows : tuple
+        (start, stop) of the points of the output chunk
+    idx : np.ndarray
+        sorted indices of the points of the output chunk and of their halo points
+    blocks : list
+        every processing chunk of the output chunk: positions in `idx` of its points with halo, positions of
+        its own points among them, slice of its own points in the output chunk
+    image_pairs : np.ndarray
+        image pairs (reference, secondary), shape (n_image_pairs, 2)
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         use gpu for inference
+
+    Returns
+    -------
+    int
+        number of points of the output chunk
     """
     model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu')
-
-    intf = intf_func(ref, sec)[:,None]
-    n = intf.shape[0]
-    if (chunks is None) or (chunks >= n):
-        out = _infer_n2ft(x, y, intf, model)
-    else:
-        out = np.empty_like(intf)
-        for in_idx, out_slice, map_idx in zip(in_indices, out_slices, map_indices):
-            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],model)[map_idx]
-    out = out[:,0]
-
-    return out
+    device = next(model.parameters()).device
+    images = np.unique(image_pairs)
+    cols = np.searchsorted(images, image_pairs)
+    # the rslc of the points with halo for the images of the pairs; the structure of every processing chunk
+    # depends on the coordinates only and is computed once for all image pairs
+    rslc_idx = zarr.open(rslc,mode='r').get_orthogonal_selection((idx,images))
+    x_idx = zarr.open(x,mode='r').get_orthogonal_selection(idx)
+    y_idx = zarr.open(y,mode='r').get_orthogonal_selection(idx)
+    structures = [_n2ft_structure(x_idx[pos],y_idx[pos],device) for pos, _, _ in blocks]
+    intf_zarr = zarr.open(intf,mode='r+')
+    start, stop = rows
+    out = np.empty(stop-start,dtype=intf_zarr.dtype)
+    for k in range(image_pairs.shape[0]):
+        ifg = intf_func(np.ascontiguousarray(rslc_idx[:,cols[k,0]]),np.ascontiguousarray(rslc_idx[:,cols[k,1]]))
+        for (pos, own, out_slice), structure in zip(blocks,structures):
+            out[out_slice] = _infer_n2ft_structure(structure,ifg[pos][:,None],model)[own,0]
+        intf_zarr[start:stop,k] = out
+    return stop-start
 
 @mc_logger
 def n2ft(
@@ -346,6 +366,11 @@ def n2ft(
 ):
     """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
 
+    Every worker filters one output chunk of points with all image pairs at a time: it holds the rslc of the
+    points of the chunk and of their halos for the images of the pairs (8 bytes per point and image) and
+    about 400 bytes per point of the chunk more, most of it in GPU memory with `cuda`. Before, the main
+    process finds the halos of all processing chunks with about 70 bytes per point.
+
     Parameters
     ----------
     x : str
@@ -360,9 +385,10 @@ def n2ft(
         input: image pairs (reference, secondary), shape (n_image_pairs, 2); make a file with
         `moraine image-pairs`
     chunks : int, optional
-        number of points per processing chunk, same as rslc by default
+        number of points per processing chunk, same as rslc by default; the processing chunks do not cross
+        the output chunks
     out_chunks : int, optional
-        point chunk size of the output, same as rslc by default
+        point chunk size of the output, same as rslc by default; it sets the memory of a worker
     k : int, default: 128
         number of nearest neighbours of the chunk border points added as halo to each chunk
     model : str, optional
@@ -399,10 +425,31 @@ def n2ft(
     if out_chunks is None: out_chunks = rslc_zarr.chunks[0]
 
     logger.info(f'processing point chunk size: {chunks}')
+    logger.info(f'output point chunk size: {out_chunks}, processed with all image pairs in one task')
     logger.info('distributing every processing chunk with halo data')
-    in_indices, out_slices, map_indices = chunkwise_knn_mapping(pc_x_data, pc_y_data, chunks, k=k)
+    in_indices, out_slices, map_indices = chunkwise_knn_mapping(pc_x_data, pc_y_data, chunks, k=k,
+                                                                bounds=_n2ft_block_bounds(npoint, chunks, out_chunks))
     in_indices_size = [len(in_idx) for in_idx in in_indices]
     logger.info(f'processing chunk size with halo data: {in_indices_size}')
+
+    # one task per output chunk: its points with the halos of its processing chunks, positions as int32; the
+    # halo indices are released as they are used
+    del pc_x_data, pc_y_data
+    tasks_args = []
+    j = 0
+    for start in range(0, npoint, out_chunks):
+        stop = min(start+out_chunks, npoint)
+        jb = []
+        while j < len(out_slices) and out_slices[j].start < stop:
+            jb.append(j); j += 1
+        idx = np.unique(np.concatenate([in_indices[i] for i in jb]))
+        blocks = []
+        for i in jb:
+            blocks.append((np.searchsorted(idx, in_indices[i]).astype(np.int32), map_indices[i].astype(np.int32),
+                           slice(out_slices[i].start-start, out_slices[i].stop-start)))
+            in_indices[i] = None; map_indices[i] = None
+        tasks_args.append(((start, stop), idx, blocks))
+    del in_indices, out_slices, map_indices
 
     if cuda:
         Cluster = LocalCUDACluster; cluster_args= {
@@ -425,30 +472,16 @@ def n2ft(
         if cuda:
             client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
             client.run(_torch_use_rmm)
-        n2ft_delayed = delayed(_cli_n2ft,pure=True,nout=1)
 
-        ref_cpu_rslc = dask_from_zarr(rslc_path, chunks=(npoint,1))
-        # use two different rslc to make dask do not hold too much data 
-        sec_cpu_rslc = dask_from_zarr(rslc_path, chunks=(npoint,1))
-        logger.darr_info('rslc', ref_cpu_rslc)
-        intf = np.empty((1,n_image_pairs),dtype=object)
-        for i in range(n_image_pairs):
-            ref_i, sec_i = image_pairs[i]
-            intf[0,i] = n2ft_delayed(pc_x_data, pc_y_data, ref_cpu_rslc[:,ref_i].to_delayed()[0],sec_cpu_rslc[:,sec_i].to_delayed()[0],
-                                     in_indices, out_slices, map_indices,
-                                     chunks=chunks, k=k, model=model, cuda=cuda
-                                    )
-            intf[0,i] = da.from_delayed(intf[0,i],shape=(npoint,),meta=np.array((),dtype=ref_cpu_rslc.dtype)).reshape(npoint,1)
-        intf = da.block(intf.tolist())
-        logger.info('got filtered interferograms.')
-        logger.darr_info('intf', intf)
+        intf_zarr = zarr.open(intf_path,mode='w',shape=(npoint,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(out_chunks,1))
+        logger.zarr_info(intf_path, intf_zarr)
+        n2ft_delayed = delayed(_cli_n2ft_out_chunk,pure=True,nout=1)
+        tasks = [n2ft_delayed(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model=model, cuda=cuda)
+                 for rows, idx, blocks in tasks_args]
 
-        logger.info('saving filtered interferograms.')
-        _intf = dask_to_zarr(intf,intf_path,chunks=(out_chunks,1))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist([_intf,])
+        logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
+        futures = client.compute(tasks)
         progress(futures,notebook=False)
-        da.compute(futures)
+        client.gather(futures)
         logger.info('computing finished.')
     logger.info('dask cluster closed.')

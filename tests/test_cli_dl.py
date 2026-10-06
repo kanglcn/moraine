@@ -72,7 +72,7 @@ def test_cli_n2f(rslc, tmp_path, cuda):
 @pytest.fixture(scope='module')
 def ps(rslc, tmp_path_factory):
     d = tmp_path_factory.mktemp('n2ft')
-    crop = rslc[:600, :600]
+    crop = rslc[:1200, :1200]  # enough points for four processing chunks
     gix = np.stack(np.where(mr.amp_disp(crop) < 0.3), axis=-1)
     data = {'x.zarr': gix[:, 1].astype(np.float64), 'y.zarr': gix[:, 0].astype(np.float64),
             'rslc.zarr': crop[gix[:, 0], gix[:, 1]]}
@@ -82,14 +82,27 @@ def ps(rslc, tmp_path_factory):
     return d, data
 
 
+def test_n2ft_block_bounds():
+    from moraine.cli.dl import _n2ft_block_bounds
+    np.testing.assert_array_equal(_n2ft_block_bounds(100, 20, 40), [0, 20, 40, 60, 80, 100])
+    np.testing.assert_array_equal(_n2ft_block_bounds(100, 30, 40), [0, 30, 40, 70, 80, 100])  # cut at output chunks
+    np.testing.assert_array_equal(_n2ft_block_bounds(95, 20, 200), [0, 20, 40, 60, 80, 95])
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize('cuda', GPU)
 def test_cli_n2ft(ps, cuda):
     d, data = ps
-    n = data['x.zarr'].shape[0]
+    x, y, s = data['x.zarr'], data['y.zarr'], data['rslc.zarr']
+    chunks = x.shape[0] // 4 + 1  # four processing chunks in two output chunks, the same chunks as the API
+    pairs = np.array([[0, 1], [2, 3]])
     mc.n2ft(str(d / 'x.zarr'), str(d / 'y.zarr'), str(d / 'rslc.zarr'), str(d / f'intf_{cuda}.zarr'),
-            np.array([[0, 1], [2, 3]]), chunks=n // 2, cuda=cuda)
-    out = zarr.open(str(d / f'intf_{cuda}.zarr'), mode='r')[:]
-    s = data['rslc.zarr']
-    api = mr.n2ft(data['x.zarr'], data['y.zarr'], s[:, 0] * s[:, 1].conj(), chunks=n // 2)
-    assert np.median(_phase_diff(out[:, 0], api)) < 1e-4
+            pairs, chunks=chunks, out_chunks=2 * chunks, cuda=cuda)
+    out = zarr.open(str(d / f'intf_{cuda}.zarr'), mode='r')
+    assert out.chunks == (2 * chunks, 1)
+    for k, (a, b) in enumerate(pairs):
+        api = mr.n2ft(x, y, mr.intf(np.ascontiguousarray(s[:, a]), np.ascontiguousarray(s[:, b])), chunks=chunks, cuda=cuda)
+        if cuda:
+            assert np.median(_phase_diff(out[:, k], api)) < 1e-4
+        else:  # torch in a single thread worker against the threads of this process: rounding only
+            np.testing.assert_allclose(out[:, k], api, atol=1e-5)

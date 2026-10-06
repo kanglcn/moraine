@@ -32,7 +32,7 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 | `pc_can_temp_coh_pyramid` | p50 0.46, p99 0.99 | 0..1 |
 | refined points (`pc_hix`) | 205 747 (25 % of the candidates) | |
 
-Run time: about 2.5 minutes with an A100 (n2ft 138 s).
+Run time: about 1 minute with an A100 (n2ft 35 s).
 
 ## Checks
 
