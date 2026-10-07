@@ -88,7 +88,7 @@ def test_isPD_and_regularize_spectral(rslc):
     import cupy as cp
     s = cp.asarray(rslc[600:605, 600:610])
     p = mr.ks_test(cp.sort(cp.abs(s) ** 2, axis=-1), az_half_win=1, r_half_win=2)
-    _, coh = emperical_co(s, p < 0.05)
+    _, coh = emperical_co(s, p >= 0.05)
     assert isPD(coh).shape == coh.shape[:-2]
     r1 = regularize_spectral(coh, 0.1)
     r2 = regularize_spectral(coh, cp.ones(coh.shape[:-2]) / 10)

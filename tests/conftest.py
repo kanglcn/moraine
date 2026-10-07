@@ -65,7 +65,7 @@ def ds_can(rslc):
     import moraine as mr
     crop = rslc[:400, :400]
     p = mr.ks_test(np.abs(crop) ** 2, az_half_win=5, r_half_win=5)
-    is_shp = p < 0.05
+    is_shp = p >= 0.05
     is_ds_can = np.count_nonzero(is_shp, axis=(-2, -1)) >= 50
     return dict(rslc=crop, is_ds_can=is_ds_can, gix=np.stack(np.where(is_ds_can), axis=-1),
                 is_shp=is_shp[is_ds_can])

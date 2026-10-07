@@ -47,8 +47,32 @@ def test_select_shp(rng):
     for i in range(5):
         p[:, :, i, i] = 1
     is_shp, shp_num = select_shp(p, 0.05)
-    np.testing.assert_array_equal(is_shp, p < 0.05)
-    np.testing.assert_array_equal(shp_num, np.count_nonzero(p < 0.05, axis=(-2, -1)).astype(np.int32))
+    np.testing.assert_array_equal(is_shp, p >= 0.05)
+    np.testing.assert_array_equal(shp_num, np.count_nonzero(p >= 0.05, axis=(-2, -1)).astype(np.int32))
+
+
+def test_ks_p_identical_samples():
+    # the KS statistic 0 (identical samples, e.g. the centre pixel itself) has the p value 1
+    assert _ks_p_numba(0.0) == 1.0
+    p = ks_test(np.sort(np.random.default_rng(0).random((3, 3, 15)), axis=-1).astype(np.float32), 1, 1)
+    np.testing.assert_array_equal(p[:, :, 1, 1], 1.0)
+
+
+def test_select_shp_same_distribution(rng):
+    # intensities of two regions whose mean differs by a factor 10: the SHPs of a pixel are in its own region
+    n_az, n_r, n = 20, 20, 30
+    scale = np.where(np.arange(n_r) < n_r // 2, 1.0, 10.0)
+    rmli = (rng.exponential(size=(n_az, n_r, n)) * scale[None, :, None]).astype(np.float32)
+    ah = rh = 3
+    is_shp, shp_num = select_shp(ks_test(rmli, ah, rh), 0.05)
+    side = np.arange(n_r) < n_r // 2
+    for j in (8, 9, 10, 11):  # windows across the border
+        win = np.arange(j - rh, j + rh + 1)
+        same = (side[win] == side[j])[None, :] & np.ones((2 * ah + 1, 1), bool)
+        s = is_shp[5:15, j]
+        assert s[:, ~same].mean() < 0.01      # the other region is rejected
+        assert s[:, same].mean() > 0.9        # the own region is kept (5 % false rejections expected)
+        assert s[:, ah, rh].all()                # the centre pixel itself
 
 
 GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
