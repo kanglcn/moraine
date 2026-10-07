@@ -26,7 +26,8 @@ def _ks_p_numba(x):
         else:
             sign = -sign
             p2 = p
-    return p
+    # the series does not converge for x near 0 (at x = 0 it alternates 2, 0, 2, ...), where the p value is 1
+    return 1.0
 
 # The KS statistic of two samples of n values is k/n with an integer k = max |j2 - j1| over the merged order, so
 # the p value takes n + 1 values only: it is looked up in a table computed with _ks_p_numba (the same values as
@@ -182,13 +183,24 @@ def ks_test(rmli:np.ndarray,
 @ngpjit
 def select_shp(
     p,
-    p_max,
+    alpha,
 ):
-    """Parameters
+    """Select the SHPs: the pixels whose test against the centre pixel is not rejected at the level `alpha`.
+
+    Parameters
     ----------
     p
-        4D (n_az,n_r,az_win,r_win)
-    p_max
+        p value of the test between each pixel and the pixels in its window, shape (n_az, n_r, az_win, r_win),
+        floating; nan for no test
+    alpha
+        significance level, float in (0, 1): a pixel is an SHP when its p value is at least `alpha`
+
+    Returns
+    -------
+    is_shp
+        True for SHPs, shape (n_az, n_r, az_win, r_win), bool
+    shp_num
+        number of SHPs of each pixel, shape (n_az, n_r), int32
     """
     p_shape = p.shape
     is_shp = np.empty(p_shape, dtype=np.bool_)
@@ -197,7 +209,7 @@ def select_shp(
         for j in prange(p_shape[1]):
             for k in range(p_shape[2]):
                 for l in range(p_shape[3]):
-                    is_shp[i,j,k,l] = p[i,j,k,l] < p_max
+                    is_shp[i,j,k,l] = p[i,j,k,l] >= alpha
                     if is_shp[i,j,k,l]:
                         shp_num[i,j] += 1
     return is_shp, shp_num

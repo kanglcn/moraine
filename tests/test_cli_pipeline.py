@@ -39,7 +39,7 @@ def test_amp_disp(work, cuda):
 def shp(work):
     d, crop = work
     mc.shp_test(str(d / 'rslc.zarr'), str(d / 'pvalue.zarr'), az_half_win=5, r_half_win=5)
-    mc.select_shp(str(d / 'pvalue.zarr'), str(d / 'is_shp.zarr'), str(d / 'shp_num.zarr'), p_max=0.05)
+    mc.select_shp(str(d / 'pvalue.zarr'), str(d / 'is_shp.zarr'), str(d / 'shp_num.zarr'), alpha=0.05)
     mc.pc_logic_ras(str(d / 'shp_num.zarr'), str(d / 'ds_can_gix.zarr'), 'ras>=50')
     return d
 

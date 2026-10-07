@@ -155,7 +155,7 @@ def select_shp(
     pvalue:str,
     is_shp:str,
     shp_num:str,
-    p_max:float=0.05,
+    alpha:float=0.05,
     chunks:tuple[int,int]=None,
     processes=False,
     n_workers=1,
@@ -172,8 +172,10 @@ def select_shp(
         output: bool array, True for SHPs, same shape as `pvalue`
     shp_num : str
         output: number of SHPs of each pixel, shape (nlines, width), int32
-    p_max : float, default: 0.05
-        pixels with p value below `p_max` are SHPs
+    alpha : float, default: 0.05
+        significance level of the test, in (0, 1): a pixel is an SHP of the centre pixel of its window when
+        its p value is at least `alpha`, i.e. the test does not reject that both have the same distribution;
+        a larger `alpha` keeps fewer SHPs
     chunks : tuple[int, int], optional
         (azimuth, range) processing chunk size, same as `pvalue` by default
     processes : default: False
@@ -209,13 +211,13 @@ def select_shp(
         with np.nditer(p_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as p_it:
             for p_block in p_it:
                 idx = p_it.multi_index
-                is_shp_delayed[idx], shp_num_delayed[idx] = delayed(mr.select_shp,pure=True,nout=2)(p_delayed[idx],p_max)
+                is_shp_delayed[idx], shp_num_delayed[idx] = delayed(mr.select_shp,pure=True,nout=2)(p_delayed[idx],alpha)
                 chunk_shape = p.blocks[idx].shape[:-2]
                 is_shp_delayed[idx] = da.from_delayed(is_shp_delayed[idx], shape = (*chunk_shape, *p.shape[2:]), meta = np.array((),dtype=np.bool_))
                 shp_num_delayed[idx] = da.from_delayed(shp_num_delayed[idx], shape=chunk_shape, meta = np.array((),dtype=np.int32))
         is_shp = da.block(is_shp_delayed.tolist())
         shp_num = da.block(shp_num_delayed[:,:,0,0].tolist())
-        logger.info('selecting SHPs based on pvalue threshold: '+str(p_max))
+        logger.info('selecting SHPs with p value >= alpha = '+str(alpha))
         logger.darr_info('is_shp', is_shp)
 
         logger.info('calculate shp_num.')
