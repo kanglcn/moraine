@@ -403,6 +403,21 @@ def test_ds_temp_coh_weighted_gpu(intermittent, ds_coh):
         np.testing.assert_array_equal(gpu[0], ds_temp_coh(cp.asarray(c), cp.asarray(p)).get())
 
 
+def test_fused_batch_size():
+    from moraine.api.pl import _fused_batch_size
+    assert _fused_batch_size(92) == 2**30 // (8 * 4186)
+    assert _fused_batch_size(17) == 2**30 // (8 * 136)
+    assert _fused_batch_size(3, max_bytes=1) == 1
+
+
+def test_emperical_co_emi_temp_coh_pc_default_batch(ds_can):
+    """the default batch (all points of the sample at once) gives the batch_size=1000 results"""
+    out = emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], weighted=True)
+    ref = emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000, weighted=True)
+    for a, b in zip(out, ref):
+        np.testing.assert_array_equal(a, b)
+
+
 @pytest.mark.parametrize('regularize', [False, True])
 def test_emperical_co_emi_temp_coh_pc(ds_can, ds_coh, regularize):
     ph, t_coh = emperical_co_emi_temp_coh_pc(ds_can['rslc'], ds_can['gix'], ds_can['is_shp'], batch_size=1000,

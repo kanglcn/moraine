@@ -305,7 +305,7 @@ def emperical_co_emi_temp_coh_pc(
     eff_n_pairs_dir:str=None,
     n_components_dir:str=None,
     alpha:float=1e-3,
-    batch_size:int=1000,
+    batch_size:int=None,
     regularize:bool=True,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
@@ -349,8 +349,10 @@ def emperical_co_emi_temp_coh_pc(
     alpha : float, default: 1e-3
         probability that a point without any coherent image pair (pure noise) has all images connected;
         1e-6 <= alpha <= 0.5; see `ds-temp-coh`; only with one of the weighted outputs
-    batch_size : int, default: 1000
-        number of points processed at once, limits the memory use
+    batch_size : int, optional
+        number of points a worker processes at once; the coherence matrices of a batch take 8 bytes per image
+        pair and point, their estimation on the GPU up to 1 GiB more. Default: as many points as 1 GiB of
+        coherence matrices hold (small batches cost time: thousands of small GPU operations per batch)
     regularize : bool, default: True
         regularize the coherence matrix in the phase linking as `regularize` of `emi`; the temporal
         coherence is computed with the coherence matrix as estimated
