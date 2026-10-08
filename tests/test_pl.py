@@ -136,6 +136,54 @@ def test_emi_regularize_gpu(not_pd, ds_coh):
     np.testing.assert_allclose(quality_reg, quality, rtol=1e-2, atol=1e-2)
 
 
+# Coherence matrices (17 images, upper triangles) of two Campi Flegrei candidates on which a pivot of the Sturm
+# sequence of the GPU multisection rounds to exactly 0 at a grid point: counted as non-negative but used as a
+# negative pivot, the count was off by one there and the eigenvalue found was the second one (phase errors of pi).
+_STURM_ZERO_PIVOT_COH = (
+    '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'
+    'wRYNve+FKD379RG9nvk9PQ==')
+
+
+@pytest.mark.gpu
+def test_emi_gpu_sturm_zero_pivot():
+    import base64
+    import cupy as cp
+    coh = np.frombuffer(base64.b64decode(''.join(_STURM_ZERO_PIVOT_COH)), np.complex64).reshape(2, 136)
+    ph, quality = _emi(coh)
+    ph_gpu, quality_gpu = (a.get() for a in _emi(cp.asarray(coh)))
+    np.testing.assert_allclose(ph_gpu, ph, atol=1e-3)
+    np.testing.assert_allclose(quality_gpu, quality, rtol=1e-4)
+
+
 @pytest.mark.gpu
 def test_emi_gpu_memory():
     """The regularized EMI on the GPU needs no GPU memory beyond its input and output (cupy: ~200 kB per point)."""
