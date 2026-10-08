@@ -169,11 +169,13 @@ instead of ~15 min) to run them.
 
 ## How to use
 
-Read the [software
-architecture](./nbs/Introduction/software_architecture.ipynb) for an
-overview of the software design. Refer to [Tutorials](./nbs/Tutorials)
-for the examples. Every function is documented by its docstring, e.g.
-`help(moraine.emi)` or `help(moraine.cli.emi)`.
+The manual is at <https://kanglcn.github.io/moraine/>: concepts, the
+workflows, the command line and Python API references generated from the
+code, the tutorials and a recorded session with an AI agent. Every
+function is documented by its docstring, e.g. `help(moraine.emi)` or
+`help(moraine.cli.emi)`, and every command by `moraine COMMAND --help`.
+The source of the manual is `docs/` (`pip install -e '.[docs]'`,
+`mkdocs serve`).
 
 ## Command line and pipelines
 

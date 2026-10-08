@@ -133,3 +133,6 @@ When the task is to change moraine itself rather than to process data:
 - `docs/roadmap.md`: planned features not started yet.
 - `docs/contracts/README.md`: formats others depend on (`--json` output, pipeline files, pyramids, data
   conventions); changing them needs the contract, its tests and possibly a new version.
+- The manual (https://kanglcn.github.io/moraine/) is generated from `docs/`, the docstrings and the command
+  registry by `mkdocs build --strict` (decision 0032); a change of a docstring, an example or a page of `docs/`
+  changes it. Run the build before committing such a change.

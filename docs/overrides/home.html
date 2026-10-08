@@ -1,0 +1,39 @@
+{#- Home page: the hero below the tabs, then the page content without title and sidebars (docs/index.md) -#}
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="mo-hero">
+    <canvas class="mo-hero__canvas" id="mo-fringes" aria-hidden="true"></canvas>
+    <div class="mo-hero__shade"></div>
+    <div class="mo-hero__inner">
+      <p class="mo-eyebrow">Modern Radar Interferometry Environment</p>
+      <h1><span>moraine</span></h1>
+      <p class="mo-lead">
+        InSAR post-processing for the big data era: persistent and distributed scatterers, phase linking,
+        deep learning filters and phase unwrapping, on GPUs, on arrays you can read, with a command line
+        that AI agents speak.
+      </p>
+      <p class="mo-cta">
+        <a class="mo-btn mo-btn--primary" href="{{ 'start/install/' | url }}">Get started</a>
+        <a class="mo-btn mo-btn--fringe" href="{{ 'agent/' | url }}">Talk to an agent</a>
+        <a class="mo-btn" href="{{ 'cli/' | url }}">Command line</a>
+        <a class="mo-btn" href="{{ 'api/' | url }}">Python API</a>
+      </p>
+      <ul class="mo-hero__facts">
+        <li>numpy / cupy in memory, zarr on disk</li>
+        <li>dask on CPUs and multiple GPUs</li>
+        <li>pipelines that resume</li>
+        <li>--json for scripts and agents</li>
+      </ul>
+    </div>
+  </section>
+{% endblock %}
+
+{% block container %}
+  <div class="md-content mo-home" data-md-component="content">
+    <article class="md-content__inner md-typeset">
+      {{ page.content }}
+    </article>
+  </div>
+{% endblock %}

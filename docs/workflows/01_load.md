@@ -36,6 +36,14 @@ GAMMA must be on PATH (`which base_calc phase_sim_orb geocode create_offset`).
 
 Sample data (2500 x 1834 x 17): about 3 minutes, most of it `phase_sim_orb` for each date.
 
+## Figures
+
+Quicklooks of the sample data run of 2026-10-08 (the numbers above are from the same run):
+
+![Sequential interferogram 5 of the raw stack](../assets/workflows/sample_01_intf_seq_5.webp)
+
+*Sequential interferogram 5 of the raw stack (`quicklook raw/rslc_pyramid --show intf_seq --index 5`): noisy single look phase with structure in the coherent areas, nan outside the footprint.*
+
 ## Checks
 
 - `moraine info raw/rslc.zarr`: shape (nlines, width, number of dates in `rslc/`).

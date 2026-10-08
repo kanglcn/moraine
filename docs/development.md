@@ -100,6 +100,7 @@ every change is designed for that size, not for the sample data.
 | a design choice (dependency, interface, approach) | a new record in `docs/decisions/` |
 | dependencies | `pyproject.toml`; a decision record for a major one |
 | user visible behaviour | the `Unreleased` section of `CHANGELOG.md` |
+| a page of the manual (add, remove, rename in `docs/`) | the `nav` of `mkdocs.yml`; `mkdocs build --strict` must pass |
 
 ### Docstrings
 
@@ -115,6 +116,22 @@ Do not write implementation details: algorithms and solvers used internally, per
 optimality claims, comparisons with other software or with earlier versions. They go into code comments
 next to the code, and design choices into `docs/decisions/`.
 
+### The manual
+
+The website (decision 0032) is built by `mkdocs build --strict` from `mkdocs.yml`: the markdown of `docs/`,
+the docstrings (mkdocstrings), the command registry and the examples (`docs/_scripts/refgen.py`, run by
+mkdocs-gen-files) and the tutorial notebooks. Nothing of the reference is written by hand: a wrong help text is
+fixed in the docstring. `docs/api/examples/<module>.md` hold short examples that run at build time
+(markdown-exec), so a failing example fails the build; keep them on the CPU, synthetic and fast. Figures are
+quicklook PNGs of real runs under `docs/assets/`. Build and look at the site before committing a change of
+`docs/`:
+
+```bash
+pip install -e '.[docs]'
+mkdocs build --strict          # the CI runs this on every push; main is deployed to gh-pages
+mkdocs serve                   # http://127.0.0.1:8000/
+```
+
 ## Validating
 
 Run the layers that the change can affect, from cheap to expensive:
@@ -123,7 +140,7 @@ Run the layers that the change can affect, from cheap to expensive:
 ruff check                    # syntax errors and undefined names (rules in pyproject.toml)
 pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
 pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
-pytest -m slow                # CLI processing chain and GAMMA loading, about 3 min (15 min more without data/gamma/sim_orb)
+pytest -m slow                # CLI processing chain and GAMMA loading, about 3 min (15 min more without data/gamma/sim_orb); the manual build
 git diff --check              # whitespace errors
 ```
 

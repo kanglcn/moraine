@@ -118,6 +118,14 @@ jumps first at points of low quality, `spatial_cost = "length"` on long edges. B
 of wrong (point, interferogram) is 0.83 % against 1.54 % when every interferogram is unwrapped alone with
 `mcf-pc` (decision 0020).
 
+## Figures
+
+Quicklooks of the sample data run of 2026-10-08 (the numbers above are from the same run):
+
+![Unwrapped sequential interferogram 5](../assets/workflows/sample_05_unw_5.webp)
+
+*Unwrapped sequential interferogram 5 (`unw/pc_unw_pyramid --index 5`): smooth, no isolated 2π jumps.*
+
 ## Checks
 
 - `moraine info unw/pc_unw_pyramid`: no warnings; values within a few tens of radians.

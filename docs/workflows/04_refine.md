@@ -34,6 +34,18 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 
 Run time: about 1 minute with an A100 (n2ft 38 s).
 
+## Figures
+
+Quicklooks of the sample data run of 2026-10-08 (the numbers above are from the same run):
+
+![Temporal coherence of the merged candidates after the Noise2Fringe Transformer](../assets/workflows/sample_04_temp_coh.webp)
+
+*Temporal coherence of the merged candidates after the Noise2Fringe Transformer (`pc/pc_can_temp_coh_pyramid`).*
+
+![Sequential interferogram 5 of the refined points](../assets/workflows/sample_04_pc_intf_seq_5.webp)
+
+*Sequential interferogram 5 of the refined points (`pc/pc_ph_pyramid --show intf_seq --index 5`): continuous fringes, no noise.*
+
 ## Checks
 
 - `moraine quicklook pc/pc_ph_pyramid --show intf_seq --index I -o pc_intf.png`: interferograms of

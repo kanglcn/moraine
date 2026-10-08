@@ -44,6 +44,8 @@ dependencies = [
 # deep learning models (n2f, n2fs3d, n2ft)
 dl = ["torch"]
 dev = ["pytest", "ruff"]
+# the manual (mkdocs build --strict, decision 0032)
+docs = ["mkdocs-material>=9.6", "mkdocstrings[python]>=0.27", "mkdocs-gen-files>=0.5", "markdown-exec>=1.9"]
 
 [project.scripts]
 moraine = "moraine.command:main"
