@@ -33,6 +33,7 @@ from numba import cuda, float32, float64, int32, uint32
 from numba.cuda.libdevice import fast_fdividef
 
 from .pl import _EMI_MAX_COND, _emi_reg_beta_numba
+from .utils_ import mcuda_jit
 
 _BLOCK_SIZES = (128, 256, 512)    # threads per block (also the points of a multisection step), chosen per number of images
 _STATIC_SHARED_BYTES = 2048       # bound of the static shared arrays of the kernel
@@ -446,7 +447,7 @@ def _eig_index(d, b2, n, j, lo, hi, cnt_sh, x_sh, tid, nt):
     return float32(0.5) * (lo + hi)
 
 
-@cuda.jit(max_registers=72)
+@mcuda_jit(max_registers=72)
 def _emi_kernel(coh, n, ref, ph, quality):
     pt = cuda.blockIdx.x
     tid = cuda.threadIdx.x

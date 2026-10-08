@@ -4,7 +4,7 @@
 __all__ = ['ks_test', 'select_shp']
 
 import numpy as np
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
@@ -118,7 +118,7 @@ def _sort_numba(
 if is_cuda_available():
     _ks_k_cuda = cuda.jit(device=True)(_ks_k)
 
-    @cuda.jit
+    @mcuda_jit()
     def _ks_test_cuda(rmli, az_half_win, r_half_win, p_table, p, dist):
         # one thread per pixel and offset in its window
         t = cuda.grid(1)

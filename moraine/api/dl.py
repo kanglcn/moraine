@@ -15,7 +15,7 @@ import requests
 import math
 import random
 import moraine as mr
-from .utils_ import ngjit, ngpjit
+from .utils_ import ngjit, ngpjit, mcuda_jit
 from .utils_ import is_cuda_available, get_array_module, get_n_cpus_avail
 from .chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
 if is_cuda_available():
@@ -178,7 +178,7 @@ def _pre_infer_n2f_numba(intf):
 if is_cuda_available():
     from numba import cuda
 
-    @cuda.jit
+    @mcuda_jit()
     def _pre_infer_cuda(intf, adi, out, mask):
         # one thread per pixel: unit interferogram in the last two channels of out, adi (if not empty) in the first
         t = cuda.grid(1)
@@ -232,7 +232,7 @@ def _after_infer_n2f_numba(
     return out
 
 if is_cuda_available():
-    @cuda.jit
+    @mcuda_jit()
     def _after_infer_n2f_cuda(infer_out, mask, out):
         t = cuda.grid(1)
         nlines, width = mask.shape

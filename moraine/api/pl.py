@@ -12,7 +12,7 @@ from numba import types as _nbtypes
 from numba.extending import get_cython_function_address
 from threadpoolctl import ThreadpoolController
 import moraine as mr
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
@@ -364,7 +364,7 @@ if is_cuda_available():
             p = parent[base+x]
         return x
 
-    @cuda.jit
+    @mcuda_jit()
     def _ds_temp_coh_cuda(coh, ph, ref, sec, inv_n, log_p, t_coh, t_coh_w, eff_n_pairs, n_components):
         # one warp per point: the 32 lanes read consecutive image pairs (coalesced), then reduce by shuffles.
         # The graph of the images is a union-find forest in shared memory, one per warp; the lanes join the

@@ -6,7 +6,7 @@ __all__ = ['amp_disp']
 import numpy as np
 import math
 import numba
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 from .utils_ import mjit
 if is_cuda_available():
     import cupy as cp
@@ -28,7 +28,7 @@ def _amp_disp_numba(rslc):
 if is_cuda_available():
     from numba import cuda
 
-    @cuda.jit
+    @mcuda_jit()
     def _amp_disp_cuda(rslc, out):
         # one warp per pixel: the lanes read consecutive images (coalesced); mean, then the deviations from it
         w = cuda.grid(1)//32

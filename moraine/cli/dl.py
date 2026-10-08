@@ -69,8 +69,9 @@ def _cli_pre_infer_n2f_numba(
 
 if is_cuda_available():
     from numba import cuda
+    from ..api.utils_ import mcuda_jit
 
-    @cuda.jit
+    @mcuda_jit()
     def _intf_cuda(ref, sec, out):
         t = cuda.grid(1)
         if t >= out.size:

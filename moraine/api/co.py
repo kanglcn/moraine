@@ -5,7 +5,7 @@ __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_
 
 import math
 import numpy as np
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
@@ -318,7 +318,7 @@ def _ad_intf_pc_numba(
     return inf
 
 if is_cuda_available():
-    @cuda.jit
+    @mcuda_jit()
     def _ad_intf_pc_cuda(ref_rslc, sec_rslc, az_idx, r_idx, pc_is_shp, intf):
         # one thread per point: sum over its SHPs of ref conj(sec), normalized by the powers
         i = cuda.grid(1)
@@ -630,7 +630,7 @@ def _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r):
 if is_cuda_available():
     from numba import cuda
 
-    @cuda.jit
+    @mcuda_jit()
     def _shp_n_looks_cuda(pc_is_shp, rho2, max_az, max_r, n_looks):
         # one warp per point: the lanes take the SHPs p of the window in turn, then reduce by shuffles
         i = cuda.grid(1)//32
