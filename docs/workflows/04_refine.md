@@ -1,6 +1,6 @@
 # 04 Merge PS and DS, refine with n2ft
 
-Pipeline: `examples/04_refine.toml`. Tutorials: `nbs/Tutorials/CLI/Xinpu/04_refine.ipynb`, `nbs/Tutorials/CLI/CampiFlegrei/04_refine.ipynb`.
+Pipeline: `examples/04_refine.toml`. Tutorial: `nbs/Tutorials/CLI/CampiFlegrei/04_refine.ipynb`.
 Needs `02_ps` and `03_ds`.
 
 ```bash
@@ -24,27 +24,33 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 - Temporal coherence threshold: 0.7-0.85; lower keeps more points with more noise.
 - `n2ft` `chunks`: points per chunk (20 000); smaller uses less GPU memory.
 
-## Expected results (sample data)
+## Expected results (sample data, Campi Flegrei, 981 x 4160 x 92)
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 984 239 | about PS + DS minus overlap |
-| `pc_can_temp_coh_pyramid` | p50 0.53, p99 0.99 | 0..1 |
-| refined points (`pc_hix`) | 352 530 (36 % of the candidates) | |
+| merged candidates | 590 677 | about PS + DS minus overlap |
+| `pc_can_temp_coh_pyramid` | p50 0.69, p01 0.15, p99 0.99 | 0..1 |
+| refined points (`pc_hix`) | 223 875 (38 % of the candidates) | |
 
-Run time: about 1 minute with an A100 (n2ft 38 s).
+Run time: 95 s with an A100 (n2ft 63 s for 91 image pairs).
 
 ## Figures
 
 Quicklooks of the sample data run of 2026-10-08 (the numbers above are from the same run):
 
-![Temporal coherence of the merged candidates after the Noise2Fringe Transformer](../assets/workflows/sample_04_temp_coh.webp)
+![Temporal coherence of the merged candidates after the Noise2Fringe Transformer](../assets/campi/04_temp_coh.webp)
 
 *Temporal coherence of the merged candidates after the Noise2Fringe Transformer (`pc/pc_can_temp_coh_pyramid`).*
 
-![Sequential interferogram 5 of the refined points](../assets/workflows/sample_04_pc_intf_seq_5.webp)
+![Sequential interferogram 45 of the refined points](../assets/campi/04_pc_intf_seq_45.webp)
 
-*Sequential interferogram 5 of the refined points (`pc/pc_ph_pyramid --show intf_seq --index 5`): continuous fringes, no noise.*
+*Sequential interferogram 45 (2020-07-07 / 2020-07-19) of the refined points (`pc/pc_ph_pyramid --show intf_seq
+--index 45`): continuous phase, no noise.*
+
+![Interferogram of the first and the last image of the refined points](../assets/campi/04_pc_intf_0_91.webp)
+
+*Interferogram 2019-01-02 / 2021-12-29 of the refined points (`--show intf_all --index 0 91`): the concentric fringes
+of the caldera uplift centred on Pozzuoli, about ten fringes over three years.*
 
 ## Checks
 

@@ -16,7 +16,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0006](0006-toml-pipelines.md) | Processing chains are TOML pipelines that resume | Accepted |
 | [0007](0007-visualization-through-pyramids.md) | Visualization and result statistics go through pyramids | Superseded by 0018 |
 | [0008](0008-tool-independent-agent-docs.md) | Agent documentation is tool independent and tested | Accepted |
-| [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Accepted |
+| [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Superseded by 0033 |
 | [0010](0010-versioned-contracts.md) | Formats others depend on are versioned contracts | Accepted |
 | [0011](0011-architecture-map.md) | The module map and layer rules are tested | Accepted |
 | [0012](0012-network-emcf-inversion.md) | Redundant networks, EMCF unwrapping and time series inversion | Accepted |
@@ -40,6 +40,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0030](0030-gpu-kernels-in-numba-cuda.md) | GPU kernels are written with numba.cuda (numba-cuda), not as cupy C++ kernels | Accepted |
 | [0031](0031-gpu-emi-kernel.md) | The regularized EMI on the GPU is one numba.cuda thread block per point with its matrices in shared memory | Accepted |
 | [0032](0032-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
+| [0033](0033-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
 
 ## Writing a record
 

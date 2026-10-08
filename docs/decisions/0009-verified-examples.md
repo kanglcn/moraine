@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by 0033
 
 ## Date
 

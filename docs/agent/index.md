@@ -60,7 +60,7 @@ The stack has the 92 dates (`raw/meta.toml` lists them, 12 days apart), the ampl
 description says. The first 12 day interferogram is noisy single look phase with structure on land and nothing
 suspicious (uniform noise would mean a wrong reference date):
 
-![sequential interferogram 0 of the raw stack](../assets/demo/campi_01_intf_seq_0.webp)
+![sequential interferogram 0 of the raw stack](../assets/campi/01_intf_seq_0.webp)
 </div>
 </div>
 
@@ -92,8 +92,8 @@ coherence is high on the built-up areas and low on the crater lakes, and the can
 and the western suburbs of Naples, not the craters and slopes:
 
 <div class="mo-figure-row" markdown>
-![Noise2Fringe temporal coherence](../assets/demo/campi_02_temp_coh.webp)
-![PS candidates coloured by their amplitude dispersion](../assets/demo/campi_02_ps_can.webp)
+![Noise2Fringe temporal coherence](../assets/campi/02_temp_coh.webp)
+![PS candidates coloured by their amplitude dispersion](../assets/campi/02_ps_can.webp)
 </div>
 </div>
 </div>
@@ -122,17 +122,16 @@ $ moraine info ds/ras_shp_num_pyramid ds/ds_can_t_coh_w_pyramid ds/ds_can_n_comp
 ```
 
 1 207 828 pixels have at least 50 SHPs; 216 506 of them (17.9 %) have all 92 images connected by coherent image
-pairs, and 77 295 of those reach a weighted temporal coherence of 0.9: the DS. That is 6.4 % of the candidates,
-fewer than on the sample data of the guide (12 %): the median number of SHPs is 20 against 107 there, because at
-the full Sentinel-1 resolution an 11 x 11 window covers only 26 m across track, and with 92 images most coherence
-matrices are regularized. The guide names `t_coh_w_min` as the first knob (`--var t_coh_w_min=0.85` keeps more
-points); I keep the default and report it. The weighted temporal coherence is high on the homogeneous slopes and
+pairs, and 77 295 of those reach a weighted temporal coherence of 0.9: the DS, 6.4 % of the candidates, as the
+guide expects for this data set. Half of the land pixels have fewer than 50 SHPs: at the full Sentinel-1
+resolution an 11 x 11 window covers only 26 m across track. The guide names `t_coh_w_min` as the first knob
+(`--var t_coh_w_min=0.85` keeps 129 798 points); I keep the default and report it. The weighted temporal coherence is high on the homogeneous slopes and
 fields, and the phase linked 2019 to 2021 interferogram of the DS is spatially consistent, with the fringes of
 the uplift around Pozzuoli:
 
 <div class="mo-figure-row" markdown>
-![weighted temporal coherence of the DS candidates](../assets/demo/campi_03_t_coh_w.webp)
-![interferogram 2019-01-02 / 2021-12-29 of the phase linked DS](../assets/demo/campi_03_ds_intf_0_91.webp)
+![weighted temporal coherence of the DS candidates](../assets/campi/03_t_coh_w.webp)
+![interferogram 2019-01-02 / 2021-12-29 of the phase linked DS](../assets/campi/03_ds_intf_0_91.webp)
 </div>
 </div>
 </div>
@@ -162,9 +161,9 @@ coherence above 0.8. Their interferogram between the first and the last image sh
 the caldera uplift centred on Pozzuoli, about ten fringes over three years, continuous across the town; zoomed in
 (level 0, single points) the fringes are still there in the dense parts:
 
-![interferogram 2019-01-02 / 2021-12-29 of the refined points](../assets/demo/campi_04_pc_intf_0_91.webp)
+![interferogram 2019-01-02 / 2021-12-29 of the refined points](../assets/campi/04_pc_intf_0_91.webp)
 
-![the same, zoomed into Pozzuoli at the finest level](../assets/demo/campi_04_pc_intf_0_91_zoom.webp)
+![the same, zoomed into Pozzuoli at the finest level](../assets/campi/04_pc_intf_0_91_zoom.webp)
 </div>
 </div>
 
@@ -191,7 +190,7 @@ $ moraine info unw/pc_unw.zarr unw/pc_unw_pyramid
 the first ten interferograms). The unwrapped 12 day interferograms are smooth, without isolated 2π jumps between
 neighbouring areas:
 
-![unwrapped interferogram 45 (2020-07-07 / 2020-07-19)](../assets/demo/campi_05_unw_45.webp)
+![unwrapped interferogram 45 (2020-07-07 / 2020-07-19)](../assets/campi/05_unw_45.webp)
 
 ```console
 $ moraine view unw/pc_unw_pyramid pc/pc_ph_pyramid --dates raw/meta.toml -o view.ipynb

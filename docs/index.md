@@ -32,7 +32,7 @@ Flegrei data set (Sentinel-1, 92 dates); the whole of it is on the [Talk to an a
   <div class="mo-msg mo-msg--agent"><div class="mo-avatar">AI</div><div class="mo-bubble">
     <p>... four pipelines and 500 s of processing later: 223 875 refined points, unwrapped. The interferogram between
     the first and the last image shows the uplift of the caldera as about ten fringes centred on Pozzuoli.</p>
-    <img src="assets/demo/campi_04_pc_intf_0_91.webp" alt="interferogram 2019-01-02 / 2021-12-29 of the refined points of Campi Flegrei" loading="lazy">
+    <img src="assets/campi/04_pc_intf_0_91.webp" alt="interferogram 2019-01-02 / 2021-12-29 of the refined points of Campi Flegrei" loading="lazy">
     <p><span class="mo-cursor">Two things to decide: the DS threshold and the reference point</span></p>
   </div></div>
 </div>
@@ -42,15 +42,15 @@ Flegrei data set (Sentinel-1, 92 dates); the whole of it is on the [Talk to an a
 <p class="mo-kicker">The chain</p>
 ## From GAMMA results to unwrapped phase in five pipelines
 
-Verified on the sample data set (2500 x 1834 pixels, 17 dates) before every change; each one has a guide with the
-parameters, the expected ranges and the checks. [Workflows](workflows/index.md)
+Verified on the Campi Flegrei data set (Sentinel-1, 92 dates, 981 x 4160 pixels) before every change; each one has
+a guide with the parameters, the expected ranges and the checks. The figures are from that run. [Workflows](workflows/index.md)
 
 <div class="mo-chain">
-  <figure><img src="assets/workflows/sample_01_intf_seq_5.webp" alt="raw sequential interferogram" loading="lazy"><figcaption><b>01 load</b> GAMMA results to zarr; a raw 1 x 1 look interferogram</figcaption></figure>
-  <figure><img src="assets/workflows/sample_02_temp_coh.webp" alt="Noise2Fringe temporal coherence" loading="lazy"><figcaption><b>02 PS</b> amplitude dispersion and Noise2Fringe temporal coherence</figcaption></figure>
-  <figure><img src="assets/workflows/sample_03_ds_intf_seq_5.webp" alt="phase linked DS interferogram" loading="lazy"><figcaption><b>03 DS</b> SHP, coherence matrices, EMI phase linking, DS selection</figcaption></figure>
-  <figure><img src="assets/workflows/sample_04_pc_intf_seq_5.webp" alt="refined points interferogram" loading="lazy"><figcaption><b>04 refine</b> PS + DS, Noise2Fringe Transformer, temporal coherence</figcaption></figure>
-  <figure><img src="assets/workflows/sample_05_unw_5.webp" alt="unwrapped interferogram" loading="lazy"><figcaption><b>05 unwrap</b> minimum cost flow on a Delaunay network</figcaption></figure>
+  <figure><img src="assets/campi/01_intf_seq_0.webp" alt="raw sequential interferogram" loading="lazy"><figcaption><b>01 load</b> GAMMA results to zarr; a raw 1 x 1 look interferogram</figcaption></figure>
+  <figure><img src="assets/campi/02_temp_coh.webp" alt="Noise2Fringe temporal coherence" loading="lazy"><figcaption><b>02 PS</b> amplitude dispersion and Noise2Fringe temporal coherence</figcaption></figure>
+  <figure><img src="assets/campi/03_ds_intf_seq_45.webp" alt="phase linked DS interferogram" loading="lazy"><figcaption><b>03 DS</b> SHP, coherence matrices, EMI phase linking, DS selection</figcaption></figure>
+  <figure><img src="assets/campi/04_pc_intf_seq_45.webp" alt="refined points interferogram" loading="lazy"><figcaption><b>04 refine</b> PS + DS, Noise2Fringe Transformer, temporal coherence</figcaption></figure>
+  <figure><img src="assets/campi/05_unw_45.webp" alt="unwrapped interferogram" loading="lazy"><figcaption><b>05 unwrap</b> minimum cost flow on a Delaunay network</figcaption></figure>
 </div>
 </div>
 

@@ -10,7 +10,6 @@ copyright: moraine is GPL-3.0; the deep learning models are CC BY-NC-SA 4.0
 docs_dir: docs
 # not pages: the generator, its examples (included as snippets) and the theme overrides
 exclude_docs: |
-  gen_ref_pages.py
   _scripts/
   overrides/
   api/examples/
@@ -89,12 +88,64 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
+# the generated reference pages are written into docs/ by this hook before the build (docs/_scripts/refgen.py)
+hooks:
+  - docs/_scripts/mkdocs_hooks.py
+
 plugins:
   - search
-  - gen-files:
-      scripts:
-        - docs/gen_ref_pages.py
   - markdown-exec
+  # English and Chinese: `page.zh.md` next to `page.md` is the Chinese version, English is shown where there is none
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: zh
+          name: 中文
+          build: true
+          site_description: 现代雷达干涉测量环境。面向大数据时代的 InSAR 后处理，命令行为 AI agent 而生。
+          nav_translations:
+            Home: 首页
+            Start: 开始
+            Install: 安装
+            Concepts: 概念
+            Checking results: 检查结果
+            Talk to an agent: 与 AI 对话
+            Workflows: 工作流
+            01 Load GAMMA results: 01 载入 GAMMA 结果
+            02 PS candidates: 02 PS 候选点
+            03 DS processing: 03 DS 处理
+            04 Merge and refine: 04 合并与精化
+            05 Phase unwrapping: 05 相位解缠
+            Pipeline files: Pipeline 文件
+            Command line: 命令行
+            Built-in commands: 内置命令
+            JSON output: JSON 输出
+            Python API: Python API
+            moraine.cli in python: Python 里的 moraine.cli
+            Tutorials: 教程
+            01 Load data: 01 载入数据
+            02 PS processing: 02 PS 处理
+            03 DS processing: 03 DS 处理
+            04 Pixel refinement: 04 像元精化
+            Development: 开发
+            Developing moraine: 开发 moraine
+            Architecture: 架构
+            Design decisions: 设计决策
+            Contracts: 约定
+            Data conventions: 数据约定
+            Pyramids: 金字塔
+            Roadmap: 路线图
+            Changelog: 更新日志
+            Agent instructions: Agent 说明
+  - autorefs:
+      resolve_closest: true     # the API anchors exist once per language: link to the one of the current language
   - mkdocstrings:
       handlers:
         python:
@@ -166,21 +217,11 @@ nav:
       - moraine.cli in python: api/cli.md
   - Tutorials:
       - tutorials/index.md
-      - Campi Flegrei:
-          - 01 Load data: tutorials/CampiFlegrei/01_load.md
-          - 02 PS processing: tutorials/CampiFlegrei/02_ps.md
-          - 03 DS processing: tutorials/CampiFlegrei/03_ds.md
-          - 04 Pixel refinement: tutorials/CampiFlegrei/04_refine.md
-          - 05 Phase unwrapping: tutorials/CampiFlegrei/05_unwrap.md
-      - Xinpu:
-          - 01 Load data: tutorials/Xinpu/01_load.md
-          - 02 PS processing: tutorials/Xinpu/02_ps.md
-          - 03 DS processing: tutorials/Xinpu/03_ds.md
-          - 04 Pixel refinement: tutorials/Xinpu/04_refine.md
-          - 05 Phase unwrapping: tutorials/Xinpu/05_unwrap.md
-      - Python API:
-          - Adaptive multilook: tutorials/Adaptive_Multilook.md
-          - DS processing: tutorials/DS_Processing.md
+      - 01 Load data: tutorials/CampiFlegrei/01_load.md
+      - 02 PS processing: tutorials/CampiFlegrei/02_ps.md
+      - 03 DS processing: tutorials/CampiFlegrei/03_ds.md
+      - 04 Pixel refinement: tutorials/CampiFlegrei/04_refine.md
+      - 05 Phase unwrapping: tutorials/CampiFlegrei/05_unwrap.md
   - Development:
       - Developing moraine: development.md
       - Architecture: dev/architecture.md

@@ -14,7 +14,9 @@ from moraine.command.pipeline import load_pipeline
 REPO = Path(__file__).resolve().parents[1]
 # every handwritten markdown file of the manual (docs/) and the agent / contributor files
 DOCS = [REPO / 'AGENTS.md', REPO / 'README.md', REPO / 'ARCHITECTURE.md',
-        *sorted(p for p in (REPO / 'docs').rglob('*.md') if 'overrides' not in p.parts),
+        *sorted(p for p in (REPO / 'docs').rglob('*.md') if 'overrides' not in p.parts
+                and not (p.parent.name in ('cli', 'api') and p.name.split('.')[0] not in ('index', 'cli'))
+                and 'CampiFlegrei' not in p.parts),      # not the pages generated at build time
         REPO / '.claude' / 'skills' / 'moraine-processing' / 'SKILL.md',
         REPO / '.claude' / 'skills' / 'moraine-development' / 'SKILL.md']
 BUILTIN = {'list', 'info', 'quicklook', 'view', 'run', 'status', 'COMMAND', 'FILE'}

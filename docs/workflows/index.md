@@ -1,8 +1,12 @@
 # Workflows
 
-The processing chain of moraine as five verified pipeline files (decision 0009): each one is run end to end
-on the sample data before it changes, and the numbers in its guide come from that run. They share one working
-directory and read each other's outputs, so run them in order:
+The processing chain of moraine as five verified pipeline files (decisions 0009, 0033): each one is run end to
+end on the sample data set before it changes, and the numbers and figures in its guide come from that run. The
+sample data set is Campi Flegrei: Sentinel-1 descending track 22, 92 dates from 2019-01-02 to 2021-12-29, 981 x
+4160 pixels at full resolution, the uplifting caldera west of Naples (`data/CampiFlegrei/README.md` in the
+repository says how the GAMMA results were made). The `[vars]` defaults of the files are its values; for other
+data give yours with `--var`. The files share one working directory and read each other's outputs, so run them in
+order:
 
 ```bash
 moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=YYYYMMDD --var geo=YYYYMMDD
@@ -27,5 +31,6 @@ step prints its error and log; fix the cause and run the file again. The file fo
 [pipeline files contract](../contracts/pipeline-file.md); `moraine run FILE --json` prints one JSON object with the
 plan, the step records and the summaries of the outputs ([JSON output](../contracts/json-output.md)).
 
-Each guide lists the steps, the parameters to tune, the expected ranges of the results on the sample data and
-what to do when they are off. The guides are the same files the [AI agents](../agent/index.md) read.
+Each guide lists the steps, the parameters to tune, the expected results on the sample data set with the figures
+of that run, and what to do when they are off. The guides are the same files the [AI agents](../agent/index.md)
+read; the [recorded session](../agent/index.md) ran exactly these five files on the sample data set.

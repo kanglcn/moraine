@@ -31,7 +31,9 @@ has:
 - the tutorial notebooks of `nbs/Tutorials/` converted to pages (text and code; the repository holds no outputs);
 - short examples in `docs/api/examples/` that run at build time (markdown-exec, CPU, synthetic data).
 
-The generator is `docs/_scripts/refgen.py`, run by mkdocs-gen-files through `docs/gen_ref_pages.py`. Figures are
+The generator is `docs/_scripts/refgen.py`; the MkDocs hook `docs/_scripts/mkdocs_hooks.py` writes its pages into
+`docs/` before every build (ignored by git). The site is built in English and Chinese (mkdocs-static-i18n:
+`page.zh.md` next to `page.md`; pages without a translation show the English text). Figures are
 quicklook PNGs of real runs, committed under `docs/assets/`. The theme is Material with the overrides in
 `docs/overrides/` and `docs/assets/`. The CI builds the site on every push and deploys `main` to the `gh-pages`
 branch. The dependencies are the optional group `docs` of `pyproject.toml`.

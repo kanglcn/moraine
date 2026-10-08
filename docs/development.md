@@ -119,8 +119,10 @@ next to the code, and design choices into `docs/decisions/`.
 ### The manual
 
 The website (decision 0032) is built by `mkdocs build --strict` from `mkdocs.yml`: the markdown of `docs/`,
-the docstrings (mkdocstrings), the command registry and the examples (`docs/_scripts/refgen.py`, run by
-mkdocs-gen-files) and the tutorial notebooks. Nothing of the reference is written by hand: a wrong help text is
+the docstrings (mkdocstrings), the command registry and the examples (`docs/_scripts/refgen.py`, written into
+`docs/` by the hook `docs/_scripts/mkdocs_hooks.py` before every build; ignored by git) and the tutorial notebooks.
+The site is built in English and Chinese: a page `x.zh.md` next to `x.md` is its Chinese version, pages without one
+show the English text. Nothing of the reference is written by hand: a wrong help text is
 fixed in the docstring. `docs/api/examples/<module>.md` hold short examples that run at build time
 (markdown-exec), so a failing example fails the build; keep them on the CPU, synthetic and fast. Figures are
 quicklook PNGs of real runs under `docs/assets/`. Build and look at the site before committing a change of
