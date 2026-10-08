@@ -33,9 +33,11 @@ f in a.py calls g in b.py; after g changed, f returned the old value). moraine c
 
 The first call in a process loads the compiled code (0.2-0.4 s) instead of compiling it, after the first run of a
 version of the code. Every change of any moraine file compiles everything again once, also while developing. The
-CUDA kernels (numba.cuda) are not cached yet.
+The CUDA kernels (numba.cuda) are cached the same way through `mcuda_jit` (2026-10-08): the first call of the GPU EMI in
+a process loads the kernel in about 0.5 s instead of compiling it for 15 s.
 
 ## Do not
 
-- Do not use `numba.jit(cache=True)` or `njit(cache=True)` in moraine; use `mjit`, `ngjit`, `ngpjit`.
+- Do not use `numba.jit(cache=True)`, `njit(cache=True)` or `cuda.jit(cache=True)` in moraine; use `mjit`, `ngjit`,
+  `ngpjit` and `mcuda_jit`.
 - Do not call foreign functions through ctypes function pointers inside numba functions.

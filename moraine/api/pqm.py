@@ -5,7 +5,7 @@ __all__ = ['temp_coh']
 import math
 import numpy as np
 import moraine as mr
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
 from numba import prange
@@ -75,7 +75,7 @@ def _temp_coh_pc_numba(
 if is_cuda_available():
     from numba import cuda
 
-    @cuda.jit
+    @mcuda_jit()
     def _temp_coh_pc_cuda(intf, rslc, ref, sec, temp_coh):
         # one warp per point: the lanes read consecutive image pairs (coalesced), then reduce by shuffles;
         # |sum over the image pairs of the unit interferogram times the unit conj(ref) sec| / n_pairs

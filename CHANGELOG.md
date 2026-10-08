@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The GPU kernels are cached on disk like the CPU functions (decision 0029): the first GPU `emi` or `emperical-co-emi-temp-coh-pc` of a process (every pipeline step, every dask worker) no longer compiles the EMI kernel for 15 s, it loads it in about 0.5 s; the other GPU kernels save 0.3-0.9 s each
+
 The GPU `emi` chooses its block size (128, 256 or 512 threads) by the number of images: the size whose blocks fit the most times into a multiprocessor. With many images only one block fits and a wider block divides the work of a step among more warps: on an A100 per point 13 instead of 14 µs for 128 images (128 CPU cores 24 µs), 26 instead of 36 µs for 150 images (CPU 26 µs), 48 instead of 67 µs for 196 images (CPU 54 µs); up to about 100 images nothing changes
 
 The GPU `emi` gave a wrong phase history (errors up to π: the second eigenvector) for rare points: when a pivot of the Sturm sequence of its eigenvalue search rounded to exactly 0, it was counted as non-negative but used as a negative pivot (2 of the 4.1 M DS candidates of the sample data). The pivot is now replaced before it is counted, as in LAPACK
