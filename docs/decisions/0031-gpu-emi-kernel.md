@@ -32,8 +32,11 @@ about 18 TB/s), so the GPU kernel is about as fast as such a CPU, not 10 times f
 - cupy stays for `regularize=False` (the kernel does not pivot; |coh| that is not positive definite is not
   inverted stably) and for more images than the shared memory of a block holds (A100: more than 198 images; more than
   101 images when the kernel cannot be allowed more than 48 kB, e.g. without numba-cuda).
-- GPU input stays on the GPU: there is no automatic switch to the CPU, which is faster for many images on a large
-  CPU (A100 vs 128 cores: GPU faster below about 140 images).
+- The block has 128, 256 or 512 threads: the size whose blocks fit the most times into a multiprocessor (shared
+  memory, registers), the largest at a tie. Blocks of one point do not wait for each other; with one block per
+  multiprocessor (A100: from about 138 images) a wider block divides the work of a step among more warps.
+- GPU input stays on the GPU: there is no automatic switch to the CPU, which is as fast for many images on a large
+  CPU (A100 vs 128 cores: GPU faster below about 150 images, about as fast above).
 
 ## Consequences
 

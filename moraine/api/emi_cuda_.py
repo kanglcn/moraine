@@ -21,7 +21,10 @@
 # Householder step is one thread per row, with 2 / 4 threads per row (parts of the columns) for trailing blocks of
 # at most 64 / 32 rows, and two accumulators per thread. Approximate division (fast_fdividef) in the inverse
 # iteration (it corrects itself); the Sturm counts use correctly rounded division (monotone in x). max_registers=72
-# keeps the kernel without spills and lets 7 blocks per SM run for small n.
+# keeps the kernel without spills and lets 7 blocks per SM run for small n. The block has 128, 256 or 512 threads:
+# the size whose blocks fit the most times into a multiprocessor (4 blocks of 128 up to n ~ 100 on an A100, 256
+# where 2 blocks fit, 512 where only one does): the threads of a block wait for each other at the barriers, blocks do
+# not, and with one block per multiprocessor a wider block divides the work of a step among more warps.
 import math
 
 import numpy as np
@@ -31,8 +34,8 @@ from numba.cuda.libdevice import fast_fdividef
 
 from .pl import _EMI_MAX_COND, _emi_reg_beta_numba
 
-_NT = 128                         # threads per block; also the number of points of each multisection step
-_STATIC_SHARED_BYTES = 2048       # bound of the static shared arrays below (1.3 kB)
+_BLOCK_SIZES = (128, 256, 512)    # threads per block (also the points of a multisection step), chosen per number of images
+_STATIC_SHARED_BYTES = 2048       # bound of the static shared arrays of the kernel
 _FULL = 0xffffffff
 _F0 = np.float32(0.0)
 _F1 = np.float32(1.0)
@@ -76,17 +79,28 @@ def _coh_at(coh, pt, n, r, c, s):
 
 @cuda.jit(device=True, inline=True)
 def _block_sum2(a, b, red, tid, nt):
-    """sums of a and b over the block of 4 warps (_NT = 128); one barrier, every thread adds the 4 warp sums"""
+    """sums of a and b over the block of 4, 8 or 16 warps: one barrier, every thread adds the warp sums in the order
+    of a shuffle-down tree"""
     for off in (16, 8, 4, 2, 1):
         a += cuda.shfl_down_sync(_FULL, a, off)
         b += cuda.shfl_down_sync(_FULL, b, off)
     w = uint32(tid // _I32)
     if tid % _I32 == 0:
         red[w] = a
-        red[uint32(4) + w] = b
+        red[uint32(16) + w] = b
     cuda.syncthreads()
-    a = (red[uint32(0)] + red[uint32(2)]) + (red[uint32(1)] + red[uint32(3)])
-    b = (red[uint32(4)] + red[uint32(6)]) + (red[uint32(5)] + red[uint32(7)])
+    nw = int32(nt // _I32)
+    if nw == 4:
+        a = (red[uint32(0)] + red[uint32(2)]) + (red[uint32(1)] + red[uint32(3)])
+        b = (red[uint32(16)] + red[uint32(18)]) + (red[uint32(17)] + red[uint32(19)])
+    elif nw == 8:
+        a = ((red[uint32(0)] + red[uint32(4)]) + (red[uint32(2)] + red[uint32(6)])) + ((red[uint32(1)] + red[uint32(5)]) + (red[uint32(3)] + red[uint32(7)]))
+        b = ((red[uint32(16)] + red[uint32(20)]) + (red[uint32(18)] + red[uint32(22)])) + ((red[uint32(17)] + red[uint32(21)]) + (red[uint32(19)] + red[uint32(23)]))
+    else:
+        a = ((((red[uint32(0)] + red[uint32(8)]) + (red[uint32(4)] + red[uint32(12)])) + ((red[uint32(2)] + red[uint32(10)]) + (red[uint32(6)] + red[uint32(14)])))
+             + (((red[uint32(1)] + red[uint32(9)]) + (red[uint32(5)] + red[uint32(13)])) + ((red[uint32(3)] + red[uint32(11)]) + (red[uint32(7)] + red[uint32(15)]))))
+        b = ((((red[uint32(16)] + red[uint32(24)]) + (red[uint32(20)] + red[uint32(28)])) + ((red[uint32(18)] + red[uint32(26)]) + (red[uint32(22)] + red[uint32(30)])))
+             + (((red[uint32(17)] + red[uint32(25)]) + (red[uint32(21)] + red[uint32(29)])) + ((red[uint32(19)] + red[uint32(27)]) + (red[uint32(23)] + red[uint32(31)]))))
     return a, b
 
 
@@ -274,7 +288,7 @@ def _tridiag(Ar, Ai, cplx, n, d, er, ei, vr, vi, pr, pi, red, tid, nt):
         cuda.syncthreads()
         # p = A v on the trailing block: one thread per row (two rows per thread when m > nt), or 2 / 4 threads per
         # row when the block has at most 64 / 32 rows, each over a part of the columns, combined by shuffles
-        if m > 64:
+        if m > (nt >> 1):
             for q in range(2):
                 r = int32(m0 + tid + q * nt)
                 if r < n:
@@ -282,7 +296,7 @@ def _tridiag(Ar, Ai, cplx, n, d, er, ei, vr, vi, pr, pi, red, tid, nt):
                     pr[uint32(r)] = sr
                     pi[uint32(r)] = si
         else:
-            four = m <= 32
+            four = m <= (nt >> 2)
             rowi = int32(tid >> 2) if four else int32(tid >> 1)
             h = int32(tid & _I3) if four else int32(tid & _I1)
             span = int32((m + _I3) >> 2) if four else int32((m + _I1) >> 1)
@@ -452,9 +466,10 @@ def _emi_kernel(coh, n, ref, ph, quality):
     b2 = sh[o:o + n]; o += n
     zr = sh[o:o + n]; o += n
     zi = sh[o:o + n]; o += n
-    red = cuda.shared.array(8, dtype=float32)
-    x_sh = cuda.shared.array(_NT, dtype=float32)
-    cnt_sh = cuda.shared.array(_NT, dtype=int32)
+    red = cuda.shared.array(32, dtype=float32)
+    x_sh = sh[o:o + nt]; o += nt
+    sh_i32 = cuda.shared.array(0, dtype=int32)
+    cnt_sh = sh_i32[o:o + nt]; o += nt
     scal = cuda.shared.array(1, dtype=float32)
     tx0 = int32(tid % _I32)
     ty0 = int32(tid // _I32)
@@ -798,26 +813,28 @@ def _emi_kernel(coh, n, ref, ph, quality):
         ph[pt, i] = complex(a / m, b / m)
 
 
-def _shared_bytes(n_images):
-    return (n_images * (n_images + 1) + 10 * n_images) * 4
+def _shared_bytes(n_images, nt):
+    """dynamic shared memory of a block: two packed planes, ten vectors, the multisection grid"""
+    return (n_images * (n_images + 1) + 10 * n_images + 2 * nt) * 4
 
 
 _max_dynamic_shared = {}          # device id -> dynamic shared memory per block the kernel is allowed to use
 
 
-def _allow_dynamic_shared(kernel):
-    """Let `kernel` use all shared memory of the current device beyond 48 kB; returns the bytes it may use.
+def _allow_dynamic_shared():
+    """Let the kernel use all shared memory of the current device beyond 48 kB; returns the bytes it may use.
     Kernels may use more than 48 kB only after an explicit opt-in (cuFuncSetAttribute); numba has no public API for
     it. If the opt-in fails (e.g. the CUDA target built into numba instead of numba-cuda), 48 kB."""
     dev = cp.cuda.Device()
     if dev.id in _max_dynamic_shared:
         return _max_dynamic_shared[dev.id]
+    _compile()
     limit = 48 * 1024 - _STATIC_SHARED_BYTES
     want = dev.attributes['MaxSharedMemoryPerBlockOptin'] - _STATIC_SHARED_BYTES
     try:
         from numba.cuda.cudadrv.driver import binding, driver
         attr = binding.CUfunction_attribute.CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES
-        for ov in kernel.overloads.values():
+        for ov in _emi_kernel.overloads.values():
             f = ov._codelibrary.get_cufunc()
             driver.cuKernelSetAttribute(attr, want, f.handle, f.device.id)
         limit = want
@@ -827,14 +844,39 @@ def _allow_dynamic_shared(kernel):
     return limit
 
 
+_block_sizes = {}                 # (device id, n_images) -> threads per block, 0 when no block size fits
+
+
+def _block_size(n_images):
+    """Threads per block for n_images: of 128, 256 and 512 the size whose blocks fit the most times into a
+    multiprocessor (shared memory and registers; blocks of one point do not wait for each other), the largest at a
+    tie; 0 when no block fits. Measured on an A100 (2026-10-08): 4 blocks of 128 threads beat 3 of 256, 2 of 128
+    beat 1 of 256, and 1 block of 512 beats 1 of 256."""
+    dev = cp.cuda.Device()
+    key = (dev.id, n_images)
+    if key not in _block_sizes:
+        limit = _allow_dynamic_shared()
+        f = next(iter(_emi_kernel.overloads.values()))._codelibrary.get_cufunc()
+        attrs = dev.attributes
+        per_sm = attrs['MaxSharedMemoryPerMultiprocessor']
+        reserved = attrs.get('ReservedSharedMemoryPerBlock', 1024)
+        regs_sm = attrs.get('MaxRegistersPerMultiprocessor', 65536)
+        best = (0, 0)
+        for nt in _BLOCK_SIZES:
+            dynamic = _shared_bytes(n_images, nt)
+            if dynamic > limit:
+                continue
+            blocks = min(per_sm // (dynamic + f.attrs.shared + reserved), regs_sm // (f.attrs.regs * nt),
+                         attrs['MaxThreadsPerMultiProcessor'] // nt)
+            if blocks >= best[0]:
+                best = (blocks, nt)
+        _block_sizes[key] = best[1] if best[0] > 0 else 0
+    return _block_sizes[key]
+
+
 def emi_cuda_supported(n_images):
     """whether `emi_cuda` can process `n_images` images on the current device"""
-    if n_images < 3:
-        return False
-    if _shared_bytes(n_images) <= 48 * 1024 - _STATIC_SHARED_BYTES:
-        return True
-    _compile()
-    return _shared_bytes(n_images) <= _allow_dynamic_shared(_emi_kernel)
+    return n_images >= 3 and _block_size(n_images) > 0
 
 
 def _compile():
@@ -854,9 +896,6 @@ def emi_cuda(coh, n_images, ref=0):
         return ph, quality
     if coh.dtype != cp.complex64 or not coh.flags.c_contiguous:
         coh = cp.ascontiguousarray(coh, dtype=cp.complex64)
-    _compile()
-    shared = _shared_bytes(n_images)
-    if shared > 48 * 1024 - _STATIC_SHARED_BYTES:
-        _allow_dynamic_shared(_emi_kernel)
-    _emi_kernel[n_points, _NT, 0, shared](coh, np.int32(n_images), np.int32(ref), ph, quality)
+    nt = _block_size(n_images)
+    _emi_kernel[n_points, nt, 0, _shared_bytes(n_images, nt)](coh, np.int32(n_images), np.int32(ref), ph, quality)
     return ph, quality

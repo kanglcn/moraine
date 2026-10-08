@@ -203,9 +203,10 @@ def test_emi_gpu_memory():
 
 
 @pytest.mark.gpu
-@pytest.mark.parametrize('nimages', [150, 200])
+@pytest.mark.parametrize('nimages', [128, 150, 200])
 def test_emi_gpu_many_images(nimages):
-    """More images than 48 kB of shared memory hold (150), and more than the GPU kernel handles (200, cupy)."""
+    """More images than 48 kB of shared memory hold (128: blocks of 256 threads, 150: 512 threads on an A100), and
+    more than the GPU kernel handles (200, cupy)."""
     import cupy as cp
     rng = np.random.default_rng(3)
     theta = rng.uniform(-np.pi, np.pi, nimages)
