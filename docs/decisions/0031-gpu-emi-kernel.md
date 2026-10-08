@@ -27,12 +27,13 @@ about 18 TB/s), so the GPU kernel is about as fast as such a CPU, not 10 times f
   (`moraine/api/emi_cuda_.py`): one thread block of 128 threads per point; |coh|, its inverse and the EMI matrix as
   packed lower triangles in shared memory; Householder tridiagonalization, Sturm multisection for lambda_min and
   lambda_max of |coh| (beta by the same function as on the CPU, decision 0023) and lambda_1 of the EMI matrix, the
-  sweep operator for the inverse, inverse iteration and back transformation of the one eigenvector needed; float32.
+  sweep operator (four pivots at a time) for the inverse, inverse iteration and back transformation of the one
+  eigenvector needed; float32.
 - cupy stays for `regularize=False` (the kernel does not pivot; |coh| that is not positive definite is not
   inverted stably) and for more images than the shared memory of a block holds (A100: more than 198 images; more than
   101 images when the kernel cannot be allowed more than 48 kB, e.g. without numba-cuda).
 - GPU input stays on the GPU: there is no automatic switch to the CPU, which is faster for many images on a large
-  CPU (A100 vs 128 cores: GPU faster below about 100 images).
+  CPU (A100 vs 128 cores: GPU faster below about 140 images).
 
 ## Consequences
 
