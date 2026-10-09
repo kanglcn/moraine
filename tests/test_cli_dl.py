@@ -106,3 +106,22 @@ def test_cli_n2ft(ps, cuda):
             assert np.median(_phase_diff(out[:, k], api)) < 1e-4
         else:  # torch in a single thread worker against the threads of this process: rounding only (up to 2e-5)
             np.testing.assert_allclose(out[:, k], api, atol=1e-4)
+
+
+@pytest.mark.slow
+@pytest.mark.gpu
+@pytest.mark.parametrize('rmm_pool_size', [None, 0.3])
+def test_cli_n2ft_compile(ps, monkeypatch, rmm_pool_size):
+    """the compiled model tunes its kernels in the workers (inductor caches off: as on a new machine), also with an rmm pool"""
+    monkeypatch.setenv('TORCHINDUCTOR_FORCE_DISABLE_CACHES', '1')
+    d, data = ps
+    x, y, s = data['x.zarr'], data['y.zarr'], data['rslc.zarr']
+    chunks = x.shape[0] // 2 + 1
+    pairs = np.array([[0, 1], [1, 2], [2, 3]])
+    out_path = str(d / f'intf_compiled_{rmm_pool_size}.zarr')
+    mc.n2ft(str(d / 'x.zarr'), str(d / 'y.zarr'), str(d / 'rslc.zarr'), out_path, pairs, chunks=chunks, cuda=True,
+            compile=True, rmm_pool_size=rmm_pool_size)
+    out = zarr.open(out_path, mode='r')
+    for k, (a, b) in enumerate(pairs):
+        api = mr.n2ft(x, y, mr.intf(np.ascontiguousarray(s[:, a]), np.ascontiguousarray(s[:, b])), chunks=chunks, cuda=True)
+        assert np.median(_phase_diff(out[:, k], api)) < 1e-4

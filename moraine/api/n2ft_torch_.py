@@ -1,11 +1,35 @@
 """Noise2Fringe Transformer (n2ft) model in torch"""
 
 
-__all__ = ['N2FT']
+__all__ = ['N2FT', 'ChannelAffine', 'fold_batch_norms']
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+class ChannelAffine(nn.Module):
+    """(x - mean) * scale + bias per channel (dimension 1, like BatchNorm1d): what a BatchNorm1d computes in evaluation
+    mode, in the same order of operations (folding the mean into the bias loses precision for large means)"""
+    def __init__(self, mean, scale, bias):
+        super().__init__()
+        self.register_buffer('mean', mean)
+        self.register_buffer('scale', scale)
+        self.register_buffer('bias', bias)
+
+    def forward(self, x):
+        shape = (1, -1) + (1,)*(x.dim()-2)
+        return torch.addcmul(self.bias.view(shape), x - self.mean.view(shape), self.scale.view(shape))
+
+def fold_batch_norms(model):
+    """replace the BatchNorm1d layers of a model in evaluation mode by the per channel affine function they compute"""
+    for name, module in list(model.named_children()):
+        if isinstance(module, nn.BatchNorm1d):
+            scale = module.weight/torch.sqrt(module.running_var + module.eps)
+            setattr(model, name, ChannelAffine(module.running_mean.detach().clone(), scale.detach().clone(),
+                                               module.bias.detach().clone()))
+        else:
+            fold_batch_norms(module)
+    return model
 
 def group_features(features, idx):
     B, N, C = features.shape
@@ -63,7 +87,7 @@ class PointTransformerLayer(nn.Module):
 
         p_r = p_r.view(-1, nsample, 2)
         for i, layer in enumerate(self.linear_p):
-            if isinstance(layer, nn.BatchNorm1d):
+            if isinstance(layer, (nn.BatchNorm1d, ChannelAffine)):
                 p_r = layer(p_r.transpose(1, 2).contiguous()).transpose(1, 2).contiguous()
             else:
                 p_r = layer(p_r)
@@ -73,7 +97,7 @@ class PointTransformerLayer(nn.Module):
 
         w = w.view(batch_size*num_points,nsample,self.out_planes)
         for i, layer in enumerate(self.linear_w):
-            if isinstance(layer, nn.BatchNorm1d):
+            if isinstance(layer, (nn.BatchNorm1d, ChannelAffine)):
                 w = layer(w.transpose(1, 2).contiguous()).transpose(1,2).contiguous()
             else:
                 w = layer(w)

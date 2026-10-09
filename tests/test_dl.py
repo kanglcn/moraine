@@ -1,3 +1,4 @@
+import importlib.resources
 import numpy as np
 import pytest
 
@@ -173,3 +174,51 @@ def test_n2ft(points, gpu):
     assert out_stack.shape == stack.shape
     if gpu:
         assert np.median(_phase_diff(out, n2ft(x, y, ifg))) < 1e-3
+
+
+def test_n2ft_batches():
+    from moraine.api.dl import _n2ft_batches
+    assert _n2ft_batches(0, 8) == []
+    assert _n2ft_batches(1, 8) == [(0, 1)]
+    assert _n2ft_batches(3, 2) == [(0, 3)]
+    assert _n2ft_batches(2, 1) == [(0, 1), (1, 2)]
+    for m in range(1, 60):
+        for batch in range(1, 12):
+            batches = _n2ft_batches(m, batch)
+            sizes = [stop-start for start, stop in batches]
+            assert batches[0][0] == 0 and batches[-1][1] == m
+            assert all(a[1] == b[0] for a, b in zip(batches[:-1], batches[1:]))
+            assert max(sizes)-min(sizes) <= 1
+            assert max(sizes) <= max(batch, 3)
+            if batch >= 2 and m >= 2:
+                assert min(sizes) >= 2
+
+
+@pytest.mark.parametrize('gpu', GPU)
+def test_n2ft_fold_batch_norms(points, gpu):
+    """the loaded n2ft model has its batch norms folded into multiply-adds and gives the output of the original model"""
+    import torch
+    from moraine.api.dl import _n2ft_structure, _infer_n2ft_structure, _get_model, _model_files
+    from moraine.api.n2ft_torch_ import N2FT, PointTransformerBlock, ChannelAffine
+    x, y, s = points
+    stack = s[:, [0]] * s[:, 1:4].conj()
+    folded = _get_model('n2ft', None, 'cuda' if gpu else 'cpu')
+    device = next(folded.parameters()).device
+    original = N2FT(PointTransformerBlock, [1, 1, 1, 1, 1])
+    original.load_state_dict(torch.load(importlib.resources.files('moraine')/'dl_model'/_model_files['n2ft'],
+                                        map_location='cpu', weights_only=True))
+    original.eval().to(device)
+    kinds = lambda model: {type(m) for m in model.modules()}
+    assert torch.nn.BatchNorm1d in kinds(original) and ChannelAffine not in kinds(original)
+    assert torch.nn.BatchNorm1d not in kinds(folded) and ChannelAffine in kinds(folded)
+    structure = _n2ft_structure(x, y, device)
+    np.testing.assert_allclose(_infer_n2ft_structure(structure, stack, folded),
+                               _infer_n2ft_structure(structure, stack, original), atol=1e-4)
+
+
+def test_n2ft_max_point_intfs():
+    from moraine.api.dl import _n2ft_max_point_intfs, _N2FT_MAX_POINT_INTFS, _N2FT_MEMORY_FRACTION, _N2FT_POINT_INTF_BYTES
+    assert _n2ft_max_point_intfs(torch.device('cpu')) == _N2FT_MAX_POINT_INTFS == 200_000
+    if torch.cuda.is_available():
+        total = torch.cuda.get_device_properties(0).total_memory
+        assert _n2ft_max_point_intfs(torch.device('cuda', 0)) == max(50_000, int(total*_N2FT_MEMORY_FRACTION)//_N2FT_POINT_INTF_BYTES)
