@@ -40,7 +40,7 @@ optimization, spilling, several machines.
 - Same results: every command was compared bit for bit with the dask version on a crop of the sample data (27
   outputs of 23 commands) and the pipelines 02 to 05 on Campi Flegrei agree within the run-to-run rounding of the
   GPU filters.
-- A GPU command starts its workers in about 2 s instead of 4 to 7 (the import of moraine in each worker
+- A GPU command starts its workers in 2 to 3 s instead of 4 to 7 (the import of moraine in each worker
   process; a worker pool shared by the steps of `moraine run` is a possible next step).
 - Pipeline files with `[step.kw]` dask options (`memory_limit`, ...) fail with "unknown worker arguments".
 - A task function must be importable (module level) for the process workers; errors that cannot be pickled
