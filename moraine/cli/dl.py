@@ -36,6 +36,12 @@ def _torch_use_rmm():
     from rmm.allocators.torch import rmm_torch_allocator
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
+def _torch_no_kernel_autotune():
+    '''compile the model without tuning its kernels: the tuning needs the memory statistics of the torch allocator,
+    which the rmm allocator does not provide'''
+    import torch._inductor.config as inductor_config
+    inductor_config.triton.autotune_pointwise = False
+
 @ngpjit
 def _cli_pre_infer_n2f_numba(
     ref,
@@ -348,7 +354,7 @@ def n2ft(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
+    rmm_pool_size=None,
     **dask_cluster_arg,
 ):
     """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
@@ -395,8 +401,10 @@ def n2ft(
         number of dask workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         number of threads per dask worker, only for cpu processing. Default: 1
-    rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
+    rmm_pool_size : optional
+        rmm memory pool of every worker as a fraction of the GPU memory, shared with torch; none by default: the model
+        allocates with torch, which it needs to tune its compiled kernels (with a pool, `compile` runs without the
+        tuning and about 2 times slower)
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
@@ -465,9 +473,12 @@ def n2ft(
     with Cluster(**cluster_args) as cluster, Client(cluster) as client:
         logger.info('dask cluster started.')
         logger.dask_cluster_info(cluster)
-        if cuda:
+        if cuda and rmm_pool_size:
             client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
             client.run(_torch_use_rmm)
+            if compile:
+                logger.info('rmm pool: the compiled model runs without kernel tuning')
+                client.run(_torch_no_kernel_autotune)
 
         intf_zarr = zarr.open(intf_path,mode='w',shape=(npoint,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(out_chunks,1))
         logger.zarr_info(intf_path, intf_zarr)
