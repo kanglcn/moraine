@@ -19,6 +19,9 @@ Decision 0019.
   `(n_points, n_pairs)`.
 - Arrays without an image axis are chunked in space only: `(points_block,)`, `(points_block, 2)` for
   `gix`, `(lines_block, width_block)`.
+- Window arrays (the p values and SHP flags of the SHP test, `(nlines, width, az_win, r_win)`, and their
+  point cloud form `(n_points, az_win, r_win)`) are chunked in space only, with the whole window of a pixel
+  in one chunk: `(lines_block, width_block, az_win, r_win)`, `(points_block, az_win, r_win)` (decision 0032).
 - A step per image (or image pair) then reads and writes whole chunks, and a step per block of points or
   pixels reads one chunk of every image, without rechunking. Temporary zarrs between the steps of a
   command follow the same layout.

@@ -151,11 +151,13 @@ class ZarrDir():
         for zarr_path in self.zarr_path_list:
             data_zarr = zarr.open(zarr_path,mode='r')
             assert data_zarr.chunks[0] == data_zarr.shape[0]
-            assert data_zarr.chunks[1:] == (1,)*(data_zarr.ndim-1)
+            # one image per chunk (stacks) or the whole window of a point in one chunk (window arrays, decision 0032)
+            assert data_zarr.chunks[1:] in ((1,)*(data_zarr.ndim-1), data_zarr.shape[1:])
             dim0_shape += data_zarr.shape[0]
             dim0_chunks.append(data_zarr.chunks[0])
         self.shape = (dim0_shape,*zarr0.shape[1:])
         self.dim0_chunks = tuple(dim0_chunks)
+        self.whole_trailing = self.ndim > 1 and zarr0.chunks[1:] == zarr0.shape[1:] and zarr0.chunks[1:] != (1,)*(self.ndim-1)
 
     @classmethod
     def from_dir(cls,zarr_dir):
@@ -198,11 +200,33 @@ def _parallel_read_pc_dir(
         future.result() # raise the errors of the reads
     return out
 
+def _parallel_read_pc_dir_whole(zarr_dir, thread_pool_size=None):
+    """all the arrays of a directory of window arrays (the whole window of a point in one chunk), concatenated"""
+    out = np.empty(zarr_dir.shape,dtype=zarr_dir.dtype)
+    out_slices = []
+    start = 0
+    for chunk in zarr_dir.dim0_chunks:
+        out_slices.append(slice(start,start+chunk))
+        start += chunk
+
+    def _read_one_zarr(zarr_path,out,out_slice):
+        out[out_slice] = zarr.open(zarr_path,mode='r')[:]
+
+    with concurrent.futures.ThreadPoolExecutor(thread_pool_size) as executor:
+        futures = [executor.submit(_read_one_zarr,zarr_path,out,out_slice)
+                   for zarr_path,out_slice in zip(zarr_dir.zarr_path_list,out_slices)]
+    for future in futures:
+        future.result() # raise the errors of the reads
+    return out
+
 def _dask_from_pc_zarr_dir(zarrs):
     if isinstance(zarrs,list):
         zarr_dir = ZarrDir(zarrs)
     else:
         zarr_dir = ZarrDir.from_dir(zarrs)
+    if zarr_dir.whole_trailing:
+        return da.from_delayed(delayed(_parallel_read_pc_dir_whole,pure=True)(zarr_dir),shape=zarr_dir.shape,
+                               meta=np.array((),dtype=zarr_dir.dtype))
     out_shape = zarr_dir.shape[1:]
     out_chunk_shape = (1,)*(zarr_dir.ndim-1)
     out_delayed = np.empty((1,*out_shape),dtype=object)
