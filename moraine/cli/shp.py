@@ -25,12 +25,21 @@ import moraine as mr
 from .logging import mc_logger
 from . import dask_from_zarr,dask_from_zarr_overlap, dask_to_zarr
 
+def _is_shp_block(p, alpha):
+    return p >= alpha                       # a pixel without a test (nan) is not an SHP
+
+def _shp_num_block(is_shp):
+    return is_shp.sum(axis=(2,3), dtype=np.int32)
+
 @mc_logger
 def shp_test(
     rslc:str,
-    pvalue:str,
     az_half_win:int,
     r_half_win:int,
+    pvalue:str=None,
+    is_shp:str=None,
+    shp_num:str=None,
+    alpha:float=0.05,
     method:str=None,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
@@ -40,19 +49,28 @@ def shp_test(
     rmm_pool_size=0.9,
     **dask_cluster_arg,
 ):
-    """SHP identification through hypothetic test.
+    """SHP identification through hypothetic test, and the selection of the SHPs at the level `alpha`.
 
     Parameters
     ----------
     rslc : str
         input: rslc stack, shape (nlines, width, nimages)
-    pvalue : str
-        output: p value of the test between each pixel and the pixels in its window, shape (nlines,
-        width, 2*az_half_win+1, 2*r_half_win+1)
     az_half_win : int
         azimuth half window size
     r_half_win : int
         range half window size
+    pvalue : str, optional
+        output: p value of the test between each pixel and the pixels in its window, shape (nlines,
+        width, 2*az_half_win+1, 2*r_half_win+1), float32; needed only to select the SHPs again at another
+        level with `select-shp`
+    is_shp : str, optional
+        output: True for the SHPs of each pixel, same shape as `pvalue`, bool
+    shp_num : str, optional
+        output: number of SHPs of each pixel, shape (nlines, width), int32. At least one of `pvalue`,
+        `is_shp` and `shp_num` must be given
+    alpha : float, default: 0.05
+        significance level of the test for `is_shp` and `shp_num`, in (0, 1): a pixel is an SHP of the
+        centre pixel of its window when its p value is at least `alpha`; a larger `alpha` keeps fewer SHPs
     method : str, optional
         test method, only 'ks' (two-sample Kolmogorov-Smirnov) is implemented. Default: 'ks'
     chunks : tuple[int, int], optional
@@ -72,7 +90,9 @@ def shp_test(
         other dask local/cudalocal cluster args
     """
     rslc_path = rslc
-    pvalue_path = pvalue
+    pvalue_path = pvalue; is_shp_path = is_shp; shp_num_path = shp_num
+    if pvalue_path is None and is_shp_path is None and shp_num_path is None:
+        raise ValueError('shp-test: give at least one output, pvalue, is_shp or shp_num')
 
     logger = logging.getLogger(__name__)
     if not method: method = 'ks'
@@ -128,22 +148,27 @@ def shp_test(
                                     new_axis=-1,chunks=p_chunks,meta=xp.array((),dtype=rmli_overlap.dtype))
         logger.info('trim shared boundaries between p value chunks')
         p = da.overlap.trim_overlap(p,depth=depth,boundary=boundary)
-        if cuda:
-            cpu_p = p.map_blocks(xp.asnumpy)
-        else:
-            cpu_p = p
-        logger.darr_info('p value', cpu_p)
+        logger.darr_info('p value', p)
+        to_cpu = (lambda a: a.map_blocks(xp.asnumpy)) if cuda else (lambda a: a)
 
-        logger.info('saving p value.')
-        # the whole window of a pixel in one chunk (decision 0032)
-        _p = dask_to_zarr(cpu_p,pvalue_path,chunks=(*cpu_p.chunksize[:2],*cpu_p.shape[2:]))
-        # _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True)
-        # p_zarr = kvikio.zarr.open_cupy_array(pvalue_path,'w',shape=p.shape, chunks=p.chunksize, dtype=p.dtype,compressor=None)
-        # _p = da.store(p,p_zarr,compute=False,lock=False)
+        outputs = []
+        if pvalue_path is not None:
+            logger.info('saving p value.')
+            # the whole window of a pixel in one chunk (decision 0032)
+            outputs.append(dask_to_zarr(to_cpu(p),pvalue_path,chunks=(*p.chunksize[:2],*p.shape[2:])))
+        if is_shp_path is not None or shp_num_path is not None:
+            logger.info(f'selecting SHPs with p value >= alpha = {alpha}')
+            is_shp = p.map_blocks(_is_shp_block,alpha,dtype=np.bool_,meta=xp.array((),dtype=np.bool_))
+            if is_shp_path is not None:
+                logger.info('saving is_shp.')
+                outputs.append(dask_to_zarr(to_cpu(is_shp),is_shp_path,chunks=(*is_shp.chunksize[:2],*is_shp.shape[2:])))
+            if shp_num_path is not None:
+                shp_num = is_shp.map_blocks(_shp_num_block,drop_axis=(2,3),dtype=np.int32,meta=xp.array((),dtype=np.int32))
+                logger.info('saving shp_num.')
+                outputs.append(dask_to_zarr(to_cpu(shp_num),shp_num_path,chunks=shp_num.chunksize))
 
         logger.info('computing graph setted. doing all the computing.')
-        #_p.visualize(filename='_p.svg',color='order',cmap="autumn",optimize_graph=True)
-        futures = client.persist(_p)
+        futures = client.persist(outputs)
 
         progress(futures,notebook=False)
         time.sleep(0.1)
