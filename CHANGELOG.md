@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The batch norm layers of the loaded `n2ft` model are replaced by the per channel affine function they compute in evaluation mode (`fold_batch_norms`): the eager model runs 8 % faster on an A100 (200 000 Campi Flegrei points x 91 pairs: 7.0 instead of 7.6 s), and the compiled model no longer compiles again (34 s each time) when the batch of interferograms crosses a size threshold of the cuDNN batch norm kernels; the phases change by rounding (at most 1.8e-4 rad)
+
 The neighbour searches of the `n2ft` structure (16 and 3 nearest neighbours at the 4 sampling levels of a processing chunk) run in 8 threads instead of one per core: the structure of a 23 000-point chunk takes 70 instead of 190 ms on a 128-core machine (the queries 21 instead of 120 ms). It runs in parallel to the model, so the filtering only gets faster where the model is faster than the structure (`compile`, or a slow CPU)
 
 `n2ft` with `compile` compiled the model a second time (14 s) when the interferograms of a processing chunk did not divide into its batches and the last batch was a single interferogram (e.g. 91 interferograms in batches of 9): the batches of a chunk are now as equal as possible and never a single interferogram, and the model sees the same tensor layout for every batch size, so the model is compiled once per process; on 590 667 Campi Flegrei points with 91 image pairs the compiled model takes 2.7 instead of 8.2 s per 200 000 points after its compilation

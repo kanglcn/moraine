@@ -1,3 +1,4 @@
+import importlib.resources
 import numpy as np
 import pytest
 
@@ -191,3 +192,25 @@ def test_n2ft_batches():
             assert max(sizes) <= max(batch, 3)
             if batch >= 2 and m >= 2:
                 assert min(sizes) >= 2
+
+
+@pytest.mark.parametrize('gpu', GPU)
+def test_n2ft_fold_batch_norms(points, gpu):
+    """the loaded n2ft model has its batch norms folded into multiply-adds and gives the output of the original model"""
+    import torch
+    from moraine.api.dl import _n2ft_structure, _infer_n2ft_structure, _get_model, _model_files
+    from moraine.api.n2ft_torch_ import N2FT, PointTransformerBlock, ChannelAffine
+    x, y, s = points
+    stack = s[:, [0]] * s[:, 1:4].conj()
+    folded = _get_model('n2ft', None, 'cuda' if gpu else 'cpu')
+    device = next(folded.parameters()).device
+    original = N2FT(PointTransformerBlock, [1, 1, 1, 1, 1])
+    original.load_state_dict(torch.load(importlib.resources.files('moraine')/'dl_model'/_model_files['n2ft'],
+                                        map_location='cpu', weights_only=True))
+    original.eval().to(device)
+    kinds = lambda model: {type(m) for m in model.modules()}
+    assert torch.nn.BatchNorm1d in kinds(original) and ChannelAffine not in kinds(original)
+    assert torch.nn.BatchNorm1d not in kinds(folded) and ChannelAffine in kinds(folded)
+    structure = _n2ft_structure(x, y, device)
+    np.testing.assert_allclose(_infer_n2ft_structure(structure, stack, folded),
+                               _infer_n2ft_structure(structure, stack, original), atol=1e-4)

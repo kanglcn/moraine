@@ -126,7 +126,13 @@ def _load_model(
         from .unet_torch_ import UNet
         model = UNet(2 if name == 'n2f' else 3, 2, depth=4, bilinear=True)
     model.load_state_dict(torch.load(path, map_location='cpu', weights_only=True))
-    model.eval().to(device)
+    model.eval()
+    if name == 'n2ft':
+        # a multiply-add per channel instead of the cuDNN batch norm kernels, which are slower and whose size
+        # thresholds would make torch.compile compile the model once per range of batch sizes
+        from .n2ft_torch_ import fold_batch_norms
+        fold_batch_norms(model)
+    model.to(device)
     if compile:
         # n2ft is called with a different number of points and interferograms every time: one graph with symbolic
         # shapes instead of a compilation per shape
