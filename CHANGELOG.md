@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`shp-test` selects the SHPs in the same pass as the test: the new optional outputs `is_shp` and `shp_num` (with `alpha`, default 0.05) are what `select-shp` computes from the p values, `pvalue` is now optional and follows the window sizes in the argument order, and at least one output must be given. The 03 example no longer writes the p values (2 GB for the sample data) nor runs `select-shp`, which stays for p values kept with `pvalue`. `shp_test` + `select_shp` of the 03 pipeline: 13 instead of 31 s on the sample data, 20 instead of 29 s on Campi Flegrei (A100); the same SHPs
+
 The window arrays of the SHP test (`shp-test` p values, `select-shp` SHP flags, both `(nlines, width, az_win, r_win)`, and the point windows of `ras2pc-ras-chunk`, `(n_points, az_win, r_win)`) are chunked with the whole window of a pixel in one chunk instead of one window cell per chunk (decision 0032): every block was written and read through 121 chunk operations for an 11 x 11 window. Campi Flegrei (981 x 4160 pixels, 92 images): `select-shp` 8.5 instead of 19 s, `ras2pc-ras-chunk` of the SHP flags 2.2 instead of 4.6 s; sample data (2500 x 1834, 17 images): 12 instead of 10 s and 3.4 instead of 9.3 s (a block of p values is now one 484 MB chunk, decompressed by one thread). The values are the same, arrays with the old chunks are still read, and `pc-concat` keeps the layout of its input
 
 The example pipelines run `amp-disp` and `temp-coh` on the CPU (`cuda = false` in their steps): the commands read the stack once and reduce it, and starting a GPU worker costs more than the GPU saves (Campi Flegrei, 981 x 4160 x 92: the `amp-disp` command takes 7 instead of 15 s, `temp-coh` 9 instead of 16 s; the results differ by 1e-6). The GPU versions stay
