@@ -22,6 +22,8 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 ## Parameters
 
 - Temporal coherence threshold: 0.7-0.85; lower keeps more points with more noise.
+- `temp_coh` runs on the CPU (`cuda = false` in the step): it reads the data once and reduces them, starting a
+  GPU worker costs more than the GPU saves.
 - `n2ft` `chunks`: points per chunk (20 000); smaller uses less GPU memory.
 - `n2ft` `compile`: the model is compiled with torch.compile in every worker when points times image pairs is at
   least 1e8 (15-40 s once per worker, less when torch has cached it; the model then runs about 3 times faster on a

@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The example pipelines run `amp-disp` and `temp-coh` on the CPU (`cuda = false` in their steps): the commands read the stack once and reduce it, and starting a GPU worker costs more than the GPU saves (Campi Flegrei, 981 x 4160 x 92: the `amp-disp` command takes 7 instead of 15 s, `temp-coh` 9 instead of 16 s; the results differ by 1e-6). The GPU versions stay
+
 `pc-pyramid` and `ras-pyramid` render the channels in 8 forked processes (`n_workers`) instead of a dask cluster of one worker with 2 threads: the work per channel is Python code that threads cannot share, and the cluster took longer to start than the rendering. Campi Flegrei on an A100 node: the pyramid of 223 890 points x 92 images takes 6 instead of 25 s, of the 981 x 4160 x 92 rslc 8 instead of 28 s, of one 981 x 4160 raster 4 instead of 9 s; the pyramids are identical. The arguments `processes`, `threads_per_worker` and the dask cluster arguments of the two commands are gone: remove them from pipeline files that set them
 
 The batch norm layers of the loaded `n2f` and `n2fs3d` models are folded into their convolutions (`fold_batch_norms` of the UNet): the model runs 17 % faster on an A100 (981 x 4160 pixels: 86 instead of 104 ms per interferogram); the results change by rounding (float32 up to 3e-5, typically 2e-4 rad with the TF32 convolutions of the GPU)

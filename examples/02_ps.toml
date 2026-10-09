@@ -18,6 +18,7 @@ name = "adi"
 run = "amp-disp"
 rslc = "raw/rslc.zarr"
 adi = "ps/ras_adi.zarr"
+cuda = false                      # reads the stack once and reduces it: the CPU is faster than starting a GPU worker
 
 [[step]]
 name = "adi_pyramid"
@@ -54,6 +55,7 @@ intf = "ps/ras_n2f_intf.zarr"
 rslc = "raw/rslc.zarr"
 t_coh = "ps/ras_temp_coh.zarr"
 image_pairs = "ps/pairs_seq.txt"
+cuda = false                      # reads the stack once and reduces it: the CPU is faster than starting a GPU worker
 
 [[step]]
 name = "temp_coh_pyramid"
