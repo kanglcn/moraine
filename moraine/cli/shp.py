@@ -135,7 +135,8 @@ def shp_test(
         logger.darr_info('p value', cpu_p)
 
         logger.info('saving p value.')
-        _p = dask_to_zarr(cpu_p,pvalue_path,chunks=(*cpu_p.chunksize[:2],1,1))
+        # the whole window of a pixel in one chunk (decision 0032)
+        _p = dask_to_zarr(cpu_p,pvalue_path,chunks=(*cpu_p.chunksize[:2],*cpu_p.shape[2:]))
         # _p = da.to_zarr(cpu_p,pvalue_path,compute=False,overwrite=True)
         # p_zarr = kvikio.zarr.open_cupy_array(pvalue_path,'w',shape=p.shape, chunks=p.chunksize, dtype=p.dtype,compressor=None)
         # _p = da.store(p,p_zarr,compute=False,lock=False)
@@ -224,7 +225,7 @@ def select_shp(
         logger.darr_info('shp_num',shp_num)
 
         logger.info('saving is_shp.')
-        _is_shp = dask_to_zarr(is_shp, is_shp_path, chunks=(*is_shp.chunksize[0:2],1,1))
+        _is_shp = dask_to_zarr(is_shp, is_shp_path, chunks=(*is_shp.chunksize[0:2],*is_shp.shape[2:]))
 
         logger.info('saving shp_num.')
         _shp_num = dask_to_zarr(shp_num, shp_num_path, chunks=is_shp.chunksize[0:2])

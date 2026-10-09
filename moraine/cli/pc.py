@@ -275,7 +275,7 @@ def pc_concat(
                 logger.info('sort pc according to key')
                 pc = da.map_blocks(_indexing_pc_data,pc,key, dtype=pc.dtype, meta=np.array((),dtype=pc.dtype))
                 logger.darr_info('sorted pc',pc)
-            pc_chunk = (1,)*(pc.ndim-1)
+            pc_chunk = pc.chunksize[1:]   # one image per chunk, or the whole window of a point (decision 0032)
             logger.info(f'save pc to {one_pc_path}')
             _pc = dask_to_zarr(pc,one_pc_path,chunks=(chunks,*pc_chunk))
             futures.append(_pc)
@@ -374,13 +374,15 @@ def ras2pc_ras_chunk(
                 pc_delayed[i] = ras2pc_delayed(ras_delayed[i], gix_delayed[i])
                 pc_delayed[i] = da.from_delayed(pc_delayed[i],shape=(pc_chunksize[i],*ras_zarr.shape[2:]),meta=np.array((),dtype=ras_zarr.dtype))
             _out_shape = (1,)*(ras_zarr.ndim-2)
+            # one image per chunk for a stack, the whole window of a point in one chunk for a window array (decision 0032)
+            pc_chunk_tail = ras_zarr.shape[2:] if ras_zarr.ndim == 4 else _out_shape
             pc = da.block(pc_delayed.reshape((-1,*_out_shape)).tolist()) #the empty chunks are automatically removed from here
             pc = pc.rechunk((pc_chunksize,*pc.shape[1:])) # so add them back here
             logger.darr_info('pc', pc)
             logger.info(f'saving to {pc_path}.')
             for j in range(pc.numblocks[0]):
                 if pc_chunksize[j] > 0:
-                    _pc = dask_to_zarr(pc.blocks[j],pc_path/f'{j}.zarr',chunks=(pc_chunksize[j],*_out_shape),log_zarr=False)
+                    _pc = dask_to_zarr(pc.blocks[j],pc_path/f'{j}.zarr',chunks=(pc_chunksize[j],*pc_chunk_tail),log_zarr=False)
                     _pc_list += (_pc,)
 
         logger.info('computing graph setted. doing all the computing.')

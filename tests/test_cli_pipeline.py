@@ -54,6 +54,10 @@ def test_shp(work, shp):
     is_shp, shp_num = mr.select_shp(r(d / 'pvalue.zarr'), 0.05)
     np.testing.assert_array_equal(r(d / 'is_shp.zarr'), is_shp)
     np.testing.assert_array_equal(r(d / 'shp_num.zarr'), shp_num)
+    # window arrays: the whole window of a pixel in one chunk, spatial chunks of the rslc (decision 0032)
+    spatial = zarr.open(str(d / 'rslc.zarr'), mode='r').chunks[:2]
+    assert zarr.open(str(d / 'pvalue.zarr'), mode='r').chunks == (*spatial, 11, 11)
+    assert zarr.open(str(d / 'is_shp.zarr'), mode='r').chunks == (*spatial, 11, 11)
     gix = r(d / 'ds_can_gix.zarr')
     np.testing.assert_array_equal(gix, np.stack(np.where(shp_num >= 50), axis=-1))
     mc.gix2bool(str(d / 'ds_can_gix.zarr'), str(d / 'is_ds_can.zarr'), shape=shp_num.shape)
