@@ -25,7 +25,6 @@ import moraine as mr
 import moraine.cli as mc
 from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
-from ..api.co import intf as intf_func
 from .dask_ import parallel_read_zarr
 from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_structure, _infer_n2ft_structure, _nan_where_zero
 from .logging import mc_logger
@@ -276,6 +275,7 @@ def _cli_n2ft_out_chunk(
     image_pairs:np.ndarray,
     model:str=None,
     cuda:bool=False,
+    compile:bool=False,
 ):
     """n2ft of all image pairs on the points of one output chunk, written into `intf`
 
@@ -302,30 +302,32 @@ def _cli_n2ft_out_chunk(
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         use gpu for inference
+    compile : bool, default: False
+        compile the model with torch.compile (once per process)
 
     Returns
     -------
     int
         number of points of the output chunk
     """
-    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu')
+    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu', compile)
     device = next(model.parameters()).device
     images = np.unique(image_pairs)
     cols = np.searchsorted(images, image_pairs)
-    # the rslc of the points with halo for the images of the pairs; the structure of every processing chunk
-    # depends on the coordinates only and is computed once for all image pairs
+    # the rslc of the points with halo for the images of the pairs; every processing chunk is filtered for all
+    # image pairs at once: its structure depends on the coordinates only, and the model runs several
+    # interferograms per call
     rslc_idx = zarr.open(rslc,mode='r').get_orthogonal_selection((idx,images))
     x_idx = zarr.open(x,mode='r').get_orthogonal_selection(idx)
     y_idx = zarr.open(y,mode='r').get_orthogonal_selection(idx)
-    structures = [_n2ft_structure(x_idx[pos],y_idx[pos],device) for pos, _, _ in blocks]
-    intf_zarr = zarr.open(intf,mode='r+')
     start, stop = rows
-    out = np.empty(stop-start,dtype=intf_zarr.dtype)
-    for k in range(image_pairs.shape[0]):
-        ifg = intf_func(np.ascontiguousarray(rslc_idx[:,cols[k,0]]),np.ascontiguousarray(rslc_idx[:,cols[k,1]]))
-        for (pos, own, out_slice), structure in zip(blocks,structures):
-            out[out_slice] = _infer_n2ft_structure(structure,ifg[pos][:,None],model)[own,0]
-        intf_zarr[start:stop,k] = out
+    out = np.empty((stop-start, image_pairs.shape[0]), dtype=rslc_idx.dtype)
+    for pos, own, out_slice in blocks:
+        structure = _n2ft_structure(x_idx[pos],y_idx[pos],device)
+        rslc_pos = rslc_idx[pos]
+        ifg = rslc_pos[:,cols[:,0]]*rslc_pos[:,cols[:,1]].conj()
+        out[out_slice] = _infer_n2ft_structure(structure,ifg,model)[own]
+    zarr.open(intf,mode='r+')[start:stop] = out
     return stop-start
 
 @mc_logger
@@ -340,6 +342,7 @@ def n2ft(
     k:int=128,
     model:str=None,
     cuda:bool=False,
+    compile:bool=False,
     processes=None,
     n_workers=None,
     threads_per_worker=None,
@@ -349,9 +352,10 @@ def n2ft(
     """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
 
     Every worker filters one output chunk of points with all image pairs at a time: it holds the rslc of the
-    points of the chunk and of their halos for the images of the pairs (8 bytes per point and image) and
-    about 400 bytes per point of the chunk more, most of it in GPU memory with `cuda`. Before, the main
-    process finds the halos of all processing chunks with about 70 bytes per point.
+    points of the chunk and of their halos for the images of the pairs (8 bytes per point and image), the
+    filtered interferograms of the chunk (8 bytes per point and image pair) and about 400 bytes per point of
+    the chunk more; with `cuda` the model holds up to 1.6 GB of GPU memory. Before, the main process finds
+    the halos of all processing chunks with about 70 bytes per point.
 
     Parameters
     ----------
@@ -377,6 +381,10 @@ def n2ft(
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         if use cuda for processing, false by default
+    compile : bool, default: False
+        compile the model with torch.compile in every worker: the filtering runs about twice as fast on a GPU, but
+        the compilation takes 15-40 s per worker (less when torch has cached it on disk); worth it from about a
+        million points with a hundred image pairs
     processes : optional
         use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
         True
@@ -458,7 +466,7 @@ def n2ft(
         intf_zarr = zarr.open(intf_path,mode='w',shape=(npoint,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(out_chunks,1))
         logger.zarr_info(intf_path, intf_zarr)
         n2ft_delayed = delayed(_cli_n2ft_out_chunk,pure=True,nout=1)
-        tasks = [n2ft_delayed(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model=model, cuda=cuda)
+        tasks = [n2ft_delayed(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model=model, cuda=cuda, compile=compile)
                  for rows, idx, blocks in tasks_args]
 
         logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')

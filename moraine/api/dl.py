@@ -127,7 +127,9 @@ def _load_model(
     model.load_state_dict(torch.load(path, map_location='cpu', weights_only=True))
     model.eval().to(device)
     if compile:
-        model = torch.compile(model)
+        # n2ft is called with a different number of points and interferograms every time: one graph with symbolic
+        # shapes instead of a compilation per shape
+        model = torch.compile(model, dynamic=True if name == 'n2ft' else None)
     return model
 
 def _get_model(name, path=None, device='cpu', compile=False):
@@ -567,6 +569,7 @@ def _infer_n2ft_structure(
     structure,
     intf,
     model,
+    max_point_intfs:int=200000,
 ):
     """Parameters
     ----------
@@ -575,17 +578,26 @@ def _infer_n2ft_structure(
     intf
         (n,m)
     model
+    max_point_intfs : int, default: 200000
+        points times interferograms of one model call (the batch of interferograms); a call holds about 8 kB per
+        point and interferogram on the device
     """
     torch = _import_torch()
     device = next(model.parameters()).device
     pos, keys = structure
+    n, m = intf.shape
+    # the model runs several interferograms of the same points at once: the structure is the same for all of them
+    batch = max(1, min(m, max_point_intfs//max(n, 1)))
     intf = _intf_redim2torch(intf)
     out = np.empty_like(intf)
-
     with torch.inference_mode():
         intf = torch.from_numpy(intf).to(device)
-        for i in range(intf.shape[0]):
-            out[i] = model(pos, intf[i:i+1], *keys).cpu().numpy()[0]
+        for start in range(0, m, batch):
+            stop = min(start+batch, m)
+            b = stop-start
+            pos_b = pos.expand(b, *pos.shape[1:])
+            keys_b = tuple(key.expand(b, *key.shape[1:]) for key in keys)
+            out[start:stop] = model(pos_b, intf[start:stop], *keys_b).cpu().numpy()
     out = _intf_redim_back(out)
     return out
 
@@ -634,7 +646,8 @@ def n2ft(
     cuda : bool, default: False
         use gpu for inference
     compile : bool, default: False
-        compile the model with torch.compile, faster on gpu but the first call takes tens of seconds
+        compile the model with torch.compile: the filtering runs about twice as fast on a GPU, but the compilation
+        takes 15-40 s once per process (torch caches its result on disk)
     """
     model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu', compile)
 

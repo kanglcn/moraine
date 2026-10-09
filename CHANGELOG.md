@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`n2ft` (API and command) filters several interferograms of the same points in one model call (up to 200 000 point-interferograms, about 1.6 GB of GPU memory) and the command filters all image pairs of a processing chunk at once instead of one pair at a time: on 590 667 Campi Flegrei points with 91 image pairs the `n2ft` step takes 47 instead of 69 s on an A100 (sample data: 31 instead of 38 s); the phases differ by rounding (at most 1e-4 rad). The command has a `compile` option like the API: the model is compiled with torch.compile in every worker (15-40 s once per worker) and the filtering then runs about twice as fast; worth it from about a million points with a hundred image pairs (Campi Flegrei: 74 instead of 47 s for the whole command)
+
 `emperical_co_emi_temp_coh_pc` (API and command) processes as many points at once as 1 GiB of coherence matrices hold instead of 1000: thousands of small GPU operations per batch made the command slow for few images. On the sample data (17 images, 4.1 M candidates) the command takes 41 instead of 75 s on an A100 and 28 instead of 42 s on the CPU; with 92 images the batch is about 32 000 points and a point takes 25 instead of 28 µs on the GPU. A task holds up to about 2 GiB (the coherence matrices and, on the GPU, the samples of their estimation; CPU peak 4.7 instead of 2.9 GB with the default 2 threads on the sample); `batch_size` still sets the number of points
 
 The GPU kernels are cached on disk like the CPU functions (decision 0029): the first GPU `emi` or `emperical-co-emi-temp-coh-pc` of a process (every pipeline step, every dask worker) no longer compiles the EMI kernel for 15 s, it loads it in about 0.5 s; the other GPU kernels save 0.3-0.9 s each
