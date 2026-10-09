@@ -39,8 +39,10 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0029](0029-numba-cache-by-source-hash.md) | Compiled numba functions are cached in a directory named after the hash of the sources | Accepted |
 | [0030](0030-gpu-kernels-in-numba-cuda.md) | GPU kernels are written with numba.cuda (numba-cuda), not as cupy C++ kernels | Accepted |
 | [0031](0031-gpu-emi-kernel.md) | The regularized EMI on the GPU is one numba.cuda thread block per point with its matrices in shared memory | Accepted |
-| [0032](0032-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
-| [0033](0033-own-workers-no-dask.md) | The workers of the commands are moraine's own; dask is not a dependency | Accepted |
+| [0032](0032-window-arrays-whole-window-per-chunk.md) | Window arrays keep the whole window of a pixel in one chunk | Accepted |
+
+| [0033](0033-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
+| [0034](0034-own-workers-no-dask.md) | The workers of the commands are moraine's own; dask is not a dependency | Accepted |
 
 ## Writing a record
 

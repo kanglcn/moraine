@@ -85,7 +85,7 @@ def test_bind_args():
         bind_args(cmd, {'rslc': 'r.zarr', 'adi_out': 'a.zarr'})
     with pytest.raises(UsageError, match='missing required argument'):
         bind_args(cmd, {'rslc': 'r.zarr'})
-    with pytest.raises(UsageError, match='takes no extra keyword arguments'):   # no **kwargs since decision 0033
+    with pytest.raises(UsageError, match='takes no extra keyword arguments'):   # no **kwargs since decision 0034
         bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})
     math = get_command('math')          # **data: the inputs of the expression are extra keyword arguments
     assert bind_args(math, {'output': 'o.zarr', 'operation': 'a*2'}, kw={'a': 'a.zarr'})['a'] == 'a.zarr'

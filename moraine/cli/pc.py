@@ -15,7 +15,7 @@ from typing import Callable
 from .logging import mc_logger
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices
-from .zarr_ import ZarrDir, _parallel_read_pc_dir
+from .zarr_ import ZarrDir, _parallel_read_pc_dir, whole_trailing, _parallel_read_pc_dir_whole
 from .executor import Executor, Chunk
 from .utils_ import mk_clean_dir
 
@@ -30,9 +30,16 @@ def _column(k):
     return tuple(slice(i, i+1) for i in k)
 
 
-def _pc_zarr(path, n_points, extra, dtype, chunks):
-    """a point cloud zarr (n_points, *extra) chunked (chunks, 1, ...)"""
-    return zarr.open(str(path), mode='w', shape=(n_points, *extra), dtype=dtype, chunks=(chunks, *(1,)*len(extra)))
+def _pc_zarr(path, n_points, extra, dtype, chunks, whole=False):
+    """a point cloud zarr (n_points, *extra) chunked (chunks, 1, ...): one image per chunk, or with `whole` the whole
+    window of a point in one chunk, (chunks, *extra) (window arrays, decision 0032)"""
+    trailing = tuple(extra) if whole else (1,)*len(extra)
+    return zarr.open(str(path), mode='w', shape=(n_points, *extra), dtype=dtype, chunks=(chunks, *trailing))
+
+
+def _whole_slices(n_points, extra):
+    """slices of a whole point cloud array (n_points, *extra)"""
+    return (slice(0, n_points), *(slice(0, n) for n in extra))
 
 
 def _indexing_pc_data(pc_in, iidx):
@@ -45,6 +52,15 @@ def _pc_concat_channel(zarr_dir, k, key, out, n_points):
     if key is not None:
         data = data[key]
     Chunk(out, (slice(0, n_points), *_column(k))).write(data.reshape(n_points, *(1,)*len(k)))
+
+
+def _pc_concat_whole(zarr_dir, key, out):
+    """read the per chunk window arrays of `zarr_dir` (the whole window of a point in one chunk), sort them by `key`
+    and write them to `out`"""
+    data = _parallel_read_pc_dir_whole(zarr_dir)
+    if key is not None:
+        data = data[key]
+    Chunk(out).write(data)
 
 
 def _pc2ras(
@@ -90,10 +106,11 @@ def _gather_channels(ex, fn, in_paths, out_paths, refs, n_pc, chunks, desc, logg
         for path, z in zip(ins, zs):
             logger.zarr_info(path, z)
         extra = zs[0].shape[1:]
-        logger.zarr_info(out, _pc_zarr(out, n_pc, extra, zs[0].dtype, chunks))
-        for k in _channels(extra):
-            tasks.append(([Chunk(path, (slice(0, z.shape[0]), *_column(k))) for path, z in zip(ins, zs)] + list(refs),
-                          [Chunk(out, (slice(0, n_pc), *_column(k)))]))
+        whole = whole_trailing(zs[0])     # a window array: the whole window of a point in one chunk, one task (0032)
+        logger.zarr_info(out, _pc_zarr(out, n_pc, extra, zs[0].dtype, chunks, whole=whole))
+        for k in ([None] if whole else _channels(extra)):
+            col = (lambda n: _whole_slices(n, extra)) if whole else (lambda n: (slice(0, n), *_column(k)))
+            tasks.append(([Chunk(path, col(z.shape[0])) for path, z in zip(ins, zs)] + list(refs), [Chunk(out, col(n_pc))]))
     ex.map_chunks(fn, tasks, desc=desc)
 
 @mc_logger
@@ -298,15 +315,22 @@ def pc_concat(
         zarr_dir = ZarrDir([str(p) for p in one_pcs_path])
         zarr_dirs.append(zarr_dir)
     if chunks is None: chunks = zarr_dirs[0].chunksize[0]
-    # one task per channel of every output: the channel of all chunk zarrs read, sorted and written
+    # one task per channel of every output: the channel of all chunk zarrs read, sorted and written; a window array
+    # (the whole window of a point in one chunk, decision 0032) is one task
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         key_ref = ex.put(key) if key is not None else None
-        tasks = []
+        tasks = []; tasks_whole = []
         for zarr_dir, one_pc_path in zip(zarr_dirs, pc_path):
             n_pc, extra = zarr_dir.shape[0], zarr_dir.shape[1:]
-            logger.zarr_info(one_pc_path, _pc_zarr(one_pc_path, n_pc, extra, zarr_dir.dtype, chunks))
-            tasks += [(zarr_dir, k, key_ref, one_pc_path, n_pc) for k in _channels(extra)]
-        ex.map(_pc_concat_channel, tasks, desc='channels')
+            logger.zarr_info(one_pc_path, _pc_zarr(one_pc_path, n_pc, extra, zarr_dir.dtype, chunks, whole=zarr_dir.whole_trailing))
+            if zarr_dir.whole_trailing:
+                tasks_whole.append((zarr_dir, key_ref, one_pc_path))
+            else:
+                tasks += [(zarr_dir, k, key_ref, one_pc_path, n_pc) for k in _channels(extra)]
+        if tasks:
+            ex.map(_pc_concat_channel, tasks, desc='channels')
+        if tasks_whole:
+            ex.map(_pc_concat_whole, tasks_whole, desc='window arrays')
     logger.info('done.')
 
 @mc_logger
@@ -372,11 +396,13 @@ def ras2pc_ras_chunk(
         pc_path = Path(pc_path); mk_clean_dir(pc_path)
         ras_zarr = zarr.open(ras_path,mode='r'); logger.zarr_info(ras_path, ras_zarr)
         extra = ras_zarr.shape[2:]
+        # one image per chunk for a stack, the whole window of a point in one chunk for a window array (decision 0032)
+        whole = ras_zarr.ndim == 4
         for j, sl in enumerate(chunk_slices):
             b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
             if b1 == b0:
                 continue
-            _pc_zarr(pc_path/f'{j}.zarr', b1-b0, extra, ras_zarr.dtype, b1-b0)
+            _pc_zarr(pc_path/f'{j}.zarr', b1-b0, extra, ras_zarr.dtype, b1-b0, whole=whole)
             tasks.append(([Chunk(ras_path, (*sl, *(slice(0, n) for n in extra))), ras_chunk_order_gix[b0:b1]],
                           [Chunk(str(pc_path/f'{j}.zarr'))]))
     logger.info(f'{len(tasks)} raster chunks with points')

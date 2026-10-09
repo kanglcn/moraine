@@ -49,6 +49,7 @@ intf = "pc/pc_can_n2ft_intf.zarr"
 rslc = "pc/pc_can_ph.zarr"
 t_coh = "pc/pc_can_temp_coh.zarr"
 image_pairs = "pc/pairs_seq.txt"
+cuda = false                      # reads the stack once and reduces it: the CPU is faster than starting a GPU worker
 
 [[step]]
 name = "temp_coh_pyramid"

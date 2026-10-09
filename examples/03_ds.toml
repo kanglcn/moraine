@@ -18,20 +18,14 @@ cuda = true                       # set to false without a GPU
 
 # ---- SHP and DS candidates
 [[step]]
-name = "shp_test"                 # two sample KS test in an 11 x 11 window
+name = "shp_test"                 # two sample KS test in an 11 x 11 window, SHPs = p value >= alpha
 run = "shp-test"
 rslc = "raw/rslc.zarr"
-pvalue = "ds/ras_pvalue.zarr"
 az_half_win = 5
 r_half_win = 5
-
-[[step]]
-name = "select_shp"
-run = "select-shp"
-pvalue = "ds/ras_pvalue.zarr"
 is_shp = "ds/ras_is_shp.zarr"
 shp_num = "ds/ras_shp_num.zarr"
-alpha = 0.05                      # significance level: SHPs have a p value >= alpha
+alpha = 0.05                      # significance level; add pvalue = "ds/ras_pvalue.zarr" to keep the p values
 
 [[step]]
 name = "shp_num_pyramid"

@@ -64,7 +64,7 @@ def test_import_moraine_does_not_import_torch():
 
 
 def test_import_moraine_does_not_import_dask():
-    """dask is not a dependency any more (decision 0033)."""
+    """dask is not a dependency any more (decision 0034)."""
     code = 'import sys, moraine, moraine.cli, moraine.command; print("dask" in sys.modules)'
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
     assert out.stdout.strip().endswith('False'), out.stdout + out.stderr

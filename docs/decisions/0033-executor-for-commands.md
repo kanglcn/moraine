@@ -1,4 +1,4 @@
-# 0032 The commands run their work as tasks of an executor, not as dask array graphs
+# 0033 The commands run their work as tasks of an executor, not as dask array graphs
 
 ## Status
 

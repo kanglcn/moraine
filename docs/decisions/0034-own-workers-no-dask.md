@@ -1,4 +1,4 @@
-# 0033 The workers of the commands are moraine's own; dask is not a dependency
+# 0034 The workers of the commands are moraine's own; dask is not a dependency
 
 ## Status
 
@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-With decision 0032 the commands no longer build dask graphs: they hand plain tasks to `Executor`, whose dask
+With decision 0033 the commands no longer build dask graphs: they hand plain tasks to `Executor`, whose dask
 backend only started a `LocalCluster` or `LocalCUDACluster` and submitted the tasks. What dask still cost: 4 to 7 s
 to start and stop a cluster in every GPU command (about 50 s of a pipeline of 17 steps), the import of dask,
 distributed, dask-cuda, rmm and bokeh in every `moraine` command, conda-only dependencies pinned to the CUDA

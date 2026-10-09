@@ -8,7 +8,7 @@ progress; `chunk_task` is the task of the most common kind (read chunks, call an
 
 The workers are moraine's own: threads of the command's process for CPU tasks, or processes started with ``spawn``
 for CPU tasks that hold the GIL and for the GPUs, one process per GPU of ``CUDA_VISIBLE_DEVICES``. The commands do
-not see them: a task is a plain function with picklable arguments (decisions 0032 and 0033).
+not see them: a task is a plain function with picklable arguments (decisions 0033 and 0034).
 """
 
 __all__ = ['Executor', 'Chunk', 'Device', 'chunk_task', 'check_aligned']
