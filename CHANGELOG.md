@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The batch norm layers of the loaded `n2f` and `n2fs3d` models are folded into their convolutions (`fold_batch_norms` of the UNet): the model runs 17 % faster on an A100 (981 x 4160 pixels: 86 instead of 104 ms per interferogram); the results change by rounding (float32 up to 3e-5, typically 2e-4 rad with the TF32 convolutions of the GPU)
+
 `n2f` (command) filters one output chunk of the raster with all image pairs per task instead of one image pair of the whole raster: the rslc of a processing chunk is read once for all pairs, the output chunk is written once, and the filtered interferograms stay on the GPU until the chunk is done. On 981 x 4160 Campi Flegrei pixels with 91 image pairs the computing takes 19 instead of 29 s on an A100 (command 31 instead of 39 s); the results are the same up to rounding and the random phase given to pixels without data. The processing chunks (`chunks`, with `depths` of overlap) are cut at the output chunks (`out_chunks`); a task holds the rslc of one processing chunk for all images and the filtered output chunk (8 bytes per pixel and image / image pair), on the GPU with `cuda`
 
 `n2ft --compile` failed in the GPU workers when torch.compile tuned its kernels for the first time on a machine (`CUDAPluggableAllocator does not yet support getDeviceStats`): torch allocated from the rmm pool, which has no memory statistics. The command no longer makes an rmm pool by default (`rmm_pool_size=None`, the model allocates with torch); with a pool, the compiled model runs without the kernel tuning (about 2 times slower)

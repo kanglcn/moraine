@@ -1,10 +1,26 @@
 """UNet used by the Noise2Fringe (n2f) and Noise2Fringe with ADI (n2fs3d) models."""
 
-__all__ = ['UNet']
+__all__ = ['UNet', 'fold_batch_norms']
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+def fold_batch_norms(model):
+    """fold every BatchNorm2d that follows a Conv2d in a Sequential of a model in evaluation mode into that convolution"""
+    from torch.nn.utils.fusion import fuse_conv_bn_eval
+    for name, module in list(model.named_children()):
+        if isinstance(module, nn.Sequential):
+            layers = list(module.children()); folded = []; i = 0
+            while i < len(layers):
+                if i+1 < len(layers) and isinstance(layers[i], nn.Conv2d) and isinstance(layers[i+1], nn.BatchNorm2d):
+                    folded.append(fuse_conv_bn_eval(layers[i], layers[i+1])); i += 2
+                else:
+                    folded.append(fold_batch_norms(layers[i]) if isinstance(layers[i], nn.Module) else layers[i]); i += 1
+            setattr(model, name, nn.Sequential(*folded))
+        else:
+            fold_batch_norms(module)
+    return model
 
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""

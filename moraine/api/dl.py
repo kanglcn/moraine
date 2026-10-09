@@ -132,6 +132,10 @@ def _load_model(
         # thresholds would make torch.compile compile the model once per range of batch sizes
         from .n2ft_torch_ import fold_batch_norms
         fold_batch_norms(model)
+    else:
+        # the batch norms folded into the convolutions: no batch norm kernels
+        from .unet_torch_ import fold_batch_norms
+        fold_batch_norms(model)
     model.to(device)
     if compile:
         # n2ft is called with a different number of points and interferograms every time: one graph with symbolic
