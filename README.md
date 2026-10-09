@@ -58,10 +58,9 @@ methods.
 
 Moraine also emphasizes performance, especially in this big data era.
 Most Moraine functions are implemented with well-optimized GPU code or
-OpenMP code. Furthermore, with the support of
-[Dask](https://docs.dask.org/en/stable/), Moraine can be runed on
-multi-GPUs to further accelerate the processing, get rid of the
-limitation of memory and achieve asynchronous IO.
+OpenMP code. The commands process zarr data chunk by chunk with
+moraine's own workers, in threads or in one process per GPU, so the
+data can be larger than memory and several GPUs work on it at once.
 
 ### Pragmatism
 
@@ -95,7 +94,7 @@ Because of GPU driver and CUDA Version Compatibility, there is no simple
 solution for CUDA related packages installation. Users need to
 successfully install
 [cupy](https://docs.cupy.dev/en/stable/install.html#installation) and
-[dask_cuda](https://docs.rapids.ai/api/dask-cuda/stable/) first.
+numba-cuda first.
 
 Here is some tips for installing them. Generally, the cuda driver is
 alrealy installed and maintained by the system administrator. Users only
@@ -115,12 +114,11 @@ It will prints something like:
 
 The `CUDA Version` is the maxminum cudatoolkit version that supported by
 the current CUDA driver. Here we use version 11.8 as an example. Then
-you can install the needed `cudatoolkit`, `cupy`, `dask_cuda` by:
+you can install the needed cudatoolkit, cupy and numba-cuda by:
 
 ``` bash
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy numba-cuda cuda-version=11.8
-conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
 ```
 
 The numba-cuda package is NVIDIA's package of the numba CUDA target that moraine's GPU kernels use; without it the
@@ -282,7 +280,7 @@ How to write and submit a PR
   add tests in `tests/`; run `pytest` before submitting.
 
 - The CI runs on machines without GPU, so GPU related packages (`cupy`,
-  `dask_cuda`, `rmm`) must only be imported behind
+  `numba.cuda`) must only be imported behind
   `moraine.api.utils_.is_cuda_available()`, and GPU tests are marked with
   `@pytest.mark.gpu`.
 

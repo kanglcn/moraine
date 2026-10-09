@@ -57,6 +57,23 @@ git worktree remove ../moraine-<topic>                 # after the branch is mer
 - Changes to shared files (`CHANGELOG.md`, `ARCHITECTURE.md`, the decision index) are merged by hand when
   the branches come together; keep them to the lines your topic needs.
 
+### How a command runs its work
+
+A command of `moraine/cli/` lists its tasks and hands them to `moraine.cli.executor.Executor` (decision 0033):
+
+```python
+tasks = [([Chunk(rslc, (*sl, slice(0, nimages)))], [Chunk(adi, sl)]) for sl in all_chunk_slices((nlines, width), chunks)]
+with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+    ex.map_chunks(mr.amp_disp, tasks, desc='amplitude dispersion')
+```
+
+A task is a plain function with picklable arguments: `chunk_task` reads the `Chunk` inputs (cupy arrays with
+`cuda`), calls the API function and writes the results to the `Chunk` outputs, which must cover whole chunks of
+the output array (create the output zarr before, with the processing chunks as a multiple of its chunks). Other
+tasks go through `ex.map(fn, [args, ...])`; an object every task needs (an index array) is shared with `ex.put`;
+per worker setup (something every worker loads once) with `ex.run_on_workers`. Do not start threads or processes of your
+own in a command (decision 0034).
+
 ### Large data and memory
 
 moraine is made for data larger than memory (tens of millions of points, stacks of hundreds of images);
@@ -66,14 +83,14 @@ every change is designed for that size, not for the sample data.
   `shared inputs + number of parallel workers x memory per task` and keep it bounded: the number of
   workers (and chunks) must be a parameter, and its default must not multiply a large per task memory by
   the number of cores.
-- Threads share the inputs (one copy) but every thread has its own working arrays; processes (e.g. a dask
-  `LocalCluster` with processes) also copy the inputs to every worker. Choose by memory: threads with
+- Threads share the inputs (one copy) but every thread has its own working arrays; worker processes
+  (`processes=True`, the GPU workers) load their inputs themselves (`Chunk`) or once per worker (`put`). Choose by memory: threads with
   numba `nogil` functions for work on shared arrays in memory, processes only where the work holds the
   GIL, and in both cases few workers when the per task memory is large.
 - Split the work into units that fit in memory. An API function (`moraine/api/`) processes one unit: one
   image (or image pair) of the whole scene, or one block of pixels / points with its whole time series
   (plus a halo where neighbours are needed). The CLI function (`moraine/cli/`) cuts the zarr data into
-  these units, maps the API function over them with dask (bounded number of workers) and writes the
+  these units, maps the API function over them with the executor (bounded number of workers) and writes the
   results to zarr. The CLI never loads a whole stack; an API function that chains several steps on a
   whole stack in memory is fine for small data and tests, but the CLI uses the per unit functions.
 - An algorithm whose steps need different units (e.g. per block of points, then per image, then per

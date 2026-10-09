@@ -269,7 +269,7 @@ def bind_args(cmd:Command, values:dict, kw:dict=None)->dict:
     """Check and convert arguments (from a pipeline file or the command line) for `cmd`.
 
     Unknown names are errors, so a typo is never passed silently to ``**kwargs``; extra keyword
-    arguments (e.g. dask cluster options) have to be given explicitly in `kw`.
+    arguments (e.g. the input arrays of `math`) have to be given explicitly in `kw`.
     """
     names = [p.name for p in cmd.params]
     unknown = [k for k in values if k not in names]
@@ -323,7 +323,7 @@ def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
         if p.kind == 'pairs' and isinstance(call.get(p.name), str):
             call[p.name] = image_pairs(call[p.name])
     t0 = time.time()
-    with contextlib.redirect_stdout(sys.stderr):  # dask progress bars print to stdout
+    with contextlib.redirect_stdout(sys.stderr):  # nothing a command prints may break the --json output
         cmd.func(**call)
     record = {'command': cmd.name, 'seconds': round(time.time() - t0, 1), 'outputs': [], 'inputs': {}}
     for s in candidates:

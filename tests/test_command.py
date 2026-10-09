@@ -85,7 +85,10 @@ def test_bind_args():
         bind_args(cmd, {'rslc': 'r.zarr', 'adi_out': 'a.zarr'})
     with pytest.raises(UsageError, match='missing required argument'):
         bind_args(cmd, {'rslc': 'r.zarr'})
-    assert bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})['memory_limit'] == '2GB'
+    with pytest.raises(UsageError, match='takes no extra keyword arguments'):   # no **kwargs since decision 0034
+        bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})
+    math = get_command('math')          # **data: the inputs of the expression are extra keyword arguments
+    assert bind_args(math, {'output': 'o.zarr', 'operation': 'a*2'}, kw={'a': 'a.zarr'})['a'] == 'a.zarr'
 
 
 # ---------------------------------------------------------------- summary / quicklook
@@ -308,7 +311,7 @@ def test_quicklook_command(tmp_path, capsys, rng):
     import moraine.cli as mc
     _zarr(tmp_path / 'ras.zarr', rng.random((64, 48)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
-    capsys.readouterr()                  # drop the dask progress bar of ras_pyramid
+    capsys.readouterr()                  # drop what ras_pyramid printed
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
     assert _json_out(capsys)['png'] == str(tmp_path / 'q.png')
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'part.png'), '--extent', '10,5,30,20',

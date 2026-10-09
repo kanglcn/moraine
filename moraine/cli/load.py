@@ -20,14 +20,11 @@ import numba
 from ..api.utils_ import mjit
 import pandas as pd
 from scipy.constants import speed_of_light
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
 
 import moraine as mr
 from ..api.gamma_ import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr
+from .executor import Executor, Chunk
 
 def _rdc_width_nlines(image_par):
     """get slc width and number of lines.
@@ -89,6 +86,12 @@ def _fetch_slc_par_date(rslc_dir,
     return rslcs_df
 
 @mjit(nopython=True, parallel=True, nogil=True)
+def _flatten_rslc_task(rslc, sim_orb, width, out, k):
+    """read one gamma rslc and its simulated orbital phase, flatten it and write image `k` of the zarr `out`"""
+    flat = _flatten_rslc(read_gamma_image(sim_orb, width, dtype='float'), read_gamma_image(rslc, width, dtype='fcomplex'))
+    Chunk(out, (slice(0, flat.shape[0]), slice(0, flat.shape[1]), slice(k, k+1))).write(flat[:, :, None])
+
+
 def _flatten_rslc(sim_orb,rslc):
     y = np.empty(rslc.shape, rslc.dtype)
     for i in numba.prange(len(rslc)):
@@ -107,7 +110,6 @@ def load_gamma_flatten_rslc(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Generate flatten rslc data from gamma command and convert them into zarr format.
     The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
@@ -130,13 +132,11 @@ def load_gamma_flatten_rslc(
     gamma_threads : int, default: min(64, number of CPU cores)
         number of threads of each GAMMA program run for an image (`phase_sim_orb`, set with OMP_NUM_THREADS)
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     rslc_path = rslc
@@ -179,51 +179,14 @@ def load_gamma_flatten_rslc(
             os.system(phase_sim_orb_command)
         sim_orbs.append(sim_orb)
     logger.info('gamma command finished.')
-    logger.info('using dask to load data in gamma binary format to calculate flatten rslcs and save it to zarr.')
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        read_gamma_image_delayed = delayed(read_gamma_image, pure=True)
-
-        # n_az_chunk = math.ceil(nlines/az_chunk_size)
-        # lazy_rslcs = np.empty((n_az_chunk,1,n_image),dtype=object)
-        # lazy_sim_orbs = np.empty((n_az_chunk,1,n_image),dtype=object)
-        # lazy_flatten_rslcs = np.empty_like(lazy_rslcs)
-        # for k, rslc in enumerate(rslcs):
-        #     for i in range(n_az_chunk):
-        #         y0 = i*az_chunk_size
-        #         ny =  nlines-y0 if (i == n_az_chunk-1) else az_chunk_size 
-        #         lazy_rslcs[i,0,k] = read_gamma_image_delayed(rslc,width,dtype='fcomplex',y0=y0,ny=ny)
-        #         lazy_sim_orbs[i,0,k] = read_gamma_image_delayed(sim_orbs[k],width, dtype='float',y0=y0,ny=ny)
-        #         lazy_flatten_rslcs[i,0,k] = delayed(_flatten_rslc,pure=True,nout=1)(lazy_sim_orbs[i,0,k],lazy_rslcs[i,0,k])
-        #         lazy_flatten_rslcs[i,0,k] = (da.from_delayed(lazy_flatten_rslcs[i,0,k],shape=(ny,width),meta=np.array((),dtype=np.complex64))).reshape(ny,width,1)
-        # flatten_rslcs_data = da.block(lazy_flatten_rslcs.tolist())
-
-        lazy_rslcs = np.empty((1,1,n_image),dtype=object)
-        lazy_sim_orbs = np.empty((1,1,n_image),dtype=object)
-        lazy_flatten_rslcs = np.empty_like(lazy_rslcs)
-        for k, rslc in enumerate(rslcs):
-            lazy_rslcs[0,0,k] = read_gamma_image_delayed(rslc,width,dtype='fcomplex')
-            lazy_sim_orbs[0,0,k] = read_gamma_image_delayed(sim_orbs[k],width, dtype='float')
-            lazy_flatten_rslcs[0,0,k] = delayed(_flatten_rslc,pure=True,nout=1)(lazy_sim_orbs[0,0,k],lazy_rslcs[0,0,k])
-            lazy_flatten_rslcs[0,0,k] = (da.from_delayed(lazy_flatten_rslcs[0,0,k],shape=(nlines,width),meta=np.array((),dtype=np.complex64))).reshape(nlines,width,1)
-        flatten_rslcs_data = da.block(lazy_flatten_rslcs.tolist())
-
-        logger.darr_info('flattened rslc', flatten_rslcs_data)
-        _flatten_rslcs_data = dask_to_zarr(flatten_rslcs_data,rslc_path,chunks=(*chunks,1))
-        #_flatten_rslcs_data = flatten_rslcs_data.to_zarr(rslc_zarr,overwrite=True,compute=False)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_flatten_rslcs_data)
-        progress(futures,notebook=False)
-        da.compute(futures)
-        logger.info('computing finished.')
-        time.sleep(0.1) 
-        #when progresses=False with progress, there is always asyncio.exceptions.CancelledError
-        # use sleep to temporally stop it
-    logger.info('dask cluster closed.')
+    logger.info('reading the gamma binary files, flattening the rslcs and saving them to zarr.')
+    rslc_zarr = zarr.open(rslc_path, mode='w', shape=(nlines, width, n_image), dtype=np.complex64, chunks=(*chunks, 1))
+    logger.zarr_info(rslc_path, rslc_zarr)
+    # one task per image: the rslc and its simulated orbital phase in, the flattened rslc out
+    tasks = [(rslc, str(sim_orb), width, rslc_path, k) for k, (rslc, sim_orb) in enumerate(zip(rslcs, sim_orbs))]
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+        ex.map(_flatten_rslc_task, tasks, desc='images')
+    logger.info('done.')
 
 @mc_logger
 def load_gamma_lat_lon_hgt(diff_par:str,

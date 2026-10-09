@@ -16,7 +16,7 @@ Version 1. TOML files run by `moraine run FILE` and inspected by `moraine status
 | `name` | yes | unique step name |
 | `run` | yes | a command of `moraine list` |
 | `quicklook` | no | per step override of `[pipeline] quicklook` |
-| `kw` | no | table of extra keyword arguments passed to the function (`**kwargs`), e.g. dask cluster options |
+| `kw` | no | table of extra keyword arguments passed to the function (`**kwargs`), e.g. the input arrays of `math` |
 | any other key | - | an argument of the command; unknown names are errors |
 
 No other top level tables and no other `[pipeline]` keys are allowed.

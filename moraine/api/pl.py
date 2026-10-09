@@ -98,7 +98,7 @@ if is_cuda_available():
 # The CPU kernels call LAPACK inside numba parallel loops. A multithreaded BLAS (MKL, OpenBLAS) does not see
 # that it is called from many threads and starts its own threads in each call: with 128 cores 128 x 128
 # threads, about 2e4 times slower. Its threads are limited to 1 while a kernel runs; the limit is global, so
-# it is kept until the last of concurrent callers (e.g. dask threads) has finished.
+# it is kept until the last of concurrent callers (e.g. the threads of the executor) has finished.
 _blas_lock = threading.Lock()
 _blas_users = 0
 _blas_limit = None
