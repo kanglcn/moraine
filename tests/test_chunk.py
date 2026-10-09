@@ -51,13 +51,28 @@ def test_chunkwise_knn_mapping_bounds():
     x, y = rng.random(5000), rng.random(5000)
     order = np.lexsort((x, y))
     x, y = x[order], y[order]
-    default = chunkwise_knn_mapping(x, y, 1000, k=32, n_jobs=2)
-    given = chunkwise_knn_mapping(x, y, 1000, k=32, n_jobs=2, bounds=np.arange(0, 6000, 1000))
+    default = chunkwise_knn_mapping(x, y, 1000, k=32, workers=2)
+    given = chunkwise_knn_mapping(x, y, 1000, k=32, workers=2, bounds=np.arange(0, 6000, 1000))
     for a, b in zip(default[0] + default[2], given[0] + given[2]):
         np.testing.assert_array_equal(a, b)
     assert default[1] == given[1]
     bounds = np.array([0, 1000, 1500, 2500, 5000])
-    in_indices, out_slices, map_indices = chunkwise_knn_mapping(x, y, 1000, k=32, n_jobs=2, bounds=bounds)
+    in_indices, out_slices, map_indices = chunkwise_knn_mapping(x, y, 1000, k=32, workers=2, bounds=bounds)
     assert [(s.start, s.stop) for s in out_slices] == list(zip(bounds[:-1], bounds[1:]))
     for in_idx, out_s, map_idx in zip(in_indices, out_slices, map_indices):
+        np.testing.assert_array_equal(in_idx[map_idx], np.arange(out_s.start, out_s.stop))
+
+
+def test_chunkwise_knn_mapping_neighbours():
+    # the input points of a chunk are exactly its points and their k nearest neighbours
+    rng = np.random.default_rng(1)
+    x, y = rng.random(600), rng.random(600)
+    k = 8
+    d2 = (x[:, None] - x[None, :])**2 + (y[:, None] - y[None, :])**2
+    knn = np.argsort(d2, axis=1)[:, :k]
+    in_indices, out_slices, map_indices = chunkwise_knn_mapping(x, y, 250, k=k, workers=2)
+    assert [(s.start, s.stop) for s in out_slices] == [(0, 250), (250, 500), (500, 600)]
+    for in_idx, out_s, map_idx in zip(in_indices, out_slices, map_indices):
+        expected = np.union1d(np.arange(out_s.start, out_s.stop), knn[out_s].ravel())
+        np.testing.assert_array_equal(in_idx, expected)
         np.testing.assert_array_equal(in_idx[map_idx], np.arange(out_s.start, out_s.stop))

@@ -357,7 +357,8 @@ def n2ft(
     points of the chunk and of their halos for the images of the pairs (8 bytes per point and image), the
     filtered interferograms of the chunk (8 bytes per point and image pair) and about 400 bytes per point of
     the chunk more; with `cuda` the model holds up to 1.6 GB of GPU memory. Before, the main process finds
-    the halos of all processing chunks with about 70 bytes per point.
+    the halos of all processing chunks with about 70 bytes per point and 32 threads of 16 x `k` x `chunks` bytes
+    (41 MB each by default).
 
     Parameters
     ----------
@@ -378,7 +379,7 @@ def n2ft(
     out_chunks : int, optional
         point chunk size of the output, same as rslc by default; it sets the memory of a worker
     k : int, default: 128
-        number of nearest neighbours of the chunk border points added as halo to each chunk
+        number of nearest neighbours of every point of a processing chunk that are filtered with it (halo)
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False

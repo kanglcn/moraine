@@ -35,7 +35,6 @@ dependencies = [
     "anywidget",  # interactive maps in VS Code and Jupyter notebooks (moraine.cli.view)
     "pyproj>=3.0",
     "dask[complete]",
-    "joblib",
     "requests",
     "fpsample",
 ]

@@ -1,16 +1,13 @@
 """internal utilities for chunkwise data processing"""
 
 
-__all__ = ['fill_slice', 'all_chunk_slices', 'all_chunk_slices_with_overlap', 'chunkwise_slicing_mapping', 'normalize_xy_stack',
-           'get_boundary_idx', 'normalize_and_get_boundary', 'process_chunk', 'chunkwise_knn_mapping']
+__all__ = ['fill_slice', 'all_chunk_slices', 'all_chunk_slices_with_overlap', 'chunkwise_slicing_mapping',
+           'chunkwise_knn_mapping']
 
 import numpy as np
 import itertools
-from .rtree import HilbertRtree
+from concurrent.futures import ThreadPoolExecutor
 from scipy.spatial import KDTree
-from joblib import Parallel, delayed
-from numba import njit
-from .utils_ import mjit
 
 def fill_slice(
     shape,
@@ -126,133 +123,35 @@ def chunkwise_slicing_mapping(
     map_slices = list(itertools.product(*map_slices))
     return in_slices, out_slices, map_slices
 
-@mjit(nopython=True, fastmath=True, nogil=True)
-def normalize_xy_stack(x_chunk, y_chunk):
+def chunkwise_knn_mapping(x, y, chunks, k=128, bounds=None, workers=32):
     """
-    Normalize x, y to [0, 1] range and stack into shape (N, 2).
-    Returns normalized positions and (x_min, x_max, y_min, y_max)
-    """
-    x_min = x_chunk.min()
-    x_max = x_chunk.max()
-    y_min = y_chunk.min()
-    y_max = y_chunk.max()
-
-    # Avoid division by zero
-    x_range = x_max - x_min
-    y_range = y_max - y_min
-    if x_range == 0.0:
-        x_range = 1.0
-    if y_range == 0.0:
-        y_range = 1.0
-
-    n = x_chunk.size
-    pos_norm = np.empty((n, 2), dtype=x_chunk.dtype)
-    for i in range(n):
-        pos_norm[i, 0] = (x_chunk[i] - x_min) / x_range
-        pos_norm[i, 1] = (y_chunk[i] - y_min) / y_range
-
-    return pos_norm, x_min, x_max, y_min, y_max
-
-@mjit(nopython=True, fastmath=True, nogil=True)
-def get_boundary_idx(x_norm, y_norm, k=128, bound_ratio_init=0.05, bound_ratio_step=0.05):
-    """
-    Select boundary point indices from normalized coordinates.
-
-    Args:
-        x_norm, y_norm: normalized 1D arrays (0–1 range)
-        k: least number of boundary points
-        bound_ratio_init: initial boundary width ratio
-        bound_ratio_step: increment step if not enough points
-
-    Returns:
-        bound_idx: 1D array of indices of boundary points
-    """
-    n_chunk = x_norm.size
-    if n_chunk < 2 * k:
-        return np.arange(n_chunk)
-
-    br = bound_ratio_init
-    bound_idx = np.empty(n_chunk, dtype=np.int64)
-    while True:
-        count = 0
-        for i in range(n_chunk):
-            x = x_norm[i]
-            y = y_norm[i]
-            if (x < br) or (x > 1.0 - br) or (y < br) or (y > 1.0 - br):
-                bound_idx[count] = i
-                count += 1
-
-        if count >= k or br >= 0.5:
-            return bound_idx[:count]
-
-        br += bound_ratio_step
-
-@mjit(nopython=True, fastmath=True, nogil=True)
-def normalize_and_get_boundary(x_chunk, y_chunk, k=128, bound_ratio_init=0.05, bound_ratio_step=0.05):
-    """
-    Combined normalization and boundary index selection.
-    """
-    pos_norm, x_min, x_max, y_min, y_max = normalize_xy_stack(x_chunk, y_chunk)
-    bound_idx = get_boundary_idx(pos_norm[:, 0], pos_norm[:, 1], k, bound_ratio_init, bound_ratio_step)
-    return pos_norm, x_min, x_max, y_min, y_max, bound_idx
-
-def process_chunk(i, bound, x, y, k, chunks, rtree_bounds_tree, bound_ratio_init, bound_ratio_step):
-    start = int(bound[i])
-    end = int(bound[i + 1])
-    x_chunk = x[start:end]
-    y_chunk = y[start:end]
-    n_chunk = end - start
-
-    # === Step 1. Normalize + boundary detection (Numba) ===
-    pos_norm, x_min, x_max, y_min, y_max, bound_idx = normalize_and_get_boundary(
-        x_chunk, y_chunk, k, bound_ratio_init, bound_ratio_step
-    )
-    x_norm, y_norm = pos_norm[:, 0], pos_norm[:, 1]
-
-    # === Step 2. Estimate distance of k-th NN for boundary points ===
-    tree = KDTree(pos_norm)
-    dd = tree.query(pos_norm[bound_idx], k=[k], workers=1)[0]
-    max_dd = np.max(dd)
-
-    # === Step 3. Compute halo region and query ===
-    y_halo_size = max_dd * (y_max - y_min)
-    x_halo_size = max_dd * (x_max - x_min)
-    halo_bounds = [x_min - x_halo_size, y_min - y_halo_size,
-                   x_max + x_halo_size, y_max + y_halo_size]
-    rtree = HilbertRtree(rtree_bounds_tree, x.shape[0], chunks)
-    halo_idx = rtree.bbox_query(halo_bounds, x, y)
-
-    # === Step 4. Build KDTree for halo points and find input indices ===
-    x_halo, y_halo = x[halo_idx], y[halo_idx]
-    tree = KDTree(np.stack((x_halo, y_halo), axis=-1))
-    in_idx = tree.query(np.stack((x_chunk, y_chunk), axis=-1), k=k, workers=1)[1]
-    in_idx = np.unique(in_idx)
-    in_idx = halo_idx[in_idx]  # map to global indices
-
-    # === Step 5. Compute mapping indices (local to chunk)
-    map_mask = (in_idx >= start) & (in_idx < end)
-    map_idx = np.flatnonzero(map_mask)
-
-    return in_idx, slice(start, end), map_idx
-
-def chunkwise_knn_mapping(x, y, chunks, k=128, n_jobs=-1, bound_ratio_init=0.1, bound_ratio_step=0.1, bounds=None):
-    """
-    Compute KNN mapping chunkwise with halo expansion.
+    Input and output indices for processing a point cloud in chunks, every point with its k nearest neighbours.
 
     Parameters
     ----------
+    x : np.ndarray
+        x coordinate of the points, shape (n,)
+    y : np.ndarray
+        y coordinate of the points, shape (n,)
+    chunks : int
+        number of points per chunk
+    k : int, default: 128
+        number of nearest neighbours (the point itself counts) of every point of a chunk that are processed
+        with the chunk
     bounds : np.ndarray, optional
         start of every chunk and the number of points, increasing, shape (n_chunks+1,); chunks of `chunks`
         points by default
+    workers : int, default: 32
+        threads of the neighbour search, each needs about 16 x k x chunks bytes of memory
 
     Returns
     -------
     in_indices : list of np.ndarray
-        Indices of halo points per chunk.
+        sorted indices of the points of every chunk and of their neighbours (halo)
     out_slices : list of slice
-        Chunk output slices.
+        the points of every chunk
     map_indices : list of np.ndarray
-        Mapping indices inside halo arrays.
+        positions of the points of every chunk in its `in_indices`
     """
     n = y.shape[0]
     if bounds is None:
@@ -261,17 +160,18 @@ def chunkwise_knn_mapping(x, y, chunks, k=128, n_jobs=-1, bound_ratio_init=0.1, 
             bound[-1] = n
     else:
         bound = np.asarray(bounds)
+    pos = np.stack((x, y), axis=-1)
+    # the sliding midpoint tree builds 3 times faster than the balanced one and is queried as fast
+    tree = KDTree(pos, leafsize=32, balanced_tree=False, compact_nodes=False)
+    k = min(k, n)
 
-    # Build spatial index
-    rtree = HilbertRtree.build(x, y, page_size=chunks)
-    rtree_bounds_tree = rtree._bounds_tree
+    def one_chunk(start, end):
+        neighbours = tree.query(pos[start:end], k=k, workers=1)[1]
+        # the chunk itself is added: a point is not among its own neighbours when more than k points share its position
+        in_idx = np.unique(np.concatenate((np.arange(start, end), neighbours.ravel())))
+        return in_idx, slice(start, end), np.flatnonzero((in_idx >= start) & (in_idx < end))
 
-    results = Parallel(n_jobs=n_jobs,backend='loky')(
-        delayed(process_chunk)(
-            i, bound, x, y, k, chunks, rtree_bounds_tree, bound_ratio_init, bound_ratio_step
-        )
-        for i in range(bound.shape[0] - 1)
-    )
-
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        results = list(pool.map(one_chunk, bound[:-1].tolist(), bound[1:].tolist()))
     in_indices, out_slices, map_indices = zip(*results)
     return list(in_indices), list(out_slices), list(map_indices)

@@ -659,7 +659,7 @@ def n2ft(
     chunks : int, optional
         chunksize, intf.shape[0] by default
     k : int, default: 128
-        halo size for chunkwise processing
+        number of nearest neighbours of every point of a chunk that are filtered with it (halo)
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
