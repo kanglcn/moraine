@@ -466,7 +466,8 @@ def _weights(dd):
             out[i, j] /= denom
     return out
 
-def _sample_and_knn(pos, k=16, workers=-1):  # (N, 2)
+def _sample_and_knn(pos, k=16, workers=8):  # (N, 2)
+    # 8 query threads: for the 20 000 - 30 000 points of a chunk, one thread per core (128) costs more than it saves
     # fixed start_idx makes the farthest point sampling, hence the n2ft result, reproducible
     N0 = pos.shape[0]
     N1 = N0 // 4
