@@ -23,7 +23,6 @@ def temp_coh(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """temporal coherence.
 
@@ -50,8 +49,6 @@ def temp_coh(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 1
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     intf_zarr = zarr.open(intf, mode='r'); logger.zarr_info(intf, intf_zarr)
@@ -70,7 +67,6 @@ def temp_coh(
     tasks = [([Chunk(intf, (*sl, slice(0, n_pairs))), Chunk(rslc, (*sl, slice(0, nimage)))], [Chunk(t_coh, sl)])
              for sl in all_chunk_slices(shape, chunks)]
     logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks}')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.temp_coh, tasks, desc='temporal coherence', image_pairs=image_pairs)
     logger.info('done.')

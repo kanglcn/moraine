@@ -156,22 +156,11 @@ def _deref(a, cache):
     return a
 
 
-def _gpu_setup(rmm_pool_size):
-    """The memory pool of the GPU of a worker process: an rmm pool of `rmm_pool_size` of the GPU memory, from which
-    cupy allocates, or cupy's own pool without rmm; returns a phrase on the pool for the log."""
+def _gpu_setup():
+    """The GPU of a worker process: cupy on the one GPU of its ``CUDA_VISIBLE_DEVICES``, allocating from cupy's own
+    memory pool (no pool is reserved: the memory grows with the tasks and freed blocks are reused)."""
     import cupy
-    if not rmm_pool_size:
-        return "cupy's memory pool"
-    try:
-        import rmm
-        from rmm.allocators.cupy import rmm_cupy_allocator
-    except ImportError:
-        return "cupy's memory pool (rmm not installed)"
-    free, total = cupy.cuda.runtime.memGetInfo()
-    size = int(rmm_pool_size * total) // 256 * 256
-    rmm.reinitialize(pool_allocator=True, initial_pool_size=size)
-    cupy.cuda.set_allocator(rmm_cupy_allocator)
-    return f'rmm pool {rmm_pool_size:.0%} of the GPU memory'
+    cupy.cuda.Device(0).use()
 
 
 def _send_error(results, wid, idx, e):
@@ -183,17 +172,16 @@ def _send_error(results, wid, idx, e):
     results.put(('error', wid, idx, err, traceback.format_exc()))
 
 
-def _worker_main(wid, tasks, results, n_threads, env, rmm_pool_size):
+def _worker_main(wid, tasks, results, n_threads, env):
     """A worker process: runs the tasks of its queue, `n_threads` at a time, and reports to the results queue."""
     os.environ.update(env)
-    pool = None
     try:
         if env.get('CUDA_VISIBLE_DEVICES'):
-            pool = _gpu_setup(rmm_pool_size)
+            _gpu_setup()
     except BaseException as e:
         _send_error(results, wid, None, e)
         return
-    results.put(('ready', wid, None, pool, None))
+    results.put(('ready', wid, None, None, None))
     cache = {}
 
     def run(idx, fn, args):
@@ -220,7 +208,7 @@ def _worker_main(wid, tasks, results, n_threads, env, rmm_pool_size):
 class _Processes:
     """Worker processes of moraine's own backend, started with `spawn`; with `gpus`, one per GPU."""
 
-    def __init__(self, n_workers, threads_per_worker, gpus, rmm_pool_size):
+    def __init__(self, n_workers, threads_per_worker, gpus):
         ctx = multiprocessing.get_context('spawn')
         self.results = ctx.Queue()
         self.threads = max(1, int(threads_per_worker or 1))
@@ -229,16 +217,14 @@ class _Processes:
         for i in range(n_workers):
             q = ctx.Queue()
             env = {'CUDA_VISIBLE_DEVICES': gpus[i]} if gpus else {}
-            p = ctx.Process(target=_worker_main, args=(i, q, self.results, self.threads, env, rmm_pool_size), daemon=True)
+            p = ctx.Process(target=_worker_main, args=(i, q, self.results, self.threads, env), daemon=True)
             p.start()
             self.workers.append((p, q))
-        self.pool = None                  # the memory pool of the GPU workers, as they report it
         try:
             for _ in self.workers:
-                kind, wid, _, payload, tb = self._recv(starting=True)
+                kind, wid, _, err, tb = self._recv(starting=True)
                 if kind == 'error':
-                    raise RuntimeError(f'worker {wid} failed to start:\n{tb}') from payload
-                self.pool = payload
+                    raise RuntimeError(f'worker {wid} failed to start:\n{tb}') from err
         except BaseException:
             self.close()
             raise
@@ -359,18 +345,13 @@ class Executor:
         tasks a worker runs at the same time, 1 by default
     processes : bool, optional
         CPU workers as processes instead of threads (for tasks that hold the GIL), False by default
-    rmm_pool_size : float, optional
-        with `cuda`: fraction of the memory of each GPU taken by an rmm memory pool, from which cupy allocates (rmm
-        must be installed; cupy's own pool otherwise); 0.9 by default, ``None`` for no pool
     """
 
-    def __init__(self, cuda:bool=False, n_workers:int=None, threads_per_worker:int=None, processes:bool=None,
-                 rmm_pool_size:float=0.9):
+    def __init__(self, cuda:bool=False, n_workers:int=None, threads_per_worker:int=None, processes:bool=None):
         self.cuda = bool(cuda)
         self.n_workers = n_workers
         self.threads_per_worker = threads_per_worker
         self.processes = processes
-        self.rmm_pool_size = rmm_pool_size
         self._workers = None
         self.logger = logging.getLogger(__name__)
 
@@ -384,9 +365,9 @@ class Executor:
             n = self.n_workers or len(gpus)
             if n > len(gpus):
                 raise ValueError(f'n_workers {n} GPU workers for {len(gpus)} GPUs in CUDA_VISIBLE_DEVICES')
-            self._workers = _Processes(n, self.threads_per_worker, gpus[:n], self.rmm_pool_size)
+            self._workers = _Processes(n, self.threads_per_worker, gpus[:n])
         elif self.processes:
-            self._workers = _Processes(self.n_workers or 1, self.threads_per_worker, None, None)
+            self._workers = _Processes(self.n_workers or 1, self.threads_per_worker, None)
         else:
             self._workers = _Threads((self.n_workers or 1) * (self.threads_per_worker or 1))
         self.logger.info(self.describe())
@@ -405,9 +386,8 @@ class Executor:
         if isinstance(w, _Threads):
             return f'workers: {w.n_threads} thread{"s" if w.n_threads != 1 else ""} of this process'
         if w.gpus:
-            pool = f', {w.pool}' if w.pool else ''
             return f'workers: {w.n_workers} GPU process{"es" if w.n_workers != 1 else ""} ({", ".join(w.gpus)}) x ' \
-                   f'{w.threads} task{"s" if w.threads != 1 else ""} at a time{pool}'
+                   f'{w.threads} task{"s" if w.threads != 1 else ""} at a time'
         return f'workers: {w.n_workers} process{"es" if w.n_workers != 1 else ""} x {w.threads} task{"s" if w.threads != 1 else ""} at a time'
 
     # ---- work

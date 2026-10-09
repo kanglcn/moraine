@@ -30,7 +30,6 @@ def shp_test(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """SHP identification through hypothetic test.
 
@@ -57,8 +56,6 @@ def shp_test(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 1
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     if not method: method = 'ks'
@@ -84,8 +81,7 @@ def shp_test(
               [Chunk(pvalue, (*out_sl, slice(0, az_win), slice(0, r_win)))])
              for in_sl, out_sl, map_sl in zip(in_slices, out_slices, map_slices)]
     logger.info(f'KS test of {len(tasks)} chunks of {chunks} with a halo of ({az_half_win}, {r_half_win})')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(_ks_test_chunk, tasks, desc='KS test')
     logger.info('done.')
 

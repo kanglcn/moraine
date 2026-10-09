@@ -25,22 +25,6 @@ from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infe
 from .logging import mc_logger
 from .executor import Executor
 
-def _torch_use_rmm():
-    '''let torch allocate gpu memory from the rmm pool, run it in every GPU worker before torch uses the gpu; nothing
-    without rmm (torch allocates itself)'''
-    try:
-        from rmm.allocators.torch import rmm_torch_allocator
-    except ImportError:
-        return
-    import torch
-    torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
-
-def _torch_no_kernel_autotune():
-    '''compile the model without tuning its kernels: the tuning needs the memory statistics of the torch allocator,
-    which the rmm allocator does not provide'''
-    import torch._inductor.config as inductor_config
-    inductor_config.triton.autotune_pointwise = False
-
 @ngpjit
 def _cli_pre_infer_n2f_numba(
     ref,
@@ -177,7 +161,6 @@ def n2f(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """Noise2Fringe (n2f) filtering of raster interferograms.
 
@@ -213,8 +196,6 @@ def n2f(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         output chunks a worker filters at the same time. Default: 1
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     rslc_path = rslc
     intf_path = intf
@@ -237,10 +218,7 @@ def n2f(
     logger.zarr_info(intf_path, intf_zarr)
     tasks = [(rslc_path, intf_path, out_slices, tiles, image_pairs, model, cuda) for out_slices, tiles in tiles_by_out.items()]
     logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
-        if cuda and rmm_pool_size:      # without a pool torch's own caching allocator is much faster than plain rmm
-            ex.run_on_workers(_torch_use_rmm)
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map(_cli_n2f_out_chunk, tasks, desc='output chunks')
     logger.info('done.')
 
@@ -334,7 +312,6 @@ def n2ft(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=None,
 ):
     """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
 
@@ -379,10 +356,6 @@ def n2ft(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 1
-    rmm_pool_size : optional
-        rmm memory pool of every worker as a fraction of the GPU memory, shared with torch; none by default: the model
-        allocates with torch, which it needs to tune its compiled kernels (with a pool, `compile` runs without the
-        tuning and about 2 times slower)
     """
     logger = logging.getLogger(__name__)
     logger.info('load coordinates')
@@ -438,12 +411,6 @@ def n2ft(
     logger.zarr_info(intf_path, intf_zarr)
     tasks = [(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model, cuda, compile) for rows, idx, blocks in tasks_args]
     logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
-        if cuda and rmm_pool_size:
-            ex.run_on_workers(_torch_use_rmm)
-            if compile:
-                logger.info('rmm pool: the compiled model runs without kernel tuning')
-                ex.run_on_workers(_torch_no_kernel_autotune)
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map(_cli_n2ft_out_chunk, tasks, desc='output chunks')
     logger.info('done.')

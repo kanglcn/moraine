@@ -43,7 +43,6 @@ def emi(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """Phase linking with EMI estimator.
 
@@ -71,8 +70,6 @@ def emi(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 2
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     coh_zarr = zarr.open(coh, mode='r')
@@ -88,8 +85,7 @@ def emi(
     tasks = [([Chunk(coh, (sl, slice(0, n_pairs)))], [Chunk(ph, (sl, slice(0, n_image)))])
              for (sl,) in all_chunk_slices((n_points,), (chunks,))]
     logger.info(f'phase linking with EMI of {len(tasks)} chunks of {chunks} points')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.emi, tasks, desc='phase linking', ref=ref, regularize=regularize)
     logger.info('done.')
 
@@ -109,7 +105,6 @@ def ds_temp_coh(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """DS temporal coherence, optionally also weighted by the coherence of the image pairs.
 
@@ -155,8 +150,6 @@ def ds_temp_coh(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 2
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
@@ -189,8 +182,7 @@ def ds_temp_coh(
     if weighted:
         kwargs['alpha'] = alpha
     logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks} points' + (', weighted' if weighted else ''))
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         if weighted:    # the number of looks of the chunk is read with the chunk
             ex.map(chunk_task, [(mr.ds_temp_coh, inputs, outs, cuda, {**kwargs, 'n_looks': Chunk(n_looks, (inputs[0].slices[0],))})
                                 for inputs, outs in tasks], desc='temporal coherence')
@@ -216,7 +208,6 @@ def emperical_co_emi_temp_coh_pc(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """estimating emperical coherence matrix, phase linking and estimating temporal coherence on point cloud data.
 
@@ -269,8 +260,6 @@ def emperical_co_emi_temp_coh_pc(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 2
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     is_shp_dir = Path(is_shp_dir)
@@ -327,8 +316,7 @@ def emperical_co_emi_temp_coh_pc(
         inputs = [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]), Chunk(str(is_shp_dir/f'{j}.zarr'))]
         tasks.append((inputs, outputs))
     logger.info(f'coherence, phase linking and temporal coherence of {len(tasks)} raster chunks with points')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.emperical_co_emi_temp_coh_pc, tasks, desc='phase linking', batch_size=batch_size,
                       regularize=regularize, weighted=weighted, alpha=alpha)
     logger.info('done.')

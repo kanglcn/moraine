@@ -94,8 +94,7 @@ Because of GPU driver and CUDA Version Compatibility, there is no simple
 solution for CUDA related packages installation. Users need to
 successfully install
 [cupy](https://docs.cupy.dev/en/stable/install.html#installation) and
-numba-cuda first; [rmm](https://docs.rapids.ai/api/rmm/stable/) is
-optional (a GPU memory pool).
+numba-cuda first.
 
 Here is some tips for installing them. Generally, the cuda driver is
 alrealy installed and maintained by the system administrator. Users only
@@ -115,12 +114,11 @@ It will prints something like:
 
 The `CUDA Version` is the maxminum cudatoolkit version that supported by
 the current CUDA driver. Here we use version 11.8 as an example. Then
-you can install the needed cudatoolkit, cupy, numba-cuda (and the optional rmm) by:
+you can install the needed cudatoolkit, cupy and numba-cuda by:
 
 ``` bash
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy numba-cuda cuda-version=11.8
-conda install -c rapidsai -c conda-forge -c nvidia rmm cuda-version=11.8   # optional
 ```
 
 The numba-cuda package is NVIDIA's package of the numba CUDA target that moraine's GPU kernels use; without it the
@@ -282,7 +280,7 @@ How to write and submit a PR
   add tests in `tests/`; run `pytest` before submitting.
 
 - The CI runs on machines without GPU, so GPU related packages (`cupy`,
-  `rmm`) must only be imported behind
+  `numba.cuda`) must only be imported behind
   `moraine.api.utils_.is_cuda_available()`, and GPU tests are marked with
   `@pytest.mark.gpu`.
 

@@ -29,7 +29,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 - The API layer does not import `moraine.cli` or `moraine.command`.
 - The CLI layer does not import `moraine.command`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
-- GPU packages (`cupy`, `rmm`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
+- GPU packages (`cupy`, `numba.cuda`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
   `torch` only inside the functions that run a model (decision 0002).
 
 ## API layer (moraine/api/)

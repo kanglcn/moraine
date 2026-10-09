@@ -63,8 +63,7 @@ A command of `moraine/cli/` lists its tasks and hands them to `moraine.cli.execu
 
 ```python
 tasks = [([Chunk(rslc, (*sl, slice(0, nimages)))], [Chunk(adi, sl)]) for sl in all_chunk_slices((nlines, width), chunks)]
-with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-              rmm_pool_size=rmm_pool_size) as ex:
+with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
     ex.map_chunks(mr.amp_disp, tasks, desc='amplitude dispersion')
 ```
 
@@ -72,7 +71,7 @@ A task is a plain function with picklable arguments: `chunk_task` reads the `Chu
 `cuda`), calls the API function and writes the results to the `Chunk` outputs, which must cover whole chunks of
 the output array (create the output zarr before, with the processing chunks as a multiple of its chunks). Other
 tasks go through `ex.map(fn, [args, ...])`; an object every task needs (an index array) is shared with `ex.put`;
-per worker setup (the GPU allocator of torch) with `ex.run_on_workers`. Do not start threads or processes of your
+per worker setup (something every worker loads once) with `ex.run_on_workers`. Do not start threads or processes of your
 own in a command (decision 0033).
 
 ### Large data and memory

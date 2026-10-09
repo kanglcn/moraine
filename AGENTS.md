@@ -14,7 +14,7 @@ request before running anything.
 - Python >= 3.11. Install with `pip install -e '.[dev,dl]'` (`dl` = PyTorch, needed only by the deep
   learning filters `n2f`, `n2ft`). Download the trained models once:
   `python -c "import moraine; moraine.download_dl_model()"`.
-- GPU processing (`--cuda`, `cuda = true`) needs cupy and numba-cuda (rmm optional), installed with conda for the
+- GPU processing (`--cuda`, `cuda = true`) needs cupy and numba-cuda, installed with conda for the
   local CUDA version (see README). moraine treats a GPU as available only when `CUDA_VISIBLE_DEVICES`
   is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all GPUs listed
   there (one worker process per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
@@ -119,7 +119,7 @@ combining results of different commands.
 - Long jobs: `moraine run` blocks until done. On a SLURM cluster submit it, e.g.
   `sbatch --gpus=1 --wrap "moraine run FILE --workdir WORK --json > WORK/run.json"`, and poll with
   `moraine status FILE --workdir WORK`.
-- Only one GPU pipeline at a time: each GPU command reserves most of the GPU memory (rmm pool).
+- Only one GPU pipeline per GPU at a time: a GPU command takes the memory its tasks need from its GPU, up to all of it.
 
 ## Developing moraine
 

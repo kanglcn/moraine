@@ -29,7 +29,6 @@ def emperical_co_pc(
     processes=None,
     n_workers=None,
     threads_per_worker=None,
-    rmm_pool_size=0.9,
 ):
     """estimate emperical coherence matrix on point cloud data.
 
@@ -63,8 +62,6 @@ def emperical_co_pc(
         number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
         tasks a worker runs at the same time. Default: 2
-    rmm_pool_size : default: 0.9
-        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     is_shp_dir = Path(is_shp_dir)
@@ -114,7 +111,6 @@ def emperical_co_pc(
         inputs = [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]), Chunk(str(is_shp_dir/f'{j}.zarr'))]
         tasks.append((inputs, outputs))
     logger.info(f'coherence of {len(tasks)} raster chunks with points')
-    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size) as ex:
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.emperical_co_pc, tasks, desc='coherence', image_pairs=image_pairs, return_n_looks=return_n_looks)
     logger.info('done.')

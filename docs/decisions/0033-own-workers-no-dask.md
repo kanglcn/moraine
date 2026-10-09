@@ -24,13 +24,13 @@ optimization, spilling, several machines.
 - `Executor` runs the tasks with its own workers: threads of the command's process for CPU tasks (the kernels
   release the GIL), processes started with ``spawn`` for CPU tasks that hold the GIL and for the GPUs, one
   process per GPU of ``CUDA_VISIBLE_DEVICES`` with ``threads_per_worker`` tasks at a time. A worker process
-  binds its GPU by ``CUDA_VISIBLE_DEVICES`` before any CUDA call, takes an rmm memory pool of `rmm_pool_size` of
-  the GPU memory when rmm is installed (cupy's own pool otherwise), loads every object shared with `put` once,
+  binds its GPU by ``CUDA_VISIBLE_DEVICES`` before any CUDA call, allocates through cupy's own memory pool (no
+  rmm, no reserved pool), loads every object shared with `put` once,
   and reports results and errors through a queue; the main process feeds every worker as many tasks as it runs
   at a time, so the memory in flight is bounded by workers x tasks per worker x task memory, as before.
-- dask, distributed and dask-cuda are no longer dependencies; rmm is optional (a memory pool). `psutil`, which
+- dask, distributed, dask-cuda and rmm are no longer dependencies. `psutil`, which
   came with distributed, is a dependency of its own (`get_mem_avail`).
-- The commands lose `**dask_cluster_arg`; `n_workers`, `threads_per_worker`, `processes`, `rmm_pool_size` keep
+- The commands lose `**dask_cluster_arg` and `rmm_pool_size`; `n_workers`, `threads_per_worker`, `processes` keep
   their meaning. `moraine.cli.dask_from_zarr`, `dask_from_zarr_overlap`, `dask_to_zarr` are gone; the zarr
   helpers live in `moraine.cli.zarr_` (`parallel_read_zarr`, `parallel_write_zarr`, `ZarrDir`).
 - The progress of a command is logged (every tenth of the tasks), not drawn.
@@ -42,7 +42,11 @@ optimization, spilling, several machines.
   GPU filters.
 - A GPU command starts its workers in 2 to 3 s instead of 4 to 7 (the import of moraine in each worker
   process; a worker pool shared by the steps of `moraine run` is a possible next step).
-- Pipeline files with `[step.kw]` dask options (`memory_limit`, ...) fail with "unknown worker arguments".
+- Pipeline files with `[step.kw]` dask options (`memory_limit`, ...) fail with "unknown worker arguments"; those
+  that set `rmm_pool_size` fail with an unknown argument.
+- No GPU memory is reserved: cupy's pool grows with the tasks and reuses freed blocks, torch keeps its own caching
+  allocator (so the kernel tuning of `n2ft --compile` always works). Measured on Campi Flegrei (A100), every step
+  takes the same time with and without the rmm pool; the pool only reserved 90 % of the GPU for the command.
 - A task function must be importable (module level) for the process workers; errors that cannot be pickled
   come back as `TaskError` with the traceback of the worker; a worker that dies without reporting (killed, a
   crash, a script without the `if __name__ == '__main__'` guard that `spawn` needs) raises an error with its
@@ -50,7 +54,8 @@ optimization, spilling, several machines.
 
 ## Do not
 
-- Do not add dask, distributed or dask-cuda back, also not as optional dependencies.
+- Do not add dask, distributed or dask-cuda back, also not as optional dependencies; nor rmm or another memory
+  pool plugged into cupy and torch: it measured the same and only reserves memory.
 - Do not start processes in a command outside the executor (except the subprocesses of GAMMA and the per
   process pools that existed before: `transform`, the pyramids).
 - Do not share large arrays with the tasks through their arguments; `put` or zarr.
