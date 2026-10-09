@@ -12,21 +12,40 @@ from pathlib import Path
 import numpy as np
 from numba import prange
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
-import time
+import os
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor
 
 import toml
 from ..api.utils_ import ngpjit
 from ..api.rtree import HilbertRtree
 from .logging import mc_logger
 from ..api.coord_ import Coord
-from . import mk_clean_dir, dask_from_zarr, dask_to_zarr, parallel_write_zarr, parallel_read_zarr
+from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
 
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
+
+def _pyramid_workers(n_workers):
+    return min(8, os.cpu_count() or 1) if n_workers is None else n_workers
+
+def _pyramid_pool(n_workers, initializer, initargs):
+    """process pool rendering the channels of a pyramid: the work per channel is Python code that threads cannot
+    share, and forked processes start without importing anything"""
+    context = multiprocessing.get_context('fork' if 'fork' in multiprocessing.get_all_start_methods() else 'spawn')
+    return ProcessPoolExecutor(max_workers=_pyramid_workers(n_workers), mp_context=context, initializer=initializer,
+                               initargs=initargs)
+
+_PYRAMID_WORKER = {}
+
+def _ras_pyramid_init(ras, out_dir, maxlevel):
+    _PYRAMID_WORKER.update(ras_zarr=zarr.open(ras,mode='r'),
+                           ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
+
+def _ras_pyramid_channel(channel_idx):
+    w = _PYRAMID_WORKER
+    ras = parallel_read_zarr(w['ras_zarr'], (slice(None), slice(None), *[slice(i,i+1) for i in channel_idx]))
+    _ras_downsample_all_and_save(ras, w['ras_zarrs'], channel_idx)
 
 def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
     slices = [slice(None),slice(None)]
@@ -44,10 +63,7 @@ def ras_pyramid(
     ras:str,
     out_dir:str,
     chunks:tuple[int,int]=(256,256),
-    processes=False,
-    n_workers=1,
-    threads_per_worker=2,
-    **dask_cluster_arg,
+    n_workers:int=None,
 ):
     """render raster data to pyramid of difference zoom levels.
 
@@ -59,16 +75,10 @@ def ras_pyramid(
         output directory to store rendered data
     chunks : tuple[int, int], default: (256, 256)
         output raster tile size
-    processes : default: False
-        use process for dask worker over thread
-    n_workers : default: 1
-        number of dask worker
-    threads_per_worker : default: 2
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+    n_workers : int, optional
+        processes rendering the channels at the same time, default: 8 or the number of cores if fewer; a process
+        holds one channel of the raster
     """
-    # I forget why threads_per_worker set to 2, maybe because one for data read and write and another one for process
     logger = logging.getLogger(__name__)
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)
@@ -84,45 +94,23 @@ def ras_pyramid(
 
     logger.info(f'rendered raster pyramid with zoom level ranging from 0 (finest resolution) to {maxlevel} (coarsest resolution).')
 
-    with LocalCluster(processes=processes,
-                      n_workers=n_workers,
-                      threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        ras_data = dask_from_zarr(ras,chunks=(ny,nx,*channel_chunks))
+    downsampled_ras_zarrs = []
+    for level in range(maxlevel+1):
+        shape = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)))
+        downsampled_ras_zarr = zarr.open(
+            out_dir/f'{level}.zarr',mode='w',
+            shape=(*shape,*ras_zarr.shape[2:]),
+            dtype=ras_zarr.dtype,
+            chunks=(*out_chunks,*channel_chunks),)
+        logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
+        downsampled_ras_zarrs.append(downsampled_ras_zarr)
+    downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'raster'}
 
-        downsampled_ras_zarrs = []
-        for level in range(maxlevel+1):
-            shape = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)))
-            #downsampled_ras_store = zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')
-            downsampled_ras_zarr = zarr.open(
-                out_dir/f'{level}.zarr',mode='w',
-                shape=(*shape,*ras_zarr.shape[2:]),
-                dtype=ras_data.dtype,
-                chunks=(*out_chunks,*channel_chunks),)
-            logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
-            downsampled_ras_zarrs.append(downsampled_ras_zarr)
-        downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'raster'}
-
-        ras_data_delayed = ras_data.to_delayed().reshape(ras_zarr.shape[2:])
-        out_delayed = np.empty_like(ras_data_delayed,dtype=object)
-        downsample_save_delayed = delayed(_ras_downsample_all_and_save,pure=True,nout=0)
-
-        with np.nditer(out_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as arr_it:
-            for arr_block in arr_it:
-                idx = arr_it.multi_index
-                out_delayed[idx] = downsample_save_delayed(ras_data_delayed[idx],downsampled_ras_zarrs,idx)
-                out_delayed[idx] = da.from_delayed(out_delayed[idx],shape=(1,),dtype=int)
-        out = da.block(out_delayed.tolist())
-        logger.info('computing graph setted. doing all the computing.')
-        # dask.visualize(out,filename="ras_pyramid.svg", optimize_graph=True, color='order')
-        futures = client.persist(out)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    channel_idxs = list(np.ndindex(ras_zarr.shape[2:]))
+    logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
+    with _pyramid_pool(n_workers, _ras_pyramid_init, (ras, out_dir, maxlevel)) as pool:
+        list(pool.map(_ras_pyramid_channel, channel_idxs))
+    logger.info('rendering finished.')
 
 def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
@@ -211,6 +199,16 @@ def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
                 xi[i,j] = idx_[0,1] + j*2
     return yi, xi
 
+def _pc_pyramid_init(pc, out_dir, maxlevel, coord, gix, yis, xis):
+    _PYRAMID_WORKER.update(pc_zarr=zarr.open(pc,mode='r'), coord=coord, gix=gix, yis=yis, xis=xis,
+                           pc_out=zarr.open(Path(out_dir)/'pc.zarr',mode='r+'),
+                           ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
+
+def _pc_pyramid_channel(channel_idx):
+    w = _PYRAMID_WORKER
+    pc = parallel_read_zarr(w['pc_zarr'], (slice(None), *[slice(i,i+1) for i in channel_idx]))
+    _pc_downsample_all_and_save(pc, w['coord'], w['gix'], w['yis'], w['xis'], w['pc_out'], w['ras_zarrs'], channel_idx)
+
 def _pc_downsample_all_and_save(pc,coord,gix,yis,xis,pc_zarr,ras_zarrs,channel_idx):
     pc_slices = [slice(None),]
     ras_slices = [slice(None),slice(None)]
@@ -239,10 +237,7 @@ def pc_pyramid(
     ras_resolution:float=20,
     ras_chunks:tuple[int,int]=(256,256),
     pc_chunks:int=65536,
-    processes=False,
-    n_workers=1,
-    threads_per_worker=2,
-    **dask_cluster_arg,
+    n_workers:int=None,
 ):
     """render point cloud data to pyramid of difference zoom levels.
 
@@ -265,14 +260,9 @@ def pc_pyramid(
         output raster tile size
     pc_chunks : int, default: 65536
         output pc tile size
-    processes : default: False
-        use process for dask worker over thread
-    n_workers : default: 1
-        number of dask worker
-    threads_per_worker : default: 2
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+    n_workers : int, optional
+        processes rendering the channels at the same time, default: 8 or the number of cores if fewer; a process
+        holds one channel: the data of the points and the finest raster of the channel
     """
     logger = logging.getLogger(__name__)
     logger.info('clean out dir')
@@ -334,48 +324,24 @@ def pc_pyramid(
         last_idx = current_idx
     logger.info('rasterized idx rendering ends')
 
-    with LocalCluster(processes=processes,
-                      n_workers=n_workers,
-                      threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started to render pc data.')
-        logger.dask_cluster_info(cluster)
+    out_pc_zarr = zarr.open(out_dir/f'pc.zarr',mode='w',shape=pc_zarr.shape, dtype=pc_zarr.dtype, chunks=(pc_chunks,*channel_chunks))
+    logger.zarr_info(out_dir/f'pc.zarr', out_pc_zarr)
+    for level in range(maxlevel+1):
+        shape = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)))
+        downsampled_ras_zarr = zarr.open(
+            out_dir/f'{level}.zarr',mode='w',
+            shape=(*shape,*pc_zarr.shape[1:]),
+            dtype=pc_zarr.dtype,
+            chunks=(*ras_chunks,*channel_chunks),)
+        logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
+        if level == 0:
+            downsampled_ras_zarr.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'point cloud'}
 
-        out_pc_zarr = zarr.open(out_dir/f'pc.zarr',mode='w',shape=pc_zarr.shape, dtype=pc_zarr.dtype, chunks=(pc_chunks,*channel_chunks))
-        logger.zarr_info(out_dir/f'pc.zarr', out_pc_zarr)
-
-        downsampled_ras_zarrs = []
-        for level in range(maxlevel+1):
-            shape = (math.ceil(ny/(2**level)), math.ceil(nx/(2**level)))
-            #downsampled_ras_store = zarr.NestedDirectoryStore(out_dir/f'{level}.zarr')
-            downsampled_ras_zarr = zarr.open(
-                out_dir/f'{level}.zarr',mode='w',
-                shape=(*shape,*pc_zarr.shape[1:]),
-                dtype=pc_zarr.dtype,
-                chunks=(*ras_chunks,*channel_chunks),)
-            logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
-            downsampled_ras_zarrs.append(downsampled_ras_zarr)
-        downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'point cloud'}
-
-        pc_darr = dask_from_zarr(pc,chunks=(n_pc,*channel_chunks))
-        pc_delayed = pc_darr.to_delayed().reshape(pc_zarr.shape[1:])
-        out_delayed = np.empty_like(pc_delayed,dtype=object)
-        downsample_save_delayed = delayed(_pc_downsample_all_and_save,pure=True,nout=0)
-
-        with np.nditer(out_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as arr_it:
-            for arr_block in arr_it:
-                channel_idx = arr_it.multi_index
-                out_delayed[channel_idx] = downsample_save_delayed(pc_delayed[channel_idx],coord,gix, yis, xis, out_pc_zarr, downsampled_ras_zarrs,channel_idx)
-                out_delayed[channel_idx] = da.from_delayed(out_delayed[channel_idx],shape=(1,),dtype=int)
-        out = da.block(out_delayed.tolist())
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(out)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    channel_idxs = list(np.ndindex(pc_zarr.shape[1:]))
+    logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
+    with _pyramid_pool(n_workers, _pc_pyramid_init, (pc, out_dir, maxlevel, coord, gix, yis, xis)) as pool:
+        list(pool.map(_pc_pyramid_channel, channel_idxs))
+    logger.info('rendering finished.')
 
 class _LazyRtree:
     '''HilbertRtree of the pyramid points, built when the points are first queried.
