@@ -20,15 +20,19 @@ import moraine as mr
 import moraine.cli as mc
 from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_knn_mapping
-from .dask_ import parallel_read_zarr, parallel_write_zarr
+from .zarr_ import parallel_read_zarr, parallel_write_zarr
 from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
 from .logging import mc_logger
 from .executor import Executor
 
 def _torch_use_rmm():
-    '''let torch allocate gpu memory from the rmm pool, run it in every dask cuda worker before torch uses the gpu'''
+    '''let torch allocate gpu memory from the rmm pool, run it in every GPU worker before torch uses the gpu; nothing
+    without rmm (torch allocates itself)'''
+    try:
+        from rmm.allocators.torch import rmm_torch_allocator
+    except ImportError:
+        return
     import torch
-    from rmm.allocators.torch import rmm_torch_allocator
     torch.cuda.memory.change_current_allocator(rmm_torch_allocator)
 
 def _torch_no_kernel_autotune():
@@ -174,7 +178,6 @@ def n2f(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """Noise2Fringe (n2f) filtering of raster interferograms.
 
@@ -205,16 +208,13 @@ def n2f(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        True
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: True
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, i.e. output chunks filtered at a time. Default: 1
+        output chunks a worker filters at the same time. Default: 1
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     rslc_path = rslc
     intf_path = intf
@@ -238,7 +238,7 @@ def n2f(
     tasks = [(rslc_path, intf_path, out_slices, tiles, image_pairs, model, cuda) for out_slices, tiles in tiles_by_out.items()]
     logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         if cuda:
             ex.run_on_workers(_torch_use_rmm)
         ex.map(_cli_n2f_out_chunk, tasks, desc='output chunks')
@@ -335,7 +335,6 @@ def n2ft(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=None,
-    **dask_cluster_arg,
 ):
     """Noise2Fringe Transformer (n2ft) filtering of point cloud interferograms.
 
@@ -375,18 +374,15 @@ def n2ft(
         but the compilation takes 15-40 s per worker (less when torch has cached it on disk). Default: when
         points times image pairs is at least 1e8
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        True
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: True
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 1
+        tasks a worker runs at the same time. Default: 1
     rmm_pool_size : optional
         rmm memory pool of every worker as a fraction of the GPU memory, shared with torch; none by default: the model
         allocates with torch, which it needs to tune its compiled kernels (with a pool, `compile` runs without the
         tuning and about 2 times slower)
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
     """
     logger = logging.getLogger(__name__)
     logger.info('load coordinates')
@@ -443,7 +439,7 @@ def n2ft(
     tasks = [(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model, cuda, compile) for rows, idx, blocks in tasks_args]
     logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         if cuda and rmm_pool_size:
             ex.run_on_workers(_torch_use_rmm)
             if compile:

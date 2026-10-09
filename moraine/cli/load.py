@@ -110,7 +110,6 @@ def load_gamma_flatten_rslc(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Generate flatten rslc data from gamma command and convert them into zarr format.
     The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
@@ -133,13 +132,11 @@ def load_gamma_flatten_rslc(
     gamma_threads : int, default: min(64, number of CPU cores)
         number of threads of each GAMMA program run for an image (`phase_sim_orb`, set with OMP_NUM_THREADS)
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     rslc_path = rslc
@@ -187,7 +184,7 @@ def load_gamma_flatten_rslc(
     logger.zarr_info(rslc_path, rslc_zarr)
     # one task per image: the rslc and its simulated orbital phase in, the flattened rslc out
     tasks = [(rslc, str(sim_orb), width, rslc_path, k) for k, (rslc, sim_orb) in enumerate(zip(rslcs, sim_orbs))]
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map(_flatten_rslc_task, tasks, desc='images')
     logger.info('done.')
 

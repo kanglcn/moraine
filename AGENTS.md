@@ -14,10 +14,10 @@ request before running anything.
 - Python >= 3.11. Install with `pip install -e '.[dev,dl]'` (`dl` = PyTorch, needed only by the deep
   learning filters `n2f`, `n2ft`). Download the trained models once:
   `python -c "import moraine; moraine.download_dl_model()"`.
-- GPU processing (`--cuda`, `cuda = true`) needs cupy, numba-cuda, dask-cuda and rmm, installed with conda for the
+- GPU processing (`--cuda`, `cuda = true`) needs cupy and numba-cuda (rmm optional), installed with conda for the
   local CUDA version (see README). moraine treats a GPU as available only when `CUDA_VISIBLE_DEVICES`
   is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all GPUs listed
-  there (one dask worker per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
+  there (one worker process per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
 - Loading GAMMA results (`load-gamma-*`) runs GAMMA programs (`phase_sim_orb`, `create_offset`,
   `geocode`, `base_calc`); check with `which base_calc` first.
 - Everything else runs on CPU with numba.
@@ -68,7 +68,7 @@ name = "adi"                  # unique step name
 run = "amp-disp"              # a command of `moraine list`
 rslc = "raw/rslc.zarr"        # the command arguments, relative to the working directory
 adi = "ps/ras_adi.zarr"
-[step.kw]                     # optional extra keyword arguments (e.g. dask cluster options)
+[step.kw]                     # optional extra keyword arguments (e.g. the inputs of `math`)
 memory_limit = "20GB"
 ```
 

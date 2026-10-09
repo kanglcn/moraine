@@ -11,7 +11,7 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import moraine as mr
 from .logging import mc_logger
-from .dask_ import parallel_read_zarr
+from .zarr_ import parallel_read_zarr
 from .executor import Executor, Chunk
 
 
@@ -41,7 +41,6 @@ def gamma_mcf_pt(
     out_chunks:int=None,
     n_workers=1,
     threads_per_worker=2,
-    **dask_cluster_arg,
 ):
     """A wrapper for mcf_pt in GAMMA software.
 
@@ -62,11 +61,9 @@ def gamma_mcf_pt(
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
     n_workers : default: 1
-        number of dask worker, number of interferograms to be unwrapped in the same time
+        number of worker processes: interferograms unwrapped at the same time
     threads_per_worker : default: 2
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        tasks a worker runs at the same time
     """
 
     logger = logging.getLogger(__name__)
@@ -89,7 +86,7 @@ def gamma_mcf_pt(
     logger.zarr_info(unw_ph_path, unw_zarr)
     logger.info('phase unwrapping with mcf_pt.')
     # one task per interferogram, in processes (GAMMA runs in its own process; the coordinates are shared)
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=True, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=True) as ex:
         pc_x_ref, pc_y_ref = ex.put(pc_x_data), ex.put(pc_y_data)
         ex.map(_gamma_mcf_pt_task, [(pc_x_ref, pc_y_ref, ph_path, unw_ph_path, int(ref), int(sec), i, ref_point)
                                     for i, (ref, sec) in enumerate(image_pairs)], desc='interferograms')

@@ -15,7 +15,7 @@ from typing import Callable
 from .logging import mc_logger
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices
-from .dask_ import ZarrDir, _parallel_read_pc_dir
+from .zarr_ import ZarrDir, _parallel_read_pc_dir
 from .executor import Executor, Chunk
 from .utils_ import mk_clean_dir
 
@@ -177,7 +177,6 @@ def ras2pc(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Convert raster data to point cloud data
 
@@ -192,13 +191,11 @@ def ras2pc(
     chunks : int, optional
         point chunk size of the output data, same as `idx` by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     if isinstance(ras,str):
@@ -218,7 +215,7 @@ def ras2pc(
         gix = mr.pc_gix(idx_zarr[:],shape=shape)
     n_pc = gix.shape[0]
     # one task per channel of every raster: the image in, the values at the points out
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         gix_ref = ex.put(gix)
         tasks = []
         for ras_path, pc_path in zip(ras_list,pc_list):
@@ -240,7 +237,6 @@ def pc_concat(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """concatenate (and sort) point cloud dataset.
 
@@ -256,13 +252,11 @@ def pc_concat(
     chunks : int, optional
         pc chunk size in output data, optional, same as first pc in pcs by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     pcs_path = pcs
     pc_path = pc
@@ -305,7 +299,7 @@ def pc_concat(
         zarr_dirs.append(zarr_dir)
     if chunks is None: chunks = zarr_dirs[0].chunksize[0]
     # one task per channel of every output: the channel of all chunk zarrs read, sorted and written
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         key_ref = ex.put(key) if key is not None else None
         tasks = []
         for zarr_dir, one_pc_path in zip(zarr_dirs, pc_path):
@@ -325,7 +319,6 @@ def ras2pc_ras_chunk(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Convert raster data to point cloud data that sorted by ras chunk
 
@@ -342,13 +335,11 @@ def ras2pc_ras_chunk(
     chunks : tuple[int, int], optional
         (azimuth, range) raster chunk size used to split the points, same as the first `ras` by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     if isinstance(ras,str):
@@ -389,7 +380,7 @@ def ras2pc_ras_chunk(
             tasks.append(([Chunk(ras_path, (*sl, *(slice(0, n) for n in extra))), ras_chunk_order_gix[b0:b1]],
                           [Chunk(str(pc_path/f'{j}.zarr'))]))
     logger.info(f'{len(tasks)} raster chunks with points')
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.ras2pc, tasks, desc='chunks')
     logger.info('done.')
 
@@ -403,7 +394,6 @@ def pc2ras(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Convert point cloud data to raster data, filled with nan
 
@@ -420,13 +410,11 @@ def pc2ras(
     chunks : tuple[int, int], default: (1000, 1000)
         output chunk size
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
@@ -446,7 +434,7 @@ def pc2ras(
         assert isinstance(pc,list); assert isinstance(ras,list)
         pc_list = pc; ras_list = ras
     # one task per channel of every point cloud: the values of the points in, the image out
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         gix_ref = ex.put(gix)
         tasks = []
         for ras_path, pc_path in zip(ras_list,pc_list):
@@ -526,7 +514,6 @@ def pc_sort(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Sort point cloud data according to the indices that sort `idx_in`.
 
@@ -547,13 +534,11 @@ def pc_sort(
     key : str, optional
         output, path (in string) for the key of sorting
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     idx_in_path = idx_in
     logger = logging.getLogger(__name__)
@@ -580,7 +565,7 @@ def pc_sort(
     else:
         assert isinstance(pc_in,list); assert isinstance(pc,list)
         pc_in_list = pc_in; pc_list = pc
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
 
@@ -597,7 +582,6 @@ def pc_union(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Get the union of two point cloud datasets. Points in both keep the data of the first point
     cloud.
@@ -621,13 +605,11 @@ def pc_union(
     chunks : int, optional
         point chunk size of the output data, same as `idx1` by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
@@ -655,7 +637,7 @@ def pc_union(
     else:
         assert isinstance(pc1,list); assert isinstance(pc2,list); assert isinstance(pc,list)
         pc1_list = pc1; pc2_list = pc2; pc_list = pc
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         refs = [ex.put(inv_iidx1), ex.put(inv_iidx2), ex.put(iidx2), n_pc]
         _gather_channels(ex, _pc_union, [[a, b] for a, b in zip(pc1_list, pc2_list)], pc_list, refs, n_pc, chunks, 'channels', logger)
     logger.info('done.')
@@ -674,7 +656,6 @@ def pc_intersect(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Get the intersection of two point cloud datasets.
 
@@ -700,13 +681,11 @@ def pc_intersect(
     prefer_1 : bool, default: True
         take the output data from `pc1` (True) or from `pc2` (False)
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
@@ -740,7 +719,7 @@ def pc_intersect(
     else:
         assert isinstance(pc_input,list); assert isinstance(pc,list)
         pc_input_list = pc_input; pc_list = pc
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_input_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
 
@@ -756,7 +735,6 @@ def pc_diff(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
            ):
     """Get the points of the first point cloud dataset that are not in the second one.
 
@@ -777,13 +755,11 @@ def pc_diff(
     chunks : int, optional
         point chunk size of the output data, same as `idx1` by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
@@ -811,7 +787,7 @@ def pc_diff(
     else:
         assert isinstance(pc1,list); assert isinstance(pc,list)
         pc1_list = pc1; pc_list = pc
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc1_list], pc_list, [ex.put(iidx1)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
 
@@ -907,7 +883,6 @@ def pc_select_data(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """generate point cloud data based on its index and one point cloud data.
     The index of generated point cloud data must in the index of the old one.
@@ -927,13 +902,11 @@ def pc_select_data(
     chunks : int, optional
         point chunk size of the output data, same as `idx` by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     idx_in_path = idx_in; idx_path = idx
     logger = logging.getLogger(__name__)
@@ -957,7 +930,7 @@ def pc_select_data(
     else:
         assert isinstance(pc_in,list); assert isinstance(pc,list)
         pc_in_list = pc_in; pc_list = pc
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx_in)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
 
@@ -972,7 +945,6 @@ def data_reduce(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """reduction operation for dataset.
 
@@ -991,13 +963,11 @@ def data_reduce(
     post_map_func : Callable, optional
         post mapping after reduction, no mapping by default
     processes : default: False
-        use process for dask worker or thread
+        use processes for the workers instead of threads
     n_workers : default: 1
-        number of dask worker
+        number of workers
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     data_in_zarr = zarr.open(data_in,mode='r'); logger.zarr_info(data_in, data_in_zarr)
@@ -1005,7 +975,7 @@ def data_reduce(
     slices = all_chunk_slices(data_in_zarr.shape, data_in_zarr.chunks)
     n_blocks = [-(-n // c) for n, c in zip(data_in_zarr.shape, data_in_zarr.chunks)]
     logger.info(f'reduction of {len(slices)} chunks')
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         parts = ex.map(_reduce_chunk, [(Chunk(data_in, sl), map_func, reduce_func, axes) for sl in slices], desc='chunks')
     # the reductions of the chunks in the chunk grid, then the reduction over the chunks
     grid = np.empty(n_blocks, dtype=object)

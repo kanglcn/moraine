@@ -24,7 +24,6 @@ def temp_coh(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """temporal coherence.
 
@@ -46,16 +45,13 @@ def temp_coh(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 1
+        tasks a worker runs at the same time. Default: 1
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     intf_zarr = zarr.open(intf, mode='r'); logger.zarr_info(intf, intf_zarr)
@@ -75,6 +71,6 @@ def temp_coh(
              for sl in all_chunk_slices(shape, chunks)]
     logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks}')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         ex.map_chunks(mr.temp_coh, tasks, desc='temporal coherence', image_pairs=image_pairs)
     logger.info('done.')

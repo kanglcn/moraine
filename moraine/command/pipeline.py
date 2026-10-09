@@ -19,7 +19,7 @@ Example ``pipeline.toml``::
     run = "amp-disp"       # a command from `moraine list`
     rslc = "raw/rslc.zarr" # the other keys are the command arguments
     adi = "ps/adi.zarr"
-    [step.kw]              # optional: extra keyword arguments, e.g. dask cluster options
+    [step.kw]              # optional: extra keyword arguments, e.g. the input arrays of `math`
     memory_limit = "20GB"
 
 State, logs, output metadata and quicklooks of pyramids are written to ``<workdir>/.moraine/<file name>/``,

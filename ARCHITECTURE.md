@@ -9,7 +9,7 @@ dependency rules hold. Design decisions are in `docs/decisions/`, interface prom
 ```
 moraine/command/   `moraine` command line and pipelines      (command layer)
       │ uses
-moraine/cli/       zarr in -> zarr out, chunked with dask     (CLI layer)
+moraine/cli/       zarr in -> zarr out, chunk by chunk          (CLI layer)
       │ uses
 moraine/api/       numpy / cupy arrays in memory              (API layer)
 ```
@@ -19,7 +19,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
   `moraine.*` (decision 0015). Most functions accept numpy (CPU, numba) or cupy (GPU) arrays and return
   the same kind (`moraine.api.utils_.get_array_module`).
 - **CLI** (`moraine/cli/`): the same operations on zarr datasets larger than memory, processed chunk by
-  chunk with dask (CPU `LocalCluster` or `LocalCUDACluster`). Every function decorated with
+  chunk by the workers of `moraine/cli/executor.py` (threads, processes or one process per GPU). Every function decorated with
   `@mc_logger` logs its arguments and is exposed as a command.
 - **Command** (`moraine/command/`): the `moraine` executable. Commands and their help are generated from
   the CLI functions (decision 0005); pipelines run and resume chains of commands (decision 0006).
@@ -29,7 +29,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 - The API layer does not import `moraine.cli` or `moraine.command`.
 - The CLI layer does not import `moraine.command`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
-- GPU packages (`cupy`, `dask_cuda`, `rmm`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
+- GPU packages (`cupy`, `rmm`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
   `torch` only inside the functions that run a model (decision 0002).
 
 ## API layer (moraine/api/)
@@ -70,9 +70,9 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | module | responsibility | commands |
 |---|---|---|
 | `moraine/cli/__init__.py` | re-exports the CLI functions as `moraine.cli.*` | |
-| `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr / dask log helpers | |
-| `moraine/cli/dask_.py` | parallel zarr read / write, zarr <-> dask arrays | |
-| `moraine/cli/executor.py` | `Executor`: the workers of a command (threads, processes or one process per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`); the commands do not see the backend | |
+| `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr log helper | |
+| `moraine/cli/zarr_.py` | parallel zarr read / write, directories of per chunk zarrs | |
+| `moraine/cli/executor.py` | `Executor`: the workers of a command (threads of the process, spawned processes, one per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`) | |
 | `moraine/cli/utils_.py` | small helpers (clean output directories) | |
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |

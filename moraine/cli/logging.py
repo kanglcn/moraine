@@ -12,8 +12,6 @@ from functools import wraps
 import types
 
 import zarr
-from dask import array as da
-import dask
 
 class McLogger(logging.getLoggerClass()):
     def zarr_info(self,
@@ -28,38 +26,6 @@ class McLogger(logging.getLoggerClass()):
             zarr dataset
         """
         self.info(f'{path} zarray shape, chunks, dtype: {zarr.shape}, {zarr.chunks}, {zarr.dtype}')
-
-    def darr_info(self,
-                  name,
-                  darr,
-                 ):
-        """Parameters
-        ----------
-        name
-            printing name of the dask array
-        darr
-            dask array
-        """
-        self.info(f'{name} dask array shape, chunksize, dtype: {darr.shape}, {darr.chunksize}, {darr.dtype}')
-
-    def dask_cluster_info(
-        self,
-        cluster,
-    ):
-
-        text = "%s(dashboard_link=%r, workers=%d, threads=%d" % (
-            cluster._cluster_class_name,
-            cluster.dashboard_link,
-            len(cluster.scheduler_info["workers"]),
-            sum(w["nthreads"] for w in cluster.scheduler_info["workers"].values()),
-        )
-
-        memory = [w["memory_limit"] for w in cluster.scheduler_info["workers"].values()]
-        if all(memory):
-            text += ", memory=" + dask.utils.format_bytes(sum(memory))
-
-        text += ")"
-        self.info('dask cluster: '+text)
 
 def mc_logger(func):
     @wraps(func)

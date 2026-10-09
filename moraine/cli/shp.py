@@ -31,7 +31,6 @@ def shp_test(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """SHP identification through hypothetic test.
 
@@ -53,16 +52,13 @@ def shp_test(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 1
+        tasks a worker runs at the same time. Default: 1
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     if not method: method = 'ks'
@@ -89,7 +85,7 @@ def shp_test(
              for in_sl, out_sl, map_sl in zip(in_slices, out_slices, map_slices)]
     logger.info(f'KS test of {len(tasks)} chunks of {chunks} with a halo of ({az_half_win}, {r_half_win})')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         ex.map_chunks(_ks_test_chunk, tasks, desc='KS test')
     logger.info('done.')
 
@@ -103,7 +99,6 @@ def select_shp(
     processes=False,
     n_workers=1,
     threads_per_worker=1,
-    **dask_cluster_arg,
 ):
     """Select SHP based on pvalue of SHP test.
 
@@ -122,13 +117,11 @@ def select_shp(
     chunks : tuple[int, int], optional
         (azimuth, range) processing chunk size, same as `pvalue` by default
     processes : default: False
-        use process for dask worker over thread, the default is False
+        use processes for the workers instead of threads, the default is False
     n_workers : default: 1
-        number of dask worker, the default is 1
+        number of workers, the default is 1
     threads_per_worker : default: 1
-        number of threads per dask worker
-    **dask_cluster_arg
-        other dask local cluster args
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
     p_zarr = zarr.open(pvalue, mode='r'); logger.zarr_info(pvalue, p_zarr)
@@ -144,6 +137,6 @@ def select_shp(
     win = (slice(0, az_win), slice(0, r_win))
     tasks = [([Chunk(pvalue, (*sl, *win)), alpha], [Chunk(is_shp, (*sl, *win)), Chunk(shp_num, sl)])
              for sl in all_chunk_slices((nlines, width), chunks)]
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         ex.map_chunks(mr.select_shp, tasks, desc='SHP selection')
     logger.info('done.')

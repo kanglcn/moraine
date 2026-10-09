@@ -11,7 +11,7 @@ import numpy as np
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices_with_overlap
 from .logging import mc_logger
-from .dask_ import parallel_read_zarr
+from .zarr_ import parallel_read_zarr
 from .executor import Executor, Chunk, Device
 from .utils_ import mk_clean_dir
 from .pl import _pc_by_ras_chunk, _make_pc_zarr
@@ -30,7 +30,6 @@ def emperical_co_pc(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """estimate emperical coherence matrix on point cloud data.
 
@@ -59,16 +58,13 @@ def emperical_co_pc(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 2
+        tasks a worker runs at the same time. Default: 2
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     is_shp_dir = Path(is_shp_dir)
@@ -119,6 +115,6 @@ def emperical_co_pc(
         tasks.append((inputs, outputs))
     logger.info(f'coherence of {len(tasks)} raster chunks with points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         ex.map_chunks(mr.emperical_co_pc, tasks, desc='coherence', image_pairs=image_pairs, return_n_looks=return_n_looks)
     logger.info('done.')

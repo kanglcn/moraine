@@ -6,10 +6,9 @@ runs the tasks of a command in threads of this process (CPU) or in one process p
 progress; `chunk_task` is the task of the most common kind (read chunks, call an API function, write chunks) and
 `Chunk` names a part of a zarr array to read or write.
 
-Two backends run the tasks: moraine's own workers (threads of this process, or processes started with ``spawn``,
-one per GPU with ``cuda``) and dask (``LocalCluster``, ``dask_cuda.LocalCUDACluster``, the backend before the
-executor existed). The commands do not see the backend: a task is a plain function with picklable arguments
-(decision 0032). ``MORAINE_EXECUTOR`` (``own`` or ``dask``) selects the default backend.
+The workers are moraine's own: threads of the command's process for CPU tasks, or processes started with ``spawn``
+for CPU tasks that hold the GIL and for the GPUs, one process per GPU of ``CUDA_VISIBLE_DEVICES``. The commands do
+not see them: a task is a plain function with picklable arguments (decisions 0032 and 0033).
 """
 
 __all__ = ['Executor', 'Chunk', 'Device', 'chunk_task', 'check_aligned']
@@ -32,7 +31,7 @@ import numpy as np
 import zarr
 
 from ..api.utils_ import is_cuda_available
-from .dask_ import parallel_read_zarr, parallel_write_zarr
+from .zarr_ import parallel_read_zarr, parallel_write_zarr
 
 if is_cuda_available():
     import cupy as cp
@@ -323,65 +322,7 @@ class _Threads:
         return [f.result() for f in futures]
 
 
-# ---------------------------------------------------------------- dask backend
-
-class _Dask:
-    """dask: ``LocalCluster`` (threads or processes) or ``dask_cuda.LocalCUDACluster`` (one process per GPU)."""
-
-    def __init__(self, cuda, n_workers, threads_per_worker, processes, rmm_pool_size, cluster_kw):
-        from dask.distributed import Client
-        if cuda:
-            from dask_cuda import LocalCUDACluster
-            kw = dict(cluster_kw)
-            if threads_per_worker:
-                kw['threads_per_worker'] = threads_per_worker
-            self.cluster = LocalCUDACluster(n_workers=n_workers, rmm_pool_size=rmm_pool_size, **kw)
-        else:
-            from dask.distributed import LocalCluster
-            self.cluster = LocalCluster(processes=bool(processes), n_workers=n_workers or 1,
-                                        threads_per_worker=threads_per_worker or 1, **cluster_kw)
-        self.client = Client(self.cluster)
-        if cuda and rmm_pool_size:
-            from rmm.allocators.cupy import rmm_cupy_allocator
-            self.run_on_workers(_set_rmm_allocator, rmm_cupy_allocator)
-        info = self.cluster.scheduler_info['workers']
-        self.n_workers = len(info)
-        self.n_threads = sum(w['nthreads'] for w in info.values())
-
-    def close(self):
-        self.client.close()
-        self.cluster.close()
-
-    def put(self, obj):
-        return self.client.scatter(obj, broadcast=True)
-
-    def run_on_workers(self, fn, *args):
-        self.client.run(fn, *args)
-
-    def map(self, fn, tasks, on_done):
-        from dask.distributed import as_completed
-        futures = [self.client.submit(fn, *args, pure=False) for args in tasks]
-        done = 0
-        for future in as_completed(futures):
-            if future.status == 'error':
-                error = future.exception()
-                for f in futures:
-                    f.cancel()
-                raise error
-            done += 1
-            on_done(done)
-        return self.client.gather(futures)
-
-
-def _set_rmm_allocator(allocator):
-    import cupy
-    cupy.cuda.set_allocator(allocator)
-
-
 # ---------------------------------------------------------------- the executor
-
-BACKEND = os.environ.get('MORAINE_EXECUTOR', 'dask')
-
 
 class Executor:
     """Runs the tasks of a command.
@@ -397,49 +338,35 @@ class Executor:
     processes : bool, optional
         CPU workers as processes instead of threads (for tasks that hold the GIL), False by default
     rmm_pool_size : float, optional
-        with `cuda`: fraction of the memory of each GPU taken by an rmm memory pool, from which cupy allocates; 0.9
-        by default, ``None`` for no pool (cupy's own allocator)
-    backend : str, optional
-        ``own`` (moraine's workers) or ``dask``; ``MORAINE_EXECUTOR`` or ``dask`` by default
-    **cluster_kw
-        other arguments of the dask ``LocalCluster`` / ``LocalCUDACluster`` (dask backend only)
+        with `cuda`: fraction of the memory of each GPU taken by an rmm memory pool, from which cupy allocates (rmm
+        must be installed; cupy's own pool otherwise); 0.9 by default, ``None`` for no pool
     """
 
     def __init__(self, cuda:bool=False, n_workers:int=None, threads_per_worker:int=None, processes:bool=None,
-                 rmm_pool_size:float=0.9, backend:str=None, **cluster_kw):
+                 rmm_pool_size:float=0.9):
         self.cuda = bool(cuda)
         self.n_workers = n_workers
         self.threads_per_worker = threads_per_worker
         self.processes = processes
         self.rmm_pool_size = rmm_pool_size
-        self.backend = backend or BACKEND
-        self.cluster_kw = cluster_kw
         self._workers = None
         self.logger = logging.getLogger(__name__)
 
     # ---- life cycle
     def __enter__(self):
         self.logger.info('starting the workers')
-        if self.backend == 'dask':
-            self._workers = _Dask(self.cuda, self.n_workers, self.threads_per_worker, self.processes, self.rmm_pool_size,
-                                  self.cluster_kw)
-        elif self.backend == 'own':
-            if self.cluster_kw:
-                raise TypeError(f'unknown worker arguments: {", ".join(self.cluster_kw)}')
-            if self.cuda:
-                gpus = [g.strip() for g in os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',') if g.strip()]
-                if not gpus:
-                    raise RuntimeError('cuda: CUDA_VISIBLE_DEVICES names no GPU')
-                n = self.n_workers or len(gpus)
-                if n > len(gpus):
-                    raise ValueError(f'n_workers {n} GPU workers for {len(gpus)} GPUs in CUDA_VISIBLE_DEVICES')
-                self._workers = _Processes(n, self.threads_per_worker, gpus[:n], self.rmm_pool_size)
-            elif self.processes:
-                self._workers = _Processes(self.n_workers or 1, self.threads_per_worker, None, None)
-            else:
-                self._workers = _Threads((self.n_workers or 1) * (self.threads_per_worker or 1))
+        if self.cuda:
+            gpus = [g.strip() for g in os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',') if g.strip()]
+            if not gpus:
+                raise RuntimeError('cuda: CUDA_VISIBLE_DEVICES names no GPU')
+            n = self.n_workers or len(gpus)
+            if n > len(gpus):
+                raise ValueError(f'n_workers {n} GPU workers for {len(gpus)} GPUs in CUDA_VISIBLE_DEVICES')
+            self._workers = _Processes(n, self.threads_per_worker, gpus[:n], self.rmm_pool_size)
+        elif self.processes:
+            self._workers = _Processes(self.n_workers or 1, self.threads_per_worker, None, None)
         else:
-            raise ValueError(f'unknown executor backend {self.backend!r}')
+            self._workers = _Threads((self.n_workers or 1) * (self.threads_per_worker or 1))
         self.logger.info(self.describe())
         return self
 
@@ -455,19 +382,11 @@ class Executor:
         w = self._workers
         if isinstance(w, _Threads):
             return f'workers: {w.n_threads} thread{"s" if w.n_threads != 1 else ""} of this process'
-        if isinstance(w, _Processes):
-            if w.gpus:
-                pool = f', rmm pool {self.rmm_pool_size:.0%} of the GPU memory' if self.rmm_pool_size else ', no memory pool'
-                return f'workers: {w.n_workers} GPU process{"es" if w.n_workers != 1 else ""} ({", ".join(w.gpus)}) x ' \
-                       f'{w.threads} task{"s" if w.threads != 1 else ""} at a time{pool}'
-            return f'workers: {w.n_workers} process{"es" if w.n_workers != 1 else ""} x {w.threads} task{"s" if w.threads != 1 else ""} at a time'
-        n, threads = w.n_workers, w.n_threads // max(w.n_workers, 1)
-        if self.cuda:
+        if w.gpus:
             pool = f', rmm pool {self.rmm_pool_size:.0%} of the GPU memory' if self.rmm_pool_size else ', no memory pool'
-            return f'workers: {n} GPU process{"es" if n != 1 else ""}{pool} (dask)'
-        kind = 'process' if self.processes else 'thread'
-        return f'workers: {n} {kind}{"es" if self.processes and n != 1 else ("s" if n != 1 else "")} x {threads} ' \
-               f'task{"s" if threads != 1 else ""} at a time (dask)'
+            return f'workers: {w.n_workers} GPU process{"es" if w.n_workers != 1 else ""} ({", ".join(w.gpus)}) x ' \
+                   f'{w.threads} task{"s" if w.threads != 1 else ""} at a time{pool}'
+        return f'workers: {w.n_workers} process{"es" if w.n_workers != 1 else ""} x {w.threads} task{"s" if w.threads != 1 else ""} at a time'
 
     # ---- work
     def put(self, obj):

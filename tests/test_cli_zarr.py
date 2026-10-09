@@ -1,12 +1,10 @@
 from pathlib import Path
 
-import dask.array as da
 import numpy as np
 import pytest
 import zarr
 
-from moraine.cli.dask_ import (parallel_read_zarr, parallel_write_zarr, dask_from_zarr, dask_from_zarr_overlap,
-                               dask_to_zarr, ZarrDir, _parallel_read_pc_dir, _dask_from_pc_zarr_dir)
+from moraine.cli.zarr_ import parallel_read_zarr, parallel_write_zarr, ZarrDir, _parallel_read_pc_dir
 
 
 def _stack(tmp_path, rng, shape=(130, 170, 4), chunks=(50, 170, 1)):
@@ -30,24 +28,6 @@ def test_parallel_write_zarr(tmp_path, rng):
     np.testing.assert_array_equal(out[:, :, 0:1], data[:, :, 0:1])
 
 
-def test_dask_from_zarr(tmp_path, rng):
-    data, _ = _stack(tmp_path, rng)
-    path = str(tmp_path / 'data.zarr')
-    np.testing.assert_array_equal(dask_from_zarr(path, parallel_dims=(0, 1)).compute(), data)
-    np.testing.assert_array_equal(dask_from_zarr(path, chunks=(40, 40, 1)).compute(), data)
-    darr = dask_from_zarr(path, chunks=(40, 40, 2))
-    expected = da.overlap.overlap(darr, depth=(5, 5, 0), boundary={0: 'none', 1: 'none', 2: 'none'})
-    np.testing.assert_array_equal(dask_from_zarr_overlap(path, chunks=(40, 40, 2), depth=(5, 5, 0)).compute(),
-                                  expected.compute())
-
-
-def test_dask_to_zarr(tmp_path, rng):
-    data, _ = _stack(tmp_path, rng)
-    darr = dask_from_zarr(str(tmp_path / 'data.zarr'), parallel_dims=(1, 2)).persist()
-    da.compute(dask_to_zarr(darr, str(tmp_path / 'copy.zarr'), chunks=(darr.chunksize[0], darr.shape[1], 1)))
-    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'copy.zarr'), mode='r')[:], data)
-
-
 def test_pc_zarr_dir(tmp_path, rng):
     d1 = rng.random((32, 10)).astype(np.float32); d2 = rng.random((64, 10)).astype(np.float32)
     for name, d in [('1.zarr', d1), ('2.zarr', d2)]:
@@ -55,7 +35,6 @@ def test_pc_zarr_dir(tmp_path, rng):
         z[:] = d
     both = np.concatenate((d1, d2), axis=0)
     np.testing.assert_array_equal(_parallel_read_pc_dir(ZarrDir.from_dir(str(tmp_path / 'pc')), 2), both[:, 2])
-    np.testing.assert_array_equal(_dask_from_pc_zarr_dir(str(tmp_path / 'pc')).compute(), both)
 
 
 def _corrupt_chunks(path):

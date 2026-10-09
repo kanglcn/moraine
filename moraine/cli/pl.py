@@ -12,7 +12,7 @@ import math
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices, all_chunk_slices_with_overlap
 from .logging import mc_logger
-from .dask_ import parallel_read_zarr
+from .zarr_ import parallel_read_zarr
 from .executor import Executor, Chunk, Device, chunk_task
 from .utils_ import mk_clean_dir
 
@@ -44,7 +44,6 @@ def emi(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """Phase linking with EMI estimator.
 
@@ -67,16 +66,13 @@ def emi(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 2
+        tasks a worker runs at the same time. Default: 2
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     coh_zarr = zarr.open(coh, mode='r')
@@ -93,7 +89,7 @@ def emi(
              for (sl,) in all_chunk_slices((n_points,), (chunks,))]
     logger.info(f'phase linking with EMI of {len(tasks)} chunks of {chunks} points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         ex.map_chunks(mr.emi, tasks, desc='phase linking', ref=ref, regularize=regularize)
     logger.info('done.')
 
@@ -114,7 +110,6 @@ def ds_temp_coh(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """DS temporal coherence, optionally also weighted by the coherence of the image pairs.
 
@@ -155,16 +150,13 @@ def ds_temp_coh(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 2
+        tasks a worker runs at the same time. Default: 2
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
@@ -198,7 +190,7 @@ def ds_temp_coh(
         kwargs['alpha'] = alpha
     logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks} points' + (', weighted' if weighted else ''))
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         if weighted:    # the number of looks of the chunk is read with the chunk
             ex.map(chunk_task, [(mr.ds_temp_coh, inputs, outs, cuda, {**kwargs, 'n_looks': Chunk(n_looks, (inputs[0].slices[0],))})
                                 for inputs, outs in tasks], desc='temporal coherence')
@@ -225,7 +217,6 @@ def emperical_co_emi_temp_coh_pc(
     n_workers=None,
     threads_per_worker=None,
     rmm_pool_size=0.9,
-    **dask_cluster_arg,
 ):
     """estimating emperical coherence matrix, phase linking and estimating temporal coherence on point cloud data.
 
@@ -273,16 +264,13 @@ def emperical_co_emi_temp_coh_pc(
     cuda : bool, default: False
         if use cuda for processing, false by default
     processes : optional
-        use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
-        False
+        use processes (True) or threads (False) for the workers, only for cpu processing. Default: False
     n_workers : optional
-        number of dask workers. Default: 1 for cpu, one per GPU for cuda
+        number of workers. Default: 1 for cpu, one per GPU for cuda
     threads_per_worker : optional
-        number of threads per dask worker, only for cpu processing. Default: 2
+        tasks a worker runs at the same time. Default: 2
     rmm_pool_size : default: 0.9
-        set the rmm pool size, only applied when cuda==True
-    **dask_cluster_arg
-        other dask local/cudalocal cluster args
+        fraction of the GPU memory of each worker taken by an rmm memory pool (rmm must be installed), only with cuda
     """
     logger = logging.getLogger(__name__)
     is_shp_dir = Path(is_shp_dir)
@@ -340,7 +328,7 @@ def emperical_co_emi_temp_coh_pc(
         tasks.append((inputs, outputs))
     logger.info(f'coherence, phase linking and temporal coherence of {len(tasks)} raster chunks with points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
-                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+                  rmm_pool_size=rmm_pool_size) as ex:
         ex.map_chunks(mr.emperical_co_emi_temp_coh_pc, tasks, desc='phase linking', batch_size=batch_size,
                       regularize=regularize, weighted=weighted, alpha=alpha)
     logger.info('done.')
