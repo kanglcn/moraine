@@ -1,24 +1,16 @@
 """Pixel quality metrics (CLI)"""
 
+
 __all__ = ['temp_coh']
 
 import logging
 import zarr
-import time
 import numpy as np
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
-from ..api.utils_ import is_cuda_available, get_array_module
-if is_cuda_available():
-    import cupy as cp
-    from dask_cuda import LocalCUDACluster
-    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
+from ..api.chunk_ import all_chunk_slices
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr
+from .executor import Executor, Chunk
 
 @mc_logger
 def temp_coh(
@@ -65,82 +57,24 @@ def temp_coh(
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
-    intf_path = intf
-    rslc_path = rslc
-    t_coh_path = t_coh
-
     logger = logging.getLogger(__name__)
-    intf_zarr = zarr.open(intf_path,mode='r'); logger.zarr_info(intf_path,intf_zarr)
-    rslc_zarr = zarr.open(rslc_path,mode='r'); logger.zarr_info(rslc_path,rslc_zarr)
+    intf_zarr = zarr.open(intf, mode='r'); logger.zarr_info(intf, intf_zarr)
+    rslc_zarr = zarr.open(rslc, mode='r'); logger.zarr_info(rslc, rslc_zarr)
     nimage = rslc_zarr.shape[-1]
-
+    n_pairs = intf_zarr.shape[-1]
+    shape = intf_zarr.shape[:-1]           # (n_points,) or (nlines, width)
     if chunks is None: chunks = intf_zarr.chunks[:-1]
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-        xp = cp
-    else:
-        if processes is None: processes = False
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 1
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-        xp = np
-
+    chunks = (chunks,) if isinstance(chunks, int) else tuple(chunks)
     if image_pairs is None:
         image_pairs = mr.TempNet.from_bandwidth(nimage).image_pairs
-    image_pairs = image_pairs.astype(np.int32)
-
-    logger.info('starting dask local cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-
-        cpu_intf = dask_from_zarr(intf_path,chunks=(*chunks,intf_zarr.shape[-1]))
-        logger.darr_info('intf', cpu_intf)
-
-        cpu_rslc = dask_from_zarr(rslc_path,chunks=(*chunks,rslc_zarr.shape[-1]))
-        logger.darr_info('rslc', cpu_rslc)
-
-        logger.info(f'Estimate temporal coherence for DS.')
-        if cuda:
-            intf = cpu_intf.map_blocks(cp.asarray)
-            rslc = cpu_rslc.map_blocks(cp.asarray)
-        else:
-            intf = cpu_intf
-            rslc = cpu_rslc
-
-        intf_delayed = intf.to_delayed()
-        intf_delayed = np.squeeze(intf_delayed,axis=-1)
-        rslc_delayed = rslc.to_delayed()
-        rslc_delayed = np.squeeze(rslc_delayed,axis=-1)
-        t_coh_delayed = np.empty_like(intf_delayed,dtype=object)
-        temp_coh_delayed = delayed(mr.temp_coh,pure=True,nout=1)
-
-        with np.nditer(intf_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
-            for block in it:
-                idx = it.multi_index
-                t_coh_delayed[idx] = temp_coh_delayed(intf_delayed[idx],rslc_delayed[idx],image_pairs=image_pairs)
-                t_coh_delayed[idx] = da.from_delayed(t_coh_delayed[idx],shape=intf.blocks[idx].shape[:-1],meta=xp.array((),dtype=xp.float32))
-
-            t_coh = da.block(t_coh_delayed.tolist())
-
-        if cuda:
-            cpu_t_coh = t_coh.map_blocks(cp.asnumpy)
-        else:
-            cpu_t_coh = t_coh
-        logger.info(f'got temporal coherence t_coh.')
-        logger.darr_info('t_coh', t_coh)
-
-        logger.info('saving t_coh.')
-        _cpu_t_coh = cpu_t_coh.to_zarr(t_coh_path,compute=False,overwrite=True)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_cpu_t_coh)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    image_pairs = np.asarray(image_pairs).astype(np.int32)
+    t_coh_zarr = zarr.open(t_coh, mode='w', shape=shape, dtype=np.float32, chunks=chunks)
+    logger.zarr_info(t_coh, t_coh_zarr)
+    # one task per chunk of points or pixels: the interferograms and the rslc of the chunk in, the temporal coherence out
+    tasks = [([Chunk(intf, (*sl, slice(0, n_pairs))), Chunk(rslc, (*sl, slice(0, nimage)))], [Chunk(t_coh, sl)])
+             for sl in all_chunk_slices(shape, chunks)]
+    logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks}')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+        ex.map_chunks(mr.temp_coh, tasks, desc='temporal coherence', image_pairs=image_pairs)
+    logger.info('done.')

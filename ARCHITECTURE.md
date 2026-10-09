@@ -72,6 +72,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/__init__.py` | re-exports the CLI functions as `moraine.cli.*` | |
 | `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr / dask log helpers | |
 | `moraine/cli/dask_.py` | parallel zarr read / write, zarr <-> dask arrays | |
+| `moraine/cli/executor.py` | `Executor`: the workers of a command (threads, processes or one process per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`); the commands do not see the backend | |
 | `moraine/cli/utils_.py` | small helpers (clean output directories) | |
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |

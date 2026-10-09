@@ -5,21 +5,12 @@ __all__ = ['amp_disp']
 
 import logging
 import zarr
-import time
 import numpy as np
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
-from ..api.utils_ import is_cuda_available
-if is_cuda_available():
-    import cupy as cp
-    from dask_cuda import LocalCUDACluster
-    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
+from ..api.chunk_ import all_chunk_slices
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr
+from .executor import Executor, Chunk
 
 @mc_logger
 def amp_disp(
@@ -60,60 +51,18 @@ def amp_disp(
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
-    rslc_path = rslc
-    adi_path = adi
     logger = logging.getLogger(__name__)
-    rslc_zarr = zarr.open(rslc_path,mode='r')
-    logger.zarr_info(rslc_path,rslc_zarr)
+    rslc_zarr = zarr.open(rslc, mode='r')
+    logger.zarr_info(rslc, rslc_zarr)
+    nlines, width, nimages = rslc_zarr.shape
     if chunks is None: chunks = rslc_zarr.chunks[:2]
     if out_chunks is None: out_chunks = chunks
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-        xp = cp
-    else:
-        if processes is None: processes = False
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 1
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-        xp = np
-
-    logger.info('starting dask local cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        if cuda:
-            client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        cpu_rslc = dask_from_zarr(rslc_path,chunks=(*chunks,*rslc_zarr.shape[2:]))
-        logger.darr_info('rslc', cpu_rslc)
-        logger.info(f'calculate amplitude dispersion index.')
-        rslc = cpu_rslc.map_blocks(cp.asarray) if cuda else cpu_rslc
-        rslc_delayed = rslc.to_delayed()
-        adi_delayed = np.empty_like(rslc_delayed,dtype=object)
-        with np.nditer(rslc_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
-            for block in it:
-                idx = it.multi_index
-                adi_delayed[idx] = delayed(mr.amp_disp,pure=True,nout=1)(rslc_delayed[idx])
-                adi_delayed[idx] =da.from_delayed(adi_delayed[idx],shape=rslc.blocks[idx].shape[0:2],meta=xp.array((),dtype=xp.float32))
-        adi = da.block(adi_delayed[...,0].tolist())
-
-        logger.info(f'got amplitude dispersion index.')
-        logger.darr_info('adi', adi)
-
-        cpu_adi = adi.map_blocks(cp.asnumpy) if cuda else adi
-        logger.darr_info('adi', cpu_adi)
-        logger.info('saving adi.')
-        _adi = dask_to_zarr(cpu_adi,adi_path,chunks=out_chunks)
-        # _adi = da.to_zarr(cpu_adi,adi_path,compute=False,overwrite=True)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_adi)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    adi_zarr = zarr.open(adi, mode='w', shape=(nlines, width), dtype=np.float32, chunks=tuple(out_chunks))
+    logger.zarr_info(adi, adi_zarr)
+    # one task per (azimuth, range) chunk: the rslc of the chunk in, its amplitude dispersion index out
+    tasks = [([Chunk(rslc, (*sl, slice(0, nimages)))], [Chunk(adi, sl)]) for sl in all_chunk_slices((nlines, width), chunks)]
+    logger.info(f'amplitude dispersion index of {len(tasks)} chunks of {tuple(chunks)}')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+        ex.map_chunks(mr.amp_disp, tasks, desc='amplitude dispersion')
+    logger.info('done.')

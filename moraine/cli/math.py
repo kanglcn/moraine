@@ -7,17 +7,14 @@ import logging
 import zarr
 import numpy as np
 import numexpr as ne
-import time
 
-import dask
-from dask import array as da
-from dask.distributed import Client, LocalCluster, progress
-
+from ..api.chunk_ import all_chunk_slices
 from .logging import mc_logger
+from .executor import Executor, Chunk
 
-def _math(operation=str,
-          **data):
-    return ne.evaluate(operation,data)
+
+def _math(*arrays, names, operation):
+    return ne.evaluate(operation, dict(zip(names, arrays)))
 
 @mc_logger
 def math(output:str,
@@ -35,39 +32,21 @@ def math(output:str,
         input: the arrays used in `operation` as NAME=zarr path, e.g. a='a.zarr' (on the command line:
         --kw a=a.zarr)
     """
-    output_path = output
     logger = logging.getLogger(__name__)
+    names = list(data)
+    zarrs = []
     for name, path in data.items():
-        path_zarr = zarr.open(path,mode='r'); logger.zarr_info(name,path_zarr)
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=False,threads_per_worker=2) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        names = []; darrs = []
-
-        for name, path in data.items():
-            names.append(name)
-            darr = da.from_zarr(path,inline_array=True); logger.darr_info(name,darr)
-            darrs.append(darr)
-        darr0 = darrs[0]
-        darrs = [darr.to_delayed() for darr in darrs]
-
-        output_delayed = np.empty_like(darrs[0],dtype=object)
-        math_delayed = dask.delayed(_math,pure=True,nout=1)
-        with np.nditer(darrs[0],flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
-            for block in it:
-                idx = it.multi_index
-                math_kw = {}
-                for name, darr in zip(names, darrs):
-                    math_kw[name] = darr[idx]
-                output_delayed[idx] = math_delayed(operation,**math_kw)
-                output_delayed[idx] = da.from_delayed(output_delayed[idx],shape=darr0.blocks[idx].shape,meta=np.array(()))
-        output = da.block(output_delayed.tolist())
-        _output = output.to_zarr(output_path,overwrite=True,compute=False)
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_output)
-        progress(futures,notebook=False)
-        da.compute(futures)
-        time.sleep(0.1)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+        z = zarr.open(path, mode='r'); logger.zarr_info(name, z); zarrs.append(z)
+    z0 = zarrs[0]
+    for name, z in zip(names, zarrs):
+        if z.shape != z0.shape:
+            raise ValueError(f'{name}: shape {z.shape} differs from {names[0]}: {z0.shape}')
+    # the dtype of the result from the expression on one element of every input
+    dtype = ne.evaluate(operation, {n: z[(0,) * z.ndim][None] for n, z in zip(names, zarrs)}).dtype
+    out_zarr = zarr.open(output, mode='w', shape=z0.shape, dtype=dtype, chunks=z0.chunks)
+    logger.zarr_info(output, out_zarr)
+    tasks = [([Chunk(path, sl) for path in data.values()], [Chunk(output, sl)]) for sl in all_chunk_slices(z0.shape, z0.chunks)]
+    logger.info(f'{operation} on {len(tasks)} chunks')
+    with Executor(threads_per_worker=2) as ex:
+        ex.map_chunks(_math, tasks, desc='math', names=names, operation=operation)
+    logger.info('done.')

@@ -1,27 +1,36 @@
 """Phase linking (CLI)"""
 
+
 __all__ = ['emi', 'ds_temp_coh', 'emperical_co_emi_temp_coh_pc']
 
 import logging
-import time
 import zarr
 import numpy as np
 from pathlib import Path
 import math
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
-from ..api.utils_ import is_cuda_available, get_array_module
-if is_cuda_available():
-    import cupy as cp
-    from dask_cuda import LocalCUDACluster
-    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
-import moraine.cli as mc
+from ..api.chunk_ import all_chunk_slices, all_chunk_slices_with_overlap
 from .logging import mc_logger
-from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
+from .dask_ import parallel_read_zarr
+from .executor import Executor, Chunk, Device, chunk_task
+from .utils_ import mk_clean_dir
+
+
+def _pc_by_ras_chunk(gix, chunks, shape, overlap):
+    """The points in the order of the raster chunks: for every chunk its grid index relative to the chunk read with
+    `overlap`, and the point bounds of every chunk. The chunks are numbered like `all_chunk_slices` (azimuth major)."""
+    chunk_idx, chunk_bounds = mr.api.pc._pc_split_by_chunk(gix, chunks, shape)[:2]
+    sorted_gix = gix[chunk_idx]
+    ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix, chunk_bounds, chunks, shape, overlap=overlap)
+    return ras_chunk_order_gix, chunk_bounds
+
+
+def _make_pc_zarr(path, n_points, nimages, dtype):
+    """A point cloud zarr of one raster chunk: (n_points, nimages) chunked one image per chunk, or (n_points,)."""
+    shape = (n_points, nimages) if nimages else (n_points,)
+    chunks = (n_points, 1) if nimages else (n_points,)
+    zarr.open(str(path), mode='w', shape=shape, dtype=dtype, chunks=chunks)
 
 @mc_logger
 def emi(
@@ -69,73 +78,24 @@ def emi(
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
-    coh_path = coh
-    ph_path = ph
-
     logger = logging.getLogger(__name__)
-    coh_zarr = zarr.open(coh_path,mode='r')
-    n_image = mr.nimage_from_npair(coh_zarr.shape[-1])
-    logger.zarr_info(coh_path,coh_zarr)
-
+    coh_zarr = zarr.open(coh, mode='r')
+    n_points, n_pairs = coh_zarr.shape
+    n_image = mr.nimage_from_npair(n_pairs)
+    logger.zarr_info(coh, coh_zarr)
     if chunks is None: chunks = coh_zarr.chunks[0]
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-        xp = cp
-    else:
-        if processes is None: processes = False
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 2
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-        xp = np
-
-    logger.info('starting dask cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask cluster started.')
-        logger.dask_cluster_info(cluster)
-        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-
-        cpu_coh = dask_from_zarr(coh_path, chunks=(chunks, *coh_zarr.shape[1:]))
-        logger.darr_info('coh', cpu_coh)
-
-        logger.info(f'phase linking with EMI.')
-        if cuda:
-            coh = cpu_coh.map_blocks(cp.asarray)
-        else:
-            coh = cpu_coh
-        coh_delayed = coh.to_delayed()
-        coh_delayed = np.squeeze(coh_delayed,axis=-1)
-
-        ph_delayed = np.empty_like(coh_delayed,dtype=object)
-        emi_delayed = delayed(mr.emi,pure=True,nout=1)
-
-        with np.nditer(coh_delayed,flags=['multi_index','refs_ok'], op_flags=['readwrite']) as it:
-            for block in it:
-                idx = it.multi_index
-                ph_delayed[idx] = emi_delayed(coh_delayed[idx],ref=ref,regularize=regularize)
-                ph_delayed[idx] = da.from_delayed(ph_delayed[idx],shape=(coh.blocks[idx].shape[0],n_image),meta=xp.array((),dtype=coh.dtype))
-
-        ph = da.block(ph_delayed[...,None].tolist())
-
-        if cuda:
-            cpu_ph = ph.map_blocks(cp.asnumpy)
-        else:
-            cpu_ph = ph
-        logger.info(f'got ph.')
-        logger.darr_info('ph', cpu_ph)
-
-        logger.info('saving ph.')
-        _cpu_ph = dask_to_zarr(cpu_ph,ph_path,chunks=(cpu_ph.chunksize[0],1))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist([_cpu_ph])
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    chunks = chunks[0] if isinstance(chunks, (tuple, list)) else int(chunks)
+    if threads_per_worker is None and not cuda: threads_per_worker = 2
+    ph_zarr = zarr.open(ph, mode='w', shape=(n_points, n_image), dtype=coh_zarr.dtype, chunks=(chunks, 1))
+    logger.zarr_info(ph, ph_zarr)
+    # one task per chunk of points: their coherence in, their phase history out
+    tasks = [([Chunk(coh, (sl, slice(0, n_pairs)))], [Chunk(ph, (sl, slice(0, n_image)))])
+             for (sl,) in all_chunk_slices((n_points,), (chunks,))]
+    logger.info(f'phase linking with EMI of {len(tasks)} chunks of {chunks} points')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+        ex.map_chunks(mr.emi, tasks, desc='phase linking', ref=ref, regularize=regularize)
+    logger.info('done.')
 
 @mc_logger
 def ds_temp_coh(
@@ -206,93 +166,45 @@ def ds_temp_coh(
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
-    coh_path = coh
-    ph_path = ph
-    t_coh_path = t_coh
-    n_looks_path = n_looks
-    weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
-    if weighted and n_looks_path is None:
-        raise ValueError('t_coh_w, eff_n_pairs and n_components need n_looks')
-
     logger = logging.getLogger(__name__)
-    coh_zarr = zarr.open(coh_path,mode='r'); logger.zarr_info(coh_path,coh_zarr)
-    ph_zarr = zarr.open(ph_path,mode='r'); logger.zarr_info(ph_path,ph_zarr)
+    weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
+    if weighted and n_looks is None:
+        raise ValueError('t_coh_w, eff_n_pairs and n_components need n_looks')
+    coh_zarr = zarr.open(coh, mode='r'); logger.zarr_info(coh, coh_zarr)
+    ph_zarr = zarr.open(ph, mode='r'); logger.zarr_info(ph, ph_zarr)
+    n_points, n_pairs = coh_zarr.shape
     nimage = ph_zarr.shape[-1]
-
     if chunks is None: chunks = coh_zarr.chunks[0]
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-        xp = cp
-    else:
-        if processes is None: processes = False
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 2
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-        xp = np
-
+    chunks = chunks[0] if isinstance(chunks, (tuple, list)) else int(chunks)
+    if threads_per_worker is None and not cuda: threads_per_worker = 2
     if tnet is not None:
         tnet = mr.TempNet.load(tnet)
     else:
         tnet = mr.TempNet.from_bandwidth(nimage)
     image_pairs = tnet.image_pairs
-
-    logger.info('starting dask local cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-
-        cpu_coh = dask_from_zarr(coh_path,chunks=(chunks,*coh_zarr.shape[1:]))
-        logger.darr_info('coh', cpu_coh)
-
-        cpu_ph = dask_from_zarr(ph_path,chunks=(chunks,*ph_zarr.shape[1:]))
-        logger.darr_info('ph', cpu_ph)
-
-        logger.info(f'Estimate temporal coherence for DS.')
-        if cuda:
-            coh = cpu_coh.map_blocks(cp.asarray)
-            ph = cpu_ph.map_blocks(cp.asarray)
+    outputs = [(t_coh, np.float32), (t_coh_w, np.float32), (eff_n_pairs, np.float32), (n_components, np.int16)]
+    if not weighted:
+        outputs = outputs[:1]
+    for path, dtype in outputs:
+        if path is not None:
+            logger.zarr_info(path, zarr.open(path, mode='w', shape=(n_points,), dtype=dtype, chunks=(chunks,)))
+    # one task per chunk of points: coherence, phase history (and number of looks) in, the temporal coherences out
+    tasks = []
+    for (sl,) in all_chunk_slices((n_points,), (chunks,)):
+        inputs = [Chunk(coh, (sl, slice(0, n_pairs))), Chunk(ph, (sl, slice(0, nimage)))]
+        tasks.append((inputs, [Chunk(path, (sl,)) if path is not None else None for path, _ in outputs]))
+    kwargs = {'image_pairs': image_pairs}
+    if weighted:
+        kwargs['alpha'] = alpha
+    logger.info(f'temporal coherence of {len(tasks)} chunks of {chunks} points' + (', weighted' if weighted else ''))
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+        if weighted:    # the number of looks of the chunk is read with the chunk
+            ex.map(chunk_task, [(mr.ds_temp_coh, inputs, outs, cuda, {**kwargs, 'n_looks': Chunk(n_looks, (inputs[0].slices[0],))})
+                                for inputs, outs in tasks], desc='temporal coherence')
         else:
-            coh = cpu_coh
-            ph = cpu_ph
-
-        coh_delayed = np.squeeze(coh.to_delayed(),axis=-1)
-        ph_delayed = np.squeeze(ph.to_delayed(),axis=-1)
-        if weighted:
-            cpu_n_looks = dask_from_zarr(n_looks_path,chunks=(chunks,))
-            logger.darr_info('n_looks', cpu_n_looks)
-            n_looks_delayed = (cpu_n_looks.map_blocks(cp.asarray) if cuda else cpu_n_looks).to_delayed()
-        n_out = 4 if weighted else 1
-        out_dtypes = (xp.float32, xp.float32, xp.float32, xp.int16)
-        ds_temp_coh_delayed = delayed(mr.ds_temp_coh,pure=True,nout=n_out)
-
-        outs_blocks = [[] for _ in range(n_out)]
-        for idx in range(coh_delayed.shape[0]):
-            kwargs = {'image_pairs':image_pairs}
-            if weighted: kwargs['n_looks'] = n_looks_delayed[idx]; kwargs['alpha'] = alpha
-            outs = ds_temp_coh_delayed(coh_delayed[idx],ph_delayed[idx],**kwargs)
-            outs = tuple(outs) if weighted else (outs,)
-            for o, out in enumerate(outs):
-                outs_blocks[o].append(da.from_delayed(out,shape=coh.blocks[idx].shape[0:1],meta=xp.array((),dtype=out_dtypes[o])))
-        futures = []
-        for blocks, path, name in zip(outs_blocks, (t_coh_path, t_coh_w, eff_n_pairs, n_components), ('t_coh', 't_coh_w', 'eff_n_pairs', 'n_components')):
-            if path is None: continue
-            out = da.concatenate(blocks)
-            if cuda: out = out.map_blocks(cp.asnumpy)
-            logger.darr_info(name, out)
-            logger.info(f'saving {name}.')
-            futures.append(out.to_zarr(path,compute=False,overwrite=True))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(futures)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+            ex.map_chunks(mr.ds_temp_coh, tasks, desc='temporal coherence', **kwargs)
+    logger.info('done.')
 
 @mc_logger
 def emperical_co_emi_temp_coh_pc(
@@ -372,129 +284,63 @@ def emperical_co_emi_temp_coh_pc(
     **dask_cluster_arg
         other dask local/cudalocal cluster args
     """
-    rslc_path = rslc
-    is_shp_dir_path = Path(is_shp_dir)
-    gix_path = gix
+    logger = logging.getLogger(__name__)
+    is_shp_dir = Path(is_shp_dir)
     ph_dir = Path(ph_dir); mk_clean_dir(ph_dir)
     t_coh_dir = Path(t_coh_dir); mk_clean_dir(t_coh_dir)
     weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None) or (n_components_dir is not None)
-    if t_coh_w_dir is not None: t_coh_w_dir = Path(t_coh_w_dir); mk_clean_dir(t_coh_w_dir)
-    if eff_n_pairs_dir is not None: eff_n_pairs_dir = Path(eff_n_pairs_dir); mk_clean_dir(eff_n_pairs_dir)
-    if n_components_dir is not None: n_components_dir = Path(n_components_dir); mk_clean_dir(n_components_dir)
-
-    logger = logging.getLogger(__name__)
-
-    rslc_zarr = zarr.open(rslc_path,mode='r')
-    logger.zarr_info(rslc_path, rslc_zarr)
+    extra_dirs = []
+    for d in (t_coh_w_dir, eff_n_pairs_dir, n_components_dir):
+        if d is not None:
+            d = Path(d); mk_clean_dir(d)
+        extra_dirs.append(d)
+    rslc_zarr = zarr.open(rslc, mode='r')
+    logger.zarr_info(rslc, rslc_zarr)
     assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
     nlines, width, nimage = rslc_zarr.shape
     if chunks is None: chunks = rslc_zarr.chunks[:2]
-
-    is_shp0 = sorted(is_shp_dir_path.glob('*.zarr'))[0]
-    is_shp0_zarr = zarr.open(is_shp0,mode='r')
+    chunks = tuple(chunks)
+    if threads_per_worker is None and not cuda: threads_per_worker = 2
+    is_shp0_zarr = zarr.open(sorted(is_shp_dir.glob('*.zarr'))[0], mode='r')
     az_win, r_win = is_shp0_zarr.shape[1:]
     az_half_win = int((az_win-1)/2)
     r_half_win = int((r_win-1)/2)
-    logger.info(f'''azimuth window size and half azimuth window size: {az_win}, {az_half_win}''')
-    logger.info(f'''range window size and half range window size: {r_win}, {r_half_win}''')
-
-    az_chunk, r_chunk = chunks
-    n_az_chunk = math.ceil(nlines/az_chunk)
-    n_r_chunk = math.ceil(width/r_chunk)
-    logger.info(f'parallel processing azimuth chunk size: {az_chunk}')
-    logger.info(f'parallel processing range chunk size: {r_chunk}')
-
-    depth = [az_half_win, r_half_win, 0]; boundary = {0:'none',1:'none',2:'none'}
-    gix_zarr = zarr.open(gix_path,mode='r')
-    logger.zarr_info(gix_path, gix_zarr)
+    logger.info(f'azimuth window size and half azimuth window size: {az_win}, {az_half_win}')
+    logger.info(f'range window size and half range window size: {r_win}, {r_half_win}')
+    logger.info(f'parallel processing azimuth, range chunk size: {chunks}')
+    gix_zarr = zarr.open(gix, mode='r')
+    logger.zarr_info(gix, gix_zarr)
     assert gix_zarr.ndim == 2, "gix dimentation is not 2."
     logger.info('loading gix into memory.')
-    gix = mc.parallel_read_zarr(gix_zarr,(slice(None),slice(None)))
+    gix = parallel_read_zarr(gix_zarr, (slice(None), slice(None)))
     logger.info('convert gix to the order of ras chunk')
-    chunk_idx, chunk_bounds = mr.api.pc._pc_split_by_chunk(gix,chunks,(nlines,width))[:2]
-    pc_chunksize = tuple(np.diff(chunk_bounds))
-    sorted_gix = gix[chunk_idx]
-    ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, (nlines,width),overlap=(az_half_win,r_half_win))
-
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-        xp = cp
-    else:
-        if processes is None: processes = False
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 2
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-        xp = np
-
-    logger.info('starting dask cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask cluster started.')
-        logger.dask_cluster_info(cluster)
-        if cuda: client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-        emperical_co_emi_temp_coh_pc_delayed = delayed(mr.emperical_co_emi_temp_coh_pc,pure=True,nout=5 if weighted else 2)
-
-        cpu_rslc_overlap = dask_from_zarr_overlap(rslc_path, (*chunks, rslc_zarr.shape[2]), depth)
-        logger.darr_info('rslc_overlap', cpu_rslc_overlap)
-        cpu_gix_darr = da.from_array(ras_chunk_order_gix,chunks=(pc_chunksize,(2,)))
-        logger.darr_info('gix in ras chunk order', cpu_gix_darr)
-        if cuda:
-            rslc_overlap = cpu_rslc_overlap.map_blocks(cp.asarray)
-            gix_darr = cpu_gix_darr.map_blocks(cp.asarray)
-        else:
-            rslc_overlap = cpu_rslc_overlap
-            gix_darr = cpu_gix_darr
-        rslc_overlap_delayed = rslc_overlap.to_delayed().reshape(-1)
-        gix_delayed = gix_darr.to_delayed().reshape(-1)
-
-        logger.info(f'estimating coherence matrix chunk by chunk.')
-        futures = []
-        for j in range(n_az_chunk*n_r_chunk):
-            do_log = j%math.ceil(n_az_chunk*n_r_chunk/10) == 0
-            if pc_chunksize[j] > 0:
-                cpu_is_shp = mc.dask_from_zarr(is_shp_dir_path/f'{j}.zarr',chunks=(-1,-1,-1))
-                if do_log: logger.darr_info(f'is_shp for chunk {j}',cpu_is_shp)
-                if cuda:
-                    is_shp = cpu_is_shp.map_blocks(cp.asarray)
-                else:
-                    is_shp = cpu_is_shp
-                is_shp_delayed = is_shp.to_delayed()[0,0,0]
-                outs = tuple(emperical_co_emi_temp_coh_pc_delayed(rslc_overlap_delayed[j],gix_delayed[j],is_shp_delayed,batch_size=batch_size,
-                                                                  regularize=regularize,weighted=weighted,alpha=alpha))
-                ph_delayed, t_coh_delayed = outs[:2]
-
-                ph = da.from_delayed(ph_delayed,shape=(pc_chunksize[j],nimage),meta=xp.array((),dtype=rslc_overlap.dtype))
-                t_coh = da.from_delayed(t_coh_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=xp.float32))
-
-                if cuda:
-                    cpu_ph = ph.map_blocks(cp.asnumpy)
-                    cpu_t_coh = t_coh.map_blocks(cp.asnumpy)
-                else:
-                    cpu_ph = ph
-                    cpu_t_coh = t_coh
-
-                if do_log:
-                    logger.darr_info(f'ph for chunk {j}',cpu_ph)
-                    logger.darr_info(f't_coh for chunk {j}',cpu_t_coh)
-                    logger.info(f'saving ph, t_coh for chunk {j}')
-
-                _ph = dask_to_zarr(cpu_ph,ph_dir/f'{j}.zarr',chunks=(cpu_ph.shape[0],1),log_zarr=do_log)
-                _t_coh = dask_to_zarr(cpu_t_coh,t_coh_dir/f'{j}.zarr',chunks=(cpu_t_coh.shape[0],),log_zarr=do_log)
-
-                futures.extend((_ph,_t_coh))
-                for out_delayed, out_dir, out_dtype in zip(outs[2:], (t_coh_w_dir, eff_n_pairs_dir, n_components_dir), (xp.float32, xp.float32, xp.int16)):
-                    if out_dir is None: continue
-                    out = da.from_delayed(out_delayed,shape=(pc_chunksize[j],),meta=xp.array((),dtype=out_dtype))
-                    if cuda: out = out.map_blocks(cp.asnumpy)
-                    futures.append(dask_to_zarr(out,out_dir/f'{j}.zarr',chunks=(out.shape[0],),log_zarr=do_log))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(futures)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    ras_chunk_order_gix, chunk_bounds = _pc_by_ras_chunk(gix, chunks, (nlines, width), (az_half_win, r_half_win))
+    del gix
+    in_slices = all_chunk_slices_with_overlap((nlines, width, nimage), (*chunks, nimage), (az_half_win, r_half_win, 0))
+    # one task per raster chunk with points: the rslc of the chunk with its halo, the grid index of its points
+    # (relative to the chunk) and their SHPs in; the phase history and the temporal coherences of its points out,
+    # one zarr per chunk
+    tasks = []
+    for j, in_sl in enumerate(in_slices):
+        b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
+        if b1 == b0:
+            continue
+        _make_pc_zarr(ph_dir/f'{j}.zarr', b1-b0, nimage, rslc_zarr.dtype)
+        _make_pc_zarr(t_coh_dir/f'{j}.zarr', b1-b0, 0, np.float32)
+        outputs = [Chunk(str(ph_dir/f'{j}.zarr')), Chunk(str(t_coh_dir/f'{j}.zarr'))]
+        for d, dtype in zip(extra_dirs, (np.float32, np.float32, np.int16)):
+            if d is None:
+                outputs.append(None)
+            else:
+                _make_pc_zarr(d/f'{j}.zarr', b1-b0, 0, dtype)
+                outputs.append(Chunk(str(d/f'{j}.zarr')))
+        if not weighted:
+            outputs = outputs[:2]
+        inputs = [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]), Chunk(str(is_shp_dir/f'{j}.zarr'))]
+        tasks.append((inputs, outputs))
+    logger.info(f'coherence, phase linking and temporal coherence of {len(tasks)} raster chunks with points')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
+        ex.map_chunks(mr.emperical_co_emi_temp_coh_pc, tasks, desc='phase linking', batch_size=batch_size,
+                      regularize=regularize, weighted=weighted, alpha=alpha)
+    logger.info('done.')
