@@ -26,7 +26,7 @@ import moraine.cli as mc
 from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
 from .dask_ import parallel_read_zarr
-from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_structure, _infer_n2ft_structure, _nan_where_zero
+from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
 from .logging import mc_logger
 from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
 
@@ -315,18 +315,20 @@ def _cli_n2ft_out_chunk(
     images = np.unique(image_pairs)
     cols = np.searchsorted(images, image_pairs)
     # the rslc of the points with halo for the images of the pairs; every processing chunk is filtered for all
-    # image pairs at once: its structure depends on the coordinates only, and the model runs several
-    # interferograms per call
+    # image pairs at once: its structure depends on the coordinates only and is prepared in a thread while the model
+    # filters the previous chunk, and the model runs several interferograms per call
     rslc_idx = zarr.open(rslc,mode='r').get_orthogonal_selection((idx,images))
     x_idx = zarr.open(x,mode='r').get_orthogonal_selection(idx)
     y_idx = zarr.open(y,mode='r').get_orthogonal_selection(idx)
     start, stop = rows
     out = np.empty((stop-start, image_pairs.shape[0]), dtype=rslc_idx.dtype)
-    for pos, own, out_slice in blocks:
-        structure = _n2ft_structure(x_idx[pos],y_idx[pos],device)
+    def prepare(block):
+        pos = block[0]
         rslc_pos = rslc_idx[pos]
         ifg = rslc_pos[:,cols[:,0]]*rslc_pos[:,cols[:,1]].conj()
-        out[out_slice] = _infer_n2ft_structure(structure,ifg,model)[own]
+        return _n2ft_prepare(x_idx[pos],y_idx[pos],ifg,device)
+    for (pos, own, out_slice), prepared in _prefetched(blocks, prepare):
+        out[out_slice] = _infer_n2ft_prepared(prepared,model)[own]
     zarr.open(intf,mode='r+')[start:stop] = out
     return stop-start
 
@@ -342,7 +344,7 @@ def n2ft(
     k:int=128,
     model:str=None,
     cuda:bool=False,
-    compile:bool=False,
+    compile:bool=None,
     processes=None,
     n_workers=None,
     threads_per_worker=None,
@@ -355,7 +357,8 @@ def n2ft(
     points of the chunk and of their halos for the images of the pairs (8 bytes per point and image), the
     filtered interferograms of the chunk (8 bytes per point and image pair) and about 400 bytes per point of
     the chunk more; with `cuda` the model holds up to 1.6 GB of GPU memory. Before, the main process finds
-    the halos of all processing chunks with about 70 bytes per point.
+    the halos of all processing chunks with about 70 bytes per point and 32 threads of 16 x `k` x `chunks` bytes
+    (41 MB each by default).
 
     Parameters
     ----------
@@ -376,15 +379,15 @@ def n2ft(
     out_chunks : int, optional
         point chunk size of the output, same as rslc by default; it sets the memory of a worker
     k : int, default: 128
-        number of nearest neighbours of the chunk border points added as halo to each chunk
+        number of nearest neighbours of every point of a processing chunk that are filtered with it (halo)
     model : str, optional
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         if use cuda for processing, false by default
-    compile : bool, default: False
-        compile the model with torch.compile in every worker: the filtering runs about twice as fast on a GPU, but
-        the compilation takes 15-40 s per worker (less when torch has cached it on disk); worth it from about a
-        million points with a hundred image pairs
+    compile : bool, optional
+        compile the model with torch.compile in every worker: the model then runs about 3 times faster on a GPU,
+        but the compilation takes 15-40 s per worker (less when torch has cached it on disk). Default: when
+        points times image pairs is at least 1e8
     processes : optional
         use processes (True) or threads (False) for the dask workers, only for cpu processing. Default:
         True
@@ -411,6 +414,9 @@ def n2ft(
     npoint, nimage = rslc_zarr.shape
 
     nimage_pairs = image_pairs.shape[0]
+    if compile is None:
+        compile = _n2ft_compile_default(npoint, nimage_pairs)
+        logger.info(f'compile the model: {compile}')
     if chunks is None: chunks = rslc_zarr.chunks[0]
     if out_chunks is None: out_chunks = rslc_zarr.chunks[0]
 

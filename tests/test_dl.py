@@ -116,6 +116,36 @@ def points(rslc, adi):
     return gix[:, 1].astype(np.float64), gix[:, 0].astype(np.float64), s[gix[:, 0], gix[:, 1]]
 
 
+def test_prefetched_keeps_order():
+    from moraine.api.dl import _prefetched
+    import time
+    def prepare(i):
+        time.sleep(0.01 * max(0, 5 - i))               # the first items take longest
+        return i * i
+    assert [(i, v) for i, v in _prefetched(range(6), prepare, n_prefetch=3)] == [(i, i * i) for i in range(6)]
+    assert list(_prefetched([], prepare)) == []
+    assert list(_prefetched([7], prepare, n_prefetch=0)) == [(7, 49)]
+
+
+def test_n2ft_compile_default():
+    from moraine.api.dl import _n2ft_compile_default
+    assert not _n2ft_compile_default(590_667, 91)        # Campi Flegrei: compiling costs more than it saves
+    assert _n2ft_compile_default(2_000_000, 91)
+    assert not _n2ft_compile_default(0, 91)
+
+
+@pytest.mark.parametrize('gpu', GPU)
+def test_n2ft_phasors(rng, gpu):
+    """unit phasors of the interferograms on the device, (m, n, 2) float32, as real / |z| and imag / |z|"""
+    import torch
+    from moraine.api.dl import _n2ft_phasors
+    intf = ((rng.standard_normal((50, 3, 2)) @ [1, 1j]) * rng.uniform(0.1, 3, (50, 3))).astype(np.complex64)
+    x = _n2ft_phasors(intf, torch.device('cuda' if gpu else 'cpu')).cpu().numpy()
+    assert x.shape == (3, 50, 2) and x.dtype == np.float32
+    expected = np.stack([(intf.real / np.abs(intf)).T, (intf.imag / np.abs(intf)).T], -1)
+    np.testing.assert_allclose(x, expected, atol=1e-6)
+
+
 @pytest.mark.parametrize('gpu', GPU)
 def test_n2ft_batched_interferograms(points, gpu):
     """several interferograms of the same points per model call give the results of one call per interferogram"""
