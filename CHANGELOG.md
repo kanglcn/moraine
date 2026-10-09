@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`pc-pyramid` and `ras-pyramid` render the channels in 8 forked processes (`n_workers`) instead of a dask cluster of one worker with 2 threads: the work per channel is Python code that threads cannot share, and the cluster took longer to start than the rendering. Campi Flegrei on an A100 node: the pyramid of 223 890 points x 92 images takes 6 instead of 25 s, of the 981 x 4160 x 92 rslc 8 instead of 28 s, of one 981 x 4160 raster 4 instead of 9 s; the pyramids are identical. The arguments `processes`, `threads_per_worker` and the dask cluster arguments of the two commands are gone: remove them from pipeline files that set them
+
 `n2ft --compile` failed in the GPU workers when torch.compile tuned its kernels for the first time on a machine (`CUDAPluggableAllocator does not yet support getDeviceStats`): torch allocated from the rmm pool, which has no memory statistics. The command no longer makes an rmm pool by default (`rmm_pool_size=None`, the model allocates with torch); with a pool, the compiled model runs without the kernel tuning (about 2 times slower)
 
 A model call of `n2ft` (API and command) filters as many interferograms of a processing chunk as a fifth of the GPU memory holds (about 8 kB per point and interferogram; 200 000 point-interferograms on the CPU as before) instead of 200 000 point-interferograms: more work per kernel. On an 80 GB A100 the eager model takes 0.24 instead of 0.35 µs per point and interferogram; the `n2ft` step of the 04 pipeline takes 29 instead of 37 s on Campi Flegrei (590 667 points, 91 pairs) and 17 instead of 19 s on the sample data; the phases change by rounding (at most 1.8e-4 rad)
