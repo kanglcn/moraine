@@ -8,6 +8,7 @@ from scipy.spatial import KDTree
 import fpsample
 import os
 import functools
+from concurrent.futures import ThreadPoolExecutor
 
 import importlib
 from pathlib import Path
@@ -518,29 +519,6 @@ def _pos_norm(x, y): # (N,), (N,)
 
     return np.stack((x_norm, y_norm),axis=-1).astype(np.float32)
 
-@ngpjit
-def _intf_redim2torch(intf):
-    # convert (n, m) complex intf to (m, n, 2)
-    n, m = intf.shape
-    out = np.empty((m, n, 2),dtype=np.float32)
-    for i in prange(n):
-        for j in range(m):
-            intf_i_j = intf[i,j]
-            amp_ = abs(intf_i_j)
-            out[j,i,0] = intf_i_j.real/amp_
-            out[j,i,1] = intf_i_j.imag/amp_
-    return out
-
-@ngpjit
-def _intf_redim_back(intf):
-    # convert (m, n, 2) to (n, m) complex array
-    m, n = intf.shape[:2]
-    out = np.empty((n, m),dtype=np.complex64)
-    for i in prange(n):
-        for j in range(m):
-            out[i, j] = intf[j,i,0]+intf[j,i,1]*1j
-    return out
-
 def _n2ft_structure(
     x,
     y,
@@ -565,41 +543,70 @@ def _n2ft_structure(
     keys = tuple(torch.from_numpy(key).to(device).unsqueeze(0) for key in keys)
     return pos, keys
 
-def _infer_n2ft_structure(
-    structure,
-    intf,
+# The filtering pays the compilation of the model (15-40 s per process) from this many points times interferograms:
+# compiled, the model runs about 3 times faster (A100: 2.3 instead of 7 ms per interferogram of 20 000 points).
+_N2FT_COMPILE_MIN_POINT_INTFS = 100_000_000
+_N2FT_MAX_POINT_INTFS = 200_000      # points times interferograms per model call, about 8 kB each on the device
+_N2FT_PREFETCH = 2                   # processing chunks prepared (structure, phasors) ahead of the model
+
+def _n2ft_compile_default(n_points, n_image_pairs):
+    """whether to compile the n2ft model for this much work"""
+    return n_points*n_image_pairs >= _N2FT_COMPILE_MIN_POINT_INTFS
+
+def _n2ft_phasors(intf, device):
+    """interferograms (n, m) complex64 -> unit phasors (m, n, 2) float32 on `device`"""
+    torch = _import_torch()
+    x = torch.from_numpy(np.ascontiguousarray(intf)).to(device)
+    x = torch.view_as_real(x.T.contiguous())                                      # (m, n, 2)
+    return x/torch.linalg.vector_norm(x, dim=-1, keepdim=True)
+
+def _n2ft_prepare(x, y, intf, device):
+    """structure of the points and phasors of their interferograms on `device`: the input of `_infer_n2ft_prepared`"""
+    return _n2ft_structure(x, y, device), _n2ft_phasors(intf, device)
+
+def _infer_n2ft_prepared(
+    prepared,
     model,
-    max_point_intfs:int=200000,
+    max_point_intfs:int=_N2FT_MAX_POINT_INTFS,
 ):
     """Parameters
     ----------
-    structure
-        of the points, from `_n2ft_structure` on the device of `model`
-    intf
-        (n,m)
+    prepared
+        (structure, phasors) of `_n2ft_prepare` on the device of `model`
     model
     max_point_intfs : int, default: 200000
         points times interferograms of one model call (the batch of interferograms); a call holds about 8 kB per
         point and interferogram on the device
+
+    Returns
+    -------
+    np.ndarray
+        filtered interferograms, (n, m) complex64
     """
     torch = _import_torch()
-    device = next(model.parameters()).device
-    pos, keys = structure
-    n, m = intf.shape
+    (pos, keys), x = prepared
+    m, n = x.shape[:2]
     # the model runs several interferograms of the same points at once: the structure is the same for all of them
     batch = max(1, min(m, max_point_intfs//max(n, 1)))
-    intf = _intf_redim2torch(intf)
-    out = np.empty_like(intf)
     with torch.inference_mode():
-        intf = torch.from_numpy(intf).to(device)
+        out = torch.empty_like(x)
         for start in range(0, m, batch):
             stop = min(start+batch, m)
             b = stop-start
             pos_b = pos.expand(b, *pos.shape[1:])
             keys_b = tuple(key.expand(b, *key.shape[1:]) for key in keys)
-            out[start:stop] = model(pos_b, intf[start:stop], *keys_b).cpu().numpy()
-    out = _intf_redim_back(out)
-    return out
+            out[start:stop] = model(pos_b, x[start:stop], *keys_b)
+        return torch.view_as_complex(out).T.contiguous().cpu().numpy()
+
+def _infer_n2ft_structure(
+    structure,
+    intf,
+    model,
+    max_point_intfs:int=_N2FT_MAX_POINT_INTFS,
+):
+    """`_infer_n2ft_prepared` of the structure of the points (`_n2ft_structure`) and their interferograms (n, m)"""
+    device = next(model.parameters()).device
+    return _infer_n2ft_prepared((structure, _n2ft_phasors(intf, device)), model, max_point_intfs)
 
 def _infer_n2ft(
     x,
@@ -617,7 +624,19 @@ def _infer_n2ft(
         (n,m)
     model
     """
-    return _infer_n2ft_structure(_n2ft_structure(x, y, next(model.parameters()).device), intf, model)
+    return _infer_n2ft_prepared(_n2ft_prepare(x, y, intf, next(model.parameters()).device), model)
+
+def _prefetched(items, prepare, n_prefetch=_N2FT_PREFETCH):
+    """yields (item, prepare(item)) in order, with up to `n_prefetch` further items prepared in threads meanwhile:
+    the sampling and neighbour search of the next processing chunks (CPU) run while the model filters this one"""
+    items = list(items)
+    with ThreadPoolExecutor(max_workers=max(1, n_prefetch)) as pool:
+        futures = [pool.submit(prepare, item) for item in items[:n_prefetch]]
+        for i, item in enumerate(items):
+            if i+n_prefetch < len(items):
+                futures.append(pool.submit(prepare, items[i+n_prefetch]))
+            yield item, futures[i].result()
+            futures[i] = None
 
 def n2ft(
     x:np.ndarray,
@@ -627,7 +646,7 @@ def n2ft(
     k:int=128,
     model:str=None,
     cuda:bool=False,
-    compile:bool=False,
+    compile:bool=None,
 ):
     """Parameters
     ----------
@@ -645,25 +664,29 @@ def n2ft(
         path to the model weights (.pth), use the model comes with this package by default
     cuda : bool, default: False
         use gpu for inference
-    compile : bool, default: False
-        compile the model with torch.compile: the filtering runs about twice as fast on a GPU, but the compilation
-        takes 15-40 s once per process (torch caches its result on disk)
+    compile : bool, optional
+        compile the model with torch.compile: the model then runs about 3 times faster on a GPU, but the compilation
+        takes 15-40 s once per process (torch caches its result on disk). Default: when points times
+        interferograms is at least 1e8
     """
-    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu', compile)
-
     single_intf = False
     if len(intf.shape) == 1:
         single_intf = True
         intf = intf[:,None]
+    n, m = intf.shape
+    if compile is None:
+        compile = _n2ft_compile_default(n, m)
+    model = _get_model('n2ft', model, 'cuda' if cuda else 'cpu', compile)
+    device = next(model.parameters()).device
 
-    n = intf.shape[0]
     if (chunks is None) or (chunks >= n):
         out = _infer_n2ft(x, y, intf, model)
     else:
         out = np.empty_like(intf)
         in_indices, out_slices, map_indices = chunkwise_knn_mapping(x, y, chunks, k=k)
-        for in_idx, out_slice, map_idx in zip(in_indices, out_slices, map_indices):
-            out[out_slice] = _infer_n2ft(x[in_idx],y[in_idx],intf[in_idx],model)[map_idx]
+        prepare = lambda in_idx: _n2ft_prepare(x[in_idx], y[in_idx], intf[in_idx], device)
+        for (in_idx, out_slice, map_idx), prepared in _prefetched(zip(in_indices, out_slices, map_indices), lambda item: prepare(item[0])):
+            out[out_slice] = _infer_n2ft_prepared(prepared, model)[map_idx]
 
     if single_intf:
         out = out[:,0]

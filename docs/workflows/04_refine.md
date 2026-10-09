@@ -23,9 +23,9 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 
 - Temporal coherence threshold: 0.7-0.85; lower keeps more points with more noise.
 - `n2ft` `chunks`: points per chunk (20 000); smaller uses less GPU memory.
-- `n2ft` `compile = true`: compiles the model with torch.compile in every worker (15-40 s once per worker, less
-  when torch has cached it), then the filtering runs about twice as fast on a GPU; worth it from about a million points with a
-  hundred image pairs, not for the sample data.
+- `n2ft` `compile`: the model is compiled with torch.compile in every worker when points times image pairs is at
+  least 1e8 (15-40 s once per worker, less when torch has cached it; the model then runs about 3 times faster on a
+  GPU); `compile = true` or `false` forces it. Not worth it for the sample data.
 
 ## Expected results (sample data)
 
