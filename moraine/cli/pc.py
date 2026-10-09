@@ -1,26 +1,100 @@
 """Point cloud data utilities (CLI)"""
 
+
 __all__ = ['gix2bool', 'bool2gix', 'ras2pc', 'pc_concat', 'ras2pc_ras_chunk', 'pc2ras', 'pc_hix', 'pc_gix', 'pc_sort', 'pc_union',
            'pc_intersect', 'pc_diff', 'pc_logic_ras', 'pc_logic_pc', 'pc_select_data', 'data_reduce']
 
+import itertools
 import logging
-import glob
 from pathlib import Path
 import zarr
 import numpy as np
 import numexpr as ne
-import time
 from typing import Callable
-
-import dask
-from dask import array as da
-from dask.distributed import Client, LocalCluster, progress
 
 from .logging import mc_logger
 import moraine as mr
-import moraine.cli as mc
-from ..api.utils_ import ngjit
-from . import mk_clean_dir, dask_to_zarr, dask_from_zarr
+from ..api.chunk_ import all_chunk_slices
+from .dask_ import ZarrDir, _parallel_read_pc_dir
+from .executor import Executor, Chunk
+from .utils_ import mk_clean_dir
+
+
+def _channels(extra):
+    """index tuples of the channels of an array with the trailing dimensions `extra` ([()] for none)"""
+    return list(itertools.product(*[range(n) for n in extra]))
+
+
+def _column(k):
+    """slices of channel `k` (an index tuple), one element per trailing dimension"""
+    return tuple(slice(i, i+1) for i in k)
+
+
+def _pc_zarr(path, n_points, extra, dtype, chunks):
+    """a point cloud zarr (n_points, *extra) chunked (chunks, 1, ...)"""
+    return zarr.open(str(path), mode='w', shape=(n_points, *extra), dtype=dtype, chunks=(chunks, *(1,)*len(extra)))
+
+
+def _indexing_pc_data(pc_in, iidx):
+    return pc_in[iidx]
+
+
+def _pc_concat_channel(zarr_dir, k, key, out, n_points):
+    """read channel `k` of the per chunk zarrs of `zarr_dir`, sort it by `key` and write it to `out`"""
+    data = _parallel_read_pc_dir(zarr_dir, k)
+    if key is not None:
+        data = data[key]
+    Chunk(out, (slice(0, n_points), *_column(k))).write(data.reshape(n_points, *(1,)*len(k)))
+
+
+def _pc2ras(
+    pc_data:np.ndarray,
+    gix:np.ndarray,
+    shape:tuple,
+):
+    """Parameters
+    ----------
+    pc_data : np.ndarray
+        data, 1D
+    gix : np.ndarray
+        gix
+    shape : tuple
+        image shape
+    """
+    raster = np.empty((*shape,*pc_data.shape[1:]),dtype=pc_data.dtype)
+    raster[:] = np.nan
+    raster[gix[:,0],gix[:,1]] = pc_data
+    return raster
+
+
+def _pc_union(pc1,pc2,inv_iidx1,inv_iidx2,iidx2,n_pc):
+    pc = np.empty((n_pc,*pc1.shape[1:]),dtype=pc1.dtype)
+    pc[inv_iidx1] = pc1
+    pc[inv_iidx2] = pc2[iidx2]
+    return pc
+
+
+def _reduce_chunk(chunk, map_func, reduce_func, axis):
+    data = chunk.read()
+    if map_func is not None:
+        data = map_func(data)
+    return reduce_func(data, axis=axis, keepdims=True)
+
+
+def _gather_channels(ex, fn, in_paths, out_paths, refs, n_pc, chunks, desc, logger):
+    """Run ``fn(column of every input, *refs)`` for every channel of the point clouds `in_paths` (whole columns of
+    n_points) and write the result to the point clouds `out_paths` of `n_pc` points, created here with `chunks`."""
+    tasks = []
+    for ins, out in zip(in_paths, out_paths):
+        zs = [zarr.open(path, mode='r') for path in ins]
+        for path, z in zip(ins, zs):
+            logger.zarr_info(path, z)
+        extra = zs[0].shape[1:]
+        logger.zarr_info(out, _pc_zarr(out, n_pc, extra, zs[0].dtype, chunks))
+        for k in _channels(extra):
+            tasks.append(([Chunk(path, (slice(0, z.shape[0]), *_column(k))) for path, z in zip(ins, zs)] + list(refs),
+                          [Chunk(out, (slice(0, n_pc), *_column(k)))]))
+    ex.map_chunks(fn, tasks, desc=desc)
 
 @mc_logger
 def gix2bool(gix:str,
@@ -133,52 +207,29 @@ def ras2pc(
     else:
         assert isinstance(ras,list); assert isinstance(pc,list)
         ras_list = ras; pc_list = pc
-        n_data = len(ras_list)
-
     shape = zarr.open(ras_list[0],mode='r').shape[:2]
-
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
+    if chunks is None: chunks = idx_zarr.chunks[0]
     if idx_zarr.ndim == 2:
-        if chunks is None: chunks = idx_zarr.chunks[0]
         logger.info('loading gix into memory.')
         gix = idx_zarr[:]
     else:
-        if chunks is None: chunks = idx_zarr.chunks[0]
         logger.info('loading hix into memory and convert to gix')
-        hix = idx_zarr[:]
-        gix = mr.pc_gix(hix,shape=shape)
-
+        gix = mr.pc_gix(idx_zarr[:],shape=shape)
     n_pc = gix.shape[0]
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        _pc_list = ()
-        gix_darr = da.from_array(gix,chunks=gix.shape)
+    # one task per channel of every raster: the image in, the values at the points out
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        gix_ref = ex.put(gix)
+        tasks = []
         for ras_path, pc_path in zip(ras_list,pc_list):
-            logger.info(f'start to slice on {ras_path}')
             ras_zarr = zarr.open(ras_path,mode='r'); logger.zarr_info(ras_path, ras_zarr)
-            ras = dask_from_zarr(ras_path,parallel_dims=(0,1)); logger.darr_info('ras',ras)
-            pc = da.map_blocks(mr.ras2pc, ras, gix_darr, dtype=ras.dtype, chunks=(n_pc,*ras.chunks[2:]),drop_axis=0)
-            logger.darr_info('pc', pc)
-            logger.info(f'saving to {pc_path}.')
-            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
-            #_pc.visualize(filename=f'_pc.svg')
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-
-    logger.info('dask cluster closed.')
-
-def _indexing_pc_data(pc_in,iidx):
-    return pc_in[iidx]
+            extra = ras_zarr.shape[2:]
+            logger.zarr_info(pc_path, _pc_zarr(pc_path, n_pc, extra, ras_zarr.dtype, chunks))
+            for k in _channels(extra):
+                tasks.append(([Chunk(ras_path, (slice(0, shape[0]), slice(0, shape[1]), *_column(k))), gix_ref],
+                              [Chunk(pc_path, (slice(0, n_pc), *_column(k)))]))
+        ex.map_chunks(mr.ras2pc, tasks, desc='channels')
+    logger.info('done.')
 
 @mc_logger
 def pc_concat(
@@ -217,14 +268,12 @@ def pc_concat(
     pc_path = pc
     key_path = key
     logger = logging.getLogger(__name__)
-
     if isinstance(pc_path,str):
         pc_path = [pc_path,]
         if isinstance(pcs_path,str):
             pcs_path = Path(pcs_path)
             pcs_path = sorted(pcs_path.glob('*.zarr'),key=lambda path: int(path.stem))
         pcs_path = [pcs_path,]
-
     elif isinstance(pc_path,list):
         assert isinstance(pcs_path,list)
         pcs_path_ = []
@@ -236,10 +285,8 @@ def pc_concat(
         pcs_path = pcs_path_
     else:
         raise ValueError("wrong input")
-
     logger.info(f'input pcs: {pcs_path}')
     logger.info(f'output pc: {pc_path}')
-
     if key_path is not None:
         logger.info('load key')
         if isinstance(key,list):
@@ -252,40 +299,21 @@ def pc_concat(
         else:
             key_zarr = zarr.open(key_path,mode='r'); logger.zarr_info(key_path,key_zarr)
             key = key_zarr[:]
-
+    zarr_dirs = []
     for one_pcs_path in pcs_path:
-        n_pc_file = len(one_pcs_path)
-        zarr_0 = zarr.open(one_pcs_path[0],mode='r')
-        for i in range(1,n_pc_file):
-            zarr_ = zarr.open(one_pcs_path[i],mode='r')
-            assert zarr_.shape[1:] == zarr_0.shape[1:], 'pcs shape mismatch'
-    if chunks is None: chunks = zarr_0.chunks[0]
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes,n_workers=n_workers, threads_per_worker=threads_per_worker,
-                     **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        futures = []
-        for one_pcs_path, one_pc_path in zip(pcs_path,pc_path):
-            logger.info(f'read pc from {one_pcs_path}')
-            pc = mc.dask_._dask_from_pc_zarr_dir(one_pcs_path)
-            logger.darr_info('concatenated pc', pc)
-            if key is not None:
-                logger.info('sort pc according to key')
-                pc = da.map_blocks(_indexing_pc_data,pc,key, dtype=pc.dtype, meta=np.array((),dtype=pc.dtype))
-                logger.darr_info('sorted pc',pc)
-            pc_chunk = (1,)*(pc.ndim-1)
-            logger.info(f'save pc to {one_pc_path}')
-            _pc = dask_to_zarr(pc,one_pc_path,chunks=(chunks,*pc_chunk))
-            futures.append(_pc)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(futures)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+        zarr_dir = ZarrDir([str(p) for p in one_pcs_path])
+        zarr_dirs.append(zarr_dir)
+    if chunks is None: chunks = zarr_dirs[0].chunksize[0]
+    # one task per channel of every output: the channel of all chunk zarrs read, sorted and written
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        key_ref = ex.put(key) if key is not None else None
+        tasks = []
+        for zarr_dir, one_pc_path in zip(zarr_dirs, pc_path):
+            n_pc, extra = zarr_dir.shape[0], zarr_dir.shape[1:]
+            logger.zarr_info(one_pc_path, _pc_zarr(one_pc_path, n_pc, extra, zarr_dir.dtype, chunks))
+            tasks += [(zarr_dir, k, key_ref, one_pc_path, n_pc) for k in _channels(extra)]
+        ex.map(_pc_concat_channel, tasks, desc='channels')
+    logger.info('done.')
 
 @mc_logger
 def ras2pc_ras_chunk(
@@ -329,8 +357,6 @@ def ras2pc_ras_chunk(
     else:
         assert isinstance(ras,list); assert isinstance(pc,list)
         ras_list = ras; pc_list = pc
-        n_data = len(ras_list)
-
     ras0_zarr = zarr.open(ras_list[0],mode='r')
     shape = ras0_zarr.shape[:2]
     if chunks is None: chunks = ras0_zarr.chunks[:2]
@@ -338,78 +364,34 @@ def ras2pc_ras_chunk(
     for i in range(len(chunks)):
         if chunks[i] == -1: chunks[i] = ras0_zarr.shape[i]
     chunks = tuple(chunks)
-
     gix_zarr = zarr.open(gix,mode='r'); logger.zarr_info(gix,gix_zarr)
     logger.info('loading gix into memory.')
     gix = gix_zarr[:]
-    n_pc = gix.shape[0]
-
     logger.info('convert gix to the order of ras chunk')
     chunk_idx, chunk_bounds, invert_idx = mr.api.pc._pc_split_by_chunk(gix,chunks,shape)
-    pc_chunksize = tuple(np.diff(chunk_bounds))
     sorted_gix = gix[chunk_idx]
     ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix,chunk_bounds, chunks, shape)
     logger.info('save key')
     key_zarr = zarr.open(key,mode='w',dtype=invert_idx.dtype,shape=invert_idx.shape,chunks=gix_zarr.chunks[:1])
     key_zarr[:] = invert_idx
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        _pc_list = ()
-        ras2pc_delayed = dask.delayed(mr.ras2pc,pure=True,nout=1)
-        gix_darr = da.from_array(ras_chunk_order_gix,chunks=(pc_chunksize,(2,)))
-        gix_delayed = gix_darr.to_delayed().reshape(-1)
-        for ras_path, pc_path in zip(ras_list,pc_list):
-            pc_path = Path(pc_path); mk_clean_dir(pc_path)
-            logger.info(f'start to slice on {ras_path}')
-            ras_zarr = zarr.open(ras_path,mode='r'); logger.zarr_info(ras_path, ras_zarr)
-            ras = dask_from_zarr(ras_path,chunks=(*chunks, *ras_zarr.shape[2:]))
-            logger.darr_info('ras',ras)
-            ras_delayed = ras.to_delayed().reshape(-1)
-            pc_delayed = np.empty_like(ras_delayed,dtype=object)
-            for i in range(ras_delayed.shape[0]):
-                pc_delayed[i] = ras2pc_delayed(ras_delayed[i], gix_delayed[i])
-                pc_delayed[i] = da.from_delayed(pc_delayed[i],shape=(pc_chunksize[i],*ras_zarr.shape[2:]),meta=np.array((),dtype=ras_zarr.dtype))
-            _out_shape = (1,)*(ras_zarr.ndim-2)
-            pc = da.block(pc_delayed.reshape((-1,*_out_shape)).tolist()) #the empty chunks are automatically removed from here
-            pc = pc.rechunk((pc_chunksize,*pc.shape[1:])) # so add them back here
-            logger.darr_info('pc', pc)
-            logger.info(f'saving to {pc_path}.')
-            for j in range(pc.numblocks[0]):
-                if pc_chunksize[j] > 0:
-                    _pc = dask_to_zarr(pc.blocks[j],pc_path/f'{j}.zarr',chunks=(pc_chunksize[j],*_out_shape),log_zarr=False)
-                    _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-
-    logger.info('dask cluster closed.')
-
-def _pc2ras(
-    pc_data:np.ndarray,
-    gix:np.ndarray,
-    shape:tuple,
-):
-    """Parameters
-    ----------
-    pc_data : np.ndarray
-        data, 1D
-    gix : np.ndarray
-        gix
-    shape : tuple
-        image shape
-    """
-    raster = np.empty((*shape,*pc_data.shape[1:]),dtype=pc_data.dtype)
-    raster[:] = np.nan
-    raster[gix[:,0],gix[:,1]] = pc_data
-    return raster
+    chunk_slices = all_chunk_slices(shape, chunks)
+    # one task per raster chunk with points and raster: the chunk in, the values at its points out, one zarr per chunk
+    tasks = []
+    for ras_path, pc_path in zip(ras_list,pc_list):
+        pc_path = Path(pc_path); mk_clean_dir(pc_path)
+        ras_zarr = zarr.open(ras_path,mode='r'); logger.zarr_info(ras_path, ras_zarr)
+        extra = ras_zarr.shape[2:]
+        for j, sl in enumerate(chunk_slices):
+            b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
+            if b1 == b0:
+                continue
+            _pc_zarr(pc_path/f'{j}.zarr', b1-b0, extra, ras_zarr.dtype, b1-b0)
+            tasks.append(([Chunk(ras_path, (*sl, *(slice(0, n) for n in extra))), ras_chunk_order_gix[b0:b1]],
+                          [Chunk(str(pc_path/f'{j}.zarr'))]))
+    logger.info(f'{len(tasks)} raster chunks with points')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        ex.map_chunks(mr.ras2pc, tasks, desc='chunks')
+    logger.info('done.')
 
 @mc_logger
 def pc2ras(
@@ -447,56 +429,36 @@ def pc2ras(
         other dask local cluster args
     """
     logger = logging.getLogger(__name__)
-
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
     if idx_zarr.ndim == 2:
         logger.info('loading gix into memory.')
         gix = idx_zarr[:]
     else:
         logger.info('loading hix into memory and convert to gix')
-        hix = idx_zarr[:]
         assert shape is not None, "shape not provided for hillbert index input"
-        gix = mr.pc_gix(hix,shape=shape)
-
+        gix = mr.pc_gix(idx_zarr[:],shape=shape)
     n_pc = gix.shape[0]
+    shape = tuple(shape); chunks = tuple(chunks)
     if isinstance(pc,str):
         assert isinstance(ras,str)
         pc_list = [pc]; ras_list = [ras]
     else:
         assert isinstance(pc,list); assert isinstance(ras,list)
         pc_list = pc; ras_list = ras
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        _ras_list = ()
-        gix_darr = da.from_array(gix,chunks=gix.shape)
-
+    # one task per channel of every point cloud: the values of the points in, the image out
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        gix_ref = ex.put(gix)
+        tasks = []
         for ras_path, pc_path in zip(ras_list,pc_list):
-            logger.info(f'start to work on {pc_path}')
-            pc_zarr = zarr.open(pc_path,mode='r')
-            logger.zarr_info(pc_path,pc_zarr)
-
-            pc = dask_from_zarr(pc_path,parallel_dims=0)
-            logger.darr_info('pc', pc)
-            logger.info('create ras dask array')
-            ras = da.map_blocks(_pc2ras, pc, gix_darr, shape, dtype=pc.dtype, chunks=(*shape,*pc_zarr.chunks[1:]))
-            logger.darr_info('ras', ras)
-            logger.info(f'save ras to {ras_path}')
-            _ras = dask_to_zarr(ras,ras_path,chunks=(*chunks,*pc_zarr.chunks[1:]))
-            _ras_list += (_ras,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_ras_list)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-
-    logger.info('dask cluster closed.')
+            pc_zarr = zarr.open(pc_path,mode='r'); logger.zarr_info(pc_path,pc_zarr)
+            extra = pc_zarr.shape[1:]
+            ras_zarr = zarr.open(ras_path,mode='w',shape=(*shape,*extra),dtype=pc_zarr.dtype,chunks=(*chunks,*(1,)*len(extra)))
+            logger.zarr_info(ras_path, ras_zarr)
+            for k in _channels(extra):
+                tasks.append(([Chunk(pc_path, (slice(0, n_pc), *_column(k))), gix_ref, shape],
+                              [Chunk(ras_path, (slice(0, shape[0]), slice(0, shape[1]), *_column(k)))]))
+        ex.map_chunks(_pc2ras, tasks, desc='channels')
+    logger.info('done.')
 
 @mc_logger
 def pc_hix(
@@ -599,7 +561,7 @@ def pc_sort(
     logger.info('loading idx_in and calculate the sorting indices.')
     idx_in = idx_in_zarr[:]; iidx = mr.pc_sort(idx_in, shape=shape)
     n_pc = idx_in_zarr.shape[0]
-    if chunks is None: chunks = idx_in_zarr.chunks[0] 
+    if chunks is None: chunks = idx_in_zarr.chunks[0]
     logger.info(f'output pc chunk size is {chunks}')
     idx_chunk_size = (chunks,1) if idx_in.ndim == 2 else (chunks,)
     idx_zarr = zarr.open(idx,mode='w', shape=idx_in_zarr.shape, dtype=idx_in.dtype, chunks=idx_chunk_size)
@@ -609,50 +571,18 @@ def pc_sort(
         logger.info('saving key for this sorting')
         key_zarr = zarr.open(key,mode='w',shape=iidx.shape,dtype=iidx.dtype,chunks=(chunks,))
         key_zarr[:] = iidx
-
     if pc_in is None:
         logger.info('no point cloud data provided, exit.')
         return None
-
     if isinstance(pc_in,str):
         assert isinstance(pc,str)
         pc_in_list = [pc_in]; pc_list = [pc]
     else:
         assert isinstance(pc_in,list); assert isinstance(pc,list)
         pc_in_list = pc_in; pc_list = pc
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        _pc_list = ()
-        for pc_in_path, pc_path in zip(pc_in_list,pc_list):
-            pc_in_zarr = zarr.open(pc_in_path,mode='r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = dask_from_zarr(pc_in_path,parallel_dims=0)
-            logger.darr_info('pc_in', pc_in)
-            logger.info('set up sorted pc data dask array.')
-            pc = da.map_blocks(_indexing_pc_data, pc_in, iidx, chunks=pc_in.chunks, dtype=pc_in.dtype)
-            logger.darr_info('pc',pc)
-            logger.info(f'write pc to {pc_path}')
-            _pc = dask_to_zarr(pc, pc_path, chunks=(chunks,*pc.chunksize[1:]))
-            # _pc.visualize(filename=f'_pc.svg')
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
-
-def _pc_union(pc1,pc2,inv_iidx1,inv_iidx2,iidx2,n_pc):
-    pc = np.empty((n_pc,*pc1.shape[1:]),dtype=pc1.dtype)
-    pc[inv_iidx1] = pc1
-    pc[inv_iidx2] = pc2[iidx2]
-    return pc
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
+    logger.info('done.')
 
 @mc_logger
 def pc_union(
@@ -700,64 +630,35 @@ def pc_union(
         other dask local cluster args
     """
     logger = logging.getLogger(__name__)
-
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
     idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info(idx2,idx2_zarr)
     logger.info('loading idx1 and idx2 into memory.')
     idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
-
     logger.info('calculate the union')
     idx_path = idx
     idx, inv_iidx1, inv_iidx2, iidx2 = mr.pc_union(idx1,idx2,shape=shape)
     n_pc = idx.shape[0]
     logger.info(f'number of points in the union: {n_pc}')
-    if chunks is None: chunks = idx1_zarr.chunks[0] 
+    if chunks is None: chunks = idx1_zarr.chunks[0]
     idx_chunk_size = (chunks,1) if idx.ndim == 2 else (chunks,)
     idx_zarr = zarr.open(idx_path,mode='w',shape=idx.shape,dtype=idx.dtype,chunks=idx_chunk_size)
     logger.info('write union idx')
     idx_zarr[:] = idx
     logger.info('write done')
     logger.zarr_info(idx_path, idx_zarr)
-
     if pc1 is None:
         logger.info('no point cloud data provided, exit.')
         return None
-
     if isinstance(pc1,str):
         assert isinstance(pc2,str); assert isinstance(pc,str)
         pc1_list = [pc1]; pc2_list = [pc2]; pc_list = [pc]
     else:
         assert isinstance(pc1,list); assert isinstance(pc2,list); assert isinstance(pc,list)
         pc1_list = pc1; pc2_list = pc2; pc_list = pc
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        _pc_list = ()
-        for pc1_path, pc2_path, pc_path in zip(pc1_list,pc2_list,pc_list):
-            pc1_zarr = zarr.open(pc1_path,mode='r'); pc2_zarr = zarr.open(pc2_path,mode='r')
-            logger.zarr_info(pc1_path, pc1_zarr); logger.zarr_info(pc2_path, pc2_zarr);
-            pc1 = dask_from_zarr(pc1_path,parallel_dims=0)
-            pc2 = dask_from_zarr(pc2_path,parallel_dims=0)
-            logger.darr_info('pc1', pc1); logger.darr_info('pc2',pc2)
-            logger.info('set up union pc data dask array.')
-            pc = da.map_blocks(_pc_union, pc1,pc2,inv_iidx1,inv_iidx2,iidx2,n_pc, chunks=(n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
-            logger.darr_info('pc',pc)
-            logger.info(f'write pc to {pc_path}')
-            _pc = dask_to_zarr(pc, pc_path, chunks=(chunks,*pc.chunksize[1:]))
-            # pc.visualize(filename=f'pc.svg')
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-
-    logger.info('dask cluster closed.')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        refs = [ex.put(inv_iidx1), ex.put(inv_iidx2), ex.put(iidx2), n_pc]
+        _gather_channels(ex, _pc_union, [[a, b] for a, b in zip(pc1_list, pc2_list)], pc_list, refs, n_pc, chunks, 'channels', logger)
+    logger.info('done.')
 
 @mc_logger
 def pc_intersect(
@@ -808,71 +709,40 @@ def pc_intersect(
         other dask local cluster args
     """
     logger = logging.getLogger(__name__)
-
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
     idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info(idx2,idx2_zarr)
     logger.info('loading idx1 and idx2 into memory.')
     idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
-
     logger.info('calculate the intersection')
     idx_path = idx
     idx, iidx1, iidx2 = mr.pc_intersect(idx1,idx2,shape=shape)
     n_pc = idx.shape[0]
     logger.info(f'number of points in the intersection: {n_pc}')
-    if chunks is None: chunks = idx1_zarr.chunks[0] 
-    idx_chunk_size = (chunks,1) if idx.ndim == 2 else (chunks,)    
+    if chunks is None: chunks = idx1_zarr.chunks[0]
+    idx_chunk_size = (chunks,1) if idx.ndim == 2 else (chunks,)
     idx_zarr = zarr.open(idx_path,mode='w',shape=idx.shape,dtype=idx.dtype,chunks=idx_chunk_size)
     logger.info('write intersect idx')
     idx_zarr[:] = idx
     logger.info('write done')
     logger.zarr_info(idx_path, idx_zarr)
-
     if (pc1 is None) and (pc2 is None):
         logger.info('no point cloud data provided, exit.')
         return None
-
     if prefer_1:
         logger.info('select pc1 as pc_input.')
         iidx = iidx1; pc_input = pc1
     else:
         logger.info('select pc2 as pc_input.')
         iidx = iidx2; pc_input = pc2
-
     if isinstance(pc_input,str):
         assert isinstance(pc,str)
         pc_input_list = [pc_input]; pc_list = [pc]
     else:
         assert isinstance(pc_input,list); assert isinstance(pc,list)
         pc_input_list = pc_input; pc_list = pc
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        iidx_darr = da.from_array(iidx,chunks=iidx.shape)
-        _pc_list = ()
-        for pc_input_path, pc_path in zip(pc_input_list,pc_list):
-            pc_input_zarr = zarr.open(pc_input_path,mode='r')
-            logger.zarr_info(pc_input_path,pc_input_zarr)
-            pc_input = dask_from_zarr(pc_input_path,parallel_dims=0)
-            logger.darr_info('pc_input', pc_input)
-
-            logger.info('set up intersect pc data dask array.')
-            pc = da.map_blocks(_indexing_pc_data, pc_input, iidx_darr, chunks = (n_pc,*pc_input.chunks[1:]), dtype=pc_input.dtype)
-            logger.darr_info('pc',pc)
-            logger.info(f'write pc to {pc_path}')
-            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
-            #pc.visualize(filename=f'pc.svg')
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_input_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
+    logger.info('done.')
 
 @mc_logger
 def pc_diff(
@@ -916,63 +786,34 @@ def pc_diff(
         other dask local cluster args
     """
     logger = logging.getLogger(__name__)
-
     idx1_zarr = zarr.open(idx1,mode='r'); logger.zarr_info(idx1,idx1_zarr)
     idx2_zarr = zarr.open(idx2,mode='r'); logger.zarr_info(idx2,idx2_zarr)
     logger.info('loading idx1 and idx2 into memory.')
     idx1 = idx1_zarr[:]; idx2 = idx2_zarr[:]
-
     logger.info('calculate the diff.')
     idx_path = idx
     idx, iidx1 = mr.pc_diff(idx1,idx2,shape=shape)
     n_pc = idx.shape[0]
     logger.info(f'number of points in the diff: {n_pc}')
-    if chunks is None: chunks = idx1_zarr.chunks[0] 
+    if chunks is None: chunks = idx1_zarr.chunks[0]
     idx_chunk_size = (chunks,1) if idx.ndim == 2 else (chunks,)
     idx_zarr = zarr.open(idx_path,mode='w',shape=idx.shape,dtype=idx.dtype,chunks=idx_chunk_size)
     logger.info('write intersect idx')
     idx_zarr[:] = idx
     logger.info('write done')
     logger.zarr_info(idx_path, idx_zarr)
-
     if pc1 is None:
         logger.info('no point cloud data provided, exit.')
         return None
-
     if isinstance(pc1,str):
         assert isinstance(pc,str)
         pc1_list = [pc1]; pc_list = [pc]
     else:
         assert isinstance(pc1,list); assert isinstance(pc,list)
         pc1_list = pc1; pc_list = pc
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes,n_workers=n_workers, threads_per_worker=threads_per_worker,
-                     **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        iidx1_darr = da.from_array(iidx1,chunks=iidx1.shape)
-
-        _pc_list = ()
-        for pc1_path, pc_path in zip(pc1_list,pc_list):
-            pc1_zarr = zarr.open(pc1_path,mode='r'); logger.zarr_info(pc1_path, pc1_zarr)
-            pc1 = dask_from_zarr(pc1_path,parallel_dims=0); logger.darr_info('pc1', pc1)
-            logger.info('set up diff pc data dask array.')
-            pc = da.map_blocks(_indexing_pc_data, pc1, iidx1_darr, chunks = (n_pc,*pc1.chunks[1:]), dtype=pc1.dtype)
-            logger.darr_info('pc',pc)
-
-            logger.info(f'write pc to {pc_path}')
-            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
-            # pc.visualize(filename=f'pc.svg',optimize_graph=True)
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        _gather_channels(ex, _indexing_pc_data, [[p] for p in pc1_list], pc_list, [ex.put(iidx1)], n_pc, chunks, 'channels', logger)
+    logger.info('done.')
 
 @mc_logger
 def pc_logic_ras(ras,
@@ -1109,40 +950,16 @@ def pc_select_data(
         raise NotImplementedError('idx_in as hilbert index while idx as grid index have not been supported yet.')
     np.testing.assert_array_equal(iidx,np.arange(iidx.shape[0]),err_msg='idx have points that are not covered by idx_in.')
     n_pc = iidx_in.shape[0]
-    if chunks is None: chunks = idx_zarr.chunks[0] 
-
+    if chunks is None: chunks = idx_zarr.chunks[0]
     if isinstance(pc_in,str):
         assert isinstance(pc,str)
         pc_in_list = [pc_in]; pc_list = [pc]
     else:
         assert isinstance(pc_in,list); assert isinstance(pc,list)
         pc_in_list = pc_in; pc_list = pc
-
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-        iidx_in_darr = da.from_array(iidx_in,chunks=iidx_in.shape)
-
-        _pc_list = ()
-        for pc_in_path, pc_path in zip(pc_in_list,pc_list):
-            pc_in_zarr = zarr.open(pc_in_path,mode='r'); logger.zarr_info(pc_in_path, pc_in_zarr)
-            pc_in = dask_from_zarr(pc_in_path,parallel_dims=0); logger.darr_info('pc_in', pc_in)
-            logger.info('set up selected pc data dask array.')
-            pc = da.map_blocks(_indexing_pc_data, pc_in, iidx_in_darr, chunks = (n_pc, *pc_in.chunks[1:]), dtype=pc_in.dtype)
-            logger.darr_info('pc',pc)
-            logger.info(f'write pc to {pc_path}')
-            _pc = dask_to_zarr(pc,pc_path,chunks=(chunks,*pc.chunksize[1:]))
-            _pc_list += (_pc,)
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_pc_list)
-        progress(futures,notebook=False); time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx_in)], n_pc, chunks, 'channels', logger)
+    logger.info('done.')
 
 @mc_logger
 def data_reduce(
@@ -1182,31 +999,19 @@ def data_reduce(
     **dask_cluster_arg
         other dask local cluster args
     """
-    data_in_path = data_in
     logger = logging.getLogger(__name__)
-    data_in_zarr = zarr.open(data_in_path,mode='r'); logger.zarr_info(data_in_path, data_in_zarr)
-    logger.info('starting dask local cluster.')
-    with LocalCluster(processes=processes, n_workers=n_workers, threads_per_worker=threads_per_worker,
-                      **dask_cluster_arg) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-        data_in = da.from_zarr(data_in_path,inline_array=True); logger.darr_info('data_in', data_in)
-        if map_func is not None:
-            map_data_in = da.map_blocks(map_func, data_in)
-        else:
-            map_data_in = data_in
-        logger.darr_info('maped_data_in', map_data_in)
-        reduced_chunks = np.array(map_data_in.chunksize); reduced_chunks[np.array(axis)] = 1
-        reduced_chunks = tuple(reduced_chunks)
-
-        reduced_data = da.map_blocks(reduce_func, map_data_in, axis=axis, keepdims=True, chunks=reduced_chunks)
-        logger.darr_info('reduced data in every chunk', reduced_data)
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(reduced_data)
-        progress(futures,notebook=False); time.sleep(0.1)
-        reduced_result = da.compute(futures)[0]
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    data_in_zarr = zarr.open(data_in,mode='r'); logger.zarr_info(data_in, data_in_zarr)
+    axes = (axis,) if isinstance(axis, int) else tuple(axis)
+    slices = all_chunk_slices(data_in_zarr.shape, data_in_zarr.chunks)
+    n_blocks = [-(-n // c) for n, c in zip(data_in_zarr.shape, data_in_zarr.chunks)]
+    logger.info(f'reduction of {len(slices)} chunks')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes, **dask_cluster_arg) as ex:
+        parts = ex.map(_reduce_chunk, [(Chunk(data_in, sl), map_func, reduce_func, axes) for sl in slices], desc='chunks')
+    # the reductions of the chunks in the chunk grid, then the reduction over the chunks
+    grid = np.empty(n_blocks, dtype=object)
+    for pos, part in zip(itertools.product(*[range(n) for n in n_blocks]), parts):
+        grid[pos] = part
+    reduced_result = np.block(grid.tolist())
     logger.info('continue the reduction on reduced data over every chunk')
     reduced_result = reduce_func(reduced_result,axis=axis,keepdims=False)
     logger.info('post mapping')

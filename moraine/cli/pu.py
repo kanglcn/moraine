@@ -8,13 +8,27 @@ import zarr
 import time
 import numpy as np
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
+from concurrent.futures import ThreadPoolExecutor
 import moraine as mr
 from .logging import mc_logger
-from . import dask_from_zarr, dask_to_zarr, parallel_read_zarr
+from .dask_ import parallel_read_zarr
+from .executor import Executor, Chunk
+
+
+def _thread_map(fn, items, n_workers):
+    """``fn(item)`` for every item, `n_workers` at a time in threads (for functions that release the GIL); the first
+    error is raised"""
+    with ThreadPoolExecutor(max_workers=max(1, int(n_workers))) as pool:
+        for _ in pool.map(fn, items):
+            pass
+
+def _gamma_mcf_pt_task(pc_x, pc_y, ph, unw_ph, ref, sec, k, ref_point):
+    """unwrap the interferogram (ref, sec) of the phase history `ph` with GAMMA and write column `k` of `unw_ph`"""
+    ph_zarr = zarr.open(ph, mode='r')
+    intf = mr.intf(ph_zarr[:, ref], ph_zarr[:, sec])
+    unw = mr.gamma_mcf_pt(pc_x, pc_y, intf, ref_point=ref_point)
+    Chunk(unw_ph, (slice(0, unw.shape[0]), slice(k, k+1))).write(np.asarray(unw, dtype=np.float32)[:, None])
+
 
 @mc_logger
 def gamma_mcf_pt(
@@ -71,48 +85,15 @@ def gamma_mcf_pt(
 
     if out_chunks is None: out_chunks = ph_zarr.chunks[0]
 
-    Cluster = LocalCluster; cluster_args = {'processes':True, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-    cluster_args.update(dask_cluster_arg)
-
-    logger.info('starting dask local cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask local cluster started.')
-        logger.dask_cluster_info(cluster)
-
-
-        ph = dask_from_zarr(ph_path,chunks=(ph_zarr.shape[0],1))
-        logger.darr_info('ph', ph)
-
-        pc_x = da.from_array(pc_x_data,chunks=pc_x_data.shape)
-        pc_y = da.from_array(pc_y_data,chunks=pc_y_data.shape)
-
-        logger.info(f'phase wrapping with mcf.')
-
-        pc_x_delayed = pc_x.to_delayed()[0]
-        pc_y_delayed = pc_y.to_delayed()[0]
-        ph_delayed = ph.to_delayed()[0]
-
-        unw_ph_delayed = np.empty((1,nimage_pairs),dtype=object)
-        f_mcf_delayed = delayed(mr.gamma_mcf_pt,pure=True,nout=1)
-        f_intf_delayed = delayed(mr.intf,pure=True,nout=1)
-        for i, (ref, sec) in enumerate(image_pairs):
-            intf_delayed = f_intf_delayed(ph_delayed[ref],ph_delayed[sec])
-            unw_ph_delayed[0,i] = f_mcf_delayed(pc_x_delayed, pc_y_delayed, intf_delayed, ref_point=ref_point)
-            unw_ph_delayed[0,i] = da.from_delayed(unw_ph_delayed[0,i],shape=(npoint,1),meta=np.array((),dtype=np.float32))
-        unw_ph = da.block(unw_ph_delayed.tolist())
-
-        logger.info('got unwrapped phase.')
-        logger.darr_info('unw_ph', unw_ph)
-        logger.info('save unw_ph')
-        _unw_ph = dask_to_zarr(unw_ph, unw_ph_path,chunks=(out_chunks,1))
-
-        logger.info('computing graph setted. doing all the computing.')
-        futures = client.persist(_unw_ph)
-        progress(futures,notebook=False)
-        time.sleep(0.1)
-        da.compute(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+    unw_zarr = zarr.open(unw_ph_path, mode='w', shape=(npoint, nimage_pairs), dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(unw_ph_path, unw_zarr)
+    logger.info('phase unwrapping with mcf_pt.')
+    # one task per interferogram, in processes (GAMMA runs in its own process; the coordinates are shared)
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=True, **dask_cluster_arg) as ex:
+        pc_x_ref, pc_y_ref = ex.put(pc_x_data), ex.put(pc_y_data)
+        ex.map(_gamma_mcf_pt_task, [(pc_x_ref, pc_y_ref, ph_path, unw_ph_path, int(ref), int(sec), i, ref_point)
+                                    for i, (ref, sec) in enumerate(image_pairs)], desc='interferograms')
+    logger.info('done.')
 
 @mc_logger
 def mcf_pc(
@@ -199,7 +180,7 @@ def mcf_pc(
         per_worker = _mcf_worker_bytes(n_points, tri.shape[0] // 3)
         n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // per_worker)))
     logger.info(f'{n_pairs} interferograms, {n_workers} at the same time')
-    dask.compute(*[delayed(unwrap)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+    _thread_map(unwrap, range(n_pairs), n_workers)
     logger.info('done.')
 
 
@@ -347,7 +328,7 @@ def emcf_pc(
                 np.ascontiguousarray(ph_rows), p, q, pairs, pair_cost, order, parent)
             del ph_rows
 
-    # spatial step per interferogram, in dask threads
+    # spatial step per interferogram, in threads
     unw_zarr = zarr.open(unw_ph, mode='w', shape=(n_points, n_pairs), dtype=np.float32, chunks=(out_chunks, 1))
     logger.zarr_info(unw_ph, unw_zarr)
     earth_cost = int(earth_cost)
@@ -361,7 +342,7 @@ def emcf_pc(
     if not n_workers:
         n_workers = _emcf._spatial_workers(n_points, n_edges, tri.shape[0] // 3, flags, n_pairs)
     logger.info(f'spatial step: {n_pairs} interferograms, {n_workers} at the same time')
-    dask.compute(*[delayed(spatial)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+    _thread_map(spatial, range(n_pairs), n_workers)
     shutil.rmtree(tmp)
     logger.info('done.')
 
@@ -544,7 +525,7 @@ def unwrap_correct_closure_pc(
         logger.info(f'loops do not close at {np.mean(mis > 0):.1%} of the points, mean fraction of interferograms '
                     f'that do not fit {mis.mean():.3f}')
 
-        # correction per region and interferogram, in dask threads
+        # correction per region and interferogram, in threads
         cor_zarr = zarr.open(str(tmp / 'cor.zarr'), mode='w', shape=(n_points, n_pairs), dtype=np.float32,
                              chunks=(block, 1))
 
@@ -557,7 +538,7 @@ def unwrap_correct_closure_pc(
         if not n_workers:
             n_workers = max(1, min(n_pairs, get_n_cpus_avail(), int(0.5 * get_mem_avail() // (16 * n_points + 1))))
         logger.info(f'correction: {n_pairs} interferograms, {n_workers} at the same time')
-        dask.compute(*[delayed(correct)(k) for k in range(n_pairs)], scheduler='threads', num_workers=n_workers)
+        _thread_map(correct, range(n_pairs), n_workers)
     if misclosure_fraction is not None:
         z = zarr.open(misclosure_fraction, mode='w', shape=(n_points,), dtype=np.float32, chunks=(out_chunks,))
         logger.zarr_info(misclosure_fraction, z)

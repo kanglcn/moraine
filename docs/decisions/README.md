@@ -39,6 +39,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0029](0029-numba-cache-by-source-hash.md) | Compiled numba functions are cached in a directory named after the hash of the sources | Accepted |
 | [0030](0030-gpu-kernels-in-numba-cuda.md) | GPU kernels are written with numba.cuda (numba-cuda), not as cupy C++ kernels | Accepted |
 | [0031](0031-gpu-emi-kernel.md) | The regularized EMI on the GPU is one numba.cuda thread block per point with its matrices in shared memory | Accepted |
+| [0032](0032-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
 
 ## Writing a record
 

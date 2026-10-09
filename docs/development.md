@@ -57,6 +57,23 @@ git worktree remove ../moraine-<topic>                 # after the branch is mer
 - Changes to shared files (`CHANGELOG.md`, `ARCHITECTURE.md`, the decision index) are merged by hand when
   the branches come together; keep them to the lines your topic needs.
 
+### How a command runs its work
+
+A command of `moraine/cli/` lists its tasks and hands them to `moraine.cli.executor.Executor` (decision 0032):
+
+```python
+tasks = [([Chunk(rslc, (*sl, slice(0, nimages)))], [Chunk(adi, sl)]) for sl in all_chunk_slices((nlines, width), chunks)]
+with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+              rmm_pool_size=rmm_pool_size) as ex:
+    ex.map_chunks(mr.amp_disp, tasks, desc='amplitude dispersion')
+```
+
+A task is a plain function with picklable arguments: `chunk_task` reads the `Chunk` inputs (cupy arrays with
+`cuda`), calls the API function and writes the results to the `Chunk` outputs, which must cover whole chunks of
+the output array (create the output zarr before, with the processing chunks as a multiple of its chunks). Other
+tasks go through `ex.map(fn, [args, ...])`; an object every task needs (an index array) is shared with `ex.put`;
+per worker setup (the GPU allocator of torch) with `ex.run_on_workers`. Do not build dask arrays in a command.
+
 ### Large data and memory
 
 moraine is made for data larger than memory (tens of millions of points, stacks of hundreds of images);

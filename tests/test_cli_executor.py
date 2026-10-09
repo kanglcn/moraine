@@ -26,9 +26,13 @@ def _stack(path, rng, shape=(64, 48), chunks=(16, 48)):
     return data
 
 
+BACKENDS = ['own', 'dask']
+
+
+@pytest.mark.parametrize('backend', BACKENDS)
 @pytest.mark.parametrize('processes', [False, True])
-def test_map_order_and_errors(processes):
-    with Executor(processes=processes, n_workers=2, threads_per_worker=2) as ex:
+def test_map_order_and_errors(processes, backend):
+    with Executor(processes=processes, n_workers=2, threads_per_worker=2, backend=backend) as ex:
         assert 'workers' in ex.describe()
         assert ex.map(_square, [(np.float32(i),) for i in range(7)]) == [i * i for i in range(7)]
         assert ex.map(_square, []) == []
@@ -36,9 +40,11 @@ def test_map_order_and_errors(processes):
             ex.map(_fail, [(1,), (2,)])
 
 
-def test_put_and_run_on_workers(tmp_path, rng):
+@pytest.mark.parametrize('backend', BACKENDS)
+@pytest.mark.parametrize('processes', [False, True])
+def test_put_and_run_on_workers(tmp_path, rng, processes, backend):
     big = rng.random(1000).astype(np.float32)
-    with Executor(threads_per_worker=2) as ex:
+    with Executor(threads_per_worker=2, processes=processes, backend=backend) as ex:
         shared = ex.put(big)
         out = ex.map(_square, [(shared,)] * 3)
         for o in out:
@@ -46,7 +52,8 @@ def test_put_and_run_on_workers(tmp_path, rng):
         ex.run_on_workers(_square, np.float32(2))     # runs without error in every worker
 
 
-def test_chunk_task(tmp_path, rng):
+@pytest.mark.parametrize('backend', BACKENDS)
+def test_chunk_task(tmp_path, rng, backend):
     a = _stack(tmp_path / 'a.zarr', rng)
     b = _stack(tmp_path / 'b.zarr', rng)
     zarr.open(str(tmp_path / 'sum.zarr'), mode='w', shape=a.shape, dtype=a.dtype, chunks=(16, 48))
@@ -56,7 +63,7 @@ def test_chunk_task(tmp_path, rng):
         sl = (slice(start, start + 32), slice(0, 48))
         tasks.append(([Chunk(str(tmp_path / 'a.zarr'), sl), Chunk(str(tmp_path / 'b.zarr'), sl)],
                       [Chunk(str(tmp_path / 'sum.zarr'), sl), Chunk(str(tmp_path / 'diff.zarr'), sl)]))
-    with Executor(threads_per_worker=2) as ex:
+    with Executor(threads_per_worker=2, backend=backend) as ex:
         ex.map_chunks(_two, tasks, scale=2.0)
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sum.zarr'), mode='r')[:], a + b)
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'diff.zarr'), mode='r')[:], (a - b) * 2)
@@ -78,14 +85,21 @@ def test_write_must_cover_whole_chunks(tmp_path, rng):
 
 
 @pytest.mark.gpu
-def test_chunk_task_gpu(tmp_path, rng):
+@pytest.mark.parametrize('backend', BACKENDS)
+def test_chunk_task_gpu(tmp_path, rng, backend):
     rslc = (rng.random((40, 30, 3)) + 1j * rng.random((40, 30, 3))).astype(np.complex64)
     z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='w', shape=rslc.shape, dtype=rslc.dtype, chunks=(20, 30, 1))
     z[:] = rslc
     zarr.open(str(tmp_path / 'adi.zarr'), mode='w', shape=rslc.shape[:2], dtype=np.float32, chunks=(20, 30))
     tasks = [([Chunk(str(tmp_path / 'rslc.zarr'), (slice(s, s + 20), slice(0, 30), slice(0, 3)))],
               [Chunk(str(tmp_path / 'adi.zarr'), (slice(s, s + 20), slice(0, 30)))]) for s in (0, 20)]
-    with Executor(cuda=True) as ex:
+    with Executor(cuda=True, backend=backend) as ex:
         assert 'GPU' in ex.describe()
         ex.map_chunks(mr.amp_disp, tasks)
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'adi.zarr'), mode='r')[:], mr.amp_disp(rslc), rtol=1e-5)
+
+
+def test_own_backend_rejects_dask_arguments():
+    with pytest.raises(TypeError, match='memory_limit'):
+        with Executor(backend='own', memory_limit='1GB'):
+            pass

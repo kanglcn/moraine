@@ -13,15 +13,9 @@ import importlib
 import itertools
 from ..api.utils_ import ngjit, ngpjit
 
-import dask
-from dask import array as da
-from dask import delayed
-from dask.distributed import Client, LocalCluster, progress
 from ..api.utils_ import is_cuda_available
 if is_cuda_available():
     import cupy as cp
-    from dask_cuda import LocalCUDACluster
-    from rmm.allocators.cupy import rmm_cupy_allocator
 import moraine as mr
 import moraine.cli as mc
 from ..api.utils_ import get_array_module
@@ -29,7 +23,7 @@ from ..api.chunk_ import chunkwise_knn_mapping
 from .dask_ import parallel_read_zarr, parallel_write_zarr
 from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
 from .logging import mc_logger
-from . import mk_clean_dir, dask_from_zarr, dask_from_zarr_overlap, dask_to_zarr
+from .executor import Executor
 
 def _torch_use_rmm():
     '''let torch allocate gpu memory from the rmm pool, run it in every dask cuda worker before torch uses the gpu'''
@@ -237,42 +231,18 @@ def n2f(
     tiles_by_out = _n2f_tiles((nlines, width), chunks, out_chunks, depths)
     logger.info(f'{len(tiles_by_out)} output chunks, {sum(len(t) for t in tiles_by_out.values())} processing chunks')
 
-    if cuda:
-        if threads_per_worker is None: threads_per_worker = 1
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'threads_per_worker':threads_per_worker,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-    else:
-        if processes is None: processes = True
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 1
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-
+    if not cuda and processes is None: processes = True
     n_image_pairs = image_pairs.shape[0]
-
-    logger.info('starting dask cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask cluster started.')
-        logger.dask_cluster_info(cluster)
+    intf_zarr = zarr.open(intf_path,mode='w',shape=(nlines,width,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(*out_chunks,1))
+    logger.zarr_info(intf_path, intf_zarr)
+    tasks = [(rslc_path, intf_path, out_slices, tiles, image_pairs, model, cuda) for out_slices, tiles in tiles_by_out.items()]
+    logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
         if cuda:
-            client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-            client.run(_torch_use_rmm)
-
-        intf_zarr = zarr.open(intf_path,mode='w',shape=(nlines,width,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(*out_chunks,1))
-        logger.zarr_info(intf_path, intf_zarr)
-        n2f_delayed = delayed(_cli_n2f_out_chunk,pure=True)
-        tasks = [n2f_delayed(rslc_path, intf_path, out_slices, tiles, image_pairs, model=model, cuda=cuda)
-                 for out_slices, tiles in tiles_by_out.items()]
-
-        logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
-        futures = client.compute(tasks)
-        progress(futures,notebook=False)
-        client.gather(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+            ex.run_on_workers(_torch_use_rmm)
+        ex.map(_cli_n2f_out_chunk, tasks, desc='output chunks')
+    logger.info('done.')
 
 def _n2ft_block_bounds(n, chunks, out_chunks):
     """start of every processing chunk of `n` points and `n`: chunks of `chunks` points that do not cross the
@@ -465,40 +435,19 @@ def n2ft(
         tasks_args.append(((start, stop), idx, blocks))
     del in_indices, out_slices, map_indices
 
-    if cuda:
-        Cluster = LocalCUDACluster; cluster_args= {
-            'n_workers':n_workers,
-            'rmm_pool_size':rmm_pool_size}
-        cluster_args.update(dask_cluster_arg)
-    else:
-        if processes is None: processes = True
-        if n_workers is None: n_workers = 1
-        if threads_per_worker is None: threads_per_worker = 1
-        Cluster = LocalCluster; cluster_args = {'processes':processes, 'n_workers':n_workers, 'threads_per_worker':threads_per_worker}
-        cluster_args.update(dask_cluster_arg)
-
+    if not cuda and processes is None: processes = True
     n_image_pairs = image_pairs.shape[0]
 
-    logger.info('starting dask cluster.')
-    with Cluster(**cluster_args) as cluster, Client(cluster) as client:
-        logger.info('dask cluster started.')
-        logger.dask_cluster_info(cluster)
+    intf_zarr = zarr.open(intf_path,mode='w',shape=(npoint,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(out_chunks,1))
+    logger.zarr_info(intf_path, intf_zarr)
+    tasks = [(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model, cuda, compile) for rows, idx, blocks in tasks_args]
+    logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
+    with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
+                  rmm_pool_size=rmm_pool_size, **dask_cluster_arg) as ex:
         if cuda and rmm_pool_size:
-            client.run(cp.cuda.set_allocator, rmm_cupy_allocator)
-            client.run(_torch_use_rmm)
+            ex.run_on_workers(_torch_use_rmm)
             if compile:
                 logger.info('rmm pool: the compiled model runs without kernel tuning')
-                client.run(_torch_no_kernel_autotune)
-
-        intf_zarr = zarr.open(intf_path,mode='w',shape=(npoint,n_image_pairs),dtype=rslc_zarr.dtype,chunks=(out_chunks,1))
-        logger.zarr_info(intf_path, intf_zarr)
-        n2ft_delayed = delayed(_cli_n2ft_out_chunk,pure=True,nout=1)
-        tasks = [n2ft_delayed(x, y, rslc_path, intf_path, rows, idx, blocks, image_pairs, model=model, cuda=cuda, compile=compile)
-                 for rows, idx, blocks in tasks_args]
-
-        logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
-        futures = client.compute(tasks)
-        progress(futures,notebook=False)
-        client.gather(futures)
-        logger.info('computing finished.')
-    logger.info('dask cluster closed.')
+                ex.run_on_workers(_torch_no_kernel_autotune)
+        ex.map(_cli_n2ft_out_chunk, tasks, desc='output chunks')
+    logger.info('done.')
