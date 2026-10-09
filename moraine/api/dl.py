@@ -564,6 +564,17 @@ def _n2ft_prepare(x, y, intf, device):
     """structure of the points and phasors of their interferograms on `device`: the input of `_infer_n2ft_prepared`"""
     return _n2ft_structure(x, y, device), _n2ft_phasors(intf, device)
 
+def _n2ft_batches(m, batch):
+    """(start, stop) of the batches of `m` interferograms of about `batch` each: as equal as possible, and none of a
+    single interferogram when `batch` allows it (a compiled model would compile that shape separately)"""
+    if m == 0:
+        return []
+    n_batches = -(-m//batch)
+    if batch >= 2 and m >= 2:
+        n_batches = min(n_batches, m//2)
+    bounds = [round(i*m/n_batches) for i in range(n_batches+1)]
+    return list(zip(bounds[:-1], bounds[1:]))
+
 def _infer_n2ft_prepared(
     prepared,
     model,
@@ -590,11 +601,11 @@ def _infer_n2ft_prepared(
     batch = max(1, min(m, max_point_intfs//max(n, 1)))
     with torch.inference_mode():
         out = torch.empty_like(x)
-        for start in range(0, m, batch):
-            stop = min(start+batch, m)
+        for start, stop in _n2ft_batches(m, batch):
             b = stop-start
-            pos_b = pos.expand(b, *pos.shape[1:])
-            keys_b = tuple(key.expand(b, *key.shape[1:]) for key in keys)
+            # expanded from the unbatched tensors, the strides are the same for every b: one shape for torch.compile
+            pos_b = pos[0].expand(b, *pos.shape[1:])
+            keys_b = tuple(key[0].expand(b, *key.shape[1:]) for key in keys)
             out[start:stop] = model(pos_b, x[start:stop], *keys_b)
         return torch.view_as_complex(out).T.contiguous().cpu().numpy()
 

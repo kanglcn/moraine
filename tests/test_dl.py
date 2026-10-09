@@ -173,3 +173,21 @@ def test_n2ft(points, gpu):
     assert out_stack.shape == stack.shape
     if gpu:
         assert np.median(_phase_diff(out, n2ft(x, y, ifg))) < 1e-3
+
+
+def test_n2ft_batches():
+    from moraine.api.dl import _n2ft_batches
+    assert _n2ft_batches(0, 8) == []
+    assert _n2ft_batches(1, 8) == [(0, 1)]
+    assert _n2ft_batches(3, 2) == [(0, 3)]
+    assert _n2ft_batches(2, 1) == [(0, 1), (1, 2)]
+    for m in range(1, 60):
+        for batch in range(1, 12):
+            batches = _n2ft_batches(m, batch)
+            sizes = [stop-start for start, stop in batches]
+            assert batches[0][0] == 0 and batches[-1][1] == m
+            assert all(a[1] == b[0] for a, b in zip(batches[:-1], batches[1:]))
+            assert max(sizes)-min(sizes) <= 1
+            assert max(sizes) <= max(batch, 3)
+            if batch >= 2 and m >= 2:
+                assert min(sizes) >= 2
