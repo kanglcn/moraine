@@ -38,8 +38,8 @@ def test_amp_disp(work, cuda):
 @pytest.fixture(scope='module')
 def shp(work):
     d, crop = work
-    mc.shp_test(str(d / 'rslc.zarr'), az_half_win=5, r_half_win=5, pvalue=str(d / 'pvalue.zarr'),
-                is_shp=str(d / 'is_shp_fused.zarr'), shp_num=str(d / 'shp_num_fused.zarr'), alpha=0.05)
+    mc.shp_test(str(d / 'rslc.zarr'), str(d / 'is_shp_fused.zarr'), str(d / 'shp_num_fused.zarr'), az_half_win=5,
+                r_half_win=5, alpha=0.05, pvalue=str(d / 'pvalue.zarr'))
     mc.select_shp(str(d / 'pvalue.zarr'), str(d / 'is_shp.zarr'), str(d / 'shp_num.zarr'), alpha=0.05)
     mc.pc_logic_ras(str(d / 'shp_num.zarr'), str(d / 'ds_can_gix.zarr'), 'ras>=50')
     return d
@@ -63,8 +63,6 @@ def test_shp(work, shp):
     assert zarr.open(str(d / 'pvalue.zarr'), mode='r').chunks == (*spatial, 11, 11)
     assert zarr.open(str(d / 'is_shp.zarr'), mode='r').chunks == (*spatial, 11, 11)
     assert zarr.open(str(d / 'is_shp_fused.zarr'), mode='r').chunks == (*spatial, 11, 11)
-    with pytest.raises(ValueError):
-        mc.shp_test(str(d / 'rslc.zarr'), az_half_win=5, r_half_win=5)     # no output given
     gix = r(d / 'ds_can_gix.zarr')
     np.testing.assert_array_equal(gix, np.stack(np.where(shp_num >= 50), axis=-1))
     mc.gix2bool(str(d / 'ds_can_gix.zarr'), str(d / 'is_ds_can.zarr'), shape=shp_num.shape)
@@ -74,8 +72,8 @@ def test_shp(work, shp):
 @pytest.mark.gpu
 def test_shp_test_gpu(work, shp):
     d, _ = work
-    mc.shp_test(str(d / 'rslc.zarr'), az_half_win=5, r_half_win=5, pvalue=str(d / 'pvalue_gpu.zarr'),
-                is_shp=str(d / 'is_shp_gpu.zarr'), shp_num=str(d / 'shp_num_gpu.zarr'), cuda=True)
+    mc.shp_test(str(d / 'rslc.zarr'), str(d / 'is_shp_gpu.zarr'), str(d / 'shp_num_gpu.zarr'), az_half_win=5,
+                r_half_win=5, pvalue=str(d / 'pvalue_gpu.zarr'), cuda=True)
     assert (~np.isclose(r(d / 'pvalue_gpu.zarr'), r(d / 'pvalue.zarr'), atol=1e-4, equal_nan=True)).mean() < 1e-5
     is_shp, shp_num = mr.select_shp(r(d / 'pvalue_gpu.zarr'), 0.05)
     np.testing.assert_array_equal(r(d / 'is_shp_gpu.zarr'), is_shp)
