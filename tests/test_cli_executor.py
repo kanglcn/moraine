@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 """The executor of the CLI commands: tasks in threads, processes or on GPUs, chunk tasks on zarr."""
 import numpy as np
 import pytest
@@ -95,3 +98,23 @@ def test_chunk_task_gpu(tmp_path, rng):
 def test_unknown_worker_arguments_are_errors():
     with pytest.raises(TypeError, match='memory_limit'):
         Executor(memory_limit='1GB')
+
+
+def _exit_task(code):
+    os._exit(code)
+
+
+def test_dead_worker_is_an_error():
+    """a worker killed or crashed without reporting raises instead of waiting without end"""
+    with Executor(processes=True, n_workers=1) as ex:
+        with pytest.raises(RuntimeError, match='died with exit code 3'):
+            ex.map(_exit_task, [(3,)])
+
+
+def test_script_without_main_guard_fails_fast():
+    """spawn imports the main module again: a stdin script cannot be imported, the worker dies, the error is raised"""
+    code = 'from moraine.cli.executor import Executor\nwith Executor(processes=True) as ex:\n    pass\n'
+    r = subprocess.run([sys.executable, '-'], input=code, capture_output=True, text=True, timeout=120,
+                       env={**os.environ, 'CUDA_VISIBLE_DEVICES': ''})
+    assert r.returncode != 0
+    assert 'died with exit code' in r.stderr and '__main__' in r.stderr

@@ -239,7 +239,7 @@ def n2f(
     logger.info(f'filtering and saving the interferograms of {len(tasks)} output chunks.')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes,
                   rmm_pool_size=rmm_pool_size) as ex:
-        if cuda:
+        if cuda and rmm_pool_size:      # without a pool torch's own caching allocator is much faster than plain rmm
             ex.run_on_workers(_torch_use_rmm)
         ex.map(_cli_n2f_out_chunk, tasks, desc='output chunks')
     logger.info('done.')

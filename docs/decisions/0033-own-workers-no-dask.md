@@ -44,7 +44,9 @@ optimization, spilling, several machines.
   process; a worker pool shared by the steps of `moraine run` is a possible next step).
 - Pipeline files with `[step.kw]` dask options (`memory_limit`, ...) fail with "unknown worker arguments".
 - A task function must be importable (module level) for the process workers; errors that cannot be pickled
-  come back as `TaskError` with the traceback of the worker.
+  come back as `TaskError` with the traceback of the worker; a worker that dies without reporting (killed, a
+  crash, a script without the `if __name__ == '__main__'` guard that `spawn` needs) raises an error with its
+  exit code instead of a wait without end.
 
 ## Do not
 

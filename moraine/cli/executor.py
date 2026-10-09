@@ -19,6 +19,7 @@ import math
 import multiprocessing
 import os
 import pickle
+import queue
 import tempfile
 import threading
 import time
@@ -157,19 +158,20 @@ def _deref(a, cache):
 
 def _gpu_setup(rmm_pool_size):
     """The memory pool of the GPU of a worker process: an rmm pool of `rmm_pool_size` of the GPU memory, from which
-    cupy allocates, or cupy's own pool without rmm."""
+    cupy allocates, or cupy's own pool without rmm; returns a phrase on the pool for the log."""
     import cupy
     if not rmm_pool_size:
-        return
+        return "cupy's memory pool"
     try:
         import rmm
         from rmm.allocators.cupy import rmm_cupy_allocator
     except ImportError:
-        return
+        return "cupy's memory pool (rmm not installed)"
     free, total = cupy.cuda.runtime.memGetInfo()
     size = int(rmm_pool_size * total) // 256 * 256
     rmm.reinitialize(pool_allocator=True, initial_pool_size=size)
     cupy.cuda.set_allocator(rmm_cupy_allocator)
+    return f'rmm pool {rmm_pool_size:.0%} of the GPU memory'
 
 
 def _send_error(results, wid, idx, e):
@@ -184,13 +186,14 @@ def _send_error(results, wid, idx, e):
 def _worker_main(wid, tasks, results, n_threads, env, rmm_pool_size):
     """A worker process: runs the tasks of its queue, `n_threads` at a time, and reports to the results queue."""
     os.environ.update(env)
+    pool = None
     try:
         if env.get('CUDA_VISIBLE_DEVICES'):
-            _gpu_setup(rmm_pool_size)
+            pool = _gpu_setup(rmm_pool_size)
     except BaseException as e:
         _send_error(results, wid, None, e)
         return
-    results.put(('ready', wid, None, None, None))
+    results.put(('ready', wid, None, pool, None))
     cache = {}
 
     def run(idx, fn, args):
@@ -229,13 +232,32 @@ class _Processes:
             p = ctx.Process(target=_worker_main, args=(i, q, self.results, self.threads, env, rmm_pool_size), daemon=True)
             p.start()
             self.workers.append((p, q))
-        for _ in self.workers:
-            kind, wid, _, err, tb = self.results.get()
-            if kind == 'error':
-                self.close()
-                raise RuntimeError(f'worker {wid} failed to start:\n{tb}') from err
+        self.pool = None                  # the memory pool of the GPU workers, as they report it
+        try:
+            for _ in self.workers:
+                kind, wid, _, payload, tb = self._recv(starting=True)
+                if kind == 'error':
+                    raise RuntimeError(f'worker {wid} failed to start:\n{tb}') from payload
+                self.pool = payload
+        except BaseException:
+            self.close()
+            raise
         self.n_workers = n_workers
         self.gpus = gpus
+
+    def _recv(self, starting=False):
+        """The next message of the workers; a worker that dies without a message (killed, crashed) is an error
+        instead of a wait without end."""
+        while True:
+            try:
+                return self.results.get(timeout=1)
+            except queue.Empty:
+                pass
+            for wid, (p, q) in enumerate(self.workers):
+                if not p.is_alive():
+                    hint = (' (a worker process is started with spawn and imports the main module again: a script must '
+                            'guard its code with if __name__ == "__main__")' if starting else '')
+                    raise RuntimeError(f'worker {wid} died with exit code {p.exitcode}{hint}')
 
     def close(self):
         for p, q in self.workers:
@@ -259,7 +281,7 @@ class _Processes:
         for p, q in self.workers:
             q.put(('run', fn, args))
         for _ in self.workers:
-            kind, wid, _, err, tb = self.results.get()
+            kind, wid, _, err, tb = self._recv()
             if kind == 'error':
                 raise RuntimeError(f'setup failed in worker {wid}:\n{tb}') from err
 
@@ -281,7 +303,7 @@ class _Processes:
             feed(wid)
         done = 0
         while done < n:
-            kind, wid, idx, payload, tb = self.results.get()
+            kind, wid, idx, payload, tb = self._recv()
             if kind == 'error':
                 pending.clear()
                 raise payload
@@ -383,7 +405,7 @@ class Executor:
         if isinstance(w, _Threads):
             return f'workers: {w.n_threads} thread{"s" if w.n_threads != 1 else ""} of this process'
         if w.gpus:
-            pool = f', rmm pool {self.rmm_pool_size:.0%} of the GPU memory' if self.rmm_pool_size else ', no memory pool'
+            pool = f', {w.pool}' if w.pool else ''
             return f'workers: {w.n_workers} GPU process{"es" if w.n_workers != 1 else ""} ({", ".join(w.gpus)}) x ' \
                    f'{w.threads} task{"s" if w.threads != 1 else ""} at a time{pool}'
         return f'workers: {w.n_workers} process{"es" if w.n_workers != 1 else ""} x {w.threads} task{"s" if w.threads != 1 else ""} at a time'
