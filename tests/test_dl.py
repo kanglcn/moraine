@@ -117,6 +117,20 @@ def points(rslc, adi):
 
 
 @pytest.mark.parametrize('gpu', GPU)
+def test_n2ft_batched_interferograms(points, gpu):
+    """several interferograms of the same points per model call give the results of one call per interferogram"""
+    from moraine.api.dl import _n2ft_structure, _infer_n2ft_structure, _get_model
+    x, y, s = points
+    stack = s[:, [0]] * s[:, 1:6].conj()
+    model = _get_model('n2ft', None, 'cuda' if gpu else 'cpu')
+    structure = _n2ft_structure(x, y, next(model.parameters()).device)
+    one = _infer_n2ft_structure(structure, stack, model, max_point_intfs=1)          # one interferogram per call
+    batched = _infer_n2ft_structure(structure, stack, model)                        # all five at once
+    assert np.median(_phase_diff(batched, one)) < 1e-5
+    np.testing.assert_allclose(batched, one, atol=1e-3)
+
+
+@pytest.mark.parametrize('gpu', GPU)
 def test_n2ft(points, gpu):
     x, y, s = points
     ifg = s[:, 0] * s[:, 1].conj()

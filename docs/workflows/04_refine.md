@@ -23,16 +23,20 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 
 - Temporal coherence threshold: 0.7-0.85; lower keeps more points with more noise.
 - `n2ft` `chunks`: points per chunk (20 000); smaller uses less GPU memory.
+- `n2ft` `compile = true`: compiles the model with torch.compile in every worker (15-40 s once per worker, less
+  when torch has cached it), then the filtering runs about twice as fast on a GPU; worth it from about a million points with a
+  hundred image pairs, not for the sample data.
 
 ## Expected results (sample data)
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 984 239 | about PS + DS minus overlap |
+| merged candidates | 984 260 | about PS + DS minus overlap |
 | `pc_can_temp_coh_pyramid` | p50 0.53, p99 0.99 | 0..1 |
-| refined points (`pc_hix`) | 352 530 (36 % of the candidates) | |
+| refined points (`pc_hix`) | 352 434 (36 % of the candidates) | |
 
-Run time: about 1 minute with an A100 (n2ft 38 s).
+Run time: about 1 minute with an A100 (n2ft 31 s). The GPU results of `n2f` and `n2ft` differ by rounding between
+runs, so a few points (about 1 in 10 000) may be selected differently.
 
 ## Checks
 
