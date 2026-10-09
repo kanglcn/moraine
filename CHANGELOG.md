@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+A model call of `n2ft` (API and command) filters as many interferograms of a processing chunk as a fifth of the GPU memory holds (about 8 kB per point and interferogram; 200 000 point-interferograms on the CPU as before) instead of 200 000 point-interferograms: more work per kernel. On an 80 GB A100 the eager model takes 0.24 instead of 0.35 µs per point and interferogram; the `n2ft` step of the 04 pipeline takes 29 instead of 37 s on Campi Flegrei (590 667 points, 91 pairs) and 17 instead of 19 s on the sample data; the phases change by rounding (at most 1.8e-4 rad)
+
 The batch norm layers of the loaded `n2ft` model are replaced by the per channel affine function they compute in evaluation mode (`fold_batch_norms`): the eager model runs 8 % faster on an A100 (200 000 Campi Flegrei points x 91 pairs: 7.0 instead of 7.6 s), and the compiled model no longer compiles again (34 s each time) when the batch of interferograms crosses a size threshold of the cuDNN batch norm kernels; the phases change by rounding (at most 1.8e-4 rad)
 
 The neighbour searches of the `n2ft` structure (16 and 3 nearest neighbours at the 4 sampling levels of a processing chunk) run in 8 threads instead of one per core: the structure of a 23 000-point chunk takes 70 instead of 190 ms on a 128-core machine (the queries 21 instead of 120 ms). It runs in parallel to the model, so the filtering only gets faster where the model is faster than the structure (`compile`, or a slow CPU)

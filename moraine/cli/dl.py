@@ -356,7 +356,7 @@ def n2ft(
     Every worker filters one output chunk of points with all image pairs at a time: it holds the rslc of the
     points of the chunk and of their halos for the images of the pairs (8 bytes per point and image), the
     filtered interferograms of the chunk (8 bytes per point and image pair) and about 400 bytes per point of
-    the chunk more; with `cuda` the model holds up to 1.6 GB of GPU memory. Before, the main process finds
+    the chunk more; with `cuda` a model call holds about a fifth of the GPU memory. Before, the main process finds
     the halos of all processing chunks with about 70 bytes per point and 32 threads of 16 x `k` x `chunks` bytes
     (41 MB each by default).
 

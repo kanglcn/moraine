@@ -214,3 +214,11 @@ def test_n2ft_fold_batch_norms(points, gpu):
     structure = _n2ft_structure(x, y, device)
     np.testing.assert_allclose(_infer_n2ft_structure(structure, stack, folded),
                                _infer_n2ft_structure(structure, stack, original), atol=1e-4)
+
+
+def test_n2ft_max_point_intfs():
+    from moraine.api.dl import _n2ft_max_point_intfs, _N2FT_MAX_POINT_INTFS, _N2FT_MEMORY_FRACTION, _N2FT_POINT_INTF_BYTES
+    assert _n2ft_max_point_intfs(torch.device('cpu')) == _N2FT_MAX_POINT_INTFS == 200_000
+    if torch.cuda.is_available():
+        total = torch.cuda.get_device_properties(0).total_memory
+        assert _n2ft_max_point_intfs(torch.device('cuda', 0)) == max(50_000, int(total*_N2FT_MEMORY_FRACTION)//_N2FT_POINT_INTF_BYTES)

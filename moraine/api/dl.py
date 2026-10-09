@@ -551,14 +551,26 @@ def _n2ft_structure(
     return pos, keys
 
 # The filtering pays the compilation of the model (15-40 s per process) from this many points times interferograms:
-# compiled, the model runs about 3 times faster (A100: 2.3 instead of 7 ms per interferogram of 20 000 points).
+# compiled, the model runs about 3 times faster (A100: 1.9 instead of 5.5 ms per interferogram of 23 000 points).
 _N2FT_COMPILE_MIN_POINT_INTFS = 100_000_000
-_N2FT_MAX_POINT_INTFS = 200_000      # points times interferograms per model call, about 8 kB each on the device
+_N2FT_MAX_POINT_INTFS = 200_000      # points times interferograms per model call on the CPU (about 1.6 GB)
+_N2FT_POINT_INTF_BYTES = 8_000       # GPU memory of a model call per point and interferogram (A100: 6.5-7.7 kB)
+_N2FT_MEMORY_FRACTION = 0.2          # of the GPU memory for one model call
 _N2FT_PREFETCH = 2                   # processing chunks prepared (structure, phasors) ahead of the model
 
 def _n2ft_compile_default(n_points, n_image_pairs):
     """whether to compile the n2ft model for this much work"""
     return n_points*n_image_pairs >= _N2FT_COMPILE_MIN_POINT_INTFS
+
+@functools.lru_cache(maxsize=None)
+def _n2ft_max_point_intfs(device):
+    """points times interferograms of one model call on `device`: a fifth of the memory of a GPU, 200 000 on the CPU"""
+    torch = _import_torch()
+    device = torch.device(device)
+    if device.type != 'cuda':
+        return _N2FT_MAX_POINT_INTFS
+    total = torch.cuda.get_device_properties(device).total_memory
+    return max(50_000, int(total*_N2FT_MEMORY_FRACTION)//_N2FT_POINT_INTF_BYTES)
 
 def _n2ft_phasors(intf, device):
     """interferograms (n, m) complex64 -> unit phasors (m, n, 2) float32 on `device`"""
@@ -585,16 +597,16 @@ def _n2ft_batches(m, batch):
 def _infer_n2ft_prepared(
     prepared,
     model,
-    max_point_intfs:int=_N2FT_MAX_POINT_INTFS,
+    max_point_intfs:int=None,
 ):
     """Parameters
     ----------
     prepared
         (structure, phasors) of `_n2ft_prepare` on the device of `model`
     model
-    max_point_intfs : int, default: 200000
+    max_point_intfs : int, optional
         points times interferograms of one model call (the batch of interferograms); a call holds about 8 kB per
-        point and interferogram on the device
+        point and interferogram on a GPU. Default: a fifth of the GPU memory, 200 000 on the CPU
 
     Returns
     -------
@@ -603,6 +615,8 @@ def _infer_n2ft_prepared(
     """
     torch = _import_torch()
     (pos, keys), x = prepared
+    if max_point_intfs is None:
+        max_point_intfs = _n2ft_max_point_intfs(next(model.parameters()).device)
     m, n = x.shape[:2]
     # the model runs several interferograms of the same points at once: the structure is the same for all of them
     batch = max(1, min(m, max_point_intfs//max(n, 1)))
@@ -620,7 +634,7 @@ def _infer_n2ft_structure(
     structure,
     intf,
     model,
-    max_point_intfs:int=_N2FT_MAX_POINT_INTFS,
+    max_point_intfs:int=None,
 ):
     """`_infer_n2ft_prepared` of the structure of the points (`_n2ft_structure`) and their interferograms (n, m)"""
     device = next(model.parameters()).device
