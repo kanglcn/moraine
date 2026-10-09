@@ -41,17 +41,55 @@ def test_cli_pre_infer_n2f_gpu(rslc):
     np.testing.assert_array_almost_equal(x[:, :, ~mask], x_cp[:, :, ~mask_cp].get())
 
 
+def test_n2f_tiles():
+    from moraine.cli.dl import _n2f_tiles
+    from moraine.api.chunk_ import chunkwise_slicing_mapping
+    shape = (400, 500)
+    # output chunks equal to the processing chunks: the tiles of the API's chunkwise processing
+    tiles = _n2f_tiles(shape, (150, 200), (150, 200), (32, 16))
+    in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape, (150, 200), (32, 16))
+    assert len(tiles) == len(out_slices) == 9
+    for out_s, tile_list in tiles.items():
+        assert len(tile_list) == 1
+        k = out_slices.index(out_s)
+        assert tile_list[0][0] == in_slices[k] and tile_list[0][1] == map_slices[k]
+        assert tile_list[0][2] == (slice(0, out_s[0].stop-out_s[0].start), slice(0, out_s[1].stop-out_s[1].start))
+    # processing chunks cut at the output chunks: every pixel in exactly one tile, tiles inside their output chunk
+    tiles = _n2f_tiles(shape, (150, 150), (200, 300), (10, 10))
+    covered = np.zeros(shape, dtype=int)
+    for (out_az, out_r), tile_list in tiles.items():
+        for (in_az, in_r), (map_az, map_r), (loc_az, loc_r) in tile_list:
+            az = slice(out_az.start+loc_az.start, out_az.start+loc_az.stop)
+            r = slice(out_r.start+loc_r.start, out_r.start+loc_r.stop)
+            covered[az, r] += 1
+            assert az.stop <= out_az.stop and r.stop <= out_r.stop
+            assert in_az.start == max(az.start-10, 0) and in_az.stop == min(az.stop+10, shape[0])
+            assert map_az == slice(az.start-in_az.start, az.stop-in_az.start)
+            assert in_r.start == max(r.start-10, 0) and map_r.stop-map_r.start == r.stop-r.start
+    assert (covered == 1).all()
+    assert sum(len(t) for t in tiles.values()) == 4*4  # azimuth 0,150,200,300; range 0,150,300,450
+
+
 @pytest.mark.parametrize('gpu', GPU)
-def test_cli_n2f_keeps_input(rslc, gpu):
-    # the image blocks are shared by the dask tasks of several image pairs and must not change
-    from moraine.cli.dl import _cli_n2f_cpu, _cli_n2f_np_in_gpu
-    ref, sec = rslc[:400, :400, 0], rslc[:400, :400, 1]
-    ref[0, 0] = 0  # GAMMA writes 0 where there are no data
-    ref0, sec0 = ref.copy(), sec.copy()
-    out = (_cli_n2f_np_in_gpu if gpu else _cli_n2f_cpu)(ref, sec, chunks=(200, 200), depths=(32, 32))
-    np.testing.assert_array_equal(ref, ref0)
-    np.testing.assert_array_equal(sec, sec0)
-    assert np.isnan(out[0, 0])
+def test_cli_n2f_out_chunk(rslc, tmp_path, gpu):
+    """one output chunk with all image pairs gives the API result of every pair; 0 in the rslc gives NaN"""
+    from moraine.cli.dl import _cli_n2f_out_chunk, _n2f_tiles
+    crop = rslc[:400, :400, :4].copy()
+    crop[0, 0, 0] = 0  # GAMMA writes 0 where there are no data
+    z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='w', shape=crop.shape, dtype=crop.dtype, chunks=(200, 200, 1))
+    z[:] = crop
+    pairs = np.array([[0, 1], [2, 3]])
+    out_zarr = zarr.open(str(tmp_path / 'intf.zarr'), mode='w', shape=(400, 400, 2), dtype=crop.dtype, chunks=(400, 400, 1))
+    tiles = _n2f_tiles((400, 400), (200, 200), (400, 400), (32, 32))
+    assert list(tiles) == [(slice(0, 400), slice(0, 400))]
+    _cli_n2f_out_chunk(str(tmp_path / 'rslc.zarr'), str(tmp_path / 'intf.zarr'), (slice(0, 400), slice(0, 400)),
+                       tiles[(slice(0, 400), slice(0, 400))], pairs, cuda=gpu)
+    out = out_zarr[:]
+    assert np.isnan(out[0, 0, 0]) and np.isfinite(out[0, 0, 1])
+    for k, (a, b) in enumerate(pairs):
+        api = mr.n2f((crop[:, :, a] * crop[:, :, b].conj()).astype(np.complex64), chunks=(200, 200), depths=(32, 32))
+        np.testing.assert_array_equal(np.isnan(out[:, :, k]), np.isnan(api))
+        assert np.median(_phase_diff(out[:, :, k], api)) < 1e-2
 
 
 @pytest.mark.slow
@@ -67,6 +105,14 @@ def test_cli_n2f(rslc, tmp_path, cuda):
     api = mr.n2f((crop[:, :, 2] * crop[:, :, 3].conj()).astype(np.complex64), chunks=(200, 200), depths=(32, 32))
     # NaN pixels get random phase, so compare the typical pixel
     assert np.median(_phase_diff(out[:, :, 1], api)) < 1e-2
+    # several processing chunks per output chunk: the tiles of the API's chunkwise processing
+    mc.n2f(str(tmp_path / 'rslc.zarr'), str(tmp_path / 'intf2.zarr'), pairs, chunks=(150, 150), out_chunks=(300, 300),
+           depths=(16, 16), cuda=cuda)
+    out2 = zarr.open(str(tmp_path / 'intf2.zarr'), mode='r')
+    assert out2.chunks == (300, 300, 1)
+    api2 = mr.n2f((crop[:, :, 2] * crop[:, :, 3].conj()).astype(np.complex64), chunks=(150, 150), depths=(16, 16))
+    np.testing.assert_array_equal(np.isnan(out2[:, :, 1]), np.isnan(api2))
+    assert np.median(_phase_diff(out2[:, :, 1], api2)) < 1e-2
 
 
 @pytest.fixture(scope='module')

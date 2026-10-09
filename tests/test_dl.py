@@ -1,3 +1,4 @@
+import copy
 import importlib.resources
 import numpy as np
 import pytest
@@ -222,3 +223,21 @@ def test_n2ft_max_point_intfs():
     if torch.cuda.is_available():
         total = torch.cuda.get_device_properties(0).total_memory
         assert _n2ft_max_point_intfs(torch.device('cuda', 0)) == max(50_000, int(total*_N2FT_MEMORY_FRACTION)//_N2FT_POINT_INTF_BYTES)
+
+
+@pytest.mark.parametrize('name', ['n2f', 'n2fs3d'])
+def test_unet_fold_batch_norms(name):
+    """the UNet with its batch norms folded into the convolutions gives the output of the original model"""
+    from moraine.api.unet_torch_ import UNet, fold_batch_norms
+    from moraine.api.dl import _model_files
+    torch.manual_seed(0)
+    original = UNet(2 if name == 'n2f' else 3, 2, depth=4, bilinear=True)
+    original.load_state_dict(torch.load(importlib.resources.files('moraine')/'dl_model'/_model_files[name],
+                                        map_location='cpu', weights_only=True))
+    original.eval()
+    folded = fold_batch_norms(copy.deepcopy(original))
+    kinds = lambda model: {type(m) for m in model.modules()}
+    assert torch.nn.BatchNorm2d in kinds(original) and torch.nn.BatchNorm2d not in kinds(folded)
+    x = torch.randn(1, original.in_channels, 96, 80)
+    with torch.inference_mode():
+        np.testing.assert_allclose(folded(x).numpy(), original(x).numpy(), atol=1e-4)  # float32 rounding, up to 3e-5
