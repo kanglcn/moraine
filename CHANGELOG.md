@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## 0.10.0
+
 `ras-pyramid` and `pc-pyramid` have a `method`: the levels of a pyramid are the mean of the blocks of the data (`method = "mean"`: nan left out, complex data averaged as complex numbers, integer and boolean data as float32 levels) or, as before and by default, every 2nd pixel (`decimate`) / the first point of each block (`first`). The mean is a multilook, so the whole scene of a mean pyramid shows the fringes of a phase history or of filtered interferograms and the smooth values of coherences, counts and unwrapped phases, where a decimated one shows speckle. It is right for real values and for phases relative to a reference image, not for the SLC pixels of an rslc stack (the scatterer phases of neighbouring pixels differ), so the rslc pyramid stays decimated while the other pyramids of the example pipelines are made with `method = "mean"`, and the 02 example builds a mean pyramid of the n2f interferograms to check the fringes of the whole scene (decision 0035). The marker of a pyramid records the `method`, `moraine info` reports it. Bug fixed on the way: the cells without points of the pyramid of an integer point cloud (e.g. `n_components`) held 0 instead of nan and were drawn as the value 0; the cells of integer and boolean point clouds are float32 now, nan where empty
 
 `ras-pyramid` reads the raster in bands of `rows` lines (a power of 2, default 1024) instead of a whole channel per process, so that its memory is bounded for any raster size: a process needs about 1 GB plus 3 x rows x width x itemsize bytes (an 8000 x 8000 complex64 raster: 1.4 GB with the default, 2.9 GB for a whole channel before). The pyramid is the same bit for bit
