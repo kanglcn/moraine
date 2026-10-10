@@ -96,9 +96,10 @@ Never load large arrays to look at them. Use:
   the data and the finest cell). In a notebook it is an interactive map:
   zoom and pan load details, sliders choose the image, a click plots the time series of a pixel / point and
   a double click makes it the reference, polygons drawn with `polygons='areas.geojson'` are saved for
-  `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map.
-- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb [--show ...] [--dates meta.toml]` writes a notebook of
-  such maps. Give it to the user to open in Jupyter / VS Code; it needs no server or port forwarding.
+  `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map. `terrain=True` shows web
+  mercator layers (e / n coordinates) in 3D over the terrain (public elevation tiles; the browser needs internet).
+- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb [--show ...] [--dates meta.toml] [--terrain]` writes a
+  notebook of such maps. Give it to the user to open in Jupyter / VS Code; it needs no server or port forwarding.
   Do not write plotting code.
 - Pyramids are made by the `ras-pyramid` (rasters) and `pc-pyramid` (point clouds) commands; the
   examples build them for the results worth checking, and `moraine run` saves their PNGs to
@@ -132,5 +133,7 @@ When the task is to change moraine itself rather than to process data:
 - `docs/decisions/README.md`: design decisions; do not change code against an accepted one, propose a
   new record and ask the user.
 - `docs/roadmap.md`: planned features not started yet.
+- `docs/viewer.md`: how the viewer (`moraine.cli.view`, 2D and 3D) works, its tests and open items; read it
+  before changing `tiles.py`, `viewer.py` or `viewer.js`.
 - `docs/contracts/README.md`: formats others depend on (`--json` output, pipeline files, pyramids, data
   conventions); changing them needs the contract, its tests and possibly a new version.

@@ -89,7 +89,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |
 | `moraine/cli/tiles.py` | views (`view`): rasters and point clouds from pyramids or arrays, tiles and PNG images, value / point / time series at a position, `*` overlay and `+` layout, text description | (notebook, no command) |
-| `moraine/cli/viewer.py` | the notebook widget of views (`TileView`; anywidget + Leaflet, tiles rendered by the kernel): maps linked in zoom and pan, merged sliders, time series, reference, polygons; `viewer.js` / `.css` beside it | (notebook, no command) |
+| `moraine/cli/viewer.py` | the notebook widget of views (`TileView`; anywidget + Leaflet, or deck.gl over the terrain in 3D; tiles rendered by the kernel): maps linked in zoom and pan, merged sliders, time series, reference, polygons; `viewer.js` / `.css` beside it | (notebook, no command) |
 
 ## Command layer (moraine/command/)
 
@@ -104,11 +104,13 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | path | content |
 |---|---|
 | `tests/` | pytest; `conftest.py` has the sample data fixtures and the `gpu` / `slow` markers |
+| `tests/browser/` | the viewer's JavaScript in jsdom and in headless Chromium, run by hand (not pytest) |
 | `examples/` | verified pipelines of the whole processing chain (decision 0009) |
 | `docs/workflows/` | one guide per example pipeline |
 | `docs/decisions/` | design decision records |
 | `docs/contracts/` | promises on formats others depend on (JSON output, pipeline files, pyramids, data) |
 | `docs/development.md` | how to change moraine |
+| `docs/viewer.md` | how the viewer works (tiles, widget, 2D and 3D front end), what was learnt, its tests and open items |
 | `docs/roadmap.md` | planned features not started yet |
 | `nbs/Tutorials/` | tutorial notebooks (examples, not tests) |
 | `data/` | sample data (not in git) |

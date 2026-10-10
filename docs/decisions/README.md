@@ -44,6 +44,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0033](0033-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
 | [0035](0035-pyramid-levels-and-statistics.md) | Pyramid levels by decimation or by mean; statistics of the data computed when a pyramid is built | Accepted |
 | [0034](0034-own-workers-no-dask.md) | The workers of the commands are moraine's own; dask is not a dependency | Accepted |
+| [0036](0036-3d-views-over-terrain.md) | 3D views over the terrain with deck.gl and public elevation tiles | Accepted |
 
 ## Writing a record
 

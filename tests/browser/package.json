@@ -1,0 +1,10 @@
+{
+  "name": "moraine-browser-tests",
+  "private": true,
+  "type": "module",
+  "description": "Tests of moraine/cli/viewer.js outside the notebook: a jsdom smoke test and an end to end test in headless Chromium",
+  "devDependencies": {
+    "jsdom": "^24.1.0",
+    "playwright": "^1.47.0"
+  }
+}

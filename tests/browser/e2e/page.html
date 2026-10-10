@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>moraine viewer e2e</title>
+<link rel="stylesheet" href="../../../moraine/cli/viewer.css">
+<style>body { margin: 0; padding: 8px; font: 12px sans-serif; } #root { width: 760px; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="module">
+// The moraine viewer with a fake anywidget model: the kernel's answers are made here (tiles drawn on a
+// canvas, time series of numbers), the elevation and satellite tiles too (window.fetch is stubbed for them).
+// The runner (e2e.mjs) drives the mouse and checks the page. `?terrain=1` makes the 3D view.
+window.log = [];
+window.requests = [];
+const consoleError = console.error;
+console.error = (...args) => { window.log.push(["error", args.map(String).join(" ")]); consoleError(...args); };
+window.addEventListener("error", (e) => window.log.push(["uncaught", String(e.message)]));
+window.addEventListener("unhandledrejection", (e) => window.log.push(["rejection", String(e.reason)]));
+
+// data tiles: a PNG with a transparent background and coloured disks, bigger from zoom 17 on
+async function dataTile(z) {
+  const c = new OffscreenCanvas(256, 256), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, 256, 256);
+  const r = z >= 17 ? 12 : 3;
+  for (let j = 16; j < 256; j += 32) for (let i = 16; i < 256; i += 32) {
+    ctx.fillStyle = `hsl(${(i + j + 7 * z) % 360}, 80%, 50%)`;
+    ctx.beginPath(); ctx.arc(i, j, r, 0, 2 * Math.PI); ctx.fill();
+  }
+  return (await c.convertToBlob({ type: "image/png" })).arrayBuffer();
+}
+async function flatPng(fill) {
+  const c = new OffscreenCanvas(256, 256), ctx = c.getContext("2d");
+  ctx.fillStyle = fill; ctx.fillRect(0, 0, 256, 256);
+  return c.convertToBlob({ type: "image/png" });
+}
+// a flat terrain of 100 m in Terrarium encoding: (100 + 32768) * 256 = 8414208 -> R 128, G 100, B 0
+const terrainBlob = flatPng("rgb(128, 100, 0)");
+const satelliteBlob = flatPng("rgb(60, 80, 60)");
+const realFetch = window.fetch.bind(window);
+window.fetch = async (url, options) => {
+  const u = String(url);
+  if (u.includes("elevation-tiles-prod")) { window.requests.push({ type: "terrain", url: u }); return new Response(await terrainBlob, { status: 200, headers: { "content-type": "image/png" } }); }
+  if (u.includes("arcgisonline")) { window.requests.push({ type: "satellite", url: u }); return new Response(await satelliteBlob, { status: 200, headers: { "content-type": "image/png" } }); }
+  return realFetch(url, options);
+};
+
+// the model: an extent like Campi Flegrei in web mercator metres, one point cloud with a time series
+const n = 4;
+const state = {
+  crs: "web_mercator", view_origin: [0, 0], extent: [1562936, 4979838, 1585244, 4998248], frame: [700, 577], size: [],
+  zoom: 11, max_zoom: 16, axis_labels: ["longitude", "latitude"],
+  panels: [{ title: "pc_ph", series: true,
+             layers: [{ label: "pc_ph", colors: ["#000", "#fff"], clim: [-3.14, 3.14], bar_label: "phase", opacity: 1, sliders: ["image"] }] }],
+  kdims: [{ name: "image", max: n - 1 }], index: { image: 0 }, dates: ["a", "b", "c", "d"], polygons: [],
+  selected: {}, reference: {}, terrain: {},
+};
+const handlers = {};
+const model = {
+  state,
+  get(k) { return state[k]; },
+  set(k, v) { state[k] = v; (handlers[`change:${k}`] || []).forEach((fn) => fn()); },
+  save_changes() {},
+  on(ev, fn) { (handlers[ev] = handlers[ev] || []).push(fn); },
+  off(ev, fn) { handlers[ev] = (handlers[ev] || []).filter((f) => f !== fn); },
+  reply(msg, buffers = []) { (handlers["msg:custom"] || []).forEach((fn) => fn(msg, buffers)); },
+  send(content) {
+    window.requests.push(content);
+    const { type, id, x, y, z } = content;
+    setTimeout(async () => {
+      if (type === "tile") { model.reply({ type, id }, [await dataTile(z)]); return; }
+      if (type === "value") { model.reply({ type, id, x, y, values: [{ label: "pc_ph", value: 1.25, point: 42 }] }); return; }
+      const found = { layer: 0, label: "pc_ph", key: 42, point: 42, x, y };
+      if (type === "locate") { model.reply({ type, id, ...found }); return; }
+      if (type === "series") { model.reply({ type, id, ...found, values: [0, 0.5, 1, 1.5], ref: content.ref ? content.ref.key : null }); }
+    }, 10);
+  },
+};
+if (new URLSearchParams(location.search).get("terrain") === "1") {
+  state.terrain = { url: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", max_zoom: 15, attribution: "Terrain: test" };
+}
+window.model = model;
+const { default: widget } = await import("../../../moraine/cli/viewer.js");
+window.cleanup = await widget.render({ model, el: document.getElementById("root") });
+window.ready = true;
+</script>
+</body>
+</html>
