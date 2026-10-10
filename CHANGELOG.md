@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The worker processes of the commands (the GPU workers, and the CPU workers with `processes`) read the chunks of the next task while a task runs: the main process sends one task more than a worker runs at a time, and the worker reads its inputs before handing it to the task threads. A worker holds the inputs of one task more. The steps bound by reading gain the overlap: `shp-test` on Campi Flegrei 11.1 instead of 12.6 s, `temp-coh` on the GPU 11.1 instead of 12.0 s; steps bound by computing (the phase linking) or by reading alone (`amp-disp`) do not change; identical results. The GPU workers keep one task at a time: numba loads a kernel wrongly when two threads launch it for the first time at once
+
 A number given to a command as text that is not one, e.g. an empty `--var NAME=` substituted into a pipeline step, is reported as such when the arguments are read (`mcf-pc: argument range_pixel_spacing = '' is not a number`) instead of failing inside the command with `could not convert string to float`
 
 `temp-coh` (command and API) checks that the interferograms and the rslc have the same points or pixels and that the image pairs fit them, and names the likely cause (`intf` and `rslc` swapped); before, swapped inputs indexed outside the arrays and the GPU reported an illegal address

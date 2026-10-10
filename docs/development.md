@@ -71,8 +71,9 @@ A task is a plain function with picklable arguments: `chunk_task` reads the `Chu
 `cuda`), calls the API function and writes the results to the `Chunk` outputs, which must cover whole chunks of
 the output array (create the output zarr before, with the processing chunks as a multiple of its chunks). Other
 tasks go through `ex.map(fn, [args, ...])`; an object every task needs (an index array) is shared with `ex.put`;
-per worker setup (something every worker loads once) with `ex.run_on_workers`. Do not start threads or processes of your
-own in a command (decision 0034).
+per worker setup (something every worker loads once) with `ex.run_on_workers`. A worker process reads the `Chunk`
+inputs of the next task while it runs the current ones, so it holds the inputs of `threads_per_worker + 1` tasks. Do
+not start threads or processes of your own in a command (decision 0034).
 
 ### Large data and memory
 
