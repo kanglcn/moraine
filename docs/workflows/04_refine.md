@@ -17,7 +17,10 @@ moraine run examples/04_refine.toml --workdir WORK
    (`pc-logic-pc`, `pc-select-data`).
 
 Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, `pc_ph.zarr`
-(n_points, nimages), `pc_e.zarr`, `pc_n.zarr`; pyramids `pc_can_temp_coh_pyramid`, `pc_ph_pyramid`.
+(n_points, nimages), their coordinates `pc_e.zarr`, `pc_n.zarr`, `pc_lon.zarr`, `pc_lat.zarr`, their temporal
+coherence `pc_temp_coh.zarr`, and the geometry the deformation products need: height `pc_hgt.zarr`, look vector
+`pc_theta.zarr`, `pc_phi.zarr` (GAMMA elevation and orientation angles, radians) and slant range `pc_range.zarr`
+(m); pyramids `pc_can_temp_coh_pyramid`, `pc_ph_pyramid`.
 
 ## Parameters
 

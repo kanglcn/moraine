@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The 04 example keeps, for the refined points, their longitude, latitude and temporal coherence (`pc/pc_lon`, `pc_lat`, `pc_temp_coh`) and takes their height, look vector and slant range from the rasters of 01 (`pc/pc_hgt`, `pc_theta`, `pc_phi`, `pc_range`, new step `geometry`): the inputs of the deformation products
+
 ## 0.10.0
 
 `ras-pyramid` and `pc-pyramid` have a `method`: the levels of a pyramid are the mean of the blocks of the data (`method = "mean"`: nan left out, complex data averaged as complex numbers, integer and boolean data as float32 levels) or, as before and by default, every 2nd pixel (`decimate`) / the first point of each block (`first`). The mean is a multilook, so the whole scene of a mean pyramid shows the fringes of a phase history or of filtered interferograms and the smooth values of coherences, counts and unwrapped phases, where a decimated one shows speckle. It is right for real values and for phases relative to a reference image, not for the SLC pixels of an rslc stack (the scatterer phases of neighbouring pixels differ), so the rslc pyramid stays decimated while the other pyramids of the example pipelines are made with `method = "mean"`, and the 02 example builds a mean pyramid of the n2f interferograms to check the fringes of the whole scene (decision 0035). The marker of a pyramid records the `method`, `moraine info` reports it. Bug fixed on the way: the cells without points of the pyramid of an integer point cloud (e.g. `n_components`) held 0 instead of nan and were drawn as the value 0; the cells of integer and boolean point clouds are float32 now, nan where empty

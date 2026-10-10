@@ -3,7 +3,8 @@
 #
 #   moraine run examples/04_refine.toml --workdir WORK
 #
-# Outputs in WORK/pc/: pc_can_* (merged candidates) and pc_hix, pc_ph, pc_e, pc_n (refined points).
+# Outputs in WORK/pc/: pc_can_* (merged candidates) and the refined points: pc_hix, pc_ph, pc_e, pc_n, pc_lon,
+# pc_lat, pc_temp_coh, and their height, look vector and slant range pc_hgt, pc_theta, pc_phi, pc_range.
 
 [defaults]
 cuda = true                       # set to false without a GPU
@@ -74,8 +75,15 @@ name = "select_data"
 run = "pc-select-data"
 idx_in = "pc/pc_can_hix.zarr"
 idx = "pc/pc_hix.zarr"
-pc_in = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr"]
-pc = ["pc/pc_ph.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr"]
+pc_in = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr", "pc/pc_can_lon.zarr", "pc/pc_can_lat.zarr", "pc/pc_can_temp_coh.zarr"]
+pc = ["pc/pc_ph.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr", "pc/pc_lon.zarr", "pc/pc_lat.zarr", "pc/pc_temp_coh.zarr"]
+
+[[step]]
+name = "geometry"                 # height, look vector and slant range of the refined points, for the deformation products
+run = "ras2pc"
+idx = "pc/pc_hix.zarr"
+ras = ["raw/hgt.zarr", "raw/theta.zarr", "raw/phi.zarr", "raw/range.zarr"]
+pc = ["pc/pc_hgt.zarr", "pc/pc_theta.zarr", "pc/pc_phi.zarr", "pc/pc_range.zarr"]
 
 [[step]]
 name = "pc_ph_pyramid"
