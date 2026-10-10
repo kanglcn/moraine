@@ -42,7 +42,8 @@ class TileView(anywidget.AnyWidget):
     zoom = traitlets.Int().tag(sync=True)            # zoom showing the whole extent in the frame
     max_zoom = traitlets.Int().tag(sync=True)
     axis_labels = traitlets.List(['range', 'azimuth']).tag(sync=True)
-    # per map: title, series (a layer has a time series) and layers (label, colours, clim, bar label, opacity)
+    # per map: title, series (a layer has a time series) and layers (label, colours, clim, bar label, opacity,
+    # the names of the sliders the layer depends on)
     panels = traitlets.List().tag(sync=True)
     kdims = traitlets.List().tag(sync=True)          # sliders [{'name', 'max'}], merged by name
     index = traitlets.Dict().tag(sync=True)          # slider values by name, set by the map or by python
@@ -86,7 +87,8 @@ class TileView(anywidget.AnyWidget):
             panels=[{'title': '  |  '.join(layer.title for layer in p),
                      'series': any(layer.ts is not None for layer in p),
                      'layers': [{'label': layer.label, 'colors': layer.colors, 'clim': list(layer.clim),
-                                 'bar_label': layer.bar_label, 'opacity': layer.opacity} for layer in p]}
+                                 'bar_label': layer.bar_label, 'opacity': layer.opacity,
+                                 'sliders': [k['name'] for k in layer.kdims]} for layer in p]}
                     for p in self._panels],
             kdims=kdims, index=index, dates=view_dates(self._panels), **kwargs)
         if self._polygon_file and Path(self._polygon_file).exists():

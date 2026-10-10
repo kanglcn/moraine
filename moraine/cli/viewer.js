@@ -142,6 +142,15 @@ function render({ model, el }) {
     },
   });
 
+  // the tile layer of layer `l` of a map (any zoom: the map limits it); the kernel's answers to tiles unloaded
+  // meanwhile are dropped
+  function makeTiles(view, l, opacity) {
+    const layer = new Tiles({ tileSize: 256, bounds, minZoom: -100, maxZoom, panel: view.p, layer: l, opacity,
+                              updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
+    layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
+    return layer;
+  }
+
   function makePanel(panel, p) {
     const box = document.createElement("div");
     box.className = "moraine-tv-panel";
@@ -189,16 +198,16 @@ function render({ model, el }) {
       baseMaps["none"] = L.layerGroup();
       baseMaps["Satellite (Esri)"].addTo(map);
     }
+    const view = { p, map, mapEl, box, tiles: [], control: null, markers: null, polygons: null, resize: null, sketch: null };
     const overlays = {};
-    const tiles = panel.layers.map((info, l) => {
-      const layer = new Tiles({ tileSize: 256, bounds, minZoom: map.getMinZoom(), maxZoom, panel: p, layer: l,
-                                opacity: info.opacity, updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
-      layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
-      layer.addTo(map);
+    view.tiles = panel.layers.map((info, l) => {
+      const layer = makeTiles(view, l, info.opacity).addTo(map);
       overlays[info.label] = layer;
       return layer;
     });
-    if (mercator || panel.layers.length > 1) L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    if (mercator || panel.layers.length > 1) {
+      view.control = L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    }
 
     // axes: range to the right, azimuth down (grid); longitude and latitude in degrees (web mercator)
     const xTicks = box.querySelector(".moraine-tv-xaxis .ticks"), yTicks = box.querySelector(".moraine-tv-yaxis .ticks");
@@ -222,14 +231,14 @@ function render({ model, el }) {
 
     // once the element has its size in the page, let Leaflet measure it and centre the data again
     let shown = false;
-    const resize = new ResizeObserver(() => {
+    view.resize = new ResizeObserver(() => {
       if (!mapEl.clientWidth || !mapEl.clientHeight) return;
       map.invalidateSize();
       if (!shown) map.setView(bounds.getCenter(), zoom);
       shown = true;
       drawAxes();
     });
-    resize.observe(mapEl);
+    view.resize.observe(mapEl);
 
     // values of all layers under the cursor, at most one request in flight
     let valueId = null, lastPos = null;
@@ -255,9 +264,9 @@ function render({ model, el }) {
     });
     map.on("mouseout", () => { lastPos = null; });
 
-    const markers = L.layerGroup().addTo(map);
-    const polygons = L.layerGroup().addTo(map);
-    return { p, map, tiles, markers, polygons, resize, sketch: null };
+    view.markers = L.layerGroup().addTo(map);
+    view.polygons = L.layerGroup().addTo(map);
+    return view;
   }
   const views = panels.map(makePanel);
 
@@ -292,13 +301,33 @@ function render({ model, el }) {
     sliderInputs[kdim.name] = [input, output];
     sliders.appendChild(row);
   }
-  // the slider values changed on the map or in python: show them and redraw
+  // the slider values changed on the map or in python: show them and replace the tiles of the layers that depend
+  // on the changed sliders; the old tiles stay until the new ones are drawn, the other layers are not touched
+  let shownIndex = { ...model.get("index") };
+  function swapTiles(view, l) {
+    const old = view.tiles[l], next = makeTiles(view, l, old.options.opacity);
+    view.tiles[l] = next;
+    if (view.control) {
+      view.control.removeLayer(old);
+      view.control.addOverlay(next, panels[view.p].layers[l].label);
+    }
+    if (!view.map.hasLayer(old)) return;          // switched off in the layer control: stays off
+    next.once("load", () => old.remove());
+    next.addTo(view.map);
+  }
   function onIndex() {
+    const index = model.get("index");
+    const changed = Object.keys(index).filter((k) => index[k] !== shownIndex[k]);
+    shownIndex = { ...index };
     for (const [name, [input, output]] of Object.entries(sliderInputs)) {
-      input.value = model.get("index")[name];
+      input.value = index[name];
       output.textContent = imageText(Number(input.value));
     }
-    for (const view of views) view.tiles.forEach((t) => t.redraw());   // old tile requests are dropped on unload
+    for (const view of views) {
+      panels[view.p].layers.forEach((info, l) => {
+        if (info.sliders.some((s) => changed.includes(s))) swapTiles(view, l);
+      });
+    }
   }
   model.on("change:index", onIndex);
   // opacity of each layer, to see the layers or the base map below
