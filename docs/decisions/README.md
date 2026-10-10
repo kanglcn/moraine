@@ -39,8 +39,13 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0029](0029-numba-cache-by-source-hash.md) | Compiled numba functions are cached in a directory named after the hash of the sources | Accepted |
 | [0030](0030-gpu-kernels-in-numba-cuda.md) | GPU kernels are written with numba.cuda (numba-cuda), not as cupy C++ kernels | Accepted |
 | [0031](0031-gpu-emi-kernel.md) | The regularized EMI on the GPU is one numba.cuda thread block per point with its matrices in shared memory | Accepted |
-| [0032](0032-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
-| [0033](0033-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
+| [0032](0032-window-arrays-whole-window-per-chunk.md) | Window arrays keep the whole window of a pixel in one chunk | Accepted |
+| [0033](0033-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
+| [0034](0034-own-workers-no-dask.md) | The workers of the commands are moraine's own; dask is not a dependency | Accepted |
+| [0035](0035-pyramid-levels-and-statistics.md) | Pyramid levels by decimation or by mean; statistics of the data computed when a pyramid is built | Accepted |
+| [0036](0036-3d-views-over-terrain.md) | 3D views over the terrain with deck.gl and public elevation tiles | Accepted |
+| [0037](0037-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
+| [0038](0038-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
 
 ## Writing a record
 

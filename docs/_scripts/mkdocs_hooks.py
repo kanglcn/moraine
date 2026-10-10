@@ -1,4 +1,4 @@
-"""MkDocs hooks of the manual (decision 0032).
+"""MkDocs hooks of the manual (decision 0037).
 
 Before the files are collected, the generated reference pages of ``refgen.py`` are written into ``docs/`` (they are
 ignored by git), so that every plugin, the i18n plugin included, sees them as ordinary pages; their "edit" links

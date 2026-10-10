@@ -85,7 +85,10 @@ def test_bind_args():
         bind_args(cmd, {'rslc': 'r.zarr', 'adi_out': 'a.zarr'})
     with pytest.raises(UsageError, match='missing required argument'):
         bind_args(cmd, {'rslc': 'r.zarr'})
-    assert bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})['memory_limit'] == '2GB'
+    with pytest.raises(UsageError, match='takes no extra keyword arguments'):   # no **kwargs since decision 0034
+        bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})
+    math = get_command('math')          # **data: the inputs of the expression are extra keyword arguments
+    assert bind_args(math, {'output': 'o.zarr', 'operation': 'a*2'}, kw={'a': 'a.zarr'})['a'] == 'a.zarr'
 
 
 # ---------------------------------------------------------------- summary / quicklook
@@ -282,7 +285,15 @@ def test_pyramids(tmp_path, rng):
     s = summarize(str(tmp_path / 'ras_pyramid'))
     assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1
     assert s['stats_level'] == 0 and abs(s['amplitude_mean'] - np.abs(ras).mean()) < 1e-3 and 'warnings' not in s
+    assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000) == s         # the statistics of the pyramid
+    z0 = zarr.open(str(tmp_path / 'ras_pyramid' / '0.zarr'), mode='r+')               # a pyramid made without them
+    z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != 'stats'}
     assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000)['stats_level'] > 0     # coarser level
+    # the images of a stack that are all nan or constant are named
+    bad = ras.copy(); bad[..., 1] = np.nan; bad[..., 2] = 1 + 0j
+    _zarr(tmp_path / 'bad.zarr', bad, (100, 100, 1))
+    mc.ras_pyramid(str(tmp_path / 'bad.zarr'), str(tmp_path / 'bad_pyramid'))
+    assert summarize(str(tmp_path / 'bad_pyramid'))['warnings'] == ['all values nan: image 1', 'constant values: image 2']
     for kw in [{}, {'index': (2,)}, {'show': 'intf_seq', 'index': (1,)}, {'show': 'intf_all', 'index': (0, 2)}]:
         out = tmp_path / 'r.png'
         quicklook(str(tmp_path / 'ras_pyramid'), str(out), width=200, **kw)
@@ -308,7 +319,7 @@ def test_quicklook_command(tmp_path, capsys, rng):
     import moraine.cli as mc
     _zarr(tmp_path / 'ras.zarr', rng.random((64, 48)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
-    capsys.readouterr()                  # drop the dask progress bar of ras_pyramid
+    capsys.readouterr()                  # drop what ras_pyramid printed
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
     assert _json_out(capsys)['png'] == str(tmp_path / 'q.png')
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'part.png'), '--extent', '10,5,30,20',
@@ -479,3 +490,11 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     assert 'exists' in _json_out(capsys)['error']
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--post_proc', 'phase',
                  '--json']) == 0                                       # the old option name still works
+    # 3D maps over the terrain, for web mercator pyramids
+    nb3d = d / 'v3d.ipynb'
+    assert main(['view', str(d / 'map_pyr'), '-o', str(nb3d), '--terrain', '--json']) == 0
+    code = [''.join(c['source']) for c in json.loads(nb3d.read_text())['cells'] if c['cell_type'] == 'code']
+    assert code[-1].endswith(', terrain=True)')
+    ns = {}
+    exec(code[0], ns)
+    assert eval(code[-1], ns).widget.terrain['url'].endswith('{z}/{x}/{y}.png')

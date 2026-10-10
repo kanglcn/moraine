@@ -1,4 +1,4 @@
-"""Generate the reference pages of the manual from the code (decision 0032).
+"""Generate the reference pages of the manual from the code (decision 0037).
 
 ``cli_pages(lang)`` writes one page per ``moraine.cli`` module from the command registry
 (``moraine.command.commands()``, the source of ``moraine COMMAND --help``) with the steps of ``examples/*.toml``
@@ -74,7 +74,7 @@ T = {
 API_MODULES = ['calamp', 'pc', 'rtree', 'tnet', 'polygon', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm',
                ('unwrap', ['delaunay_', 'mcf', 'emcf', 'closure', 'gamma']), 'utils_']
 BUILTIN = ['list', 'info', 'quicklook', 'view', 'run', 'status']
-# the Campi Flegrei notebooks only: the manual shows one data set (decision 0033)
+# the Campi Flegrei notebooks only: the manual shows one data set (decision 0038)
 TUTORIALS = ['CampiFlegrei/01_load', 'CampiFlegrei/02_ps', 'CampiFlegrei/03_ds', 'CampiFlegrei/04_refine',
              'CampiFlegrei/05_unwrap']
 

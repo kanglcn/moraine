@@ -45,9 +45,11 @@ def read_gamma_image(imag:str,
         size = datf.tell()
     n_byte = int(dt[-1]) # number of byte per data point
     nlines = int(size / n_byte / width)
-    assert y0 <= nlines, 'y0 is larger than height.'
+    if y0 > nlines:
+        raise ValueError(f'y0 = {y0} is beyond the {nlines} lines of the file')
     if ny is None: ny = nlines-y0
-    assert y0+ny <= nlines, 'y0+ny is larger than height.'
+    if y0+ny > nlines:
+        raise ValueError(f'y0 + ny = {y0+ny} is beyond the {nlines} lines of the file')
     offset = y0*width*n_byte
     count = ny*width*n_byte
     # if gpu:

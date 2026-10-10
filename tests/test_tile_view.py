@@ -104,7 +104,14 @@ def test_raster_colours_and_value(ras):
     assert tuple(rgba[0, 0, :3]) == (0x44, 0x01, 0x54) and rgba[0, 0, 3] == 255
     assert tuple(rgba[0, 1, :3]) == (0xfd, 0xe7, 0x25)       # last viridis colour
     assert rgba[0, 2, 3] == 0                                # nan is transparent
+    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan), also when the limits are equal
+    idx = layer.indices(np.array([[lo - 1, hi + 1, np.nan]]))
+    assert idx.dtype == np.uint8 and idx.tolist() == [[0, 254, 255]]
+    assert layer.palette.shape == (256, 4) and layer.palette[255, 3] == 0 and (layer.palette[:255, 3] == 255).all()
+    assert view(str(pyr), clim=(1, 1)).indices(np.array([3.0, np.nan])).tolist() == [0, 255]
     assert layer.value(7.2, 3.4, 1) == {'x': 7.0, 'y': 3.0, 'key': [3, 7], 'value': float(a[3, 7])}
+    # zoomed out: the value of the cell drawn (level 2, every 4th pixel), the key of the pixel under the cursor
+    assert layer.value(101.6, 100.0, 4) == {'x': 102.0, 'y': 100.0, 'key': [100, 102], 'value': float(a[100, 100])}
     assert layer.value(499.6, 0, 1) is None and layer.value(-0.6, 0, 1) is None
     custom = view(str(pyr), cmap='magma', clim=(0, 50))
     assert custom.clim == (0, 50) and custom.colors[0] == '#000004'
@@ -147,6 +154,7 @@ def test_phase_stack(stack):
     layer = view(str(pyr), show='intf_all')
     assert [k['name'] for k in layer.kdims] == ['ref', 'sec']
     assert layer.default_index == {'ref': 0, 'sec': 1}        # an interferogram, not image 0 with itself
+    assert layer.widget.panels[0]['layers'][0]['sliders'] == ['ref', 'sec']
     with pytest.raises(ValueError, match='show must be'):
         view(str(pyr), show='interferogram')
 
@@ -193,17 +201,24 @@ def test_point_cloud_raster_zoom(grid_pc):
     assert np.isnan(t[0, 0])                                 # (y, x) = (3, 2): no point
     layer.render(grid_geom(0, 0, 0, layer.edge_origin))
     assert layer._rtree is None                              # overviews do not read the coordinates
+    # probing where the points are rasterized: the point of the cell drawn, without the coordinate tree
+    k = pts.index((30, 21))
+    assert layer.value(21.1, 29.9, 1) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}
+    assert layer.value(22, 30, 1) is None                    # an empty cell
+    assert layer.value(21.1, 29.9, 2) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}   # level 1
+    assert layer._rtree is None
 
 
 def test_point_cloud_points_zoom(grid_pc):
     pts, pyr = grid_pc
     layer = view(str(pyr))
-    # zoom 2: cells of 4 screen pixels, points as disks of radius 1.6 pixels at their coordinates
-    rgba = layer.render(grid_geom(2, 0, 0, layer.edge_origin))
-    assert rgba.shape == (256, 256, 4)
+    # zoom 2: cells of 4 screen pixels, points as disks of radius 1.6 pixels at their coordinates; a tile is the
+    # palette indices of its pixels
+    img = layer.render(grid_geom(2, 0, 0, layer.edge_origin))
+    assert img.shape == (256, 256) and img.dtype == np.uint8
     row, col = int((30 - 2.5) * 4), int((21 - 1.5) * 4)      # point (y, x) = (30, 21)
-    np.testing.assert_array_equal(rgba[row, col], layer.colorize(np.array([30021.0]))[0])
-    assert rgba[row, col + 4, 3] == 0                        # (30, 22): no point, 4 pixels from the others
+    assert img[row, col] == layer.indices(np.array([30021.0]))[0]
+    assert img[row, col + 4] == 255                          # (30, 22): no point, 4 pixels from the others
     k = pts.index((30, 21))
     assert layer.value(21.1, 29.9, 0.25) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}
     assert layer.value(22, 30, 1 / 16) is None               # centre of an empty cell, zoomed in
@@ -222,6 +237,7 @@ def test_point_data_in_memory(grid_pc):
         geom = grid_geom(z, 0, 0, ref.edge_origin)
         np.testing.assert_array_equal(layer.render(geom), ref.render(geom))
     assert layer.value(21.1, 29.9, 0.25)['value'] == 30021.0
+    assert layer.value(21.1, 29.9, 2)['value'] == 30021.0 and layer.value(22, 30, 1) is None
     # zarr paths work too; coordinates off the integer grid need a resolution
     assert view(str(d / 'val.zarr'), x=str(d / 'gx.zarr'), y=str(d / 'gy.zarr')).shape == (60, 40)
     assert view(val, x=gx + 0.5, y=gy, resolution=1).shape == (60, 40)
@@ -231,6 +247,22 @@ def test_point_data_in_memory(grid_pc):
         view(val)
     with pytest.raises(ValueError, match='both'):
         view(val, x=gx)
+
+
+def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
+    """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
+    coordinates; a pyramid made without the tree gets one built."""
+    import shutil
+    from moraine.api.rtree import HilbertRtree
+    pts, pyr = grid_pc
+    layer = view(str(pyr))
+    monkeypatch.setattr(HilbertRtree, 'build', lambda *a, **k: pytest.fail('the tree was built instead of read'))
+    box = (19.5, 28.5, 23.5, 32.5)                            # columns 20 - 23, lines 29 - 32
+    idx = layer.points_in(box)
+    assert sorted(pts[i] for i in idx) == [(y, x) for y in range(29, 33) for x in range(20, 24) if (x + y) % 3 == 0]
+    monkeypatch.undo()
+    shutil.rmtree(pyr / 'rtree.zarr')
+    np.testing.assert_array_equal(np.sort(view(str(pyr)).points_in(box)), np.sort(idx))
 
 
 def test_web_mercator(mercator_pc):
@@ -249,15 +281,16 @@ def test_web_mercator(mercator_pc):
     assert np.isfinite(t[:30, :20]).mean() > 0.5 and np.isnan(t[31:, 21:]).all()
     assert layer._rtree is None
     # zoom 17: cells of 4 pixels, tile (4 TX, 4 TY) covers pixels 0 - 63 of the zoom 15 tile
-    rgba = layer.render(mercator_geom(17, 4 * TX, 4 * TY))
+    img = layer.render(mercator_geom(17, 4 * TX, 4 * TY))
     row, col = 4 * 30 + 2, 4 * 21 + 2                        # point (a, b) = (30, 21)
-    np.testing.assert_array_equal(rgba[row, col], layer.colorize(np.array([30021.0]))[0])
-    assert rgba[row, col + 4, 3] == 0
+    assert img[row, col] == layer.indices(np.array([30021.0]))[0]
+    assert img[row, col + 4] == 255
     x, y = west + 21.5 * res, top - 30.5 * res
     found = layer.value(x + 0.3 * res, y - 0.2 * res, mercator_pixel(17))
     assert found['point'] == ab.index((30, 21)) and found['value'] == 30021.0
     assert found['x'] == pytest.approx(x) and found['y'] == pytest.approx(y)
     assert layer.value(west - res, y, mercator_pixel(17)) is None
+    assert layer.value(x + 0.3 * res, y - 0.2 * res, mercator_pixel(15)) == found    # the cell drawn at zoom 15
     # the map: zoom showing all data, at most 16 screen pixels per cell
     w = layer.widget
     assert w.crs == 'web_mercator' and w.axis_labels == ['longitude', 'latitude']
@@ -302,6 +335,7 @@ def test_coherence_sliders(tmp_path):
     assert [(k['name'], k['max']) for k in layer.kdims] == [('ref', 3), ('sec', 3)]
     assert layer.default_index == {'ref': 0, 'sec': 1} and layer.bar_label == 'phase (rad)'
     assert layer.ts is None                                  # no time series of pairs
+    assert layer.widget.panels[0]['layers'][0]['sliders'] == ['ref', 'sec']
     geom = grid_geom(0, 0, 0, layer.edge_origin)
     t = layer.raster_values(geom, {'ref': 1, 'sec': 3})[:3, :4].ravel()      # pair (1, 3) is k = 3
     np.testing.assert_allclose(t, np.angle(coh[:, 3]), rtol=1e-5)
@@ -380,6 +414,7 @@ def test_composition(ras, grid_pc, mercator_pc, rng):
     data, _ = over._repr_mimebundle_()                       # displayed as a widget in a notebook
     assert 'application/vnd.jupyter.widget-view+json' in data
     assert len(lay.widget.panels) == 3 and max(lay.widget.frame) <= 560      # smaller maps side by side
+    assert [info['sliders'] for info in w.panels[0]['layers']] == [[], ['i'], []]   # the sliders of each layer
     with pytest.raises(ValueError, match='coordinates'):
         (points * view(str(mercator_pc[-1]))).widget
 
@@ -419,15 +454,20 @@ def test_view_messages(grid_pc, monkeypatch):
     # tile of the second layer: map position = data - view origin
     v._on_msg(v, {'type': 'tile', 'id': 1, 'panel': 0, 'layer': 1, 'z': 0, 'x': 0, 'y': 0, 'index': {}}, [])
     content, buffers = sent.pop()
-    img = np.asarray(Image.open(io.BytesIO(buffers[0])))
-    assert content == {'type': 'tile', 'id': 1} and img.shape == (256, 256, 4)
-    np.testing.assert_array_equal(img, v.layers[0][1].render(grid_geom(0, 0, 0, (-0.5, -0.5))))
+    img = Image.open(io.BytesIO(buffers[0]))                 # a palette PNG, index 255 transparent
+    assert content == {'type': 'tile', 'id': 1} and img.mode == 'P' and img.size == (256, 256)
+    layer = v.layers[0][1]
+    np.testing.assert_array_equal(np.asarray(img.convert('RGBA')),
+                                  layer.palette[layer.render(grid_geom(0, 0, 0, (-0.5, -0.5)))])
     # values of all layers under the cursor
     k, k_ref = pts.index((30, 21)), pts.index((3, 3))
     v._on_msg(v, {'type': 'value', 'id': 2, 'x': 21.5, 'y': 30.4, 'z': 2}, [])
     msg = sent.pop()[0]
     assert (msg['x'], msg['y']) == (21.0, pytest.approx(29.9))
     assert msg['values'] == [{'label': 'amp', 'value': 1.0}, {'label': 'pc_pyr', 'value': 30021.0, 'point': k}]
+    # continuous zoom: at zoom 2.5 the probe reaches 4 * 2**-2.5 = 0.7 units, point (30, 21) is 0.9 from (21.9, 30)
+    v._on_msg(v, {'type': 'value', 'id': 8, 'x': 22.4, 'y': 30.5, 'z': 2.5}, [])
+    assert sent.pop()[0]['values'] == [{'label': 'amp', 'value': 1.0}]
     # time series of the top layer with one, relative to a reference of the same layer
     v._on_msg(v, {'type': 'locate', 'id': 3, 'x': 3.5, 'y': 3.5, 'z': 2}, [])
     loc = sent.pop()[0]
@@ -449,7 +489,42 @@ def test_map_size(ras, grid_pc):
     w = view(str(pyr)).widget
     assert w.frame == [900, 540] and w.zoom == 0 and w.max_zoom == 4
     assert w.panels[0]['layers'][0]['label'] == 'ras_pyr' and not w.panels[0]['series']
+    assert w.panels[0]['layers'][0]['sliders'] == []
     assert view(str(grid_pc[1])).widget.view_origin == [1.5, 2.5]
+    # the size of the maps: the width of the notebook by default, or given in pixels (by any layer)
+    assert w.size == []
+    assert view(str(pyr), size=(600, 400)).widget.size == [600, 400]
+    assert (view(str(pyr)) * view(str(grid_pc[1]), size=(500, 300))).widget.size == [500, 300]
+    with pytest.raises(ValueError, match='size'):
+        view(str(pyr), size=(0, 400))
+    assert w.pixel_size(2.5) == 2 ** -2.5                    # the zoom is continuous
+
+
+def test_terrain(mercator_pc, grid_pc):
+    """3D views: the `terrain` of the layers reaches the widget; web mercator layers only."""
+    from moraine.cli.tiles import TERRAIN_TILES
+    pyr = mercator_pc[4]
+    layer = view(str(pyr), terrain=True)
+    assert layer.terrain == TERRAIN_TILES
+    assert all(k in TERRAIN_TILES['url'] for k in ('{z}', '{x}', '{y}')) and TERRAIN_TILES['max_zoom'] == 15
+    w = layer.widget
+    assert w.terrain == TERRAIN_TILES and w.crs == 'web_mercator'
+    assert '3D view over the terrain' in repr(layer)
+    # the maps of a view share one terrain, from any of their layers
+    assert (view(str(pyr)) * layer).widget.terrain == TERRAIN_TILES
+    assert (view(str(pyr)) + layer).widget.terrain == TERRAIN_TILES
+    other = view(str(pyr), terrain='https://tiles.example.org/{z}/{x}/{y}.png')    # another Terrarium service
+    assert other.terrain['url'] == 'https://tiles.example.org/{z}/{x}/{y}.png' and other.terrain['max_zoom'] == 15
+    with pytest.raises(ValueError, match='one terrain'):
+        (layer * other).widget
+    # 2D maps by default
+    flat = view(str(pyr))
+    assert flat.terrain is None and flat.widget.terrain == {}
+    assert view(str(pyr), terrain=False).terrain is None and '3D' not in repr(flat)
+    with pytest.raises(ValueError, match='web mercator'):
+        view(str(grid_pc[1]), terrain=True)
+    with pytest.raises(ValueError, match='terrain must be'):
+        view(str(pyr), terrain='https://tiles.example.org/{z}/{x}.png')
 
 
 def test_polygon_file(tmp_path, grid_pc, mercator_pc):

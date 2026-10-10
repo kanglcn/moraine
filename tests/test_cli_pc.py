@@ -68,6 +68,16 @@ def test_ras2pc_ras_chunk(w, rng):
     for name, ras in [('pc1', ras1), ('pc2', ras2)]:
         mc.pc_concat(w(name), w(name + '.zarr'), key=w('key.zarr'), chunks=200)
         np.testing.assert_array_equal(r(w(name + '.zarr')), ras[gix[:, 0], gix[:, 1]])
+    z = zarr.open(w('pc2') + '/0.zarr', mode='r')
+    assert z.chunks == (z.shape[0], 1)                           # a stack: one image per chunk
+    # a window array (nlines, width, az_win, r_win): the whole window of a point in one chunk (decision 0032)
+    ras3 = rng.random((*shape, 3, 3)).astype(np.float32)
+    w('ras3.zarr', ras3, (*chunks, 1, 1))
+    mc.ras2pc_ras_chunk(w('gix.zarr'), w('ras3.zarr'), w('pc3'), key=w('key3.zarr'))
+    z = zarr.open(w('pc3') + '/0.zarr', mode='r')
+    assert z.chunks == (z.shape[0], 3, 3)
+    mc.pc_concat(w('pc3'), w('pc3.zarr'), key=w('key3.zarr'), chunks=200)
+    np.testing.assert_array_equal(r(w('pc3.zarr')), ras3[gix[:, 0], gix[:, 1]])
     # without key the output is in chunk order
     chunk_idx = mr.api.pc._pc_split_by_chunk(gix, chunks, shape)[0]
     sgix = gix[chunk_idx]
@@ -197,3 +207,13 @@ def test_data_reduce(w, rng):
     mc.data_reduce(w('pc_in2.zarr'), w('pc_out2.zarr'), map_func=np.abs, reduce_func=np.sum, post_map_func=lambda x: x / 800)
     np.testing.assert_array_almost_equal(r(w('pc_out1.zarr'))[0], np.mean(np.abs(pc1), axis=0))
     np.testing.assert_array_almost_equal(r(w('pc_out2.zarr')), np.mean(np.abs(pc2), axis=0))
+
+
+def test_bool2gix(tmp_path):
+    rng = np.random.default_rng(0)
+    is_pc = rng.random((30, 40)) < 0.2
+    zarr.open(str(tmp_path / 'is_pc.zarr'), mode='w', shape=is_pc.shape, dtype=bool, chunks=(10, 40))[:] = is_pc
+    mc.bool2gix(str(tmp_path / 'is_pc.zarr'), str(tmp_path / 'gix.zarr'), chunks=50)
+    gix = zarr.open(str(tmp_path / 'gix.zarr'), mode='r')
+    assert gix.chunks == (50, 1)  # one column per chunk, as every point cloud array
+    np.testing.assert_array_equal(gix[:], np.stack(np.where(is_pc), axis=-1))

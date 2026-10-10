@@ -1,9 +1,22 @@
-// Leaflet maps of moraine layers (moraine/cli/viewer.py, decision 0018). Tiles are requested from
-// the kernel with custom widget messages and come back as PNG buffers. Several maps are zoomed and panned
-// together; sliders, time series, reference and polygons are shared by all maps.
+// Maps of moraine layers (moraine/cli/viewer.py, decisions 0018 and 0036): Leaflet maps, or deck.gl views over
+// the terrain in 3D. Tiles are requested from the kernel with custom widget messages and come back as PNG
+// buffers. Several maps are zoomed and panned together; sliders, time series, reference and polygons are
+// shared by all maps.
 import * as L from "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet-src.esm.js";
 
 const LEAFLET_CSS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+const DECK_JS = "https://cdn.jsdelivr.net/npm/deck.gl@9.1.12/dist.min.js";   // 3D views only
+const MAX_HEIGHT = 700;            // of a map sized automatically (screen pixels)
+const MIN_SIZE = [200, 150];       // smallest map (width, height)
+const PITCH = 55;                  // of a 3D view at the start, degrees from straight down
+const MAX_PITCH = 85;
+const EXTRA_ZOOM_3D = 2;           // zoom levels a 3D view goes beyond the 2D map: points seen from close by
+const TILE_PX = 256;               // pixels of a tile
+// Terrarium elevation tiles: height = R * 256 + G + B / 256 - 32768 m
+const TERRARIUM = { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 };
+const TERRAIN_SCHEME = "moraine-terrain://";     // elevation tile requests of the 3D views, answered by terrainFetch
+const REF_COLOR = [224, 0, 0], SEL_COLOR = [255, 255, 255];     // markers of the reference and the clicked point
+const css = (c) => `rgb(${c.join(",")})`;
 
 function loadCss() {
   if (document.querySelector(`link[href="${LEAFLET_CSS}"]`)) return;
@@ -13,18 +26,45 @@ function loadCss() {
   document.head.appendChild(link);
 }
 
+// deck.gl is a classic (UMD) bundle. Loaded as it is, it registers with the AMD loader of the notebook front end
+// (RequireJS defines `define`) instead of defining globalThis.deck, so it is fetched and imported as a module
+// in which `define`, `exports` and `module` are shadowed: the bundle then takes its global branch.
+let deckLoading = null;
+function loadDeck() {
+  if (globalThis.deck) return Promise.resolve(globalThis.deck);
+  if (!deckLoading) {
+    deckLoading = (async () => {
+      const response = await fetch(DECK_JS);
+      if (!response.ok) throw new Error(`${DECK_JS}: HTTP ${response.status}`);
+      const code = `var define, exports, module;\n${await response.text()}`;
+      const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+      try {
+        await import(url);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      if (!globalThis.deck) throw new Error(`${DECK_JS} did not define deck`);
+      return globalThis.deck;
+    })().catch((e) => { deckLoading = null; throw e; });
+  }
+  return deckLoading;
+}
+
 // crs "grid": map position (lng, lat) = data (x, y) - view_origin, y down, 2**z screen pixels per data unit
 const GRID = L.extend({}, L.CRS.Simple, { transformation: L.transformation(1, 0, 1, 0) });
 
 // base maps under web mercator layers, loaded by the browser
 const BASE_MAPS = {
   "Satellite (Esri)": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    { maxNativeZoom: 18, attribution: "Tiles &copy; Esri, Maxar, Earthstar Geographics" }],
+    { maxNativeZoom: 18, attribution: "Tiles © Esri, Maxar, Earthstar Geographics" }],
   "CARTO light": ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
-    { maxNativeZoom: 20, attribution: "&copy; OpenStreetMap contributors &copy; CARTO" }],
+    { maxNativeZoom: 20, attribution: "© OpenStreetMap contributors © CARTO" }],
   "OpenStreetMap": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxNativeZoom: 19, attribution: "&copy; OpenStreetMap contributors" }],
+    { maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }],
 };
+// the base map of the 3D views: its tiles are fetched (CORS) and drawn on the GPU, which Esri's server allows
+// without a key; CARTO and OpenStreetMap refuse such requests
+const SATELLITE = BASE_MAPS["Satellite (Esri)"];
 
 function fmt(v) {
   if (v === null || v === undefined) return "nan";
@@ -56,12 +96,31 @@ function drawTicks(container, v0, v1, pos, size, horizontal) {
   }
 }
 
-function render({ model, el }) {
+// a map of `width` x `height` screen pixels; the column of the map (and the axis below it) then follows its width
+function setMapSize(mapEl, plot, width, height) {
+  mapEl.style.width = `${Math.max(MIN_SIZE[0], Math.round(width))}px`;
+  mapEl.style.height = `${Math.max(MIN_SIZE[1], Math.round(height))}px`;
+  plot.style.gridTemplateColumns = plot.classList.contains("no-axes") ? "auto" : "64px auto";
+}
+
+async function render({ model, el }) {
   loadCss();
   const mercator = model.get("crs") === "web_mercator";
+  const terrain = model.get("terrain");
+  const relief = mercator && terrain && terrain.url ? terrain : null;     // a 3D view over the terrain
+  let deck = null;
+  if (relief) {
+    try {
+      deck = await loadDeck();
+    } catch (e) {
+      el.textContent = `3D view: ${e.message} (the browser needs internet access; the 2D map works without the terrain)`;
+      return () => {};
+    }
+  }
   const [vox, voy] = model.get("view_origin");
   const [ex0, ey0, ex1, ey1] = model.get("extent");
   const [fw, fh] = model.get("frame");
+  const size = model.get("size");
   const [xlabel, ylabel] = model.get("axis_labels");
   const panels = model.get("panels");
   const dates = model.get("dates");
@@ -120,8 +179,117 @@ function render({ model, el }) {
     return `${xlabel} ${fmt(x)}, ${ylabel} ${fmt(y)}`;
   }
   const pointName = (msg) => msg.point === undefined ? where(msg.x, msg.y) : `point ${msg.point} (${where(msg.x, msg.y)})`;
+  // polygon vertices: data coordinates on the radar grid, longitude / latitude for web mercator
+  const polyLatLng = ([x, y]) => mercator ? L.latLng(y, x) : dataLatLng(x, y);
+  const latLngPoly = (ll) => mercator ? [ll.lng, ll.lat] : [vox + ll.lng, voy + ll.lat];
 
-  // ---------------------------------------------------------------- maps
+  // ---------------------------------------------------------------- panels
+  // the box of a map: title, the map element with its resize handle (and axes for 2D maps), one colour bar per layer
+  function makeBox(panel, p, axes) {
+    const box = document.createElement("div");
+    box.className = "moraine-tv-panel";
+    box.innerHTML = `
+      <div class="moraine-tv-title"></div>
+      <div class="moraine-tv-body">
+        <div class="moraine-tv-plot${axes ? "" : " no-axes"}">
+          ${axes ? '<div class="moraine-tv-yaxis"><span class="title"></span><div class="ticks"></div></div>' : ""}
+          <div class="moraine-tv-map"><div class="moraine-tv-handle" title="drag to resize the map"></div></div>
+          ${axes ? '<div></div><div class="moraine-tv-xaxis"><div class="ticks"></div><span class="title"></span></div>' : ""}
+        </div>
+        <div class="moraine-tv-bars"></div>
+      </div>`;
+    el.querySelector(".moraine-tv-panels").appendChild(box);
+    box.querySelector(".moraine-tv-title").textContent = panel.title;
+    const mapEl = box.querySelector(".moraine-tv-map"), plot = box.querySelector(".moraine-tv-plot");
+    // the size given in python; otherwise the map takes the width of the notebook with the aspect of the scene
+    // once it is in the page (observeSize)
+    if (size.length === 2) setMapSize(mapEl, plot, size[0], size[1]);
+    for (const info of panel.layers) {
+      const bar = document.createElement("div");
+      bar.className = "moraine-tv-bar";
+      bar.innerHTML = `<span class="hi"></span><div class="ramp"></div><span class="lo"></span><span class="label"></span>`;
+      bar.querySelector(".ramp").style.background = `linear-gradient(to top, ${info.colors.join(",")})`;
+      bar.querySelector(".ramp").style.height = `${Math.min(fh, 300) / Math.max(1, panel.layers.length)}px`;
+      bar.querySelector(".lo").textContent = fmt(info.clim[0]);
+      bar.querySelector(".hi").textContent = fmt(info.clim[1]);
+      bar.querySelector(".label").textContent = info.bar_label;
+      box.querySelector(".moraine-tv-bars").appendChild(bar);
+    }
+    return { p, box, mapEl, plot, ramps: box.querySelectorAll(".moraine-tv-bar .ramp") };
+  }
+
+  // the element may not be in the page yet (size 0): once it has its size, size the map automatically (unless
+  // given) and let the backend fit the data into it (`onSized(first)`); later size changes keep the view
+  function observeSize(view, onSized) {
+    let shown = false;
+    const { mapEl, plot, ramps } = view;
+    const sized = () => {
+      if (!mapEl.clientWidth || !mapEl.clientHeight) return;
+      if (!shown && size.length !== 2) {
+        // the width of the notebook, at most MAX_HEIGHT high, with the aspect of the scene
+        const w = Math.min(mapEl.clientWidth, Math.round(MAX_HEIGHT * fw / fh));
+        setMapSize(mapEl, plot, w, w * fh / fw);
+      }
+      onSized(!shown);
+      shown = true;
+      ramps.forEach((r) => { r.style.height = `${Math.min(mapEl.clientHeight, 300) / Math.max(1, ramps.length)}px`; });
+    };
+    // the sizes are changed in the next frame, not within the observer's own notification
+    view.resize = new ResizeObserver(() => requestAnimationFrame(sized));
+    view.resize.observe(mapEl);
+  }
+
+  // drag the lower right corner of the map to resize it
+  function resizeHandle(view) {
+    const { mapEl, plot } = view;
+    const handle = mapEl.querySelector(".moraine-tv-handle");
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();                       // no mouse events for the map: not a drag of the map
+      e.stopPropagation();
+      const start = { x: e.clientX, y: e.clientY, w: mapEl.clientWidth, h: mapEl.clientHeight };
+      const move = (ev) => setMapSize(mapEl, plot, start.w + ev.clientX - start.x, start.h + ev.clientY - start.y);
+      const stop = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", stop);
+        handle.removeEventListener("pointercancel", stop);
+      };
+      handle.setPointerCapture(e.pointerId);
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+    });
+  }
+
+  // values of all layers under the cursor of a map, at most one request in flight per map
+  function hoverProbe(view) {
+    let valueId = null, lastPos = null, lastHeight = null;
+    function probe() {
+      if (valueId !== null || lastPos === null) return;
+      const [u, v] = lastPos, height = lastHeight;
+      lastPos = null;
+      valueId = request({ type: "value", panel: view.p, x: u, y: v, z: view.getZoom() }, (msg) => {
+        valueId = null;
+        if (msg.error) status.textContent = `error: ${msg.error}`;
+        else {
+          const values = msg.values.map((f) => `${f.label}${f.point === undefined ? "" : ` (point ${f.point})`}: ${fmt(f.value)}`);
+          const h = height === null ? "" : `, height ${fmt(Math.round(height))} m`;
+          status.textContent = `${where(msg.x, msg.y)}${h}  |  ${values.length ? values.join("  |  ") : "no data"}`;
+        }
+        probe();
+      });
+    }
+    // latlng null: the cursor left the map; height: of the terrain under the cursor (3D), null otherwise
+    view.onHover((latlng, height = null) => {
+      if (latlng === null) { lastPos = null; return; }
+      const pos = position(latlng);
+      if (pos === null) { lastPos = null; status.textContent = ""; return; }
+      lastPos = pos;
+      lastHeight = height;
+      probe();
+    });
+  }
+
+  // ---------------------------------------------------------------- 2D maps (Leaflet)
   const Tiles = L.GridLayer.extend({
     createTile(coords, done) {
       const img = document.createElement("img");
@@ -142,41 +310,22 @@ function render({ model, el }) {
     },
   });
 
-  function makePanel(panel, p) {
-    const box = document.createElement("div");
-    box.className = "moraine-tv-panel";
-    box.innerHTML = `
-      <div class="moraine-tv-title"></div>
-      <div class="moraine-tv-body">
-        <div class="moraine-tv-plot">
-          <div class="moraine-tv-yaxis"><span class="title"></span><div class="ticks"></div></div>
-          <div class="moraine-tv-map"></div>
-          <div></div>
-          <div class="moraine-tv-xaxis"><div class="ticks"></div><span class="title"></span></div>
-        </div>
-        <div class="moraine-tv-bars"></div>
-      </div>`;
-    el.querySelector(".moraine-tv-panels").appendChild(box);
-    box.querySelector(".moraine-tv-title").textContent = panel.title;
-    const mapEl = box.querySelector(".moraine-tv-map");
-    mapEl.style.width = `${fw}px`;
-    mapEl.style.height = `${fh}px`;
-    // one colour bar per layer
-    for (const info of panel.layers) {
-      const bar = document.createElement("div");
-      bar.className = "moraine-tv-bar";
-      bar.innerHTML = `<span class="hi"></span><div class="ramp"></div><span class="lo"></span><span class="label"></span>`;
-      bar.querySelector(".ramp").style.background = `linear-gradient(to top, ${info.colors.join(",")})`;
-      bar.querySelector(".ramp").style.height = `${Math.min(fh, 300) / Math.max(1, panel.layers.length)}px`;
-      bar.querySelector(".lo").textContent = fmt(info.clim[0]);
-      bar.querySelector(".hi").textContent = fmt(info.clim[1]);
-      bar.querySelector(".label").textContent = info.bar_label;
-      box.querySelector(".moraine-tv-bars").appendChild(bar);
-    }
+  // the tile layer of layer `l` of map `p` (any zoom: the map limits it); the kernel's answers to tiles unloaded
+  // meanwhile are dropped
+  function makeTiles(p, l, opacity) {
+    const layer = new Tiles({ tileSize: 256, bounds, minZoom: -100, maxZoom, panel: p, layer: l, opacity,
+                              updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
+    layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
+    return layer;
+  }
 
-    // the element may not be in the page yet (size 0), so the initial zoom comes from the kernel
+  function makeLeafletPanel(panel, p) {
+    const view = makeBox(panel, p, true);
+    const { mapEl, box } = view;
+    // the map starts at the kernel's zoom and is fitted to the data once it has its size (observeSize); the zoom
+    // is continuous, tiles are drawn at the nearest integer zoom
     const map = L.map(mapEl, {
-      crs: mercator ? L.CRS.EPSG3857 : GRID, maxZoom, minZoom: mercator ? 0 : zoom - 1, zoomSnap: 1,
+      crs: mercator ? L.CRS.EPSG3857 : GRID, maxZoom, minZoom: mercator ? 0 : zoom - 1, zoomSnap: 0,
       attributionControl: mercator, doubleClickZoom: false, maxBounds: mercator ? undefined : bounds.pad(0.5),
     });
     map.setView(bounds.getCenter(), zoom);
@@ -191,14 +340,14 @@ function render({ model, el }) {
     }
     const overlays = {};
     const tiles = panel.layers.map((info, l) => {
-      const layer = new Tiles({ tileSize: 256, bounds, minZoom: map.getMinZoom(), maxZoom, panel: p, layer: l,
-                                opacity: info.opacity, updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
-      layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
-      layer.addTo(map);
+      const layer = makeTiles(p, l, info.opacity).addTo(map);
       overlays[info.label] = layer;
       return layer;
     });
-    if (mercator || panel.layers.length > 1) L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    let control = null;
+    if (mercator || panel.layers.length > 1) {
+      control = L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    }
 
     // axes: range to the right, azimuth down (grid); longitude and latitude in degrees (web mercator)
     const xTicks = box.querySelector(".moraine-tv-xaxis .ticks"), yTicks = box.querySelector(".moraine-tv-yaxis .ticks");
@@ -220,55 +369,434 @@ function render({ model, el }) {
     map.on("move zoom resize", drawAxes);
     drawAxes();
 
-    // once the element has its size in the page, let Leaflet measure it and centre the data again
-    let shown = false;
-    const resize = new ResizeObserver(() => {
-      if (!mapEl.clientWidth || !mapEl.clientHeight) return;
-      map.invalidateSize();
-      if (!shown) map.setView(bounds.getCenter(), zoom);
-      shown = true;
+    observeSize(view, (first) => {
+      map.invalidateSize({ animate: false });
+      if (first) {
+        if (!mercator) {                        // let the data fit however small the map is, and one zoom more
+          map.setMinZoom(-100);
+          map.setMinZoom(Math.floor(map.getBoundsZoom(bounds, false, L.point(4, 4))) - 1);
+        }
+        map.fitBounds(bounds, { animate: false, padding: [4, 4] });
+      }
       drawAxes();
     });
-    resize.observe(mapEl);
+    resizeHandle(view);
 
-    // values of all layers under the cursor, at most one request in flight
-    let valueId = null, lastPos = null;
-    function probe() {
-      if (valueId !== null || lastPos === null) return;
-      const [u, v] = lastPos;
-      lastPos = null;
-      valueId = request({ type: "value", panel: p, x: u, y: v, z: map.getZoom() }, (msg) => {
-        valueId = null;
-        if (msg.error) status.textContent = `error: ${msg.error}`;
-        else {
-          const values = msg.values.map((f) => `${f.label}${f.point === undefined ? "" : ` (point ${f.point})`}: ${fmt(f.value)}`);
-          status.textContent = `${where(msg.x, msg.y)}  |  ${values.length ? values.join("  |  ") : "no data"}`;
+    const markers = L.layerGroup().addTo(map), polygons = L.layerGroup().addTo(map);
+    const marker = (latlng, color) => L.circleMarker(latlng, { radius: 6, color: css(color), weight: 2, fill: false, interactive: false });
+    let sketch = null;
+    Object.assign(view, {
+      map,
+      // a slider change: the new tiles are drawn over the old ones, which stay until all are in
+      swapTiles(l) {
+        const old = tiles[l], next = makeTiles(p, l, old.options.opacity);
+        tiles[l] = next;
+        if (control) {
+          control.removeLayer(old);
+          control.addOverlay(next, panel.layers[l].label);
         }
-        probe();
+        if (!map.hasLayer(old)) return;          // switched off in the layer control: stays off
+        next.once("load", () => old.remove());
+        next.addTo(map);
+      },
+      setOpacity(l, value) { tiles[l].setOpacity(value); },
+      setMarkers(list) {                        // [{x, y, color}] in data coordinates
+        markers.clearLayers();
+        for (const m of list) marker(dataLatLng(m.x, m.y), m.color).addTo(markers);
+      },
+      setPolygons(polys, remove) {              // the polygons of the model; right click removes one
+        polygons.clearLayers();
+        polys.forEach((poly, k) => {
+          const shape = L.polygon(poly.map(polyLatLng), { color: "#ff0", weight: 2, fillOpacity: 0.1 });
+          shape.on("contextmenu", (e) => { L.DomEvent.stop(e); remove(k); });
+          shape.addTo(polygons);
+        });
+      },
+      setSketch(latlngs) {                      // the polygon being drawn, null when done
+        if (latlngs === null) { if (sketch) sketch.remove(); sketch = null; return; }
+        if (!sketch) sketch = L.polyline([], { color: "#ff0", weight: 2, dashArray: "4 4" }).addTo(map);
+        sketch.setLatLngs(latlngs);
+      },
+      containerPoint: (latlng) => map.latLngToContainerPoint(latlng),
+      getZoom: () => map.getZoom(),
+      onMove(fn) { map.on("move", fn); },
+      follow(other) { map.setView(other.map.getCenter(), other.map.getZoom(), { animate: false }); },
+      onClick(fn) { map.on("click", (e) => fn(e.latlng)); },
+      onDblClick(fn) { map.on("dblclick", (e) => fn(e.latlng)); },
+      onHover(fn) { map.on("mousemove", (e) => fn(e.latlng)); map.on("mouseout", () => fn(null)); },
+      destroy() { view.resize.disconnect(); map.remove(); },
+    });
+    return view;
+  }
+
+  // ---------------------------------------------------------------- 3D views (deck.gl)
+  // The elevation tiles make the terrain (TerrainLayer); the base map and the kernel's tiles are draped over it
+  // and the markers stand on it (TerrainExtension). The cursor position is the point of the terrain under it.
+  function makeDeckPanel(panel, p) {
+    const { Deck, MapView, WebMercatorViewport, TileLayer, TerrainLayer, BitmapLayer, ScatterplotLayer, PathLayer,
+            _TerrainExtension: TerrainExtension } = deck;
+    const view = makeBox(panel, p, false);
+    const { mapEl } = view;
+    mapEl.classList.add("moraine-tv-map3d");
+    // controls over the map: layers on and off, the view from straight above; the attribution below
+    const ctl = document.createElement("div");
+    ctl.className = "moraine-tv-ctl";
+    const checks = panel.layers.map((info) => {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" checked>`;
+      label.appendChild(document.createTextNode(info.label));
+      ctl.appendChild(label);
+      return label.querySelector("input");
+    });
+    const topButton = document.createElement("button");
+    topButton.textContent = "top view";
+    topButton.title = "look straight down, north up";
+    ctl.appendChild(topButton);
+    mapEl.appendChild(ctl);
+    const attribution = document.createElement("div");
+    attribution.className = "moraine-tv-attr";
+    mapEl.appendChild(attribution);
+
+    const sw = toLatLng(ex0, ey0), ne = toLatLng(ex1, ey1);
+    const dataBounds = [sw.lng, sw.lat, ne.lng, ne.lat];          // west, south, east, north
+    const extension = new TerrainExtension();
+    // tiles given up because the view moved on are no errors
+    const onTileError = (e) => { if (!e || e.name !== "AbortError") status.textContent = `tile error: ${e && e.message ? e.message : e}`; };
+    const maxZoom3d = maxZoom + EXTRA_ZOOM_3D;         // of the tiles; the view's zoom is one less (deck.gl)
+    const opacity = panel.layers.map((info) => info.opacity);
+    const shown = panel.layers.map(() => true);
+    const generation = panel.layers.map(() => 0);
+    const fading = panel.layers.map(() => []);      // tile layers replaced by a slider change, kept until the new ones are in
+    let markers = [], polys = [];
+
+    // a tile image draped over the terrain; the kernel's tiles keep their pixels sharp
+    function imageLayer(props, sharp) {
+      const [[west, south], [east, north]] = props.tile.boundingBox;
+      return new BitmapLayer(props, {
+        data: null, image: props.data, bounds: [west, south, east, north], pickable: false,
+        textureParameters: sharp ? { minFilter: "nearest", magFilter: "nearest" } : { minFilter: "linear", magFilter: "linear" },
       });
     }
-    map.on("mousemove", (e) => {
-      const pos = position(e.latlng);
-      if (pos === null) { lastPos = null; status.textContent = ""; return; }
-      lastPos = pos;
-      probe();
-    });
-    map.on("mouseout", () => { lastPos = null; });
+    // a tile of layer `l` from the kernel, decoded for the GPU; a tile unloaded meanwhile is dropped
+    function tileImage(l, { x, y, z }, signal) {
+      return new Promise((resolve, reject) => {
+        const id = request({ type: "tile", panel: p, layer: l, z, x, y }, (msg, buffers) => {
+          if (msg.error) {
+            status.textContent = `tile error: ${msg.error}`;
+            reject(new Error(msg.error));
+            return;
+          }
+          createImageBitmap(new Blob([buffers[0]], { type: "image/png" })).then(resolve, reject);
+        });
+        if (signal) signal.addEventListener("abort", () => { pending.delete(id); reject(new DOMException("tile unloaded", "AbortError")); });
+      });
+    }
+    function dataTiles(l) {
+      const gen = ++generation[l];
+      return new TileLayer({
+        id: `data-${l}-${gen}`, tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, extent: dataBounds,
+        getTileData: ({ index, signal }) => tileImage(l, index, signal),
+        renderSubLayers: (props) => imageLayer(props, true),
+        opacity: opacity[l], visible: shown[l], extensions: [extension], onTileError,
+        debounceTime: 80,                     // a zoom passes several levels: only the tiles of the last are asked for
+        // the newest layer has its tiles: the replaced ones go
+        onViewportLoad: () => { if (gen === generation[l] && fading[l].length) { fading[l] = []; redraw(); } },
+      });
+    }
+    const dataLayers = panel.layers.map((info, l) => dataTiles(l));
+    function baseTiles() {
+      const [url, options] = SATELLITE;
+      return new TileLayer({
+        id: "base", data: url, tileSize: TILE_PX, minZoom: 0, maxZoom: options.maxNativeZoom,
+        renderSubLayers: (props) => imageLayer(props, false), extensions: [extension], onTileError,
+      });
+    }
 
-    const markers = L.layerGroup().addTo(map);
-    const polygons = L.layerGroup().addTo(map);
-    return { p, map, tiles, markers, polygons, resize, sketch: null };
+    // Elevation tiles at every zoom of the view. The service stops at relief.max_zoom; the terrain of a
+    // deeper tile is cut from its parent tile at that zoom, the heights interpolated (bilinear) and encoded
+    // again, so that the meshes, and the textures draped over them, follow the zoom of the view (deck.gl
+    // sizes the draped textures when a terrain tile appears).
+    const defaultFetch = new TerrainLayer({ id: "defaults" }).props.fetch;
+    const parents = new Map();                      // "z/x/y" -> promise of the heights of a tile of the service
+    const terrainUrl = (z, x, y) => relief.url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+    function parentHeights(z, x, y) {
+      const key = `${z}/${x}/${y}`;
+      if (!parents.has(key)) {
+        parents.set(key, (async () => {
+          const response = await fetch(terrainUrl(z, x, y));
+          if (!response.ok) throw new Error(`${terrainUrl(z, x, y)}: HTTP ${response.status}`);
+          const bitmap = await createImageBitmap(await response.blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+          const canvas = new OffscreenCanvas(TILE_PX, TILE_PX);
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          context.drawImage(bitmap, 0, 0);
+          if (bitmap.close) bitmap.close();
+          const { data } = context.getImageData(0, 0, TILE_PX, TILE_PX);
+          const heights = new Float32Array(TILE_PX * TILE_PX);
+          for (let i = 0; i < heights.length; i++) {
+            heights[i] = data[4 * i] * 256 + data[4 * i + 1] + data[4 * i + 2] / 256 - 32768;
+          }
+          return heights;
+        })().catch((e) => { parents.delete(key); throw e; }));
+        if (parents.size > 64) parents.delete(parents.keys().next().value);
+      }
+      return parents.get(key);
+    }
+    async function overzoomedTile(z, x, y) {
+      const n = 2 ** (z - relief.max_zoom);
+      const heights = await parentHeights(relief.max_zoom, Math.floor(x / n), Math.floor(y / n));
+      const ox = (x % n) * TILE_PX / n, oy = (y % n) * TILE_PX / n;      // origin of the tile in parent pixels
+      const last = TILE_PX - 1;
+      const image = new ImageData(TILE_PX, TILE_PX), d = image.data;
+      for (let j = 0; j < TILE_PX; j++) {
+        const v = Math.min(Math.max(oy + (j + 0.5) / n - 0.5, 0), last), j0 = Math.floor(v), fj = v - j0;
+        const j1 = Math.min(j0 + 1, last);
+        for (let i = 0; i < TILE_PX; i++) {
+          const u = Math.min(Math.max(ox + (i + 0.5) / n - 0.5, 0), last), i0 = Math.floor(u), fi = u - i0;
+          const i1 = Math.min(i0 + 1, last);
+          const h = (heights[j0 * TILE_PX + i0] * (1 - fi) + heights[j0 * TILE_PX + i1] * fi) * (1 - fj)
+                  + (heights[j1 * TILE_PX + i0] * (1 - fi) + heights[j1 * TILE_PX + i1] * fi) * fj;
+          const value = Math.max(0, Math.min(2 ** 24 - 1, Math.round((h + 32768) * 256)));
+          const k = 4 * (j * TILE_PX + i);
+          d[k] = (value >> 16) & 255; d[k + 1] = (value >> 8) & 255; d[k + 2] = value & 255; d[k + 3] = 255;
+        }
+      }
+      const canvas = new OffscreenCanvas(TILE_PX, TILE_PX);
+      canvas.getContext("2d").putImageData(image, 0, 0);
+      return canvas.convertToBlob({ type: "image/png" });
+    }
+    function terrainFetch(url, options) {
+      if (!url.startsWith(TERRAIN_SCHEME)) return defaultFetch(url, options);
+      const [z, x, y] = url.slice(TERRAIN_SCHEME.length).split("/").map(Number);
+      if (z <= relief.max_zoom) return defaultFetch(terrainUrl(z, x, y), options);
+      return overzoomedTile(z, x, y).then(async (blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        try {
+          return await defaultFetch(blobUrl, options);
+        } finally {
+          URL.revokeObjectURL(blobUrl);
+        }
+      });
+    }
+    // the meshes of the loaded terrain tiles, for the point under the cursor (pick below): the mesh and its
+    // bounding box, x and y in common units, z in metres
+    const terrainTiles = new Map();
+    const tileKey = ({ x, y, z }) => `${z}/${x}/${y}`;
+    function tileLoaded(tile) {
+      const mesh = tile.content && tile.content[0];
+      if (!mesh || !mesh.attributes || !mesh.attributes.POSITION) return;
+      let box = mesh.header && mesh.header.boundingBox;
+      if (!box) {
+        const p = mesh.attributes.POSITION.value;
+        box = [[Infinity, Infinity, Infinity], [-Infinity, -Infinity, -Infinity]];
+        for (let i = 0; i < p.length; i += 3) {
+          for (let j = 0; j < 3; j++) { box[0][j] = Math.min(box[0][j], p[i + j]); box[1][j] = Math.max(box[1][j], p[i + j]); }
+        }
+      }
+      terrainTiles.set(tileKey(tile.index), { mesh, box });
+    }
+    function terrainLayer() {
+      return new TerrainLayer({
+        id: "terrain", elevationData: `${TERRAIN_SCHEME}{z}/{x}/{y}`, fetch: terrainFetch, texture: null,
+        tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, maxRequests: 10, elevationDecoder: TERRARIUM,
+        meshMaxError: 8, color: [190, 190, 190], operation: "terrain+draw", pickable: false,
+        onTileLoad: tileLoaded, onTileUnload: (tile) => terrainTiles.delete(tileKey(tile.index)), onTileError,
+      });
+    }
+    // the markers are painted on the terrain like the tiles (drape): standing on it (offset) would make deck.gl
+    // render a height map of the whole terrain at every move of the view
+    function markerLayer() {
+      if (!markers.length) return null;
+      return new ScatterplotLayer({
+        id: "markers", data: markers, getPosition: (d) => d.position, getLineColor: (d) => d.color,
+        radiusUnits: "pixels", getRadius: 6, filled: false, stroked: true, lineWidthUnits: "pixels", getLineWidth: 2,
+        extensions: [extension], terrainDrawMode: "drape",
+      });
+    }
+    function polygonLayer() {
+      return new PathLayer({
+        id: "polygons", data: polys, getPath: (d) => d, getColor: [255, 255, 0], widthUnits: "pixels", getWidth: 2,
+        extensions: [extension], terrainDrawMode: "drape",
+      });
+    }
+    function layers() {
+      const data = panel.layers.flatMap((info, l) => [...fading[l], dataLayers[l]]);
+      return [terrainLayer(), baseTiles(), ...data, polygonLayer(), markerLayer()].filter(Boolean);
+    }
+
+    let viewState = { longitude: (sw.lng + ne.lng) / 2, latitude: (sw.lat + ne.lat) / 2, zoom: zoom - 1, pitch: PITCH, bearing: 0 };
+    const moveHandlers = [], clickHandlers = [], dblHandlers = [], hoverHandlers = [];
+    const deckInstance = new Deck({
+      parent: mapEl, views: new MapView({ repeat: false }),
+      controller: { maxPitch: MAX_PITCH, dragRotate: true, touchRotate: true, doubleClickZoom: false, inertia: 300,
+                    maxZoom: maxZoom3d - 1 },                 // deck's zoom 0 is a world of 512 pixels: one less than Leaflet
+      viewState, layers: layers(),
+      onViewStateChange: ({ viewState: vs }) => { setState(vs); moveHandlers.forEach((fn) => fn()); },
+      getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "crosshair"),
+      // deck.gl picks what is under the pointer at every move for its own hover events, a rendering of the scene
+      // each time: not needed, the terrain is probed below when the pointer rests
+      onLoad: () => {
+        const manager = deckInstance.eventManager, handler = deckInstance._onPointerMove;
+        if (manager && handler) {
+          manager.off("pointermove", handler);
+          manager.off("pointerleave", handler);
+        }
+      },
+    });
+    mapEl.moraine = { deck: deckInstance, pick: (x, y) => pick({ clientX: x, clientY: y }) };   // for tests and debugging
+    function setState(vs) {
+      viewState = vs;
+      deckInstance.setProps({ viewState: vs });
+    }
+    function redraw() { deckInstance.setProps({ layers: layers() }); }
+    attribution.textContent = `${SATELLITE[1].attribution} | ${relief.attribution}`;
+
+    observeSize(view, (first) => {
+      if (first) {                              // the whole scene in the map, seen from above and tilted
+        const vp = new WebMercatorViewport({ width: mapEl.clientWidth, height: mapEl.clientHeight });
+        const fit = vp.fitBounds([[sw.lng, sw.lat], [ne.lng, ne.lat]], { padding: 4 });
+        setState({ ...viewState, longitude: fit.longitude, latitude: fit.latitude, zoom: Math.min(fit.zoom, maxZoom3d - 1) });
+      }
+      deckInstance.redraw("size");
+    });
+    resizeHandle(view);
+
+    // The point of the terrain under the cursor: longitude / latitude and height (metres), where the ray of
+    // the pixel first meets a loaded terrain tile, computed in deck.gl's common space (no GPU picking: deck.gl
+    // 9.1 cannot pick a terrain that is draped over, and its unprojection of a picked depth was 100 m off).
+    function pick(e) {
+      const vp = deckInstance.getViewports()[0];
+      if (!vp) return null;
+      const r = mapEl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      const k = vp.distanceScales.unitsPerMeter[2];                   // common units per metre of height
+      const o = vp.projectPosition(vp.unproject([x, y, -1])), f = vp.projectPosition(vp.unproject([x, y, 1]));
+      const d = [f[0] - o[0], f[1] - o[1], f[2] - o[2]];
+      let best = Infinity;
+      for (const { mesh, box } of terrainTiles.values()) {
+        if (hitsBox(o, d, box, k, best)) best = Math.min(best, intersect(mesh, k, o, d, best));
+      }
+      if (best === Infinity) return null;
+      const [lng, lat] = vp.unprojectFlat([o[0] + d[0] * best, o[1] + d[1] * best]);
+      return { latlng: L.latLng(lat, lng), height: (o[2] + d[2] * best) / k };
+    }
+    // does the ray o + t d, 0 < t < best, cross the box [[x0, y0, z0], [x1, y1, z1]] (z in metres)
+    function hitsBox(o, d, [[x0, y0, z0], [x1, y1, z1]], k, best) {
+      const lo = [x0, y0, z0 * k], hi = [x1, y1, z1 * k];
+      let t0 = 0, t1 = best;
+      for (let i = 0; i < 3; i++) {
+        if (d[i] === 0) {
+          if (o[i] < lo[i] || o[i] > hi[i]) return false;
+          continue;
+        }
+        const a = (lo[i] - o[i]) / d[i], b = (hi[i] - o[i]) / d[i];
+        t0 = Math.max(t0, Math.min(a, b));
+        t1 = Math.min(t1, Math.max(a, b));
+        if (t0 > t1) return false;
+      }
+      return true;
+    }
+    // the nearest t < best at which the ray o + t d meets a triangle of `mesh` (x, y in common units, z in
+    // metres, scaled by `k`), Moeller-Trumbore; `best` if none
+    function intersect(mesh, k, o, d, best) {
+      const p = mesh.attributes.POSITION.value, idx = mesh.indices ? mesh.indices.value : null;
+      const n = idx ? idx.length : p.length / 3;
+      for (let i = 0; i < n; i += 3) {
+        const a = 3 * (idx ? idx[i] : i), b = 3 * (idx ? idx[i + 1] : i + 1), c = 3 * (idx ? idx[i + 2] : i + 2);
+        const e1x = p[b] - p[a], e1y = p[b + 1] - p[a + 1], e1z = (p[b + 2] - p[a + 2]) * k;
+        const e2x = p[c] - p[a], e2y = p[c + 1] - p[a + 1], e2z = (p[c + 2] - p[a + 2]) * k;
+        const hx = d[1] * e2z - d[2] * e2y, hy = d[2] * e2x - d[0] * e2z, hz = d[0] * e2y - d[1] * e2x;
+        const f = 1 / (e1x * hx + e1y * hy + e1z * hz);
+        const sx = o[0] - p[a], sy = o[1] - p[a + 1], sz = o[2] - p[a + 2] * k;
+        const u = f * (sx * hx + sy * hy + sz * hz);
+        if (!(u >= 0 && u <= 1)) continue;
+        const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+        const v = f * (d[0] * qx + d[1] * qy + d[2] * qz);
+        if (!(v >= 0 && u + v <= 1)) continue;
+        const t = f * (e2x * qx + e2y * qy + e2z * qz);
+        if (t > 0 && t < best) best = t;
+      }
+      return best;
+    }
+    const onControl = (e) => e.target.closest(".moraine-tv-ctl, .moraine-tv-handle, .moraine-tv-attr");
+    let down = null;
+    mapEl.addEventListener("pointerdown", (e) => { down = [e.clientX, e.clientY]; });
+    mapEl.addEventListener("click", (e) => {
+      if (onControl(e)) return;
+      if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 3) return;   // the end of a drag
+      const hit = pick(e);
+      if (hit) clickHandlers.forEach((fn) => fn(hit.latlng));
+    });
+    mapEl.addEventListener("dblclick", (e) => {
+      if (onControl(e)) return;
+      const hit = pick(e);
+      if (hit) dblHandlers.forEach((fn) => fn(hit.latlng));
+    });
+    // the terrain under the pointer is probed once per frame while it moves, never while a button is down (a
+    // drag of the view)
+    let hoverFrame = null, hoverAt = null;
+    mapEl.addEventListener("pointermove", (e) => {
+      if (onControl(e) || e.buttons) { hoverAt = null; return; }
+      hoverAt = { clientX: e.clientX, clientY: e.clientY };
+      if (hoverFrame !== null) return;
+      hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = null;
+        if (hoverAt === null) return;
+        const hit = pick(hoverAt);
+        hoverHandlers.forEach((fn) => fn(hit ? hit.latlng : null, hit ? hit.height : null));
+      });
+    });
+    mapEl.addEventListener("pointerleave", () => { hoverAt = null; hoverHandlers.forEach((fn) => fn(null, null)); });
+
+    checks.forEach((check, l) => check.addEventListener("change", () => {
+      shown[l] = check.checked;
+      dataLayers[l] = dataLayers[l].clone({ visible: shown[l] });
+      redraw();
+    }));
+    topButton.addEventListener("click", () => setState({ ...viewState, pitch: 0, bearing: 0 }));
+
+    Object.assign(view, {
+      viewState: () => viewState,
+      swapTiles(l) {
+        fading[l] = [...fading[l], dataLayers[l]];
+        dataLayers[l] = dataTiles(l);
+        redraw();
+      },
+      setOpacity(l, value) {
+        opacity[l] = value;
+        dataLayers[l] = dataLayers[l].clone({ opacity: value });
+        redraw();
+      },
+      setMarkers(list) {
+        markers = list.map((m) => { const ll = toLatLng(m.x, m.y); return { position: [ll.lng, ll.lat], color: m.color }; });
+        redraw();
+      },
+      setPolygons(polysIn) {
+        polys = polysIn.map((poly) => [...poly, poly[0]]);        // closed paths in longitude / latitude
+        redraw();
+      },
+      setSketch() {},                           // polygons are drawn on 2D maps
+      containerPoint: () => L.point(0, 0),
+      getZoom: () => viewState.zoom + 1,
+      onMove(fn) { moveHandlers.push(fn); },
+      follow(other) { setState({ ...other.viewState() }); },
+      onClick(fn) { clickHandlers.push(fn); },
+      onDblClick(fn) { dblHandlers.push(fn); },
+      onHover(fn) { hoverHandlers.push(fn); },
+      destroy() { cancelAnimationFrame(hoverFrame); view.resize.disconnect(); deckInstance.finalize(); },
+    });
+    return view;
   }
-  const views = panels.map(makePanel);
+
+  const views = panels.map((panel, p) => (relief ? makeDeckPanel(panel, p) : makeLeafletPanel(panel, p)));
+  views.forEach(hoverProbe);
 
   // linked zoom and pan
   let syncing = false;
   for (const view of views) {
-    view.map.on("move", () => {
+    view.onMove(() => {
       if (syncing) return;
       syncing = true;
       for (const other of views) {
-        if (other !== view) other.map.setView(view.map.getCenter(), view.map.getZoom(), { animate: false });
+        if (other !== view) other.follow(view);
       }
       syncing = false;
     });
@@ -292,13 +820,22 @@ function render({ model, el }) {
     sliderInputs[kdim.name] = [input, output];
     sliders.appendChild(row);
   }
-  // the slider values changed on the map or in python: show them and redraw
+  // the slider values changed on the map or in python: show them and replace the tiles of the layers that depend
+  // on the changed sliders; the old tiles stay until the new ones are drawn, the other layers are not touched
+  let shownIndex = { ...model.get("index") };
   function onIndex() {
+    const index = model.get("index");
+    const changed = Object.keys(index).filter((k) => index[k] !== shownIndex[k]);
+    shownIndex = { ...index };
     for (const [name, [input, output]] of Object.entries(sliderInputs)) {
-      input.value = model.get("index")[name];
+      input.value = index[name];
       output.textContent = imageText(Number(input.value));
     }
-    for (const view of views) view.tiles.forEach((t) => t.redraw());   // old tile requests are dropped on unload
+    for (const view of views) {
+      panels[view.p].layers.forEach((info, l) => {
+        if (info.sliders.some((s) => changed.includes(s))) view.swapTiles(l);
+      });
+    }
   }
   model.on("change:index", onIndex);
   // opacity of each layer, to see the layers or the base map below
@@ -310,11 +847,10 @@ function render({ model, el }) {
       row.querySelector("span").textContent = `opacity ${info.label}`;
       const input = row.querySelector("input"), output = row.querySelector("output");
       input.value = info.opacity; output.textContent = info.opacity;
-      input.addEventListener("input", () => { output.textContent = input.value; view.tiles[l].setOpacity(Number(input.value)); });
+      input.addEventListener("input", () => { output.textContent = input.value; view.setOpacity(l, Number(input.value)); });
       sliders.appendChild(row);
     });
   }
-
   // ---------------------------------------------------------------- time series and reference
   let target = null, ref = null, clickTimer = null;     // target: {p, pos, z} clicked; ref: locate result
   // what python sees of a pixel / point: map, layer, key (line / column or point index), coordinates
@@ -323,13 +859,11 @@ function render({ model, el }) {
     if (msg.point !== undefined) out.point = msg.point;
     return out;
   };
-  const marker = (latlng, color) => L.circleMarker(latlng, { radius: 6, color, weight: 2, fill: false, interactive: false });
   function drawMarkers(msg) {
-    for (const view of views) {
-      view.markers.clearLayers();
-      if (ref) marker(dataLatLng(ref.x, ref.y), "#e00").addTo(view.markers);
-      if (msg && msg.x !== undefined) marker(dataLatLng(msg.x, msg.y), "#fff").addTo(view.markers);
-    }
+    const list = [];
+    if (ref) list.push({ x: ref.x, y: ref.y, color: REF_COLOR });
+    if (msg && msg.x !== undefined) list.push({ x: msg.x, y: msg.y, color: SEL_COLOR });
+    for (const view of views) view.setMarkers(list);
   }
   function requestSeries() {
     if (target === null) return;
@@ -347,7 +881,7 @@ function render({ model, el }) {
     });
   }
   function drawChart(values, title) {
-    const W = Math.max(fw + 64, 400), H = 200, m = { l: 56, r: 12, t: 22, b: 34 };
+    const W = Math.max(views[0].mapEl.clientWidth + 64, 400), H = 200, m = { l: 56, r: 12, t: 22, b: 34 };
     const n = values.length, finite = values.filter((v) => v !== null);
     let y0 = Math.min(...finite), y1 = Math.max(...finite);
     if (!finite.length) { y0 = 0; y1 = 1; } else if (y0 === y1) { y0 -= 1; y1 += 1; }
@@ -392,38 +926,31 @@ function render({ model, el }) {
   if (!anySeries) el.querySelector(".clear-ref").style.display = "none";
 
   // ---------------------------------------------------------------- polygons
-  // vertices in data coordinates on the radar grid, longitude / latitude for web mercator
-  const polyLatLng = ([x, y]) => mercator ? L.latLng(y, x) : dataLatLng(x, y);
-  const latLngPoly = (ll) => mercator ? [ll.lng, ll.lat] : [vox + ll.lng, voy + ll.lat];
+  function removePolygon(k) {
+    model.set("polygons", model.get("polygons").filter((_, i) => i !== k));
+    model.save_changes();
+  }
   function drawPolygons() {
-    for (const view of views) {
-      view.polygons.clearLayers();
-      model.get("polygons").forEach((poly, k) => {
-        const shape = L.polygon(poly.map(polyLatLng), { color: "#ff0", weight: 2, fillOpacity: 0.1 });
-        shape.on("contextmenu", (e) => {
-          L.DomEvent.stop(e);
-          model.set("polygons", model.get("polygons").filter((_, i) => i !== k));
-          model.save_changes();
-        });
-        shape.addTo(view.polygons);
-      });
-    }
+    for (const view of views) view.setPolygons(model.get("polygons"), removePolygon);
   }
   model.on("change:polygons", drawPolygons);
   drawPolygons();
   const hint = el.querySelector(".hint"), drawButton = el.querySelector(".draw");
+  const tips = [relief ? "right mouse button or ctrl + drag: tilt and rotate" : "",
+                anySeries ? "click: time series, double click: reference" : ""].filter(Boolean).join("; ");
   let drawing = null;       // vertices (latlng) of the polygon being drawn
   function stopDrawing() {
     drawing = null;
-    for (const view of views) { if (view.sketch) view.sketch.remove(); view.sketch = null; }
+    for (const view of views) view.setSketch(null);
     drawButton.classList.remove("active");
-    hint.textContent = anySeries ? "click: time series, double click: reference" : "";
+    hint.textContent = tips;
   }
   stopDrawing();
+  if (relief) drawButton.style.display = "none";     // polygons are drawn on 2D maps, shown here
   drawButton.addEventListener("click", () => {
     if (drawing) { stopDrawing(); return; }
     drawing = [];
-    for (const view of views) view.sketch = L.polyline([], { color: "#ff0", weight: 2, dashArray: "4 4" }).addTo(view.map);
+    for (const view of views) view.setSketch([]);
     drawButton.classList.add("active");
     hint.textContent = "click the vertices, double click to close, Esc to cancel";
   });
@@ -434,28 +961,28 @@ function render({ model, el }) {
   document.addEventListener("keydown", onKey);
 
   for (const view of views) {
-    const { p, map } = view;
-    map.on("click", (e) => {
+    const { p } = view;
+    view.onClick((latlng) => {
       if (drawing) {
-        drawing.push(e.latlng);
-        for (const v of views) v.sketch.setLatLngs(drawing);
+        drawing.push(latlng);
+        for (const v of views) v.setSketch(drawing);
         return;
       }
       if (!panels[p].series) return;
       clearTimeout(clickTimer);                // wait: the click may be the first of a double click
-      const pos = position(e.latlng);
+      const pos = position(latlng);
       clickTimer = setTimeout(() => {
         if (pos === null) return;
-        target = { p, pos, z: map.getZoom() };
+        target = { p, pos, z: view.getZoom() };
         requestSeries();
       }, 250);
     });
-    map.on("dblclick", (e) => {
+    view.onDblClick((latlng) => {
       clearTimeout(clickTimer);
       if (drawing) {
         // the two clicks of the double click added the last vertex twice
         const pts = drawing.filter((q, i) => i === 0 ||
-          map.latLngToContainerPoint(q).distanceTo(map.latLngToContainerPoint(drawing[i - 1])) > 3);
+          view.containerPoint(q).distanceTo(view.containerPoint(drawing[i - 1])) > 3);
         if (pts.length >= 3) {
           model.set("polygons", [...model.get("polygons"), pts.map(latLngPoly)]);
           model.save_changes();
@@ -464,9 +991,9 @@ function render({ model, el }) {
         return;
       }
       if (!panels[p].series) return;
-      const pos = position(e.latlng);
+      const pos = position(latlng);
       if (pos === null) return;
-      request({ type: "locate", panel: p, x: pos[0], y: pos[1], z: map.getZoom() }, (msg) => {
+      request({ type: "locate", panel: p, x: pos[0], y: pos[1], z: view.getZoom() }, (msg) => {
         if (msg.error || msg.key === undefined) return;
         ref = { ...msg, p };
         model.set("reference", pick(msg, p)); model.save_changes();
@@ -482,7 +1009,7 @@ function render({ model, el }) {
     model.off("msg:custom", onMessage);
     model.off("change:polygons", drawPolygons);
     model.off("change:index", onIndex);
-    for (const view of views) { view.resize.disconnect(); view.map.remove(); }
+    for (const view of views) view.destroy();
   };
 }
 

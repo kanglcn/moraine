@@ -34,8 +34,7 @@ dependencies = [
     "numexpr",
     "anywidget",  # interactive maps in VS Code and Jupyter notebooks (moraine.cli.view)
     "pyproj>=3.0",
-    "dask[complete]",
-    "joblib",
+    "psutil",  # available memory (moraine.api.utils_.get_mem_avail)
     "requests",
     "fpsample",
 ]

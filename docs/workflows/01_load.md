@@ -33,7 +33,7 @@ GAMMA must be on PATH (`which base_calc phase_sim_orb geocode create_offset`).
 | range | load-gamma-range | `range.zarr` slant range distance |
 | metadata | load-gamma-metadata | `meta.toml` (dates, wavelength, heading, pixel spacing, perpendicular baselines) |
 | web_mercator | transform | `e.zarr`, `n.zarr` web mercator coordinates (EPSG:3857) for map plots |
-| rslc_pyramid | ras-pyramid | `rslc_pyramid/` to check the interferograms |
+| rslc_pyramid | ras-pyramid | `rslc_pyramid/` to check the interferograms, decimated: SLC pixels cannot be averaged (their scatterer phases differ), so the whole scene is speckle; zoom in, or look at the mean pyramid of the n2f interferograms of 02 |
 
 Sample data (Campi Flegrei, 981 x 4160 x 92, 2026-10-08): 162 s, 126 s of it `phase_sim_orb` for each date
 (64 threads); the pyramid takes 21 s.

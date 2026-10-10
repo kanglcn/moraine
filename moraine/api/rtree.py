@@ -336,7 +336,8 @@ class HilbertRtree:
         page_size : default: 512
             number of points in every leaf node. should be same as pc_chunk_size.
         """
-        assert x.shape == y.shape
+        if x.shape != y.shape:
+            raise ValueError(f'x and y must have the same shape, got {x.shape} and {y.shape}')
         page_size = max(1, page_size)
         bounds_tree = _build_hillbert_rtree(x.astype(np.float64), y.astype(np.float64), page_size)
         return cls(bounds_tree,x.shape[0], page_size)

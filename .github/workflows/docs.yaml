@@ -1,4 +1,4 @@
-# The manual (decision 0032): built on every push and pull request, deployed from main to the gh-pages branch.
+# The manual (decision 0037): built on every push and pull request, deployed from main to the gh-pages branch.
 name: Manual
 on:
   push:

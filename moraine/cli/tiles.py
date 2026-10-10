@@ -22,6 +22,12 @@ STATS_BYTES = 64 * 2**20        # size of the sample for the default colour rang
 MEMORY_BYTES = 512 * 2**20      # zarr arrays that are not pyramids are read into memory up to this size
 SAMPLE_CELLS = 2**18            # cells of the level used to guess the colours of a `show` function
 BACKGROUND = (0xf4, 0xf4, 0xf4)  # of PNG images, where no layer has data
+N_COLOURS = 255          # colours of the palette of a layer; the remaining index of the 256 is transparent
+TRANSPARENT = 255        # palette index of the pixels without data (nan)
+# elevation tiles of the 3D views, fetched by the browser like the base maps: AWS Terrain Tiles (Mapzen / Tilezen),
+# Terrarium encoding (height = R * 256 + G + B / 256 - 32768 m), zoom levels 0 - 15
+TERRAIN_TILES = {'url': 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png', 'max_zoom': 15,
+                 'attribution': 'Terrain: Mapzen / AWS Terrain Tiles (SRTM, EU-DEM, 3DEP, ...)'}
 
 # slider names of the named `show` options (the stack dimensions otherwise: i, j)
 SLIDERS = {'phase': ('image',), 'intf_0': ('image',), 'intf_seq': ('image',), 'intf_all': ('ref', 'sec'),
@@ -73,11 +79,12 @@ def _pc_post_proc(post_proc):
 
 
 def _lut(cmap):
-    """(256, 4) uint8 RGBA table of a list of colours or a matplotlib colour map name."""
+    """(N_COLOURS, 4) uint8 RGBA table of a list of colours or a matplotlib colour map name: the colours of the
+    palette of a layer (`_Layer.palette`), from the lowest to the highest value."""
     import matplotlib
     from matplotlib.colors import to_rgba_array
-    rgba = matplotlib.colormaps[cmap](np.linspace(0, 1, 256)) if isinstance(cmap, str) else to_rgba_array(cmap)
-    rgba = rgba[np.linspace(0, len(rgba) - 1, 256).round().astype(int)]
+    rgba = matplotlib.colormaps[cmap](np.linspace(0, 1, N_COLOURS)) if isinstance(cmap, str) else to_rgba_array(cmap)
+    rgba = rgba[np.linspace(0, len(rgba) - 1, N_COLOURS).round().astype(int)]
     return (rgba * 255).round().astype(np.uint8)
 
 
@@ -85,11 +92,15 @@ def _hex(lut):
     return ['#%02x%02x%02x' % tuple(c[:3]) for c in lut]
 
 
-def png(rgba):
-    """PNG bytes of an (h, w, 4) uint8 RGBA image."""
+def png(indices, palette):
+    """PNG bytes of an (h, w) uint8 image of palette `indices` with the (256, 4) uint8 RGBA `palette`; index
+    `TRANSPARENT` is transparent."""
     from PIL import Image
     buf = io.BytesIO()
-    Image.fromarray(np.ascontiguousarray(rgba)).save(buf, format='PNG', compress_level=1)   # speed over size
+    # an 8 bit palette image: a quarter of the bytes of RGBA to compress, and the browser decodes it natively
+    im = Image.fromarray(np.ascontiguousarray(indices))
+    im.putpalette(palette[:, :3].tobytes())
+    im.save(buf, format='PNG', compress_level=1, transparency=TRANSPARENT)   # speed over size
     return buf.getvalue()
 
 
@@ -108,15 +119,28 @@ def _disk(r):
     return dy[inside], dx[inside]
 
 
-def _stamp(rgba, row, col, colours, r):
-    """Draw disks of radius `r` pixels with `colours` (n, 4) at pixels (`row`, `col`) (n,) of `rgba`, in
-    order; transparent colours (nan values) are skipped."""
-    h, w = rgba.shape[:2]
+def _stamp(img, row, col, indices, r):
+    """Draw disks of radius `r` pixels with the palette `indices` (n,) at pixels (`row`, `col`) (n,) of the
+    (h, w) index image `img`, in order; transparent indices (nan values) are skipped."""
+    h, w = img.shape
     for dy, dx in zip(*_disk(r)):
         rr, cc = row + dy, col + dx
-        ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (colours[:, 3] > 0)
-        rgba[rr[ok], cc[ok]] = colours[ok]
-    return rgba
+        ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (indices != TRANSPARENT)
+        img[rr[ok], cc[ok]] = indices[ok]
+    return img
+
+
+def _terrain(terrain):
+    """Terrain of a 3D view: None (2D maps), the public elevation tiles (True) or a URL template of Terrarium
+    encoded tiles; dict with ``url``, ``max_zoom`` and ``attribution``."""
+    if terrain is None or terrain is False:
+        return None
+    if terrain is True:
+        return dict(TERRAIN_TILES)
+    if isinstance(terrain, str) and all(k in terrain for k in ('{z}', '{x}', '{y}')):
+        return {'url': terrain, 'max_zoom': TERRAIN_TILES['max_zoom'], 'attribution': f'Terrain: {terrain}'}
+    raise ValueError(f'terrain must be True (public elevation tiles) or the URL template of Terrarium encoded tiles '
+                     f'with {{z}}, {{x}} and {{y}}, not {terrain!r}')
 
 
 def _dates(dates):
@@ -467,6 +491,9 @@ def describe(panels)->str:
                          + (f'; opacity {layer.opacity}' if layer.opacity != 1 else ''))
             lines.append(f'    extent {_user_extent(layer.extent, layer.crs)}; levels 0..{layer.max_level}, '
                          f'finest cell {_cell_text(layer, layer.cell)} (png(..., extent=...) to zoom in)')
+    relief = next((layer for layer in layers if layer.terrain), None)
+    if relief is not None:
+        lines.append(f'  3D view over the terrain in a notebook ({relief.terrain["attribution"]}); the PNG is the 2D map')
     kdims, index = view_sliders(panels)
     dates = view_dates(panels)
     for k in kdims:
@@ -494,8 +521,18 @@ class _Layer(_Shown):
         return [[self]]
 
     def _setup(self, base, levels, max_level, show, image_pairs, sliders, dates, stats, series, default_ts,
-               polygons, cmap, clim, opacity, is_pc):
+               polygons, cmap, clim, opacity, size, terrain, is_pc):
         self.shape = tuple(int(n) for n in base.shape[:2])
+        self.size = None
+        if size is not None:
+            size = tuple(int(v) for v in size)
+            if len(size) != 2 or min(size) <= 0:
+                raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
+            self.size = size
+        self.terrain = _terrain(terrain)
+        if self.terrain and self.crs != 'web_mercator':
+            raise ValueError(f'{self.label}: a 3D view over the terrain needs web mercator coordinates (e / n); the '
+                             f'radar grid has no position on the earth')
         self.data_shape, self.dtype = tuple(base.shape), base.dtype
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
@@ -541,7 +578,8 @@ class _Layer(_Shown):
 
     def describe(self):
         return (f'{self.label}: {self.kind} {self.data_shape} {self.dtype}'
-                + (f', show={self.show_name!r}' if self.show_name else ''))
+                + (f', show={self.show_name!r}' if self.show_name else '')
+                + (' (mean levels)' if self.method == 'mean' else ''))
 
     # geometry
     @property
@@ -567,11 +605,11 @@ class _Layer(_Shown):
             return [int(index.get(k['name'], self.default_index[k['name']])) for k in self.kdims]
         return [int(i) for i in index]
 
-    def _cell_of(self, x, y):
-        """Cell (i, j) of level 0 at data coordinates, None outside."""
-        j = math.floor((x - self.cx0) / self.rx + 0.5)
-        i = math.floor((y - self.cy0) / self.ry + 0.5)
-        ny, nx = self.shape
+    def _cell_of(self, x, y, level=0):
+        """Cell (i, j) of `level` at data coordinates, None outside the data."""
+        j = math.floor(((x - self.cx0) / self.rx + 0.5) / 2 ** level)
+        i = math.floor(((y - self.cy0) / self.ry + 0.5) / 2 ** level)
+        ny, nx = self.levels(level).shape[:2]
         return (i, j) if 0 <= i < ny and 0 <= j < nx else None
 
     # drawing
@@ -596,19 +634,29 @@ class _Layer(_Shown):
         return out
 
     def render(self, geom, index=(), size=(TILE, TILE)):
-        """(height, width, 4) uint8 RGBA image `geom` of `size` (width, height)."""
-        return self.colorize(self.raster_values(geom, index, size))
+        """(height, width) uint8 palette indices (`indices`, `palette`) of image `geom` of `size` (width,
+        height)."""
+        return self.indices(self.raster_values(geom, index, size))
+
+    def indices(self, values):
+        """Palette indices (uint8, the shape of `values`) of `values` with the colours of the colour bar: 0 to
+        N_COLOURS - 1 from the lower to the upper colour limit, `TRANSPARENT` for nan."""
+        lo, hi = self.clim
+        values = np.asarray(values, dtype=np.float64)
+        nan = np.isnan(values)
+        t = (values - lo) / (hi - lo) if hi > lo else np.zeros_like(values)
+        i = np.clip(np.floor(np.where(nan, 0, t) * N_COLOURS), 0, N_COLOURS - 1).astype(np.uint8)
+        i[nan] = TRANSPARENT
+        return i
+
+    @property
+    def palette(self):
+        """(256, 4) uint8 RGBA colours of the palette indices: the colour map, then `TRANSPARENT`."""
+        return np.vstack([self.lut, np.zeros((1, 4), np.uint8)])
 
     def colorize(self, values):
         """RGBA (uint8, last axis 4) of `values` with the colours of the colour bar, transparent for nan."""
-        lo, hi = self.clim
-        values = np.asarray(values, dtype=np.float64)
-        t = (values - lo) / (hi - lo) if hi > lo else np.zeros_like(values)
-        nan = np.isnan(t)
-        i = np.clip(np.floor(np.where(nan, 0, t) * 256), 0, 255).astype(np.intp)
-        rgba = self.lut[i]
-        rgba[nan] = 0
-        return rgba
+        return self.palette[self.indices(values)]
 
     @property
     def colors(self):
@@ -621,7 +669,7 @@ class RasterLayer(_Layer):
     kind = 'raster'
 
     def __init__(self, data, show=None, dates=None, series=None, polygons=None, image_pairs=None, sliders=None,
-                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None):
+                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None, terrain=None):
         if isinstance(data, (str, Path)):
             p = Path(data)
             levels = pyramid_levels(p)
@@ -633,8 +681,10 @@ class RasterLayer(_Layer):
                 return cache[level]
             max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
             self.label = label or p.name
+            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
         else:
             a = data
+            self.method = None
             max_level = max(int(math.floor(math.log2(max(min(a.shape[:2]), 1)))), 0)
 
             def level_of(level):
@@ -654,7 +704,7 @@ class RasterLayer(_Layer):
             self.crs = _crs(min(x0, xm), min(y0, ym), max(x0, xm), max(y0, ym), self.rx, crs, self.label)
         self.n_points = None
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, base, polygons,
-                    cmap, clim, opacity, is_pc=False)
+                    cmap, clim, opacity, size, terrain, is_pc=False)
 
     def locate(self, x, y, s):
         """Pixel under data coordinates (`x`, `y`): dict with its centre ``x``, ``y`` and ``key`` [line,
@@ -666,12 +716,14 @@ class RasterLayer(_Layer):
         return {'x': self.cx0 + j * self.rx, 'y': self.cy0 + i * self.ry, 'key': [i, j]}
 
     def value(self, x, y, s, index=()):
-        """`locate` plus the ``value`` shown there for the slider values `index`."""
+        """`locate` plus the ``value`` drawn there for the slider values `index`: of the cell of the pyramid level
+        shown with screen pixels of `s` data units (the pixel itself when zoomed in)."""
         found = self.locate(x, y, s)
         if found is None:
             return None
-        i, j = found['key']
-        a = self.post_proc(self.levels(0), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+        level = _level_of(self, s)
+        i, j = self._cell_of(x, y, level)
+        a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
         return {**found, 'value': _scalar(a)}
 
     def _series_at(self, key):
@@ -691,8 +743,8 @@ class RasterLayer(_Layer):
 
 
 def _pc_levels_in_memory(x, y, pc, res):
-    """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, max level, cell
-    centre (x0, y0) of cell (0, 0), shape)."""
+    """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, function of the index of
+    the point in each cell of a level (-1: empty), max level, cell centre (x0, y0) of cell (0, 0), shape)."""
     from ..api.coord_ import Coord
     from .plot import _next_level_idx_from_raster_of_integer
     yx = np.stack([y, x], axis=-1).astype(np.float64)
@@ -714,7 +766,7 @@ def _pc_levels_in_memory(x, y, pc, res):
             ras[idx[level] == -1] = np.nan
             cache[level] = ras
         return cache[level]
-    return level_of, coord.maxlevel, (x0, y0), (ny, nx)
+    return level_of, idx.__getitem__, coord.maxlevel, (x0, y0), (ny, nx)
 
 
 class PointLayer(_Layer):
@@ -722,7 +774,8 @@ class PointLayer(_Layer):
     kind = 'point cloud'
 
     def __init__(self, data, x=None, y=None, resolution=None, show=None, dates=None, series=None, polygons=None,
-                 image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None):
+                 image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None,
+                 size=None, terrain=None):
         self._rtree = None
         if isinstance(data, (str, Path)) and pyramid_levels(Path(data)):
             import toml
@@ -734,9 +787,15 @@ class PointLayer(_Layer):
                 if level not in cache:
                     cache[level] = zarr.open(str(p / f'{level}.zarr'), mode='r')
                 return cache[level]
+
+            def idx_of(level):
+                if ('idx', level) not in cache:
+                    cache['idx', level] = zarr.open(str(p / f'idx_{level}.zarr'), mode='r')
+                return cache['idx', level]
             max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
             self._x, self._y, self._pc = (zarr.open(str(p / f'{n}.zarr'), mode='r') for n in ('x', 'y', 'pc'))
             self._rtree_dir = p
+            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
             x0, y0, xm, ym = (float(v) for v in toml.load(p / 'bounds.toml')['bounds'])
             base = level_of(0)
             ny, nx = base.shape[:2]
@@ -753,18 +812,20 @@ class PointLayer(_Layer):
                                      'are not on an integer grid')
                 resolution = 1
             res = float(resolution)
-            level_of, max_level, (x0, y0), _ = _pc_levels_in_memory(self._x, self._y, self._pc, res)
+            level_of, idx_of, max_level, (x0, y0), _ = _pc_levels_in_memory(self._x, self._y, self._pc, res)
             stats = lambda: _array_stats(level_of, max_level)     # noqa: E731
             self._rtree_dir = None
+            self.method = None
             base = level_of(0)
             xm, ym = x0 + (base.shape[1] - 1) * res, y0 + (base.shape[0] - 1) * res
             self.label = label or 'points'
         self.cx0, self.cy0, self.rx, self.ry = x0, y0, res, res
+        self.idx_of = idx_of         # the point drawn in each cell of a level
         self.crs = _crs(x0, y0, xm, ym, res, crs, self.label)
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
-                    polygons, cmap, clim, opacity, is_pc=True)
-        self.data_shape = tuple(self._pc.shape)     # the points, not their raster
+                    polygons, cmap, clim, opacity, size, terrain, is_pc=True)
+        self.data_shape, self.dtype = tuple(self._pc.shape), self._pc.dtype     # the points, not their raster
         self.title = f'{self.label}  {self.data_shape} {self.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
 
@@ -784,12 +845,12 @@ class PointLayer(_Layer):
         return max(1.0, 0.4 * self.cell / s)
 
     def render(self, geom, index=(), size=(TILE, TILE)):
-        """(height, width, 4) uint8 RGBA image `geom` of `size` (width, height): the rasterized points, or the
-        points as disks when a cell of level 0 is larger than a pixel."""
+        """(height, width) uint8 palette indices of image `geom` of `size` (width, height): the rasterized
+        points, or the points as disks when a cell of level 0 is larger than a pixel."""
         s = min(abs(geom.sx), abs(geom.sy))
         if s >= self.cell:
-            return self.colorize(self.raster_values(geom, index, size))
-        rgba = np.zeros((size[1], size[0], 4), np.uint8)
+            return self.indices(self.raster_values(geom, index, size))
+        img = np.full((size[1], size[0]), TRANSPARENT, np.uint8)
         r = self.point_radius(s)
         # edges of the image, extended by the point radius
         ex = (geom.x0 - geom.sx / 2, geom.x0 + (size[0] - 0.5) * geom.sx)
@@ -797,17 +858,27 @@ class PointLayer(_Layer):
         pad = r * s
         idx = self.points_in((min(ex) - pad, min(ey) - pad, max(ex) + pad, max(ey) + pad))
         if len(idx) == 0:
-            return rgba
+            return img
         px, py = self._x[idx], self._y[idx]
         col = np.floor((px - ex[0]) / geom.sx).astype(np.int64)
         row = np.floor((py - ey[0]) / geom.sy).astype(np.int64)
         values = self.pc_post_proc(self._pc, idx, *self._slider_values(index))
-        return _stamp(rgba, row, col, self.colorize(values), r)
+        return _stamp(img, row, col, self.indices(values), r)
 
     def locate(self, x, y, s):
-        """Nearest point to data coordinates (`x`, `y`) within a few screen pixels of `s` data units (at least
-        half a cell): dict with its coordinates ``x``, ``y`` and index ``point`` (also ``key``); None
-        without a point."""
+        """The point drawn at data coordinates (`x`, `y`) with screen pixels of `s` data units: dict with its
+        coordinates ``x``, ``y`` and index ``point`` (also ``key``); None without a point. Where the points are
+        rasterized (`s` at least a cell) it is the point of the cell under the cursor at the level shown; where
+        they are drawn one by one, the nearest point within a few screen pixels (at least half a cell)."""
+        if s >= self.cell:
+            level = _level_of(self, s)
+            cell = self._cell_of(x, y, level)
+            if cell is None:
+                return None
+            i = int(self.idx_of(level)[cell])
+            if i < 0:
+                return None
+            return {'point': i, 'key': i, 'x': float(self._x[i]), 'y': float(self._y[i])}
         w = max(0.5 * self.cell, PROBE * s)
         idx = self.points_in((x - w, y - w, x + w, y + w))
         if len(idx) == 0:
@@ -818,11 +889,17 @@ class PointLayer(_Layer):
         return {'point': i, 'key': i, 'x': float(px[k]), 'y': float(py[k])}
 
     def value(self, x, y, s, index=()):
-        """`locate` plus the ``value`` of the point for the slider values `index`."""
+        """`locate` plus the ``value`` drawn there for the slider values `index`: of the cell of the pyramid level
+        shown where the points are rasterized, of the point itself where they are drawn one by one."""
         found = self.locate(x, y, s)
         if found is None:
             return None
-        a = self.pc_post_proc(self._pc, np.array([found['point']]), *self._slider_values(index))
+        if s >= self.cell:
+            level = _level_of(self, s)
+            i, j = self._cell_of(x, y, level)
+            a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+        else:
+            a = self.pc_post_proc(self._pc, np.array([found['point']]), *self._slider_values(index))
         return {**found, 'value': _scalar(a)}
 
     def series(self, x, y, s, ref=None):
@@ -938,7 +1015,7 @@ def render_png(panels, path, width=1000, index=None, extent=None):
         rgb = np.empty((size[1], size[0], 3))
         rgb[:] = np.array(BACKGROUND) / 255
         for layer in p:
-            rgba = layer.render(geom, values, size) / 255
+            rgba = layer.palette[layer.render(geom, values, size)] / 255
             alpha = rgba[..., 3:] * layer.opacity
             rgb = rgba[..., :3] * alpha + rgb * (1 - alpha)
         ax.imshow(rgb, extent=img_extent, interpolation='nearest', aspect='equal')
@@ -978,6 +1055,8 @@ def view(
     clim:tuple=None,
     opacity:float=1.0,
     label:str=None,
+    size:tuple=None,
+    terrain=None,
     bounds:tuple=None,
     resolution:float=None,
     image_pairs:str=None,
@@ -992,7 +1071,8 @@ def view(
     the values of all layers; click a pixel or point to plot its time series, double click one to make it the
     reference of the time series; draw polygons with the polygon button. In Python, ``.selected``,
     ``.reference``, ``.polygons`` and ``.index`` (slider values) follow the map. Point clouds are drawn as
-    individual points when zoomed in; web mercator coordinates are drawn north up over a base map.
+    individual points when zoomed in; web mercator coordinates are drawn north up over a base map, or over the
+    terrain in 3D with `terrain`.
 
     Parameters
     ----------
@@ -1028,6 +1108,17 @@ def view(
         opacity of the layer, 0 - 1
     label : str, optional
         name of the layer; the pyramid directory name by default
+    size : tuple, optional
+        (width, height) of the map in screen pixels; by default the map takes the width of the notebook (at most
+        700 pixels high) with the aspect of the scene (at most 1:4). Drag the lower right corner of a map to
+        resize it
+    terrain : bool or str, optional
+        3D view over the terrain in a notebook, web mercator layers only: True for the public elevation tiles
+        (AWS Terrain Tiles: SRTM, EU-DEM, 3DEP, ... heights of about 30 m, zoom levels up to 15, fetched by the
+        browser like the base map), or the URL template ``'https://.../{z}/{x}/{y}.png'`` of another service
+        of Terrarium encoded tiles. The layers and the satellite base map are draped over the terrain; the
+        right mouse button (or ctrl + drag) tilts and rotates the view, which zooms two levels further than the
+        2D map. Polygons are shown but drawn in 2D views; ``.png`` stays the 2D image
     bounds : tuple, optional
         raster only: (x0, y0, xm, ym), coordinates of the centres of the first and the last pixel; pixel
         (i, j) at range j, azimuth i by default
@@ -1047,7 +1138,7 @@ def view(
         displayed in a notebook; combine with ``*`` and ``+``; ``.png(path)`` saves an image
     """
     kw = dict(show=show, dates=dates, series=series, polygons=polygons, image_pairs=image_pairs, sliders=sliders,
-              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label)
+              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size, terrain=terrain)
     if x is not None or y is not None:
         if x is None or y is None:
             raise ValueError('give both `x` and `y` for point data')

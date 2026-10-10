@@ -195,6 +195,9 @@ class Command:
         if p.kind == 'bool':
             return bool(value)
         value = literal(value)
+        if isinstance(value, str) and (p.type_doc or '').split(',')[0].strip() in ('float', 'int'):
+            hint = ' (an empty value: a --var NAME= without a value?)' if value == '' else ''
+            raise UsageError(f'{self.name}: argument {name} = {value!r} is not a number{hint}')
         if isinstance(value, list) and 'tuple' in p.type_doc:
             value = tuple(value)
         return value
@@ -269,7 +272,7 @@ def bind_args(cmd:Command, values:dict, kw:dict=None)->dict:
     """Check and convert arguments (from a pipeline file or the command line) for `cmd`.
 
     Unknown names are errors, so a typo is never passed silently to ``**kwargs``; extra keyword
-    arguments (e.g. dask cluster options) have to be given explicitly in `kw`.
+    arguments (e.g. the input arrays of `math`) have to be given explicitly in `kw`.
     """
     names = [p.name for p in cmd.params]
     unknown = [k for k in values if k not in names]
@@ -323,7 +326,7 @@ def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
         if p.kind == 'pairs' and isinstance(call.get(p.name), str):
             call[p.name] = image_pairs(call[p.name])
     t0 = time.time()
-    with contextlib.redirect_stdout(sys.stderr):  # dask progress bars print to stdout
+    with contextlib.redirect_stdout(sys.stderr):  # nothing a command prints may break the --json output
         cmd.func(**call)
     record = {'command': cmd.name, 'seconds': round(time.time() - t0, 1), 'outputs': [], 'inputs': {}}
     for s in candidates:
@@ -407,8 +410,10 @@ def _add_command_parser(sub, cmd:Command):
             group.add_argument(*flags, dest=q.name, action=argparse.BooleanOptionalAction,
                                default=argparse.SUPPRESS, help=help_)
         elif q.kind == 'list':
+            # paths of arrays (the help names them or says input / output) or other strings, e.g. dates
+            paths = re.search(r'\bpaths?\b|^(input|output)\b', q.help or '', re.I)
             group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
-                               metavar='PATH', help=help_ + ' (one or more)')
+                               metavar='PATH' if paths else 'STR', help=help_ + ' (one or more)')
         elif q.kind == 'tuple':
             group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
                                metavar='INT', help=help_ + ' (e.g. ' + ' '.join(['1000'] * (q.n or 2)) + ')')
@@ -453,6 +458,8 @@ def _build_parser(with_commands=True):
     p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of stacks, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--dates', help='toml file with the image dates, e.g. the metadata of load-gamma-metadata')
+    p.add_argument('--terrain', action='store_true',
+                   help='3D maps over the terrain (public elevation tiles); web mercator pyramids only')
     p.add_argument('--overwrite', action='store_true', help='replace an existing notebook')
     _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
@@ -499,7 +506,8 @@ def _run(args):
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
-        out = view(args.pyramids, args.out, show=args.show, dates=args.dates, overwrite=args.overwrite)
+        out = view(args.pyramids, args.out, show=args.show, dates=args.dates, terrain=args.terrain,
+                   overwrite=args.overwrite)
         return _emit(args, {'notebook': out, 'pyramids': args.pyramids},
                      lambda: print(f'saved {out}: open it in Jupyter or VS Code and run all cells'))
     if sub in ('run', 'status'):

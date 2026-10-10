@@ -40,6 +40,7 @@ name = "unw_pyramid"
 run = "pc-pyramid"
 pc = "unw/pc_unw.zarr"
 out_dir = "unw/pc_unw_pyramid"
+method = "mean"
 x = "pc/pc_e.zarr"
 y = "pc/pc_n.zarr"
 ras_resolution = 20

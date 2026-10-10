@@ -1,4 +1,4 @@
-# The manual: `mkdocs build --strict` (decision 0032). Install the tools with `pip install -e ".[docs]"`.
+# The manual: `mkdocs build --strict` (decision 0037). Install the tools with `pip install -e ".[docs]"`.
 site_name: moraine
 site_description: Modern Radar Interferometry Environment. InSAR post-processing for the big data era, driven by a command line that AI agents speak.
 site_url: https://kanglcn.github.io/moraine/

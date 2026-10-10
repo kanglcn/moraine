@@ -8,7 +8,7 @@ from pathlib import Path
 import zarr
 
 # pyramid reading lives in the CLI layer, next to the pyramids and the views
-from ..cli.plot import pyramid_levels, _pyramid_stats
+from ..cli.plot import pyramid_levels, _pyramid_stats, _channel_warnings
 
 
 def summarize(
@@ -17,9 +17,11 @@ def summarize(
 )->dict:
     """Metadata of a result, plus value statistics for pyramids.
 
-    Only pyramids are read: the statistics come from their finest level of at most `max_bytes`, a regular
-    decimation of the whole scene, so the cost does not grow with the data. Point cloud pyramids skip the
-    cells without points. ``warnings`` lists obvious anomalies (all nan, infinite values, constant values).
+    Only pyramids are read: the statistics are those of all the data, computed when the pyramid was built
+    (``stats_level`` 0); for a pyramid made without them they come from its finest level of at most
+    `max_bytes`, a regular decimation of the whole scene, so the cost does not grow with the data (point cloud
+    pyramids skip the cells without points). ``warnings`` lists obvious anomalies (all nan, infinite values,
+    constant values), also of single images or channels of a stack.
 
     Parameters
     ----------
@@ -32,9 +34,10 @@ def summarize(
     Returns
     -------
     dict
-        path, kind and, for arrays and pyramids, shape and dtype; chunks for arrays; for pyramids the number
-        of levels, ``stats_level``, statistics (nan_fraction, min, max, mean, std, p01, p50, p99; amplitude
-        for complex data, true_fraction for bool) and ``warnings`` if any
+        path, kind and, for arrays and pyramids, shape and dtype (of the points for a point cloud pyramid);
+        chunks for arrays; for pyramids the number of levels, ``method`` (how the levels are made), ``stats_level``,
+        statistics (nan_fraction, min, max, mean, std, p01, p50, p99; amplitude for complex data, true_fraction
+        for bool) and ``warnings`` if any
     """
     p = Path(path)
     if not p.exists():
@@ -43,9 +46,16 @@ def summarize(
     if levels:
         base = zarr.open(str(p / '0.zarr'), mode='r')
         kind = 'point cloud pyramid' if (p / 'bounds.toml').exists() else 'raster pyramid'
-        out = {'path': str(path), 'kind': kind, 'shape': list(base.shape), 'dtype': str(base.dtype),
+        dtype = zarr.open(str(p / 'pc.zarr'), mode='r').dtype if kind == 'point cloud pyramid' else base.dtype
+        out = {'path': str(path), 'kind': kind, 'shape': list(base.shape), 'dtype': str(dtype),
                'levels': len(levels)}
+        method = (base.attrs.get('moraine_pyramid') or {}).get('method')
+        if method:
+            out['method'] = method
         out.update(_pyramid_stats(p, levels, max_bytes))
+        more = _channel_warnings(p)
+        if more:
+            out['warnings'] = out.get('warnings', []) + more
         return out
     try:
         z = zarr.open(str(p), mode='r')
@@ -112,6 +122,7 @@ def view(
     out:str,
     show:str=None,
     dates:str=None,
+    terrain:bool=False,
     overwrite:bool=False,
 )->str:
     """Write a Jupyter notebook with an interactive map of every pyramid (`moraine.cli.view`).
@@ -129,6 +140,8 @@ def view(
         what to show of stacks, see `moraine.cli.view`
     dates : str, optional
         toml file with the image ``dates`` (e.g. of `load_gamma_metadata`), shown with the sliders
+    terrain : bool, default: False
+        3D maps over the terrain (public elevation tiles, see `moraine.cli.view`); web mercator pyramids only
     overwrite : bool, default: False
         replace an existing notebook
 
@@ -154,7 +167,8 @@ def view(
             c.update(execution_count=None, outputs=[])
         return c
 
-    arg = (f', show={show!r}' if show else '') + (f', dates={str(Path(dates).resolve())!r}' if dates else '')
+    arg = (f', show={show!r}' if show else '') + (f', dates={str(Path(dates).resolve())!r}' if dates else '') + \
+        (', terrain=True' if terrain else '')
     cells = [cell('markdown', 'Interactive maps of moraine pyramids: zoom and pan to load details, use the sliders '
                               'to change the image of a stack, click a pixel / point for its time series (double '
                               'click: reference). Combine views with `*` (overlay) and `+` (side by side).'),

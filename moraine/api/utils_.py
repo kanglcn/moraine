@@ -69,6 +69,22 @@ def mjit(**options):
 ngjit = mjit(nopython=True, nogil=True)
 ngpjit = mjit(nopython=True, nogil=True, parallel=True)
 
+def mcuda_jit(**options):
+    """`numba.cuda.jit` for a kernel with the compiled code cached in moraine's numba cache directory (decision 0029);
+    use it instead of `cuda.jit(cache=True)`. Device functions keep `cuda.jit(device=True)`: they are compiled into
+    the kernels that call them."""
+    from numba import cuda
+    def decorate(func):
+        if _CACHE_DIR is None:
+            return cuda.jit(**options)(func)
+        old = numba.config.CACHE_DIR
+        numba.config.CACHE_DIR = _CACHE_DIR
+        try:
+            return cuda.jit(cache=True, **options)(func)
+        finally:
+            numba.config.CACHE_DIR = old
+    return decorate
+
 def _default_cuda_home():
     """In a conda environment that is not activated, point CUDA_HOME to the environment, so that numba-cuda finds
     its CUDA libraries (libnvvm) as the CUDA target built into numba did; variables already set are kept."""

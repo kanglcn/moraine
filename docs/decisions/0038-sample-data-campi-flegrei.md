@@ -1,4 +1,4 @@
-# 0033 The sample data set of the examples, guides and manual is Campi Flegrei
+# 0038 The sample data set of the examples, guides and manual is Campi Flegrei
 
 ## Status
 
@@ -11,7 +11,7 @@ Accepted
 ## Context
 
 Decision 0009 verified the example pipelines on an anonymous sample data set (`data/gamma`, 2500 x 1834 x 17,
-2021-2022), whose numbers filled the workflow guides. The manual (decision 0032) shows one data set to users:
+2021-2022), whose numbers filled the workflow guides. The manual (decision 0037) shows one data set to users:
 the maintainer chose Campi Flegrei (Sentinel-1 descending track 22, 92 dates 2019-2021, 981 x 4160 pixels,
 `data/CampiFlegrei/gamma`, described in `data/CampiFlegrei/README.md`): a known uplift with many PS and DS, which the
 tutorials already use. Two data sets with different numbers would confuse users and agents.

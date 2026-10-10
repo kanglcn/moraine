@@ -1,4 +1,4 @@
-# 0032 The manual is a website generated from the docstrings, the command registry and docs/
+# 0037 The manual is a website generated from the docstrings, the command registry and docs/
 
 ## Status
 

@@ -12,7 +12,7 @@ from numba import types as _nbtypes
 from numba.extending import get_cython_function_address
 from threadpoolctl import ThreadpoolController
 import moraine as mr
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
@@ -98,7 +98,7 @@ if is_cuda_available():
 # The CPU kernels call LAPACK inside numba parallel loops. A multithreaded BLAS (MKL, OpenBLAS) does not see
 # that it is called from many threads and starts its own threads in each call: with 128 cores 128 x 128
 # threads, about 2e4 times slower. Its threads are limited to 1 while a kernel runs; the limit is global, so
-# it is kept until the last of concurrent callers (e.g. dask threads) has finished.
+# it is kept until the last of concurrent callers (e.g. the threads of the executor) has finished.
 _blas_lock = threading.Lock()
 _blas_users = 0
 _blas_limit = None
@@ -364,7 +364,7 @@ if is_cuda_available():
             p = parent[base+x]
         return x
 
-    @cuda.jit
+    @mcuda_jit()
     def _ds_temp_coh_cuda(coh, ph, ref, sec, inv_n, log_p, t_coh, t_coh_w, eff_n_pairs, n_components):
         # one warp per point: the 32 lanes read consecutive image pairs (coalesced), then reduce by shuffles.
         # The graph of the images is a union-find forest in shared memory, one per warp; the lanes join the
@@ -513,11 +513,15 @@ def ds_temp_coh(coh:np.ndarray,
             _ds_temp_coh_cuda[n_blocks, block_size, 0, shared_bytes](coh, ph, ref, sec, inv_n, log_p, *out)
     return out[0] if n_looks is None else out
 
+def _fused_batch_size(nimages, max_bytes=2**30):
+    """points whose coherence matrices (upper triangles, complex64) fit in `max_bytes`"""
+    return max(1, int(max_bytes//(8*(nimages*(nimages-1)//2))))
+
 def emperical_co_emi_temp_coh_pc(
     rslc:np.ndarray,
     idx:np.ndarray,
     pc_is_shp:np.ndarray,
-    batch_size:int=1000,
+    batch_size:int=None,
     regularize:bool=True,
     weighted:bool=False,
     alpha:float=1e-3,
@@ -533,8 +537,10 @@ def emperical_co_emi_temp_coh_pc(
         grid index of the points (azimuth, range) in `rslc`, dtype int32, shape (n_points, 2)
     pc_is_shp : np.ndarray
         SHP masks of the points, dtype bool, shape (n_points, az_win, r_win)
-    batch_size : int, default: 1000
-        number of points processed at once, limits the memory use
+    batch_size : int, optional
+        number of points processed at once; the coherence matrices of a batch take 8 bytes per image pair and
+        point, their estimation on the GPU up to 1 GiB more. Default: as many points as 1 GiB of coherence
+        matrices hold
     regularize : bool, default: True
         regularize the coherence matrix in the phase linking as in `emi`; the temporal coherence is
         computed with the coherence matrix as estimated
@@ -563,8 +569,10 @@ def emperical_co_emi_temp_coh_pc(
         eff_n_pairs = xp.empty(n_pc,dtype=np.float32)
         n_components = xp.empty(n_pc,dtype=np.int16)
         rho2 = _rslc_rho2(rslc)
+    if batch_size is None:
+        batch_size = _fused_batch_size(nimages)
     batch_bounds = np.arange(0,n_pc+batch_size,batch_size)
-    # I forgot why I have to split data into batches, probably due to memory issue.
+    # batches bound the memory of the coherence matrices; the GPU coherence estimation batches its samples itself
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
     # one BLAS thread limit for all batches: setting it costs a few ms, about one batch of emi on the CPU
     with (_single_thread_blas() if xp is np else contextlib.nullcontext()):

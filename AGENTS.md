@@ -14,10 +14,10 @@ request before running anything.
 - Python >= 3.11. Install with `pip install -e '.[dev,dl]'` (`dl` = PyTorch, needed only by the deep
   learning filters `n2f`, `n2ft`). Download the trained models once:
   `python -c "import moraine; moraine.download_dl_model()"`.
-- GPU processing (`--cuda`, `cuda = true`) needs cupy, numba-cuda, dask-cuda and rmm, installed with conda for the
+- GPU processing (`--cuda`, `cuda = true`) needs cupy and numba-cuda, installed with conda for the
   local CUDA version (see README). moraine treats a GPU as available only when `CUDA_VISIBLE_DEVICES`
   is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all GPUs listed
-  there (one dask worker per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
+  there (one worker process per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
 - Loading GAMMA results (`load-gamma-*`) runs GAMMA programs (`phase_sim_orb`, `create_offset`,
   `geocode`, `base_calc`); check with `which base_calc` first.
 - Everything else runs on CPU with numba.
@@ -68,7 +68,7 @@ name = "adi"                  # unique step name
 run = "amp-disp"              # a command of `moraine list`
 rslc = "raw/rslc.zarr"        # the command arguments, relative to the working directory
 adi = "ps/ras_adi.zarr"
-[step.kw]                     # optional extra keyword arguments (e.g. dask cluster options)
+[step.kw]                     # optional extra keyword arguments (e.g. the inputs of `math`)
 memory_limit = "20GB"
 ```
 
@@ -79,9 +79,10 @@ Unknown argument names are errors (with a suggestion); tuples are written `[1000
 
 Never load large arrays to look at them. Use:
 
-- `moraine info PATH`: shape, dtype and chunks of an array (no data read). For a pyramid it adds
-  statistics from a coarse level (nan_fraction, min, max, mean, std, p01, p50, p99; amplitude for
-  complex data) and `warnings` for all-nan, infinite or constant values.
+- `moraine info PATH`: shape, dtype and chunks of an array (no data read). For a pyramid it adds the
+  statistics of the data computed when the pyramid was built (nan_fraction, min, max, mean, std, p01, p50,
+  p99; amplitude for complex data) and `warnings` for all-nan, infinite or constant values, also of single
+  images of a stack.
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
   `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
   Look at the PNG: fringes should be continuous, noise should be where coherence is low. Zoom in with
@@ -95,9 +96,10 @@ Never load large arrays to look at them. Use:
   the data and the finest cell). In a notebook it is an interactive map:
   zoom and pan load details, sliders choose the image, a click plots the time series of a pixel / point and
   a double click makes it the reference, polygons drawn with `polygons='areas.geojson'` are saved for
-  `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map.
-- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb [--show ...] [--dates meta.toml]` writes a notebook of
-  such maps. Give it to the user to open in Jupyter / VS Code; it needs no server or port forwarding.
+  `moraine polygon-mask`; `v.selected`, `v.reference`, `v.index` follow the map. `terrain=True` shows web
+  mercator layers (e / n coordinates) in 3D over the terrain (public elevation tiles; the browser needs internet).
+- `moraine view PYRAMID [PYRAMID ...] -o view.ipynb [--show ...] [--dates meta.toml] [--terrain]` writes a
+  notebook of such maps. Give it to the user to open in Jupyter / VS Code; it needs no server or port forwarding.
   Do not write plotting code.
 - Pyramids are made by the `ras-pyramid` (rasters) and `pc-pyramid` (point clouds) commands; the
   examples build them for the results worth checking, and `moraine run` saves their PNGs to
@@ -119,7 +121,7 @@ combining results of different commands.
 - Long jobs: `moraine run` blocks until done. On a SLURM cluster submit it, e.g.
   `sbatch --gpus=1 --wrap "moraine run FILE --workdir WORK --json > WORK/run.json"`, and poll with
   `moraine status FILE --workdir WORK`.
-- Only one GPU pipeline at a time: each GPU command reserves most of the GPU memory (rmm pool).
+- Only one GPU pipeline per GPU at a time: a GPU command takes the memory its tasks need from its GPU, up to all of it.
 
 ## Developing moraine
 
@@ -131,8 +133,10 @@ When the task is to change moraine itself rather than to process data:
 - `docs/decisions/README.md`: design decisions; do not change code against an accepted one, propose a
   new record and ask the user.
 - `docs/roadmap.md`: planned features not started yet.
+- `docs/viewer.md`: how the viewer (`moraine.cli.view`, 2D and 3D) works, its tests and open items; read it
+  before changing `tiles.py`, `viewer.py` or `viewer.js`.
 - `docs/contracts/README.md`: formats others depend on (`--json` output, pipeline files, pyramids, data
   conventions); changing them needs the contract, its tests and possibly a new version.
 - The manual (https://kanglcn.github.io/moraine/) is generated from `docs/`, the docstrings and the command
-  registry by `mkdocs build --strict` (decision 0032); a change of a docstring, an example or a page of `docs/`
+  registry by `mkdocs build --strict` (decision 0037); a change of a docstring, an example or a page of `docs/`
   changes it. Run the build before committing such a change.

@@ -1,5 +1,5 @@
-"""The notebook widget of views (`moraine.cli.tiles`): Leaflet maps whose tiles are rendered by the kernel and
-sent through the notebook channel (decision 0018)."""
+"""The notebook widget of views (`moraine.cli.tiles`): Leaflet maps, or deck.gl views over the terrain in 3D
+(decision 0036), whose tiles are rendered by the kernel and sent through the notebook channel (decision 0018)."""
 
 __all__ = ['TileView']
 
@@ -21,8 +21,11 @@ class TileView(anywidget.AnyWidget):
 
     Zoom and pan read only the tiles on screen, sliders choose the image of a stack, the cursor shows the
     values under it. Click a pixel or point to plot its time series, double click one to make it the reference
-    of the time series, draw polygons. Several maps are zoomed and panned together. No server or port
-    forwarding is needed; the kernel reads the data on the machine that holds them.
+    of the time series, draw polygons. Several maps are zoomed and panned together. A map takes the width of
+    the notebook, or the `size` of its layers; drag its lower right corner to resize it. With a `terrain` the
+    maps are 3D views: the layers and the satellite base map are draped over the terrain, the right mouse
+    button tilts and rotates them. No server or port forwarding is needed; the kernel reads the data on the
+    machine that holds them.
 
     Parameters
     ----------
@@ -38,11 +41,17 @@ class TileView(anywidget.AnyWidget):
     crs = traitlets.Unicode('grid').tag(sync=True)
     view_origin = traitlets.List([0.0, 0.0]).tag(sync=True)
     extent = traitlets.List().tag(sync=True)         # [x0, y0, x1, y1] of all layers in data coordinates
-    frame = traitlets.List().tag(sync=True)          # [width, height] of each map in screen pixels
+    frame = traitlets.List().tag(sync=True)          # [width, height] in screen pixels: the aspect of the maps, and
+                                                     # with `zoom` the view of a map that has no size yet
+    size = traitlets.List().tag(sync=True)           # [width, height] of the maps given by the user, [] for the
+                                                     # width of the notebook
+    terrain = traitlets.Dict().tag(sync=True)        # 3D views: url (elevation tile template), max_zoom,
+                                                     # attribution; {} for 2D maps
     zoom = traitlets.Int().tag(sync=True)            # zoom showing the whole extent in the frame
     max_zoom = traitlets.Int().tag(sync=True)
     axis_labels = traitlets.List(['range', 'azimuth']).tag(sync=True)
-    # per map: title, series (a layer has a time series) and layers (label, colours, clim, bar label, opacity)
+    # per map: title, series (a layer has a time series) and layers (label, colours, clim, bar label, opacity,
+    # the names of the sliders the layer depends on)
     panels = traitlets.List().tag(sync=True)
     kdims = traitlets.List().tag(sync=True)          # sliders [{'name', 'max'}], merged by name
     index = traitlets.Dict().tag(sync=True)          # slider values by name, set by the map or by python
@@ -79,6 +88,11 @@ class TileView(anywidget.AnyWidget):
         finest = min(layer.cell for layer in layers)
         max_zoom = int(np.floor(np.log2(MAX_ZOOM_CELL / (finest * per_unit))))
         kdims, index = view_sliders(self._panels)
+        size = next((layer.size for p in self._panels for layer in p if layer.size), None)
+        terrains = {layer.terrain['url']: layer.terrain for p in self._panels for layer in p if layer.terrain}
+        if len(terrains) > 1:
+            raise ValueError(f'one terrain per view, not {sorted(terrains)}')
+        terrain = next(iter(terrains.values()), {})
         super().__init__(
             crs=crs, view_origin=[float(v) for v in layers[0].edge_origin] if crs == 'grid' else [0.0, 0.0],
             extent=[float(e) for e in extent], frame=list(frame), zoom=min(zoom, max_zoom), max_zoom=max_zoom,
@@ -86,9 +100,11 @@ class TileView(anywidget.AnyWidget):
             panels=[{'title': '  |  '.join(layer.title for layer in p),
                      'series': any(layer.ts is not None for layer in p),
                      'layers': [{'label': layer.label, 'colors': layer.colors, 'clim': list(layer.clim),
-                                 'bar_label': layer.bar_label, 'opacity': layer.opacity} for layer in p]}
+                                 'bar_label': layer.bar_label, 'opacity': layer.opacity,
+                                 'sliders': [k['name'] for k in layer.kdims]} for layer in p]}
                     for p in self._panels],
-            kdims=kdims, index=index, dates=view_dates(self._panels), **kwargs)
+            kdims=kdims, index=index, dates=view_dates(self._panels), size=list(size) if size else [],
+            terrain=dict(terrain), **kwargs)
         if self._polygon_file and Path(self._polygon_file).exists():
             self.load_polygons(self._polygon_file)
         self.observe(self._save_polygons, names='polygons')
@@ -168,10 +184,10 @@ class TileView(anywidget.AnyWidget):
             if kind == 'tile':
                 layer = self._panels[panel][int(content['layer'])]
                 geom = self.tile_geom(int(content['z']), int(content['x']), int(content['y']))
-                self.send({'type': 'tile', 'id': rid}, [png(layer.render(geom, index))])
+                self.send({'type': 'tile', 'id': rid}, [png(layer.render(geom, index), layer.palette)])
                 return
             x, y = self.to_data(float(content['x']), float(content['y']))
-            s = self.pixel_size(int(content.get('z', 0)))
+            s = self.pixel_size(float(content.get('z', 0)))     # the zoom is continuous
             if kind == 'value':
                 values = []
                 for layer in self._panels[panel]:

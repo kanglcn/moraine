@@ -8,6 +8,7 @@ output directory ``gamma/``. ``gamma/sim_orb/`` (simulated orbital phases, made 
 ``phase_sim_orb``) is optional; without it the GAMMA loading test takes ~15 min instead of seconds.
 """
 import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,18 @@ from moraine.api.utils_ import is_cuda_available
 REPO = Path(__file__).resolve().parents[1]
 DATA = Path(os.environ.get('MORAINE_TEST_DATA', REPO / 'data'))
 HAS_GPU = is_cuda_available()
+
+
+def pytest_unconfigure(config):
+    # numba-cuda (0.30) crashes in the interpreter's teardown after a kernel ran (segmentation fault, exit 139 instead
+    # of the test result); leave the process without that teardown once the report is printed
+    if HAS_GPU and 'numba.cuda' in sys.modules:
+        sys.stdout.flush(); sys.stderr.flush()
+        os._exit(int(getattr(config, '_moraine_exitstatus', 0)))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    session.config._moraine_exitstatus = int(exitstatus)
 
 
 def pytest_collection_modifyitems(config, items):

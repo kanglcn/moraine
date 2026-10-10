@@ -189,20 +189,30 @@ def test_pipeline_version(tmp_path):
 
 # ---------------------------------------------------------------- pyramids
 
-def test_raster_pyramid_layout(tmp_path, rng):
+@pytest.mark.parametrize('rows', [1024, 16])     # one band, or bands of 16 lines with levels beyond the band
+def test_raster_pyramid_layout(tmp_path, rng, rows):
     ras = rng.random((50, 37, 2)).astype(np.float32)
     _zarr(tmp_path / 'ras.zarr', ras, (20, 20, 1))
-    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), chunks=(16, 16))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), chunks=(16, 16), rows=rows)
     pyr = tmp_path / 'pyr'
-    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid'] == {'version': PYRAMID_VERSION,
-                                                                                'kind': 'raster'}
+    meta = zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']
+    assert meta['version'] == PYRAMID_VERSION and meta['kind'] == 'raster'
+    # the statistics of the whole raster, in the marker and per channel
+    assert meta['stats']['min'] == pytest.approx(ras.min(), rel=1e-5) and meta['stats']['nan_fraction'] == 0
+    assert meta['stats']['mean'] == pytest.approx(ras.mean(), rel=1e-5) and meta['stats']['std'] == pytest.approx(ras.std(), rel=1e-4)
+    assert meta['stats']['p50'] == pytest.approx(np.median(ras), rel=1e-4)
+    table = zarr.open(str(pyr / 'stats.zarr'), mode='r')
+    assert table.shape == (2, 8) and table.attrs['columns'][3] == 'mean'
+    np.testing.assert_allclose(table[:, 3], ras.mean(axis=(0, 1)), rtol=1e-6)
     maxlevel = int(np.floor(np.log2(37)))
-    assert sorted(p.name for p in pyr.iterdir()) == sorted(f'{l}.zarr' for l in range(maxlevel + 1))
+    assert sorted(p.name for p in pyr.iterdir()) == sorted([*(f'{l}.zarr' for l in range(maxlevel + 1)), 'stats.zarr'])
     for level in range(maxlevel + 1):
         z = zarr.open(str(pyr / f'{level}.zarr'), mode='r')
         np.testing.assert_array_equal(z[:], ras[::2**level, ::2**level])
         assert z.chunks == (16, 16, 1)
     assert pyramid_levels(pyr) == list(range(maxlevel + 1))
+    with pytest.raises(ValueError, match='power of 2'):
+        mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr2'), rows=100)
 
 
 def test_point_cloud_pyramid_layout(tmp_path, rng):
@@ -213,18 +223,100 @@ def test_point_cloud_pyramid_layout(tmp_path, rng):
     mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'),
                   y=str(tmp_path / 'y.zarr'), ras_resolution=1)
     pyr = tmp_path / 'pyr'
-    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid'] == {'version': PYRAMID_VERSION,
-                                                                                'kind': 'point cloud'}
+    meta = zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']
+    assert meta['version'] == PYRAMID_VERSION and meta['kind'] == 'point cloud'
+    pc_values = zarr.open(str(tmp_path / 'pc.zarr'), mode='r')[:]
+    assert meta['stats']['max'] == pytest.approx(pc_values.max(), rel=1e-5)      # of the points, not the cells
+    assert zarr.open(str(pyr / 'stats.zarr'), mode='r').shape == (8,)
     levels = pyramid_levels(pyr)
-    expected = {'bounds.toml', 'x.zarr', 'y.zarr', 'pc.zarr', *(f'{l}.zarr' for l in levels),
+    expected = {'bounds.toml', 'x.zarr', 'y.zarr', 'pc.zarr', 'rtree.zarr', 'stats.zarr', *(f'{l}.zarr' for l in levels),
                 *(f'idx_{l}.zarr' for l in levels)}
     assert {p.name for p in pyr.iterdir()} == expected
+    tree = zarr.open(str(pyr / 'rtree.zarr'), mode='r')       # bounding box tree of the points
+    assert tree.ndim == 2 and tree.shape[1] == 4 and tree.dtype == np.float64
+    assert tree.attrs['n_points'] == n and tree.attrs['page_size'] >= 1
     pc = zarr.open(str(pyr / 'pc.zarr'), mode='r')[:]
     for level in levels:
         ras = zarr.open(str(pyr / f'{level}.zarr'), mode='r')[:]
         idx = zarr.open(str(pyr / f'idx_{level}.zarr'), mode='r')[:]
         assert np.isnan(ras[idx == -1]).all()
         np.testing.assert_array_equal(ras[idx != -1], pc[idx[idx != -1]])
+
+
+def _block_means(a, f):
+    """Expected means of the f x f blocks of `a` (h, w) over its finite values, nan where none."""
+    h, w = a.shape
+    H, W = -(-h // f), -(-w // f)
+    padded = np.full((H * f, W * f), np.nan, np.result_type(a, np.float64))
+    padded[:h, :w] = a
+    blocks = padded.reshape(H, f, W, f).transpose(0, 2, 1, 3).reshape(H, W, f * f)
+    with np.errstate(invalid='ignore'):
+        return np.nanmean(blocks, axis=2)
+
+
+def test_raster_pyramid_mean(tmp_path, rng):
+    """method mean: every level is the mean of the blocks of the data over the finite pixels, in bands too."""
+    ras = rng.random((50, 37)).astype(np.float32)
+    ras[5:20, 3:9] = np.nan; ras[:2] = np.nan
+    _zarr(tmp_path / 'ras.zarr', ras, (20, 20))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), method='mean', rows=16)
+    pyr = tmp_path / 'pyr'
+    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']['method'] == 'mean'
+    np.testing.assert_array_equal(zarr.open(str(pyr / '0.zarr'), mode='r')[:], ras)
+    for level in range(1, 6):
+        z = zarr.open(str(pyr / f'{level}.zarr'), mode='r')
+        assert z.dtype == np.float32
+        np.testing.assert_allclose(z[:], _block_means(ras.astype(np.float64), 2 ** level), rtol=1e-6, atol=1e-7)
+    # complex data: complex means; integers: float32 levels
+    c = np.exp(1j * rng.uniform(-np.pi, np.pi, (20, 24, 2))).astype(np.complex64)
+    _zarr(tmp_path / 'c.zarr', c, (20, 24, 1))
+    mc.ras_pyramid(str(tmp_path / 'c.zarr'), str(tmp_path / 'cpyr'), method='mean')
+    z = zarr.open(str(tmp_path / 'cpyr' / '2.zarr'), mode='r')
+    assert z.dtype == np.complex64
+    for k in range(2):
+        np.testing.assert_allclose(z[..., k], _block_means(c[..., k].astype(np.complex128), 4), rtol=1e-5, atol=1e-6)
+    n = (rng.random((20, 24)) * 10).astype(np.int32)
+    _zarr(tmp_path / 'n.zarr', n)
+    mc.ras_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'npyr'), method='mean')
+    assert zarr.open(str(tmp_path / 'npyr' / '0.zarr'), mode='r').dtype == np.int32
+    z = zarr.open(str(tmp_path / 'npyr' / '1.zarr'), mode='r')
+    assert z.dtype == np.float32
+    np.testing.assert_allclose(z[:], _block_means(n.astype(np.float64), 2), rtol=1e-6)
+    assert summarize(str(tmp_path / 'npyr'))['method'] == 'mean'
+    with pytest.raises(ValueError, match='method'):
+        mc.ras_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'bad'), method='average')
+
+
+def test_point_cloud_pyramid_mean(tmp_path, rng):
+    """method mean of point clouds: the mean of the cells with points; integer points give float32 cells with nan
+    where a cell has no point (first too)."""
+    pts = np.array([(y, x) for y in range(12) for x in range(10) if (x + y) % 3 == 0])
+    val = rng.random(len(pts)).astype(np.float32)
+    _zarr(tmp_path / 'x.zarr', pts[:, 1].astype(float)); _zarr(tmp_path / 'y.zarr', pts[:, 0].astype(float))
+    _zarr(tmp_path / 'v.zarr', val)
+    mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
+                  ras_resolution=1, method='mean')
+    pyr = tmp_path / 'pyr'
+    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']['method'] == 'mean'
+    grid = np.full((12, 10), np.nan, np.float64); grid[pts[:, 0], pts[:, 1]] = val
+    np.testing.assert_allclose(zarr.open(str(pyr / '0.zarr'), mode='r')[:], grid.astype(np.float32), equal_nan=True)
+    for level in (1, 2, 3):
+        np.testing.assert_allclose(zarr.open(str(pyr / f'{level}.zarr'), mode='r')[:], _block_means(grid, 2 ** level),
+                                   rtol=1e-6, atol=1e-7)
+        idx = zarr.open(str(pyr / f'idx_{level}.zarr'), mode='r')[:]            # still the first point of the block
+        assert ((idx >= 0) == np.isfinite(_block_means(grid, 2 ** level))).all()
+    counts = (rng.random(len(pts)) * 5 + 1).astype(np.int16)
+    _zarr(tmp_path / 'n.zarr', counts)
+    for method in ('first', 'mean'):
+        mc.pc_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / f'n_{method}'), x=str(tmp_path / 'x.zarr'),
+                      y=str(tmp_path / 'y.zarr'), ras_resolution=1, method=method)
+        z = zarr.open(str(tmp_path / f'n_{method}' / '0.zarr'), mode='r')
+        assert z.dtype == np.float32 and np.isnan(z[0, 1]) and z[0, 0] == counts[0]      # (0, 1): no point
+        s = summarize(str(tmp_path / f'n_{method}'))
+        assert s['dtype'] == 'int16' and s['method'] == method and s['min'] == 1
+    with pytest.raises(ValueError, match='method'):
+        mc.pc_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'bad'), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
+                      ras_resolution=1, method='decimate')
 
 
 @pytest.mark.parametrize('res, x0, y0', [(1, 2, 3), (4.777314267823516, -16498435.873784425, 8649592.229351616)])

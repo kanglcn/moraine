@@ -76,7 +76,18 @@ Deformation products (stage 5), starting with the spatial reference (reference p
 image phases of `unwrap-correct-closure-pc`: see `docs/decisions/0012-network-emcf-inversion.md`. Stage 4
 (time series inversion) is replaced by those image phases (decision 0022).
 
-## Small issues
+## Visualization
 
-- The generated help shows `PATH` as placeholder for every list of strings, also for dates
-  (`emcf-pc --dates`).
+Open items of the viewer (`moraine.cli.view`), with their reasons and the measurements in `docs/viewer.md`;
+the 3D view over the terrain is decision 0036.
+
+- 3D: drawing polygons on the terrain (drawn on 2D maps only); points as 3D sprites standing on the terrain
+  instead of disks draped over it; points at their own heights (`z=`); a DEM served by the kernel (`pc-pyramid`
+  of `hgt` with `x=e`, `y=n`) for offline use or the DEM of the processing; the interpolated elevation tiles
+  made in a Worker; Google photorealistic 3D Tiles with the user's key.
+- Both views: one message for all the tiles of a screen instead of one per tile; the time axis of the series
+  chart by date; colour bar ticks, a scale bar, keyboard stepping of the sliders; Leaflet and deck.gl shipped
+  with the package for offline use and for China; a Tianditu base map with a key; quicklooks of `moraine run`
+  with `show` / `index` per step.
+- Pyramids: level 0 as a symlink to the source array; the duplicated post processing functions of `plot.py`
+  and `tiles.py`; colorcet and pillow as dependencies.

@@ -52,7 +52,8 @@ def _check_idx_sorted(idx,shape=None):
         idx_1d = _ravel_gix(idx,dims=shape)
     else:
         idx_1d = idx
-    assert (xp.diff(idx_1d)>0).all(), "idx is not sorted or unique!"
+    if not (xp.diff(idx_1d)>0).all():
+        raise ValueError('idx must be sorted and unique')
 
 # Some functions adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license,
 # Which is Initially based on https://github.com/galtay/hilbert_curve, but specialized
@@ -411,7 +412,8 @@ def pc_union(idx1:np.ndarray,
         - index of the point in output union index that only exist in the second point cloud `inv_iidx2`
         - index of the point in the second input index that are not in the first input point cloud
     """
-    assert idx1.ndim == idx2.ndim
+    if idx1.ndim != idx2.ndim:
+        raise ValueError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
     xp = get_array_module(idx1)
     n1 = idx1.shape[0]; n2 = idx2.shape[0]
     if idx1.ndim == 2:
@@ -487,7 +489,8 @@ def pc_intersect(idx1:np.ndarray,
         - index of the point in second point cloud index that also exist in the first point cloud
     """
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
-    assert idx1.ndim == idx2.ndim
+    if idx1.ndim != idx2.ndim:
+        raise ValueError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
@@ -523,7 +526,8 @@ def pc_diff(idx1:np.ndarray,
         - the diff index `idx`
         - index of the point in first point cloud index that do not exist in the second point cloud
     """
-    assert idx1.ndim == idx2.ndim
+    if idx1.ndim != idx2.ndim:
+        raise ValueError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
     xp = get_array_module(idx1)
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)

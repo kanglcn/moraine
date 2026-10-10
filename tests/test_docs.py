@@ -1,4 +1,4 @@
-"""Keep AGENTS.md, docs/ (the manual, decision 0032) and examples/ in sync with the code."""
+"""Keep AGENTS.md, docs/ (the manual, decision 0037) and examples/ in sync with the code."""
 import importlib.util
 import re
 import shutil
@@ -56,7 +56,7 @@ def test_examples_parse(example, tmp_path):
     assert pipe['steps']
 
 
-# ---------------------------------------------------------------- the manual (decision 0032)
+# ---------------------------------------------------------------- the manual (decision 0037)
 
 def _refgen():
     spec = importlib.util.spec_from_file_location('refgen', REPO / 'docs' / '_scripts' / 'refgen.py')

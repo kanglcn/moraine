@@ -67,6 +67,7 @@ yy_out = "raw/n.zarr"
 
 [[step]]
 name = "rslc_pyramid"             # to check the interferograms: moraine quicklook raw/rslc_pyramid --show intf_seq
+                                  # decimated (SLC pixels cannot be averaged): zoom in, the whole scene is speckle
 run = "ras-pyramid"
 ras = "raw/rslc.zarr"
 out_dir = "raw/rslc_pyramid"

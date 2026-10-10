@@ -11,40 +11,35 @@
 
 [vars]
 shape = "981,4160"                # (nlines, width) of raw/rslc.zarr
-t_coh_w_min = "0.9"               # DS: minimum weighted temporal coherence (higher than the plain one, not comparable with it)
+t_coh_w_min = "0.85"              # DS: minimum weighted temporal coherence (higher than the plain one, not comparable with it)
 
 [defaults]
 cuda = true                       # set to false without a GPU
 
 # ---- SHP and DS candidates
 [[step]]
-name = "shp_test"                 # two sample KS test in an 11 x 11 window
+name = "shp_test"                 # two sample KS test in a 7 x 27 window (about 100 m x 60 m on the ground), SHPs = p value >= alpha
 run = "shp-test"
 rslc = "raw/rslc.zarr"
-pvalue = "ds/ras_pvalue.zarr"
-az_half_win = 5
-r_half_win = 5
-
-[[step]]
-name = "select_shp"
-run = "select-shp"
-pvalue = "ds/ras_pvalue.zarr"
+az_half_win = 3
+r_half_win = 13
 is_shp = "ds/ras_is_shp.zarr"
 shp_num = "ds/ras_shp_num.zarr"
-alpha = 0.05                      # significance level: SHPs have a p value >= alpha
+alpha = 0.05                      # significance level; add pvalue = "ds/ras_pvalue.zarr" to keep the p values
 
 [[step]]
 name = "shp_num_pyramid"
 run = "ras-pyramid"
 ras = "ds/ras_shp_num.zarr"
 out_dir = "ds/ras_shp_num_pyramid"
+method = "mean"
 
 [[step]]
 name = "ds_can"                   # DS candidates: at least 50 SHPs
 run = "pc-logic-ras"
 ras = "ds/ras_shp_num.zarr"
 gix = "ds/ds_can_gix_ras_order.zarr"
-operation = "ras>=50"
+operation = "ras>=80"
 chunks = 200000
 
 # ---- coherence, phase linking and temporal coherence per raster chunk
@@ -101,6 +96,7 @@ name = "ds_can_t_coh_w_pyramid"
 run = "pc-pyramid"
 pc = "ds/ds_can_t_coh_w.zarr"
 out_dir = "ds/ds_can_t_coh_w_pyramid"
+method = "mean"
 yx = "ds/ds_can_gix.zarr"
 ras_resolution = 2
 
@@ -109,6 +105,7 @@ name = "ds_can_n_components_pyramid"
 run = "pc-pyramid"
 pc = "ds/ds_can_n_components.zarr"
 out_dir = "ds/ds_can_n_components_pyramid"
+method = "mean"
 yx = "ds/ds_can_gix.zarr"
 ras_resolution = 2
 
@@ -157,6 +154,7 @@ name = "ds_ph_pyramid"            # phase history of the refined DS on the map
 run = "pc-pyramid"
 pc = "ds/ds_ph.zarr"
 out_dir = "ds/ds_ph_pyramid"
+method = "mean"
 x = "ds/ds_e.zarr"
 y = "ds/ds_n.zarr"
 ras_resolution = 20

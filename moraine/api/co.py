@@ -5,7 +5,7 @@ __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_
 
 import math
 import numpy as np
-from .utils_ import is_cuda_available, get_array_module
+from .utils_ import is_cuda_available, get_array_module, mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
@@ -318,7 +318,7 @@ def _ad_intf_pc_numba(
     return inf
 
 if is_cuda_available():
-    @cuda.jit
+    @mcuda_jit()
     def _ad_intf_pc_cuda(ref_rslc, sec_rslc, az_idx, r_idx, pc_is_shp, intf):
         # one thread per point: sum over its SHPs of ref conj(sec), normalized by the powers
         i = cuda.grid(1)
@@ -399,8 +399,8 @@ def isPD(co:np.ndarray,
     return is_PD
 
 '''
-    The method is presented in [1]. John D'Errico implented it in MATLAB [2] under BSD
-    Licence and [3] implented it with Python/Numpy based on [2] also under BSD Licence.
+    The method is presented in [1]. John D'Errico implemented it in MATLAB [2] under BSD
+    Licence and [3] implemented it with Python/Numpy based on [2] also under BSD Licence.
     This is a cupy implentation with stack of matrix supported.
 
     [1] N.J. Higham, "Computing a nearest symmetric positive semidefinite
@@ -452,7 +452,8 @@ def nearestPD(co:np.ndarray,
             break
         k+=1
         mineig = xp.amin(xp.linalg.eigvalsh(A3),axis=-1)
-        assert xp.isfinite(mineig).all()
+        if not xp.isfinite(mineig).all():
+            raise RuntimeError('non-finite eigenvalues while regularizing the coherence matrices')
         A3 += (~is_pd[...,None,None] * I) * (-mineig * k**2 + spacing)[...,None,None]
     #print(k)
     return A3
@@ -630,7 +631,7 @@ def _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r):
 if is_cuda_available():
     from numba import cuda
 
-    @cuda.jit
+    @mcuda_jit()
     def _shp_n_looks_cuda(pc_is_shp, rho2, max_az, max_r, n_looks):
         # one warp per point: the lanes take the SHPs p of the window in turn, then reduce by shuffles
         i = cuda.grid(1)//32

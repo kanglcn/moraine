@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numba
 import numpy as np
+import pytest
 
 import moraine as mr
 from moraine.api import utils_
@@ -58,3 +59,18 @@ def test_default_cuda_home(tmp_path, monkeypatch):
     monkeypatch.setenv('CUDA_HOME', '/somewhere/else')
     _default_cuda_home()
     assert __import__('os').environ['CUDA_HOME'] == '/somewhere/else'   # set by the user: kept
+
+
+@pytest.mark.gpu
+def test_cuda_kernels_cached():
+    """GPU kernels are saved to moraine's numba cache directory (decision 0029), like the CPU functions."""
+    import cupy as cp
+    from moraine.api import ps
+    before = numba.config.CACHE_DIR
+    rslc = cp.asarray((np.random.default_rng(0).standard_normal((8, 8, 5, 2)) @ [1, 1j]).astype(np.complex64))
+    mr.amp_disp(rslc)
+    assert numba.config.CACHE_DIR == before
+    if utils_._CACHE_DIR is not None:
+        kernel = ps._amp_disp_cuda
+        assert str(kernel._cache._cache_path).startswith(utils_._CACHE_DIR)
+        assert list(Path(kernel._cache._cache_path).glob('ps._amp_disp_cuda-*.nbi'))
