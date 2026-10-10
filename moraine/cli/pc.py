@@ -193,7 +193,7 @@ def ras2pc(
     chunks:int=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Convert raster data to point cloud data
 
@@ -211,7 +211,7 @@ def ras2pc(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -253,7 +253,7 @@ def pc_concat(
     chunks:int=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """concatenate (and sort) point cloud dataset.
 
@@ -272,7 +272,7 @@ def pc_concat(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     pcs_path = pcs
@@ -342,7 +342,7 @@ def ras2pc_ras_chunk(
     chunks:tuple[int,int]=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Convert raster data to point cloud data that sorted by ras chunk
 
@@ -362,7 +362,7 @@ def ras2pc_ras_chunk(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -419,7 +419,7 @@ def pc2ras(
     chunks:tuple[int,int]=(1000,1000),
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Convert point cloud data to raster data, filled with nan
 
@@ -439,7 +439,7 @@ def pc2ras(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -539,7 +539,7 @@ def pc_sort(
     key:str=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Sort point cloud data according to the indices that sort `idx_in`.
 
@@ -563,7 +563,7 @@ def pc_sort(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     idx_in_path = idx_in
@@ -607,7 +607,7 @@ def pc_union(
     chunks:int=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Get the union of two point cloud datasets. Points in both keep the data of the first point
     cloud.
@@ -634,7 +634,7 @@ def pc_union(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -681,7 +681,7 @@ def pc_intersect(
     prefer_1=True,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """Get the intersection of two point cloud datasets.
 
@@ -710,7 +710,7 @@ def pc_intersect(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -760,7 +760,7 @@ def pc_diff(
     chunks:int=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
            ):
     """Get the points of the first point cloud dataset that are not in the second one.
 
@@ -784,7 +784,7 @@ def pc_diff(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
@@ -908,7 +908,7 @@ def pc_select_data(
     chunks:int=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """generate point cloud data based on its index and one point cloud data.
     The index of generated point cloud data must in the index of the old one.
@@ -931,7 +931,7 @@ def pc_select_data(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     idx_in_path = idx_in; idx_path = idx
@@ -970,7 +970,7 @@ def data_reduce(
     post_map_func:Callable=None,
     processes=False,
     n_workers=1,
-    threads_per_worker=1,
+    threads_per_worker=4,
 ):
     """reduction operation for dataset.
 
@@ -992,7 +992,7 @@ def data_reduce(
         use processes for the workers instead of threads
     n_workers : default: 1
         number of workers
-    threads_per_worker : default: 1
+    threads_per_worker : default: 4
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
