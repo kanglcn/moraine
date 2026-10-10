@@ -209,6 +209,8 @@ def test_temp_coh(pl, cuda):
     mc.temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), str(d / f'pqm_t_coh_{cuda}.zarr'), cuda=cuda)
     np.testing.assert_array_almost_equal(r(d / f'pqm_t_coh_{cuda}.zarr'),
                                          mr.temp_coh(r(d / 'ds_can_coh.zarr'), r(d / 'ds_can_ph.zarr')))
+    with pytest.raises(ValueError, match='swapped'):      # intf and rslc swapped: reported before any task runs
+        mc.temp_coh(str(d / 'ds_can_ph.zarr'), str(d / 'ds_can_coh.zarr'), str(d / 'pqm_swapped.zarr'), cuda=cuda)
 
 
 def test_mcf_pc(pl):

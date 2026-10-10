@@ -195,6 +195,9 @@ class Command:
         if p.kind == 'bool':
             return bool(value)
         value = literal(value)
+        if isinstance(value, str) and (p.type_doc or '').split(',')[0].strip() in ('float', 'int'):
+            hint = ' (an empty value: a --var NAME= without a value?)' if value == '' else ''
+            raise UsageError(f'{self.name}: argument {name} = {value!r} is not a number{hint}')
         if isinstance(value, list) and 'tuple' in p.type_doc:
             value = tuple(value)
         return value
