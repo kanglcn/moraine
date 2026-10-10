@@ -192,7 +192,7 @@ def bool2gix(is_pc:str,
     logger.info('calculate the index')
     gix = np.stack(np.where(is_pc),axis=-1)
 
-    gix_zarr = zarr.open(gix_path,mode='w',shape=gix.shape,dtype=bool,chunks=(chunks,1))
+    gix_zarr = zarr.open(gix_path,mode='w',shape=gix.shape,dtype=gix.dtype,chunks=(chunks,1))
     logger.zarr_info('gix', gix_zarr)
     logger.info('write the gix.')
     gix_zarr[:] = gix
