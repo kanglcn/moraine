@@ -43,6 +43,9 @@ dependencies = [
 # deep learning models (n2f, n2fs3d, n2ft)
 dl = ["torch"]
 dev = ["pytest", "ruff"]
+# the manual (mkdocs build --strict, decision 0032)
+docs = ["mkdocs-material>=9.6", "mkdocstrings[python]>=0.27", "markdown-exec>=1.9",
+        "mkdocs-static-i18n>=1.2", "jieba"]  # jieba: Chinese search index
 
 [project.scripts]
 moraine = "moraine.command:main"

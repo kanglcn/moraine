@@ -1,0 +1,33 @@
+# The manual (decision 0037): built on every push and pull request, deployed from main to the gh-pages branch.
+name: Manual
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  manual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+      - name: Build
+        run: mkdocs build --strict
+      - name: Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'kanglcn/moraine'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdocs gh-deploy --force --no-history

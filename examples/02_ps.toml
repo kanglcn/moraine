@@ -8,7 +8,7 @@
 # Outputs in WORK/ps/: ps_can_hix, ps_can_rslc, ps_can_{e,n,lon,lat,adi}.
 
 [vars]
-shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
+shape = "981,4160"                # (nlines, width) of raw/rslc.zarr
 
 [defaults]
 cuda = true                       # set to false without a GPU

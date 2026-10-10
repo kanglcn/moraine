@@ -1,0 +1,235 @@
+# The manual: `mkdocs build --strict` (decision 0037). Install the tools with `pip install -e ".[docs]"`.
+site_name: moraine
+site_description: Modern Radar Interferometry Environment. InSAR post-processing for the big data era, driven by a command line that AI agents speak.
+site_url: https://kanglcn.github.io/moraine/
+repo_url: https://github.com/kanglcn/moraine
+repo_name: kanglcn/moraine
+edit_uri: edit/main/docs/
+copyright: moraine is GPL-3.0; the deep learning models are CC BY-NC-SA 4.0
+
+docs_dir: docs
+# not pages: the generator, its examples (included as snippets) and the theme overrides
+exclude_docs: |
+  _scripts/
+  overrides/
+  api/examples/
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+
+extra_css:
+  - assets/css/extra.css
+extra_javascript:
+  - assets/js/fringes.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/kanglcn/moraine
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/moraine/
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path: [docs, .]
+      check_paths: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+# the generated reference pages are written into docs/ by this hook before the build (docs/_scripts/refgen.py)
+hooks:
+  - docs/_scripts/mkdocs_hooks.py
+
+plugins:
+  - search
+  - markdown-exec
+  # English and Chinese: `page.zh.md` next to `page.md` is the Chinese version, English is shown where there is none
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: zh
+          name: 中文
+          build: true
+          site_description: 现代雷达干涉测量环境。面向大数据时代的 InSAR 后处理，命令行为 AI agent 而生。
+          nav_translations:
+            Home: 首页
+            Start: 开始
+            Install: 安装
+            Concepts: 概念
+            Checking results: 检查结果
+            Talk to an agent: 与 AI 对话
+            Workflows: 工作流
+            01 Load GAMMA results: 01 载入 GAMMA 结果
+            02 PS candidates: 02 PS 候选点
+            03 DS processing: 03 DS 处理
+            04 Merge and refine: 04 合并与精化
+            05 Phase unwrapping: 05 相位解缠
+            Pipeline files: Pipeline 文件
+            Command line: 命令行
+            Built-in commands: 内置命令
+            JSON output: JSON 输出
+            Python API: Python API
+            moraine.cli in python: Python 里的 moraine.cli
+            Tutorials: 教程
+            01 Load data: 01 载入数据
+            02 PS processing: 02 PS 处理
+            03 DS processing: 03 DS 处理
+            04 Pixel refinement: 04 像元精化
+            Development: 开发
+            Developing moraine: 开发 moraine
+            Architecture: 架构
+            Design decisions: 设计决策
+            Contracts: 约定
+            Data conventions: 数据约定
+            Pyramids: 金字塔
+            Roadmap: 路线图
+            Changelog: 更新日志
+            Agent instructions: Agent 说明
+  - autorefs:
+      resolve_closest: true     # the API anchors exist once per language: link to the one of the current language
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: numpy
+            docstring_section_style: table
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            heading_level: 2
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            members_order: source
+            merge_init_into_class: true
+            filters: ["!^_"]
+
+nav:
+  - Home: index.md
+  - Start:
+      - Install: start/install.md
+      - Concepts: start/concepts.md
+      - Checking results: start/checking.md
+      - Talk to an agent: agent/index.md
+  - Workflows:
+      - workflows/index.md
+      - 01 Load GAMMA results: workflows/01_load.md
+      - 02 PS candidates: workflows/02_ps.md
+      - 03 DS processing: workflows/03_ds.md
+      - 04 Merge and refine: workflows/04_refine.md
+      - 05 Phase unwrapping: workflows/05_unwrap.md
+      - Pipeline files: contracts/pipeline-file.md
+  - Command line:
+      - cli/index.md
+      - Built-in commands: cli/builtin.md
+      - load: cli/load.md
+      - transform: cli/transform.md
+      - tnet: cli/tnet.md
+      - math: cli/math.md
+      - polygon: cli/polygon.md
+      - pc: cli/pc.md
+      - ps: cli/ps.md
+      - shp: cli/shp.md
+      - co: cli/co.md
+      - pl: cli/pl.md
+      - dl: cli/dl.md
+      - pqm: cli/pqm.md
+      - pu: cli/pu.md
+      - plot: cli/plot.md
+      - JSON output: contracts/json-output.md
+  - Python API:
+      - api/index.md
+      - calamp: api/calamp.md
+      - pc: api/pc.md
+      - rtree: api/rtree.md
+      - tnet: api/tnet.md
+      - polygon: api/polygon.md
+      - ps: api/ps.md
+      - shp: api/shp.md
+      - co: api/co.md
+      - pl: api/pl.md
+      - dl: api/dl.md
+      - pqm: api/pqm.md
+      - unwrap: api/unwrap.md
+      - utils: api/utils.md
+      - moraine.cli in python: api/cli.md
+  - Tutorials:
+      - tutorials/index.md
+      - 01 Load data: tutorials/CampiFlegrei/01_load.md
+      - 02 PS processing: tutorials/CampiFlegrei/02_ps.md
+      - 03 DS processing: tutorials/CampiFlegrei/03_ds.md
+      - 04 Pixel refinement: tutorials/CampiFlegrei/04_refine.md
+      - 05 Phase unwrapping: tutorials/CampiFlegrei/05_unwrap.md
+  - Development:
+      - Developing moraine: development.md
+      - Architecture: dev/architecture.md
+      - Design decisions: decisions/README.md
+      - Contracts:
+          - contracts/README.md
+          - Data conventions: contracts/data.md
+          - Pyramids: contracts/pyramid.md
+      - Roadmap: roadmap.md
+      - Changelog: dev/changelog.md
+      - Agent instructions: dev/agents.md

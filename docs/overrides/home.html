@@ -1,0 +1,57 @@
+{#- Home page: the hero below the tabs, then the page content without title and sidebars (docs/index.md,
+    docs/index.zh.md). The texts follow the language of the build (mkdocs-static-i18n sets theme.language). -#}
+{% extends "main.html" %}
+
+{% set zh = config.theme.language == 'zh' %}
+{% set pre = 'zh/' if zh else '' %}
+{% set suf = '/' if config.use_directory_urls else '.html' %}
+{% macro link(p) %}{{ (pre ~ p ~ suf) | url }}{% endmacro %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="mo-hero">
+    <canvas class="mo-hero__canvas" id="mo-fringes" aria-hidden="true"></canvas>
+    <div class="mo-hero__shade"></div>
+    <div class="mo-hero__inner">
+      <p class="mo-eyebrow">{% if zh %}现代雷达干涉测量环境{% else %}Modern Radar Interferometry Environment{% endif %}</p>
+      <h1><span>moraine</span></h1>
+      <p class="mo-lead">
+        {% if zh %}
+        面向大数据时代的 InSAR 后处理：永久散射体与分布式散射体、相位连接、深度学习滤波和相位解缠，
+        跑在 GPU 上，数据是你看得懂的数组，命令行是 AI agent 会说的语言。
+        {% else %}
+        InSAR post-processing for the big data era: persistent and distributed scatterers, phase linking,
+        deep learning filters and phase unwrapping, on GPUs, on arrays you can read, with a command line
+        that AI agents speak.
+        {% endif %}
+      </p>
+      <p class="mo-cta">
+        <a class="mo-btn mo-btn--primary" href="{{ link('start/install') }}">{% if zh %}开始使用{% else %}Get started{% endif %}</a>
+        <a class="mo-btn mo-btn--fringe" href="{{ link('agent/index') if not config.use_directory_urls else link('agent') }}">{% if zh %}与 AI 对话{% else %}Talk to an agent{% endif %}</a>
+        <a class="mo-btn" href="{{ link('cli/index') if not config.use_directory_urls else link('cli') }}">{% if zh %}命令行{% else %}Command line{% endif %}</a>
+        <a class="mo-btn" href="{{ link('api/index') if not config.use_directory_urls else link('api') }}">Python API</a>
+      </p>
+      <ul class="mo-hero__facts">
+        {% if zh %}
+        <li>内存中 numpy / cupy，磁盘上 zarr</li>
+        <li>dask 跑在 CPU 和多块 GPU 上</li>
+        <li>可断点续跑的 pipeline</li>
+        <li>--json 给脚本和 agent</li>
+        {% else %}
+        <li>numpy / cupy in memory, zarr on disk</li>
+        <li>dask on CPUs and multiple GPUs</li>
+        <li>pipelines that resume</li>
+        <li>--json for scripts and agents</li>
+        {% endif %}
+      </ul>
+    </div>
+  </section>
+{% endblock %}
+
+{% block container %}
+  <div class="md-content mo-home" data-md-component="content">
+    <article class="md-content__inner md-typeset">
+      {{ page.content }}
+    </article>
+  </div>
+{% endblock %}

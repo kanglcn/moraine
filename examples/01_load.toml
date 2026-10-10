@@ -1,14 +1,14 @@
 # Load GAMMA results into zarr (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/01_load.ipynb).
 # Needs the GAMMA software on PATH.
 #
-#   moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20220620
+#   moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20200707 --var geo=20200707
 #
 # Outputs in WORK/raw/: rslc, lat/lon/hgt, look vector, slant range, metadata, web mercator e/n.
 
 [vars]
 gamma = "/path/to/gamma"          # directory with rslc/, geocoding/ and DEM/
-reference = "20220620"            # reference date of the flattened rslc stack
-geo = "20210802"                  # date prefix of the geocoding files (hgt, diff_par, lt_fine, lv_theta, lv_phi)
+reference = "20200707"            # reference date of the flattened rslc stack
+geo = "20200707"                  # date prefix of the geocoding files (hgt, diff_par, lt_fine, lv_theta, lv_phi)
 
 [[step]]
 name = "rslc"

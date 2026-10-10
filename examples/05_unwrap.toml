@@ -7,9 +7,9 @@
 # Outputs in WORK/unw/: pc_unw (unwrapped sequential interferograms, shape (n_points, n_pairs)).
 
 [vars]
-shape = "2500,1834"               # (nlines, width) of raw/rslc.zarr
-range_pixel_spacing = "4.290037"  # m, from the *.rslc.par of the data
-azimuth_pixel_spacing = "3.740175"
+shape = "981,4160"                # (nlines, width) of raw/rslc.zarr
+range_pixel_spacing = "2.329562"  # m, from the *.rslc.par of the data
+azimuth_pixel_spacing = "13.9516"
 
 [[step]]
 name = "gix"                      # mcf-pc needs the grid index of the points

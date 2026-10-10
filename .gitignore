@@ -176,3 +176,14 @@ nbs/_deprecation/
 
 # local test output
 moraine_test/
+
+# the manual: pages generated at build time by docs/_scripts/refgen.py (decision 0032)
+docs/cli/*.md
+!docs/cli/index.md
+!docs/cli/index.zh.md
+docs/api/*.md
+!docs/api/index.md
+!docs/api/index.zh.md
+!docs/api/cli.md
+!docs/api/cli.zh.md
+docs/tutorials/CampiFlegrei/
