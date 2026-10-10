@@ -28,6 +28,14 @@ Flegrei: a public tile is 60 to 120 kB and arrives in about 200 ms, the sea is 0
   are unchanged (the cursor position is the point of the terrain under it; deck's zoom plus one is Leaflet's).
 - `terrain=True` uses the public AWS Terrain Tiles; the URL template of another Terrarium encoded service can
   be given. `exaggeration` scales the heights (a slider too). Web mercator layers only.
+- Beyond the last zoom level of the service the terrain of a tile is interpolated from its parent tile in the
+  browser: deck.gl sizes the texture draped over a terrain tile when the tile appears, so the terrain tiles must
+  follow the zoom of the view for the draped data to stay sharp and the textures small. The terrain under the
+  pointer is probed (a rendering of the scene) only when the pointer rests, and deck.gl's own picking on every
+  pointer move is switched off; the markers are painted on the terrain rather than standing on it, which would
+  make deck.gl render a height map at every move of the view.
+- The base maps of the 3D views are Esri's: their tiles may be fetched and read by the GPU (CORS) without a
+  key, which CARTO and OpenStreetMap refuse; the 2D maps keep all three.
 - Polygons are shown on the terrain but drawn on 2D maps; `.png` stays the 2D image (no browser in the kernel).
 - The 2D maps keep Leaflet: one viewer module with two map backends behind a small interface (tiles, markers,
   polygons, events); sliders, time series, reference and polygons are shared.

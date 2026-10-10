@@ -10,8 +10,11 @@ const MAX_HEIGHT = 700;            // of a map sized automatically (screen pixel
 const MIN_SIZE = [200, 150];       // smallest map (width, height)
 const PITCH = 55;                  // of a 3D view at the start, degrees from straight down
 const MAX_PITCH = 85;
+const HOVER_DELAY = 120;           // ms between two probes of the terrain under the cursor (3D)
+const TILE_PX = 256;               // pixels of a tile
 // Terrarium elevation tiles: height = R * 256 + G + B / 256 - 32768 m
 const TERRARIUM = { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 };
+const TERRAIN_SCHEME = "moraine-terrain://";     // elevation tile requests of the 3D views, answered by terrainFetch
 const REF_COLOR = [224, 0, 0], SEL_COLOR = [255, 255, 255];     // markers of the reference and the clicked point
 const css = (c) => `rgb(${c.join(",")})`;
 
@@ -58,6 +61,19 @@ const BASE_MAPS = {
     { maxNativeZoom: 20, attribution: "© OpenStreetMap contributors © CARTO" }],
   "OpenStreetMap": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }],
+};
+// base maps of the 3D views: their tiles are fetched (CORS) and drawn on the GPU, which Esri's servers allow
+// without a key; CARTO and OpenStreetMap refuse such requests
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const BASE_MAPS_3D = {
+  "Satellite (Esri)": [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+    { maxNativeZoom: 18, attribution: "Tiles © Esri, Maxar, Earthstar Geographics" }],
+  "Light gray (Esri)": [`${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    { maxNativeZoom: 16, attribution: "Tiles © Esri, HERE, Garmin, OpenStreetMap contributors" }],
+  "Topographic (Esri)": [`${ESRI}/World_Topo_Map/MapServer/tile/{z}/{y}/{x}`,
+    { maxNativeZoom: 19, attribution: "Tiles © Esri, HERE, Garmin, FAO, NOAA, USGS, OpenStreetMap contributors" }],
+  "Streets (Esri)": [`${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`,
+    { maxNativeZoom: 19, attribution: "Tiles © Esri, HERE, Garmin, OpenStreetMap contributors" }],
 };
 
 function fmt(v) {
@@ -436,7 +452,7 @@ async function render({ model, el }) {
     ctl.className = "moraine-tv-ctl";
     const select = document.createElement("select");
     select.title = "base map";
-    for (const name of [...Object.keys(BASE_MAPS), "none"]) {
+    for (const name of [...Object.keys(BASE_MAPS_3D), "none"]) {
       const option = document.createElement("option");
       option.value = name;
       option.textContent = name;
@@ -499,7 +515,7 @@ async function render({ model, el }) {
     function dataTiles(l) {
       const gen = ++generation[l];
       return new TileLayer({
-        id: `data-${l}-${gen}`, tileSize: 256, minZoom: 0, maxZoom, extent: dataBounds,
+        id: `data-${l}-${gen}`, tileSize: TILE_PX, minZoom: 0, maxZoom, extent: dataBounds,
         getTileData: ({ index, signal }) => tileImage(l, index, signal),
         renderSubLayers: (props) => imageLayer(props, true),
         opacity: opacity[l], visible: shown[l], extensions: [extension],
@@ -509,26 +525,95 @@ async function render({ model, el }) {
     }
     const dataLayers = panel.layers.map((info, l) => dataTiles(l));
     function baseTiles() {
-      const entry = BASE_MAPS[baseName];
+      const entry = BASE_MAPS_3D[baseName];
       if (!entry) return null;
       const [url, options] = entry;
-      const urls = url.includes("{s}") ? ["a", "b", "c", "d"].map((s) => url.replace("{s}", s)) : url;
       return new TileLayer({
-        id: `base-${baseName}`, data: urls, tileSize: 256, minZoom: 0, maxZoom: options.maxNativeZoom,
+        id: `base-${baseName}`, data: url, tileSize: TILE_PX, minZoom: 0, maxZoom: options.maxNativeZoom,
         renderSubLayers: (props) => imageLayer(props, false), extensions: [extension],
+      });
+    }
+
+    // Elevation tiles at every zoom of the view. The service stops at relief.max_zoom; the terrain of a
+    // deeper tile is cut from its parent tile at that zoom, the heights interpolated (bilinear) and encoded
+    // again, so that the meshes, and the textures draped over them, follow the zoom of the view (deck.gl
+    // sizes the draped textures when a terrain tile appears).
+    const defaultFetch = new TerrainLayer({ id: "defaults" }).props.fetch;
+    const parents = new Map();                      // "z/x/y" -> promise of the heights of a tile of the service
+    const terrainUrl = (z, x, y) => relief.url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
+    function parentHeights(z, x, y) {
+      const key = `${z}/${x}/${y}`;
+      if (!parents.has(key)) {
+        parents.set(key, (async () => {
+          const response = await fetch(terrainUrl(z, x, y));
+          if (!response.ok) throw new Error(`${terrainUrl(z, x, y)}: HTTP ${response.status}`);
+          const bitmap = await createImageBitmap(await response.blob(), { premultiplyAlpha: "none", colorSpaceConversion: "none" });
+          const canvas = new OffscreenCanvas(TILE_PX, TILE_PX);
+          const context = canvas.getContext("2d", { willReadFrequently: true });
+          context.drawImage(bitmap, 0, 0);
+          if (bitmap.close) bitmap.close();
+          const { data } = context.getImageData(0, 0, TILE_PX, TILE_PX);
+          const heights = new Float32Array(TILE_PX * TILE_PX);
+          for (let i = 0; i < heights.length; i++) {
+            heights[i] = data[4 * i] * 256 + data[4 * i + 1] + data[4 * i + 2] / 256 - 32768;
+          }
+          return heights;
+        })().catch((e) => { parents.delete(key); throw e; }));
+        if (parents.size > 64) parents.delete(parents.keys().next().value);
+      }
+      return parents.get(key);
+    }
+    async function overzoomedTile(z, x, y) {
+      const n = 2 ** (z - relief.max_zoom);
+      const heights = await parentHeights(relief.max_zoom, Math.floor(x / n), Math.floor(y / n));
+      const ox = (x % n) * TILE_PX / n, oy = (y % n) * TILE_PX / n;      // origin of the tile in parent pixels
+      const last = TILE_PX - 1;
+      const image = new ImageData(TILE_PX, TILE_PX), d = image.data;
+      for (let j = 0; j < TILE_PX; j++) {
+        const v = Math.min(Math.max(oy + (j + 0.5) / n - 0.5, 0), last), j0 = Math.floor(v), fj = v - j0;
+        const j1 = Math.min(j0 + 1, last);
+        for (let i = 0; i < TILE_PX; i++) {
+          const u = Math.min(Math.max(ox + (i + 0.5) / n - 0.5, 0), last), i0 = Math.floor(u), fi = u - i0;
+          const i1 = Math.min(i0 + 1, last);
+          const h = (heights[j0 * TILE_PX + i0] * (1 - fi) + heights[j0 * TILE_PX + i1] * fi) * (1 - fj)
+                  + (heights[j1 * TILE_PX + i0] * (1 - fi) + heights[j1 * TILE_PX + i1] * fi) * fj;
+          const value = Math.max(0, Math.min(2 ** 24 - 1, Math.round((h + 32768) * 256)));
+          const k = 4 * (j * TILE_PX + i);
+          d[k] = (value >> 16) & 255; d[k + 1] = (value >> 8) & 255; d[k + 2] = value & 255; d[k + 3] = 255;
+        }
+      }
+      const canvas = new OffscreenCanvas(TILE_PX, TILE_PX);
+      canvas.getContext("2d").putImageData(image, 0, 0);
+      return canvas.convertToBlob({ type: "image/png" });
+    }
+    function terrainFetch(url, options) {
+      if (!url.startsWith(TERRAIN_SCHEME)) return defaultFetch(url, options);
+      const [z, x, y] = url.slice(TERRAIN_SCHEME.length).split("/").map(Number);
+      if (z <= relief.max_zoom) return defaultFetch(terrainUrl(z, x, y), options);
+      return overzoomedTile(z, x, y).then(async (blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        try {
+          return await defaultFetch(blobUrl, options);
+        } finally {
+          URL.revokeObjectURL(blobUrl);
+        }
       });
     }
     function terrainTiles() {
       return new TerrainLayer({
-        id: "terrain", elevationData: relief.url, texture: null, tileSize: 256, minZoom: 0, maxZoom: relief.max_zoom,
-        elevationDecoder: decoder, meshMaxError: 4, color: [190, 190, 190], operation: "terrain+draw", pickable: true,
+        id: "terrain", elevationData: `${TERRAIN_SCHEME}{z}/{x}/{y}`, fetch: terrainFetch, texture: null,
+        tileSize: TILE_PX, minZoom: 0, maxZoom, maxRequests: 10, elevationDecoder: decoder, meshMaxError: 8,
+        color: [190, 190, 190], operation: "terrain+draw", pickable: true,
       });
     }
+    // the markers are painted on the terrain like the tiles (drape): standing on it (offset) would make deck.gl
+    // render a height map of the whole terrain at every move of the view
     function markerLayer() {
+      if (!markers.length) return null;
       return new ScatterplotLayer({
         id: "markers", data: markers, getPosition: (d) => d.position, getLineColor: (d) => d.color,
         radiusUnits: "pixels", getRadius: 6, filled: false, stroked: true, lineWidthUnits: "pixels", getLineWidth: 2,
-        extensions: [extension],
+        extensions: [extension], terrainDrawMode: "drape",
       });
     }
     function polygonLayer() {
@@ -551,6 +636,15 @@ async function render({ model, el }) {
       viewState, layers: layers(),
       onViewStateChange: ({ viewState: vs }) => { setState(vs); moveHandlers.forEach((fn) => fn()); },
       getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "crosshair"),
+      // deck.gl picks what is under the pointer at every move for its own hover events, a rendering of the scene
+      // each time: not needed, the terrain is probed below when the pointer rests
+      onLoad: () => {
+        const manager = deckInstance.eventManager, handler = deckInstance._onPointerMove;
+        if (manager && handler) {
+          manager.off("pointermove", handler);
+          manager.off("pointerleave", handler);
+        }
+      },
     });
     function setState(vs) {
       viewState = vs;
@@ -558,7 +652,7 @@ async function render({ model, el }) {
     }
     function redraw() { deckInstance.setProps({ layers: layers() }); }
     function updateAttribution() {
-      const entry = BASE_MAPS[baseName];
+      const entry = BASE_MAPS_3D[baseName];
       attribution.textContent = `${entry ? `${entry[1].attribution} | ` : ""}${relief.attribution}`;
     }
     updateAttribution();
@@ -594,12 +688,21 @@ async function render({ model, el }) {
       const hit = pick(e);
       if (hit) dblHandlers.forEach((fn) => fn(hit.latlng));
     });
+    // the terrain under the pointer is probed (a rendering of the scene) when the pointer rests, at most every
+    // HOVER_DELAY ms and never while a button is down (a drag of the view)
+    let hoverTimer = null, hoverAt = null;
     mapEl.addEventListener("pointermove", (e) => {
-      if (onControl(e)) return;
-      const hit = pick(e);
-      hoverHandlers.forEach((fn) => fn(hit ? hit.latlng : null, hit ? hit.height : null));
+      if (onControl(e) || e.buttons) { hoverAt = null; return; }
+      hoverAt = { clientX: e.clientX, clientY: e.clientY };
+      if (hoverTimer !== null) return;
+      hoverTimer = setTimeout(() => {
+        hoverTimer = null;
+        if (hoverAt === null) return;
+        const hit = pick(hoverAt);
+        hoverHandlers.forEach((fn) => fn(hit ? hit.latlng : null, hit ? hit.height : null));
+      }, HOVER_DELAY);
     });
-    mapEl.addEventListener("pointerleave", () => hoverHandlers.forEach((fn) => fn(null, null)));
+    mapEl.addEventListener("pointerleave", () => { hoverAt = null; hoverHandlers.forEach((fn) => fn(null, null)); });
 
     select.value = baseName;
     select.addEventListener("change", () => { baseName = select.value; updateAttribution(); redraw(); });
@@ -643,7 +746,7 @@ async function render({ model, el }) {
         decoder = scaled(k);
         redraw();
       },
-      destroy() { view.resize.disconnect(); deckInstance.finalize(); },
+      destroy() { clearTimeout(hoverTimer); view.resize.disconnect(); deckInstance.finalize(); },
     });
     return view;
   }
