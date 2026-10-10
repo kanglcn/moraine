@@ -23,9 +23,9 @@ class TileView(anywidget.AnyWidget):
     values under it. Click a pixel or point to plot its time series, double click one to make it the reference
     of the time series, draw polygons. Several maps are zoomed and panned together. A map takes the width of
     the notebook, or the `size` of its layers; drag its lower right corner to resize it. With a `terrain` the
-    maps are 3D views: the layers and the base map are draped over the terrain, the right mouse button tilts
-    and rotates them. No server or port forwarding is needed; the kernel reads the data on the machine that
-    holds them.
+    maps are 3D views: the layers and the satellite base map are draped over the terrain, the right mouse
+    button tilts and rotates them. No server or port forwarding is needed; the kernel reads the data on the
+    machine that holds them.
 
     Parameters
     ----------
@@ -47,8 +47,6 @@ class TileView(anywidget.AnyWidget):
                                                      # width of the notebook
     terrain = traitlets.Dict().tag(sync=True)        # 3D views: url (elevation tile template), max_zoom,
                                                      # attribution; {} for 2D maps
-    exaggeration = traitlets.Float(1.0).tag(sync=True)   # vertical exaggeration of the terrain, set by the map
-                                                         # or by python
     zoom = traitlets.Int().tag(sync=True)            # zoom showing the whole extent in the frame
     max_zoom = traitlets.Int().tag(sync=True)
     axis_labels = traitlets.List(['range', 'azimuth']).tag(sync=True)
@@ -95,7 +93,6 @@ class TileView(anywidget.AnyWidget):
         if len(terrains) > 1:
             raise ValueError(f'one terrain per view, not {sorted(terrains)}')
         terrain = next(iter(terrains.values()), {})
-        exaggeration = next((layer.exaggeration for p in self._panels for layer in p if layer.terrain), 1.0)
         super().__init__(
             crs=crs, view_origin=[float(v) for v in layers[0].edge_origin] if crs == 'grid' else [0.0, 0.0],
             extent=[float(e) for e in extent], frame=list(frame), zoom=min(zoom, max_zoom), max_zoom=max_zoom,
@@ -107,7 +104,7 @@ class TileView(anywidget.AnyWidget):
                                  'sliders': [k['name'] for k in layer.kdims]} for layer in p]}
                     for p in self._panels],
             kdims=kdims, index=index, dates=view_dates(self._panels), size=list(size) if size else [],
-            terrain=dict(terrain), exaggeration=exaggeration, **kwargs)
+            terrain=dict(terrain), **kwargs)
         if self._polygon_file and Path(self._polygon_file).exists():
             self.load_polygons(self._polygon_file)
         self.observe(self._save_polygons, names='polygons')

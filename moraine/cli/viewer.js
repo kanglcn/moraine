@@ -11,6 +11,7 @@ const MIN_SIZE = [200, 150];       // smallest map (width, height)
 const PITCH = 55;                  // of a 3D view at the start, degrees from straight down
 const MAX_PITCH = 85;
 const HOVER_DELAY = 120;           // ms between two probes of the terrain under the cursor (3D)
+const EXTRA_ZOOM_3D = 2;           // zoom levels a 3D view goes beyond the 2D map: points seen from close by
 const TILE_PX = 256;               // pixels of a tile
 // Terrarium elevation tiles: height = R * 256 + G + B / 256 - 32768 m
 const TERRARIUM = { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 };
@@ -62,19 +63,9 @@ const BASE_MAPS = {
   "OpenStreetMap": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { maxNativeZoom: 19, attribution: "© OpenStreetMap contributors" }],
 };
-// base maps of the 3D views: their tiles are fetched (CORS) and drawn on the GPU, which Esri's servers allow
+// the base map of the 3D views: its tiles are fetched (CORS) and drawn on the GPU, which Esri's server allows
 // without a key; CARTO and OpenStreetMap refuse such requests
-const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
-const BASE_MAPS_3D = {
-  "Satellite (Esri)": [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
-    { maxNativeZoom: 18, attribution: "Tiles © Esri, Maxar, Earthstar Geographics" }],
-  "Light gray (Esri)": [`${ESRI}/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
-    { maxNativeZoom: 16, attribution: "Tiles © Esri, HERE, Garmin, OpenStreetMap contributors" }],
-  "Topographic (Esri)": [`${ESRI}/World_Topo_Map/MapServer/tile/{z}/{y}/{x}`,
-    { maxNativeZoom: 19, attribution: "Tiles © Esri, HERE, Garmin, FAO, NOAA, USGS, OpenStreetMap contributors" }],
-  "Streets (Esri)": [`${ESRI}/World_Street_Map/MapServer/tile/{z}/{y}/{x}`,
-    { maxNativeZoom: 19, attribution: "Tiles © Esri, HERE, Garmin, OpenStreetMap contributors" }],
-};
+const SATELLITE = BASE_MAPS["Satellite (Esri)"];
 
 function fmt(v) {
   if (v === null || v === undefined) return "nan";
@@ -432,7 +423,6 @@ async function render({ model, el }) {
       onClick(fn) { map.on("click", (e) => fn(e.latlng)); },
       onDblClick(fn) { map.on("dblclick", (e) => fn(e.latlng)); },
       onHover(fn) { map.on("mousemove", (e) => fn(e.latlng)); map.on("mouseout", () => fn(null)); },
-      setExaggeration() {},
       destroy() { view.resize.disconnect(); map.remove(); },
     });
     return view;
@@ -447,18 +437,9 @@ async function render({ model, el }) {
     const view = makeBox(panel, p, false);
     const { mapEl } = view;
     mapEl.classList.add("moraine-tv-map3d");
-    // controls over the map: base map, layers on and off, the view from straight above; the attribution below
+    // controls over the map: layers on and off, the view from straight above; the attribution below
     const ctl = document.createElement("div");
     ctl.className = "moraine-tv-ctl";
-    const select = document.createElement("select");
-    select.title = "base map";
-    for (const name of [...Object.keys(BASE_MAPS_3D), "none"]) {
-      const option = document.createElement("option");
-      option.value = name;
-      option.textContent = name;
-      select.appendChild(option);
-    }
-    ctl.appendChild(select);
     const checks = panel.layers.map((info) => {
       const label = document.createElement("label");
       label.innerHTML = `<input type="checkbox" checked>`;
@@ -478,12 +459,7 @@ async function render({ model, el }) {
     const sw = toLatLng(ex0, ey0), ne = toLatLng(ex1, ey1);
     const dataBounds = [sw.lng, sw.lat, ne.lng, ne.lat];          // west, south, east, north
     const extension = new TerrainExtension();
-    let exaggeration = model.get("exaggeration");
-    // the decoder object is kept while the exaggeration stays: a new one makes the terrain tiles load again
-    const scaled = (k) => ({ rScaler: TERRARIUM.rScaler * k, gScaler: TERRARIUM.gScaler * k, bScaler: TERRARIUM.bScaler * k,
-                             offset: TERRARIUM.offset * k });
-    let decoder = scaled(exaggeration);
-    let baseName = "Satellite (Esri)";
+    const maxZoom3d = maxZoom + EXTRA_ZOOM_3D;         // of the tiles; the view's zoom is one less (deck.gl)
     const opacity = panel.layers.map((info) => info.opacity);
     const shown = panel.layers.map(() => true);
     const generation = panel.layers.map(() => 0);
@@ -515,7 +491,7 @@ async function render({ model, el }) {
     function dataTiles(l) {
       const gen = ++generation[l];
       return new TileLayer({
-        id: `data-${l}-${gen}`, tileSize: TILE_PX, minZoom: 0, maxZoom, extent: dataBounds,
+        id: `data-${l}-${gen}`, tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, extent: dataBounds,
         getTileData: ({ index, signal }) => tileImage(l, index, signal),
         renderSubLayers: (props) => imageLayer(props, true),
         opacity: opacity[l], visible: shown[l], extensions: [extension],
@@ -525,11 +501,9 @@ async function render({ model, el }) {
     }
     const dataLayers = panel.layers.map((info, l) => dataTiles(l));
     function baseTiles() {
-      const entry = BASE_MAPS_3D[baseName];
-      if (!entry) return null;
-      const [url, options] = entry;
+      const [url, options] = SATELLITE;
       return new TileLayer({
-        id: `base-${baseName}`, data: url, tileSize: TILE_PX, minZoom: 0, maxZoom: options.maxNativeZoom,
+        id: "base", data: url, tileSize: TILE_PX, minZoom: 0, maxZoom: options.maxNativeZoom,
         renderSubLayers: (props) => imageLayer(props, false), extensions: [extension],
       });
     }
@@ -602,8 +576,8 @@ async function render({ model, el }) {
     function terrainTiles() {
       return new TerrainLayer({
         id: "terrain", elevationData: `${TERRAIN_SCHEME}{z}/{x}/{y}`, fetch: terrainFetch, texture: null,
-        tileSize: TILE_PX, minZoom: 0, maxZoom, maxRequests: 10, elevationDecoder: decoder, meshMaxError: 8,
-        color: [190, 190, 190], operation: "terrain+draw", pickable: true,
+        tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, maxRequests: 10, elevationDecoder: TERRARIUM,
+        meshMaxError: 8, color: [190, 190, 190], operation: "terrain+draw", pickable: true,
       });
     }
     // the markers are painted on the terrain like the tiles (drape): standing on it (offset) would make deck.gl
@@ -632,7 +606,7 @@ async function render({ model, el }) {
     const deckInstance = new Deck({
       parent: mapEl, views: new MapView({ repeat: false }),
       controller: { maxPitch: MAX_PITCH, dragRotate: true, touchRotate: true, doubleClickZoom: false, inertia: 300,
-                    maxZoom: maxZoom - 1 },                   // deck's zoom 0 is a world of 512 pixels: one less than Leaflet
+                    maxZoom: maxZoom3d - 1 },                 // deck's zoom 0 is a world of 512 pixels: one less than Leaflet
       viewState, layers: layers(),
       onViewStateChange: ({ viewState: vs }) => { setState(vs); moveHandlers.forEach((fn) => fn()); },
       getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "crosshair"),
@@ -651,28 +625,24 @@ async function render({ model, el }) {
       deckInstance.setProps({ viewState: vs });
     }
     function redraw() { deckInstance.setProps({ layers: layers() }); }
-    function updateAttribution() {
-      const entry = BASE_MAPS_3D[baseName];
-      attribution.textContent = `${entry ? `${entry[1].attribution} | ` : ""}${relief.attribution}`;
-    }
-    updateAttribution();
+    attribution.textContent = `${SATELLITE[1].attribution} | ${relief.attribution}`;
 
     observeSize(view, (first) => {
       if (first) {                              // the whole scene in the map, seen from above and tilted
         const vp = new WebMercatorViewport({ width: mapEl.clientWidth, height: mapEl.clientHeight });
         const fit = vp.fitBounds([[sw.lng, sw.lat], [ne.lng, ne.lat]], { padding: 4 });
-        setState({ ...viewState, longitude: fit.longitude, latitude: fit.latitude, zoom: Math.min(fit.zoom, maxZoom - 1) });
+        setState({ ...viewState, longitude: fit.longitude, latitude: fit.latitude, zoom: Math.min(fit.zoom, maxZoom3d - 1) });
       }
       deckInstance.redraw("size");
     });
     resizeHandle(view);
 
-    // the point of the terrain under the cursor: longitude / latitude and height (metres, without exaggeration)
+    // the point of the terrain under the cursor: longitude / latitude and height (metres)
     function pick(e) {
       const r = mapEl.getBoundingClientRect();
       const info = deckInstance.pickObject({ x: e.clientX - r.left, y: e.clientY - r.top, radius: 0, unproject3D: true });
       if (!info || !info.coordinate) return null;
-      return { latlng: L.latLng(info.coordinate[1], info.coordinate[0]), height: (info.coordinate[2] || 0) / exaggeration };
+      return { latlng: L.latLng(info.coordinate[1], info.coordinate[0]), height: info.coordinate[2] || 0 };
     }
     const onControl = (e) => e.target.closest(".moraine-tv-ctl, .moraine-tv-handle, .moraine-tv-attr");
     let down = null;
@@ -704,8 +674,6 @@ async function render({ model, el }) {
     });
     mapEl.addEventListener("pointerleave", () => { hoverAt = null; hoverHandlers.forEach((fn) => fn(null, null)); });
 
-    select.value = baseName;
-    select.addEventListener("change", () => { baseName = select.value; updateAttribution(); redraw(); });
     checks.forEach((check, l) => check.addEventListener("change", () => {
       shown[l] = check.checked;
       dataLayers[l] = dataLayers[l].clone({ visible: shown[l] });
@@ -741,11 +709,6 @@ async function render({ model, el }) {
       onClick(fn) { clickHandlers.push(fn); },
       onDblClick(fn) { dblHandlers.push(fn); },
       onHover(fn) { hoverHandlers.push(fn); },
-      setExaggeration(k) {
-        exaggeration = k;
-        decoder = scaled(k);
-        redraw();
-      },
       destroy() { clearTimeout(hoverTimer); view.resize.disconnect(); deckInstance.finalize(); },
     });
     return view;
@@ -816,25 +779,6 @@ async function render({ model, el }) {
       sliders.appendChild(row);
     });
   }
-  // vertical exaggeration of the terrain (3D), shared by the maps and with python
-  function onExaggeration() {
-    const k = model.get("exaggeration");
-    const row = sliders.querySelector(".exaggeration");
-    if (row) { row.querySelector("input").value = k; row.querySelector("output").textContent = `${k} x`; }
-    for (const view of views) view.setExaggeration(k);
-  }
-  if (relief) {
-    const row = document.createElement("label");
-    row.className = "exaggeration";
-    row.innerHTML = `<span>vertical exaggeration</span><input type="range" min="0.5" max="10" step="0.5"><output></output>`;
-    const input = row.querySelector("input"), output = row.querySelector("output");
-    input.value = model.get("exaggeration"); output.textContent = `${input.value} x`;
-    input.addEventListener("input", () => { output.textContent = `${input.value} x`; });
-    input.addEventListener("change", () => { model.set("exaggeration", Number(input.value)); model.save_changes(); });
-    sliders.appendChild(row);
-    model.on("change:exaggeration", onExaggeration);
-  }
-
   // ---------------------------------------------------------------- time series and reference
   let target = null, ref = null, clickTimer = null;     // target: {p, pos, z} clicked; ref: locate result
   // what python sees of a pixel / point: map, layer, key (line / column or point index), coordinates
@@ -993,7 +937,6 @@ async function render({ model, el }) {
     model.off("msg:custom", onMessage);
     model.off("change:polygons", drawPolygons);
     model.off("change:index", onIndex);
-    if (relief) model.off("change:exaggeration", onExaggeration);
     for (const view of views) view.destroy();
   };
 }

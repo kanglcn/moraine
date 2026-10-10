@@ -493,8 +493,7 @@ def describe(panels)->str:
                          f'finest cell {_cell_text(layer, layer.cell)} (png(..., extent=...) to zoom in)')
     relief = next((layer for layer in layers if layer.terrain), None)
     if relief is not None:
-        lines.append(f'  3D view over the terrain in a notebook ({relief.terrain["attribution"]}), vertical '
-                     f'exaggeration {relief.exaggeration:g}; the PNG is the 2D map')
+        lines.append(f'  3D view over the terrain in a notebook ({relief.terrain["attribution"]}); the PNG is the 2D map')
     kdims, index = view_sliders(panels)
     dates = view_dates(panels)
     for k in kdims:
@@ -522,7 +521,7 @@ class _Layer(_Shown):
         return [[self]]
 
     def _setup(self, base, levels, max_level, show, image_pairs, sliders, dates, stats, series, default_ts,
-               polygons, cmap, clim, opacity, size, terrain, exaggeration, is_pc):
+               polygons, cmap, clim, opacity, size, terrain, is_pc):
         self.shape = tuple(int(n) for n in base.shape[:2])
         self.size = None
         if size is not None:
@@ -534,9 +533,6 @@ class _Layer(_Shown):
         if self.terrain and self.crs != 'web_mercator':
             raise ValueError(f'{self.label}: a 3D view over the terrain needs web mercator coordinates (e / n); the '
                              f'radar grid has no position on the earth')
-        self.exaggeration = float(exaggeration)
-        if not (math.isfinite(self.exaggeration) and self.exaggeration > 0):
-            raise ValueError(f'exaggeration must be a positive number, not {exaggeration!r}')
         self.data_shape, self.dtype = tuple(base.shape), base.dtype
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
@@ -673,8 +669,7 @@ class RasterLayer(_Layer):
     kind = 'raster'
 
     def __init__(self, data, show=None, dates=None, series=None, polygons=None, image_pairs=None, sliders=None,
-                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None, terrain=None,
-                 exaggeration=1.0):
+                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None, terrain=None):
         if isinstance(data, (str, Path)):
             p = Path(data)
             levels = pyramid_levels(p)
@@ -709,7 +704,7 @@ class RasterLayer(_Layer):
             self.crs = _crs(min(x0, xm), min(y0, ym), max(x0, xm), max(y0, ym), self.rx, crs, self.label)
         self.n_points = None
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, base, polygons,
-                    cmap, clim, opacity, size, terrain, exaggeration, is_pc=False)
+                    cmap, clim, opacity, size, terrain, is_pc=False)
 
     def locate(self, x, y, s):
         """Pixel under data coordinates (`x`, `y`): dict with its centre ``x``, ``y`` and ``key`` [line,
@@ -780,7 +775,7 @@ class PointLayer(_Layer):
 
     def __init__(self, data, x=None, y=None, resolution=None, show=None, dates=None, series=None, polygons=None,
                  image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None,
-                 size=None, terrain=None, exaggeration=1.0):
+                 size=None, terrain=None):
         self._rtree = None
         if isinstance(data, (str, Path)) and pyramid_levels(Path(data)):
             import toml
@@ -829,7 +824,7 @@ class PointLayer(_Layer):
         self.crs = _crs(x0, y0, xm, ym, res, crs, self.label)
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
-                    polygons, cmap, clim, opacity, size, terrain, exaggeration, is_pc=True)
+                    polygons, cmap, clim, opacity, size, terrain, is_pc=True)
         self.data_shape, self.dtype = tuple(self._pc.shape), self._pc.dtype     # the points, not their raster
         self.title = f'{self.label}  {self.data_shape} {self.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
@@ -1062,7 +1057,6 @@ def view(
     label:str=None,
     size:tuple=None,
     terrain=None,
-    exaggeration:float=1.0,
     bounds:tuple=None,
     resolution:float=None,
     image_pairs:str=None,
@@ -1122,11 +1116,9 @@ def view(
         3D view over the terrain in a notebook, web mercator layers only: True for the public elevation tiles
         (AWS Terrain Tiles: SRTM, EU-DEM, 3DEP, ... heights of about 30 m, zoom levels up to 15, fetched by the
         browser like the base map), or the URL template ``'https://.../{z}/{x}/{y}.png'`` of another service
-        of Terrarium encoded tiles. The layers and the base map are draped over the terrain; the right mouse
-        button (or ctrl + drag) tilts and rotates the view, a slider sets the vertical exaggeration. Polygons
-        are shown but drawn in 2D views; ``.png`` stays the 2D image
-    exaggeration : float, default: 1.0
-        vertical exaggeration of the terrain of a 3D view (1: true proportions), the start value of its slider
+        of Terrarium encoded tiles. The layers and the satellite base map are draped over the terrain; the
+        right mouse button (or ctrl + drag) tilts and rotates the view, which zooms two levels further than the
+        2D map. Polygons are shown but drawn in 2D views; ``.png`` stays the 2D image
     bounds : tuple, optional
         raster only: (x0, y0, xm, ym), coordinates of the centres of the first and the last pixel; pixel
         (i, j) at range j, azimuth i by default
@@ -1146,8 +1138,7 @@ def view(
         displayed in a notebook; combine with ``*`` and ``+``; ``.png(path)`` saves an image
     """
     kw = dict(show=show, dates=dates, series=series, polygons=polygons, image_pairs=image_pairs, sliders=sliders,
-              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size, terrain=terrain,
-              exaggeration=exaggeration)
+              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size, terrain=terrain)
     if x is not None or y is not None:
         if x is None or y is None:
             raise ValueError('give both `x` and `y` for point data')
