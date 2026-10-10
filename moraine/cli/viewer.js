@@ -10,7 +10,6 @@ const MAX_HEIGHT = 700;            // of a map sized automatically (screen pixel
 const MIN_SIZE = [200, 150];       // smallest map (width, height)
 const PITCH = 55;                  // of a 3D view at the start, degrees from straight down
 const MAX_PITCH = 85;
-const HOVER_DELAY = 120;           // ms between two probes of the terrain under the cursor (3D)
 const EXTRA_ZOOM_3D = 2;           // zoom levels a 3D view goes beyond the 2D map: points seen from close by
 const TILE_PX = 256;               // pixels of a tile
 // Terrarium elevation tiles: height = R * 256 + G + B / 256 - 32768 m
@@ -435,7 +434,7 @@ async function render({ model, el }) {
   // and the markers stand on it (TerrainExtension). The cursor position is the point of the terrain under it.
   function makeDeckPanel(panel, p) {
     const { Deck, MapView, WebMercatorViewport, TileLayer, TerrainLayer, BitmapLayer, ScatterplotLayer, PathLayer,
-            SimpleMeshLayer, COORDINATE_SYSTEM, _TerrainExtension: TerrainExtension } = deck;
+            _TerrainExtension: TerrainExtension } = deck;
     const view = makeBox(panel, p, false);
     const { mapEl } = view;
     mapEl.classList.add("moraine-tv-map3d");
@@ -499,6 +498,7 @@ async function render({ model, el }) {
         getTileData: ({ index, signal }) => tileImage(l, index, signal),
         renderSubLayers: (props) => imageLayer(props, true),
         opacity: opacity[l], visible: shown[l], extensions: [extension], onTileError,
+        debounceTime: 80,                     // a zoom passes several levels: only the tiles of the last are asked for
         // the newest layer has its tiles: the replaced ones go
         onViewportLoad: () => { if (gen === generation[l] && fading[l].length) { fading[l] = []; redraw(); } },
       });
@@ -564,57 +564,42 @@ async function render({ model, el }) {
       canvas.getContext("2d").putImageData(image, 0, 0);
       return canvas.convertToBlob({ type: "image/png" });
     }
-    // The mesh of a terrain tile is shared with the picking layer below: one promise per tile, started by the
-    // terrain layer's fetch (the picking layer waits for it), dropped when the terrain layer unloads the tile.
-    const meshes = new Map();
-    const tileKey = ({ x, y, z }) => `${TERRAIN_SCHEME}${z}/${x}/${y}`;
-    function meshPromise(key) {
-      if (!meshes.has(key)) {
-        let settle = null;
-        const promise = new Promise((resolve, reject) => { settle = { resolve, reject }; });
-        promise.settle = settle;
-        meshes.set(key, promise);
-      }
-      return meshes.get(key);
-    }
     function terrainFetch(url, options) {
       if (!url.startsWith(TERRAIN_SCHEME)) return defaultFetch(url, options);
-      const promise = meshPromise(url);
-      if (!promise.started) {
-        promise.started = true;
-        const [z, x, y] = url.slice(TERRAIN_SCHEME.length).split("/").map(Number);
-        const loaded = z <= relief.max_zoom ? defaultFetch(terrainUrl(z, x, y), options)
-          : overzoomedTile(z, x, y).then(async (blob) => {
-            const blobUrl = URL.createObjectURL(blob);
-            try {
-              return await defaultFetch(blobUrl, options);
-            } finally {
-              URL.revokeObjectURL(blobUrl);
-            }
-          });
-        loaded.then(promise.settle.resolve, promise.settle.reject);
-      }
-      return promise;
+      const [z, x, y] = url.slice(TERRAIN_SCHEME.length).split("/").map(Number);
+      if (z <= relief.max_zoom) return defaultFetch(terrainUrl(z, x, y), options);
+      return overzoomedTile(z, x, y).then(async (blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        try {
+          return await defaultFetch(blobUrl, options);
+        } finally {
+          URL.revokeObjectURL(blobUrl);
+        }
+      });
     }
-    function terrainTiles() {
+    // the meshes of the loaded terrain tiles, for the point under the cursor (pick below): the mesh and its
+    // bounding box, x and y in common units, z in metres
+    const terrainTiles = new Map();
+    const tileKey = ({ x, y, z }) => `${z}/${x}/${y}`;
+    function tileLoaded(tile) {
+      const mesh = tile.content && tile.content[0];
+      if (!mesh || !mesh.attributes || !mesh.attributes.POSITION) return;
+      let box = mesh.header && mesh.header.boundingBox;
+      if (!box) {
+        const p = mesh.attributes.POSITION.value;
+        box = [[Infinity, Infinity, Infinity], [-Infinity, -Infinity, -Infinity]];
+        for (let i = 0; i < p.length; i += 3) {
+          for (let j = 0; j < 3; j++) { box[0][j] = Math.min(box[0][j], p[i + j]); box[1][j] = Math.max(box[1][j], p[i + j]); }
+        }
+      }
+      terrainTiles.set(tileKey(tile.index), { mesh, box });
+    }
+    function terrainLayer() {
       return new TerrainLayer({
         id: "terrain", elevationData: `${TERRAIN_SCHEME}{z}/{x}/{y}`, fetch: terrainFetch, texture: null,
         tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, maxRequests: 10, elevationDecoder: TERRARIUM,
         meshMaxError: 8, color: [190, 190, 190], operation: "terrain+draw", pickable: false,
-        onTileUnload: (tile) => meshes.delete(tileKey(tile.index)), onTileError,
-      });
-    }
-    // The terrain draped over cannot be picked (deck.gl 9.1 writes no layer index for it), so the same meshes
-    // are drawn once more as plain mesh layers in the picking pass only (the layerFilter of the Deck): that
-    // is what the cursor hits.
-    function pickTiles() {
-      return new TileLayer({
-        id: "pick", tileSize: TILE_PX, minZoom: 0, maxZoom: maxZoom3d, maxRequests: 10, onTileError,
-        getTileData: ({ index }) => meshPromise(tileKey(index)),
-        renderSubLayers: (props) => props.data && new SimpleMeshLayer(props, {
-          data: [1], mesh: props.data, _instanced: false, coordinateSystem: COORDINATE_SYSTEM.CARTESIAN,
-          getPosition: () => [0, 0, 0], getColor: [0, 0, 0, 0], pickable: true,
-        }),
+        onTileLoad: tileLoaded, onTileUnload: (tile) => terrainTiles.delete(tileKey(tile.index)), onTileError,
       });
     }
     // the markers are painted on the terrain like the tiles (drape): standing on it (offset) would make deck.gl
@@ -635,7 +620,7 @@ async function render({ model, el }) {
     }
     function layers() {
       const data = panel.layers.flatMap((info, l) => [...fading[l], dataLayers[l]]);
-      return [terrainTiles(), pickTiles(), baseTiles(), ...data, polygonLayer(), markerLayer()].filter(Boolean);
+      return [terrainLayer(), baseTiles(), ...data, polygonLayer(), markerLayer()].filter(Boolean);
     }
 
     let viewState = { longitude: (sw.lng + ne.lng) / 2, latitude: (sw.lat + ne.lat) / 2, zoom: zoom - 1, pitch: PITCH, bearing: 0 };
@@ -645,8 +630,6 @@ async function render({ model, el }) {
       controller: { maxPitch: MAX_PITCH, dragRotate: true, touchRotate: true, doubleClickZoom: false, inertia: 300,
                     maxZoom: maxZoom3d - 1 },                 // deck's zoom 0 is a world of 512 pixels: one less than Leaflet
       viewState, layers: layers(),
-      // the picking meshes exist for the picking pass only, the other layers for the drawing
-      layerFilter: ({ layer, isPicking }) => isPicking === layer.id.startsWith("pick"),
       onViewStateChange: ({ viewState: vs }) => { setState(vs); moveHandlers.forEach((fn) => fn()); },
       getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "crosshair"),
       // deck.gl picks what is under the pointer at every move for its own hover events, a rendering of the scene
@@ -659,7 +642,7 @@ async function render({ model, el }) {
         }
       },
     });
-    mapEl.moraine = { deck: deckInstance };             // for tests and debugging
+    mapEl.moraine = { deck: deckInstance, pick: (x, y) => pick({ clientX: x, clientY: y }) };   // for tests and debugging
     function setState(vs) {
       viewState = vs;
       deckInstance.setProps({ viewState: vs });
@@ -677,30 +660,45 @@ async function render({ model, el }) {
     });
     resizeHandle(view);
 
-    // The point of the terrain under the cursor: longitude / latitude and height (metres). Picking gives the
-    // terrain tile under the pixel; the point is where the ray of the pixel meets the tile's mesh, computed
-    // in deck.gl's common space (deck.gl's own 3D unprojection reads a depth with too little precision: 100 m
-    // off on a flat test terrain).
+    // The point of the terrain under the cursor: longitude / latitude and height (metres), where the ray of
+    // the pixel first meets a loaded terrain tile, computed in deck.gl's common space (no GPU picking: deck.gl
+    // 9.1 cannot pick a terrain that is draped over, and its unprojection of a picked depth was 100 m off).
     function pick(e) {
-      const r = mapEl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-      const info = deckInstance.pickObject({ x, y, radius: 0 });
-      const layer = info && (info.sourceLayer || info.layer);         // the tile's mesh layer, not the tile layer
-      const mesh = layer && layer.props.mesh;
-      if (!mesh) return null;
       const vp = deckInstance.getViewports()[0];
+      if (!vp) return null;
+      const r = mapEl.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
       const k = vp.distanceScales.unitsPerMeter[2];                   // common units per metre of height
       const o = vp.projectPosition(vp.unproject([x, y, -1])), f = vp.projectPosition(vp.unproject([x, y, 1]));
-      const hit = intersect(mesh, k, { o, d: [f[0] - o[0], f[1] - o[1], f[2] - o[2]] });
-      if (!hit) return null;
-      const [lng, lat] = vp.unprojectFlat([hit[0], hit[1]]);
-      return { latlng: L.latLng(lat, lng), height: hit[2] / k };
+      const d = [f[0] - o[0], f[1] - o[1], f[2] - o[2]];
+      let best = Infinity;
+      for (const { mesh, box } of terrainTiles.values()) {
+        if (hitsBox(o, d, box, k, best)) best = Math.min(best, intersect(mesh, k, o, d, best));
+      }
+      if (best === Infinity) return null;
+      const [lng, lat] = vp.unprojectFlat([o[0] + d[0] * best, o[1] + d[1] * best]);
+      return { latlng: L.latLng(lat, lng), height: (o[2] + d[2] * best) / k };
     }
-    // the nearest point of the triangles of `mesh` (x, y in common units, z in metres, scaled by `k`) on the
-    // ray (Moeller-Trumbore), null if none
-    function intersect(mesh, k, { o, d }) {
+    // does the ray o + t d, 0 < t < best, cross the box [[x0, y0, z0], [x1, y1, z1]] (z in metres)
+    function hitsBox(o, d, [[x0, y0, z0], [x1, y1, z1]], k, best) {
+      const lo = [x0, y0, z0 * k], hi = [x1, y1, z1 * k];
+      let t0 = 0, t1 = best;
+      for (let i = 0; i < 3; i++) {
+        if (d[i] === 0) {
+          if (o[i] < lo[i] || o[i] > hi[i]) return false;
+          continue;
+        }
+        const a = (lo[i] - o[i]) / d[i], b = (hi[i] - o[i]) / d[i];
+        t0 = Math.max(t0, Math.min(a, b));
+        t1 = Math.min(t1, Math.max(a, b));
+        if (t0 > t1) return false;
+      }
+      return true;
+    }
+    // the nearest t < best at which the ray o + t d meets a triangle of `mesh` (x, y in common units, z in
+    // metres, scaled by `k`), Moeller-Trumbore; `best` if none
+    function intersect(mesh, k, o, d, best) {
       const p = mesh.attributes.POSITION.value, idx = mesh.indices ? mesh.indices.value : null;
       const n = idx ? idx.length : p.length / 3;
-      let best = Infinity;
       for (let i = 0; i < n; i += 3) {
         const a = 3 * (idx ? idx[i] : i), b = 3 * (idx ? idx[i + 1] : i + 1), c = 3 * (idx ? idx[i + 2] : i + 2);
         const e1x = p[b] - p[a], e1y = p[b + 1] - p[a + 1], e1z = (p[b + 2] - p[a + 2]) * k;
@@ -716,7 +714,7 @@ async function render({ model, el }) {
         const t = f * (e2x * qx + e2y * qy + e2z * qz);
         if (t > 0 && t < best) best = t;
       }
-      return best < Infinity ? [o[0] + d[0] * best, o[1] + d[1] * best, o[2] + d[2] * best] : null;
+      return best;
     }
     const onControl = (e) => e.target.closest(".moraine-tv-ctl, .moraine-tv-handle, .moraine-tv-attr");
     let down = null;
@@ -732,19 +730,19 @@ async function render({ model, el }) {
       const hit = pick(e);
       if (hit) dblHandlers.forEach((fn) => fn(hit.latlng));
     });
-    // the terrain under the pointer is probed (a rendering of the scene) when the pointer rests, at most every
-    // HOVER_DELAY ms and never while a button is down (a drag of the view)
-    let hoverTimer = null, hoverAt = null;
+    // the terrain under the pointer is probed once per frame while it moves, never while a button is down (a
+    // drag of the view)
+    let hoverFrame = null, hoverAt = null;
     mapEl.addEventListener("pointermove", (e) => {
       if (onControl(e) || e.buttons) { hoverAt = null; return; }
       hoverAt = { clientX: e.clientX, clientY: e.clientY };
-      if (hoverTimer !== null) return;
-      hoverTimer = setTimeout(() => {
-        hoverTimer = null;
+      if (hoverFrame !== null) return;
+      hoverFrame = requestAnimationFrame(() => {
+        hoverFrame = null;
         if (hoverAt === null) return;
         const hit = pick(hoverAt);
         hoverHandlers.forEach((fn) => fn(hit ? hit.latlng : null, hit ? hit.height : null));
-      }, HOVER_DELAY);
+      });
     });
     mapEl.addEventListener("pointerleave", () => { hoverAt = null; hoverHandlers.forEach((fn) => fn(null, null)); });
 
@@ -783,7 +781,7 @@ async function render({ model, el }) {
       onClick(fn) { clickHandlers.push(fn); },
       onDblClick(fn) { dblHandlers.push(fn); },
       onHover(fn) { hoverHandlers.push(fn); },
-      destroy() { clearTimeout(hoverTimer); view.resize.disconnect(); deckInstance.finalize(); },
+      destroy() { cancelAnimationFrame(hoverFrame); view.resize.disconnect(); deckInstance.finalize(); },
     });
     return view;
   }

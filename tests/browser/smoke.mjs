@@ -185,26 +185,22 @@ async function test3d() {
   assert.equal(el.querySelector(".draw").style.display, "none", "no polygon drawing in 3D");
   assert.match(el.querySelector(".hint").textContent, /tilt and rotate/);
   const ids = () => d.props.layers.map((l) => l.id);
-  assert.deepEqual(ids(), ["terrain", "pick", "base", "data-0-1", "data-1-1", "polygons"], "no markers yet");
-  const terrain = d.props.layers[0], pick3d = d.props.layers[1];
+  assert.deepEqual(ids(), ["terrain", "base", "data-0-1", "data-1-1", "polygons"], "no markers yet");
+  const terrain = d.props.layers[0];
   assert.deepEqual(terrain.props.elevationDecoder, { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 });
   assert.equal(terrain.props.operation, "terrain+draw");
-  assert.equal(terrain.props.pickable, false, "the draped terrain is not picked");
+  assert.equal(terrain.props.pickable, false, "nothing is picked on the GPU");
   assert.equal(terrain.props.maxZoom, 21, "terrain tiles at every zoom of the view, two levels beyond 2D");
   assert.equal(terrain.props.elevationData, "moraine-terrain://{z}/{x}/{y}");
-  assert.equal(d.props.layers[3].props.maxZoom, 21, "data tiles two levels beyond 2D");
-  assert.match(d.props.layers[2].props.data, /World_Imagery.*\{z\}\/\{y\}\/\{x\}$/);
-  // the picking meshes: in the picking pass only, sharing the meshes of the terrain tiles
-  assert.equal(d.props.layerFilter({ layer: { id: "pick-15-1-2-mesh" }, isPicking: true }), true);
-  assert.equal(d.props.layerFilter({ layer: { id: "pick-15-1-2-mesh" }, isPicking: false }), false);
-  assert.equal(d.props.layerFilter({ layer: { id: "terrain-tiles-15-1-2" }, isPicking: true }), false);
-  assert.equal(d.props.layerFilter({ layer: { id: "data-0-1-15-1-2" }, isPicking: false }), true);
-  assert.equal(pick3d.props.maxZoom, 21);
-  const waiting = pick3d.props.getTileData({ index: { x: 1, y: 2, z: 15 } });   // before the terrain loads it
-  const meshLayer = pick3d.props.renderSubLayers({ id: "pick-x", tile: {}, data: { header: {} } });
-  assert.equal(meshLayer.props.pickable, true);
-  assert.equal(meshLayer.props.coordinateSystem, 0, "cartesian like the terrain tiles");
-  assert.equal(pick3d.props.renderSubLayers({ id: "pick-y", tile: {}, data: null }), null, "no mesh yet: nothing");
+  assert.equal(d.props.layers[2].props.maxZoom, 21, "data tiles two levels beyond 2D");
+  assert.equal(d.props.layers[2].props.debounceTime, 80);
+  assert.match(d.props.layers[1].props.data, /World_Imagery.*\{z\}\/\{y\}\/\{x\}$/);
+  // the loaded terrain tiles are what the cursor hits: none yet, so a move probes nothing
+  const mapEl = el.querySelector(".moraine-tv-map");
+  mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 100, clientY: 100, bubbles: true }));
+  await sleep(30);
+  assert.equal(model.sent.filter((m) => m.type === "value").length, 0, "no terrain loaded: nothing probed");
+  terrain.props.onTileLoad({ index: { x: 1, y: 2, z: 15 }, content: [flatMesh] });
   assert.equal(d.props.controller.maxZoom, 20, "deck zoom is Leaflet zoom - 1");
   assert.equal(d.props.viewState.pitch, 55);
   assert.equal(el.querySelector(".moraine-tv-ctl select"), null, "satellite only: no base map choice");
@@ -220,12 +216,6 @@ async function test3d() {
   deck.fetched = [];
   const got = await terrain.props.fetch("moraine-terrain://15/1/2", { propName: "elevationData" });
   assert.equal(got.url, "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/15/1/2.png");
-  assert.equal(await waiting, got, "the picking layer gets the mesh of the terrain tile");
-  assert.equal(await terrain.props.fetch("moraine-terrain://15/1/2", { propName: "elevationData" }), got, "fetched once");
-  assert.equal(deck.fetched.length, 1);
-  terrain.props.onTileUnload({ index: { x: 1, y: 2, z: 15 } });                 // unloaded: fetched again next time
-  assert.notEqual(await terrain.props.fetch("moraine-terrain://15/1/2", { propName: "elevationData" }), got);
-  assert.equal(deck.fetched.length, 2);
   assert.equal((await terrain.props.fetch("https://other/x.png", {})).url, "https://other/x.png");
   // the parent tile (15, 2, 3): heights 100 + 0.5 i + 0.25 j, Terrarium encoded
   const parent = new ImageData(256, 256);
@@ -251,7 +241,7 @@ async function test3d() {
   await sleep(20);
   assert.equal(d.props.viewState.zoom, 12.3);
   // the tiles of a data layer come from the kernel
-  const data0 = d.props.layers[3];
+  const data0 = d.props.layers[2];
   assert.deepEqual(data0.props.extent.map((v) => Math.round(v * 1000) / 1000), [14.04, 40.779, 14.24, 40.904]);
   const ctl = new AbortController();
   const promise = data0.props.getTileData({ index: { x: 1, y: 2, z: 3 }, signal: ctl.signal });
@@ -268,36 +258,40 @@ async function test3d() {
   const sub = data0.props.renderSubLayers({ id: "x", tile: { boundingBox: [[14.1, 40.8], [14.2, 40.9]] }, data: bitmap });
   assert.deepEqual(sub.props.bounds, [14.1, 40.8, 14.2, 40.9]);
   assert.equal(sub.props.textureParameters.magFilter, "nearest");
-  // hover: the point of the terrain under the cursor, its height without exaggeration; probed when the pointer
-  // rests, with the last position, never while a button is down
-  const mapEl = el.querySelector(".moraine-tv-map");
+  // hover: the point of the loaded terrain under the cursor and its height, probed once per frame with the
+  // last position, never while a button is down
   mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 50, clientY: 50, bubbles: true }));
   mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 100, clientY: 100, bubbles: true }));
   assert.equal(model.sent.filter((m) => m.type === "value").length, 0, "not probed at once");
-  await sleep(160);
+  await sleep(30);
   const value = model.take("value");
   assert.equal(value.z, 13.3, "the kernel gets Leaflet's zoom");
   assert.equal(model.sent.filter((m) => m.type === "value").length, 0, "one probe for two moves");
   model.reply(value.id, { type: "value", x: 1570000, y: 4990000, values: [{ label: "coh", value: 0.9 }] });
   assert.match(el.querySelector(".moraine-tv-status").textContent, /height 300 m.*coh: 0.9/);
-  mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 650, clientY: 100, bubbles: true }));   // the sky
+  mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 50000, clientY: 100, bubbles: true }));   // off the terrain
   mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 120, clientY: 100, bubbles: true, buttons: 1 }));   // a drag
-  await sleep(160);
+  await sleep(30);
   assert.equal(model.sent.filter((m) => m.type === "value").length, 0);
+  terrain.props.onTileUnload({ index: { x: 1, y: 2, z: 15 } });                 // unloaded: nothing to hit
+  mapEl.dispatchEvent(new window.MouseEvent("pointermove", { clientX: 100, clientY: 100, bubbles: true }));
+  await sleep(30);
+  assert.equal(model.sent.filter((m) => m.type === "value").length, 0, "no terrain: nothing probed");
+  terrain.props.onTileLoad({ index: { x: 1, y: 2, z: 15 }, content: [flatMesh] });
   // slider: layer 0 swapped, the old layer stays until the new one has its tiles
   model.set("index", { image: 1 });
-  assert.deepEqual(ids(), ["terrain", "pick", "base", "data-0-1", "data-0-2", "data-1-1", "polygons"]);
-  d.props.layers[3].props.onViewportLoad([]);               // the old layer: nothing happens
-  assert.equal(d.props.layers.length, 7);
-  d.props.layers[4].props.onViewportLoad([]);
-  assert.deepEqual(ids(), ["terrain", "pick", "base", "data-0-2", "data-1-1", "polygons"]);
+  assert.deepEqual(ids(), ["terrain", "base", "data-0-1", "data-0-2", "data-1-1", "polygons"]);
+  d.props.layers[2].props.onViewportLoad([]);               // the old layer: nothing happens
+  assert.equal(d.props.layers.length, 6);
+  d.props.layers[3].props.onViewportLoad([]);
+  assert.deepEqual(ids(), ["terrain", "base", "data-0-2", "data-1-1", "polygons"]);
   // opacity slider of layer 1, visibility
   const opacity = [...el.querySelectorAll(".moraine-tv-sliders label")].find((l) => l.textContent.startsWith("opacity coh")).querySelector("input");
   opacity.value = "0.3"; opacity.dispatchEvent(new window.Event("input"));
-  assert.equal(d.props.layers[4].props.opacity, 0.3);
+  assert.equal(d.props.layers[3].props.opacity, 0.3);
   const check = el.querySelectorAll(".moraine-tv-ctl input[type=checkbox]")[1];
   check.checked = false; check.dispatchEvent(new window.Event("change"));
-  assert.equal(d.props.layers[4].props.visible, false);
+  assert.equal(d.props.layers[3].props.visible, false);
   // click: time series of the point of the terrain; double click: reference; both marked on the terrain
   mapEl.dispatchEvent(new window.MouseEvent("pointerdown", { clientX: 200, clientY: 200, bubbles: true }));
   mapEl.dispatchEvent(new window.MouseEvent("click", { clientX: 201, clientY: 200, bubbles: true }));

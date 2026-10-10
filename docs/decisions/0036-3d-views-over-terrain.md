@@ -37,10 +37,11 @@ Flegrei: a public tile is 60 to 120 kB and arrives in about 200 ms, the sea is 0
   pointer move is switched off; the markers are painted on the terrain rather than standing on it, which would
   make deck.gl render a height map at every move of the view.
 - deck.gl 9.1 cannot pick a terrain that is draped over (its picking colour carries no layer index), and its
-  3D unprojection of a picked depth was 100 m off on a flat test terrain: the meshes of the terrain tiles are
-  drawn once more as plain mesh layers in the picking pass only, and the point under the cursor is the
-  intersection of the pixel's ray with the picked tile's mesh, computed in deck.gl's common space, which agrees
-  with deck.gl's projection to the metre.
+  3D unprojection of a picked depth was 100 m off on a flat test terrain: nothing is picked on the GPU. The
+  point under the cursor is the first intersection of the pixel's ray with the meshes of the loaded terrain
+  tiles (kept from the terrain layer's tile loads), computed in deck.gl's common space, which agrees with
+  deck.gl's projection to the metre and costs well under a millisecond, so the cursor is followed at every
+  frame like on the 2D maps.
 - The viewer is checked outside the notebook: a jsdom smoke test and an end to end test in headless Chromium
   with the real deck.gl (`tests/browser/`, run by hand after a change of the JavaScript; not part of pytest).
 - The base map of the 3D views is Esri's satellite imagery: its tiles may be fetched and read by the GPU (CORS)
