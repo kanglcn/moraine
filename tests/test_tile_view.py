@@ -110,6 +110,8 @@ def test_raster_colours_and_value(ras):
     assert layer.palette.shape == (256, 4) and layer.palette[255, 3] == 0 and (layer.palette[:255, 3] == 255).all()
     assert view(str(pyr), clim=(1, 1)).indices(np.array([3.0, np.nan])).tolist() == [0, 255]
     assert layer.value(7.2, 3.4, 1) == {'x': 7.0, 'y': 3.0, 'key': [3, 7], 'value': float(a[3, 7])}
+    # zoomed out: the value of the cell drawn (level 2, every 4th pixel), the key of the pixel under the cursor
+    assert layer.value(101.6, 100.0, 4) == {'x': 102.0, 'y': 100.0, 'key': [100, 102], 'value': float(a[100, 100])}
     assert layer.value(499.6, 0, 1) is None and layer.value(-0.6, 0, 1) is None
     custom = view(str(pyr), cmap='magma', clim=(0, 50))
     assert custom.clim == (0, 50) and custom.colors[0] == '#000004'
@@ -199,6 +201,12 @@ def test_point_cloud_raster_zoom(grid_pc):
     assert np.isnan(t[0, 0])                                 # (y, x) = (3, 2): no point
     layer.render(grid_geom(0, 0, 0, layer.edge_origin))
     assert layer._rtree is None                              # overviews do not read the coordinates
+    # probing where the points are rasterized: the point of the cell drawn, without the coordinate tree
+    k = pts.index((30, 21))
+    assert layer.value(21.1, 29.9, 1) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}
+    assert layer.value(22, 30, 1) is None                    # an empty cell
+    assert layer.value(21.1, 29.9, 2) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}   # level 1
+    assert layer._rtree is None
 
 
 def test_point_cloud_points_zoom(grid_pc):
@@ -229,6 +237,7 @@ def test_point_data_in_memory(grid_pc):
         geom = grid_geom(z, 0, 0, ref.edge_origin)
         np.testing.assert_array_equal(layer.render(geom), ref.render(geom))
     assert layer.value(21.1, 29.9, 0.25)['value'] == 30021.0
+    assert layer.value(21.1, 29.9, 2)['value'] == 30021.0 and layer.value(22, 30, 1) is None
     # zarr paths work too; coordinates off the integer grid need a resolution
     assert view(str(d / 'val.zarr'), x=str(d / 'gx.zarr'), y=str(d / 'gy.zarr')).shape == (60, 40)
     assert view(val, x=gx + 0.5, y=gy, resolution=1).shape == (60, 40)
@@ -238,6 +247,22 @@ def test_point_data_in_memory(grid_pc):
         view(val)
     with pytest.raises(ValueError, match='both'):
         view(val, x=gx)
+
+
+def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
+    """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
+    coordinates; a pyramid made without the tree gets one built."""
+    import shutil
+    from moraine.api.rtree import HilbertRtree
+    pts, pyr = grid_pc
+    layer = view(str(pyr))
+    monkeypatch.setattr(HilbertRtree, 'build', lambda *a, **k: pytest.fail('the tree was built instead of read'))
+    box = (19.5, 28.5, 23.5, 32.5)                            # columns 20 - 23, lines 29 - 32
+    idx = layer.points_in(box)
+    assert sorted(pts[i] for i in idx) == [(y, x) for y in range(29, 33) for x in range(20, 24) if (x + y) % 3 == 0]
+    monkeypatch.undo()
+    shutil.rmtree(pyr / 'rtree.zarr')
+    np.testing.assert_array_equal(np.sort(view(str(pyr)).points_in(box)), np.sort(idx))
 
 
 def test_web_mercator(mercator_pc):
@@ -265,6 +290,7 @@ def test_web_mercator(mercator_pc):
     assert found['point'] == ab.index((30, 21)) and found['value'] == 30021.0
     assert found['x'] == pytest.approx(x) and found['y'] == pytest.approx(y)
     assert layer.value(west - res, y, mercator_pixel(17)) is None
+    assert layer.value(x + 0.3 * res, y - 0.2 * res, mercator_pixel(15)) == found    # the cell drawn at zoom 15
     # the map: zoom showing all data, at most 16 screen pixels per cell
     w = layer.widget
     assert w.crs == 'web_mercator' and w.axis_labels == ['longitude', 'latitude']

@@ -580,11 +580,11 @@ class _Layer(_Shown):
             return [int(index.get(k['name'], self.default_index[k['name']])) for k in self.kdims]
         return [int(i) for i in index]
 
-    def _cell_of(self, x, y):
-        """Cell (i, j) of level 0 at data coordinates, None outside."""
-        j = math.floor((x - self.cx0) / self.rx + 0.5)
-        i = math.floor((y - self.cy0) / self.ry + 0.5)
-        ny, nx = self.shape
+    def _cell_of(self, x, y, level=0):
+        """Cell (i, j) of `level` at data coordinates, None outside the data."""
+        j = math.floor(((x - self.cx0) / self.rx + 0.5) / 2 ** level)
+        i = math.floor(((y - self.cy0) / self.ry + 0.5) / 2 ** level)
+        ny, nx = self.levels(level).shape[:2]
         return (i, j) if 0 <= i < ny and 0 <= j < nx else None
 
     # drawing
@@ -689,12 +689,14 @@ class RasterLayer(_Layer):
         return {'x': self.cx0 + j * self.rx, 'y': self.cy0 + i * self.ry, 'key': [i, j]}
 
     def value(self, x, y, s, index=()):
-        """`locate` plus the ``value`` shown there for the slider values `index`."""
+        """`locate` plus the ``value`` drawn there for the slider values `index`: of the cell of the pyramid level
+        shown with screen pixels of `s` data units (the pixel itself when zoomed in)."""
         found = self.locate(x, y, s)
         if found is None:
             return None
-        i, j = found['key']
-        a = self.post_proc(self.levels(0), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+        level = _level_of(self, s)
+        i, j = self._cell_of(x, y, level)
+        a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
         return {**found, 'value': _scalar(a)}
 
     def _series_at(self, key):
@@ -714,8 +716,8 @@ class RasterLayer(_Layer):
 
 
 def _pc_levels_in_memory(x, y, pc, res):
-    """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, max level, cell
-    centre (x0, y0) of cell (0, 0), shape)."""
+    """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, function of the index of
+    the point in each cell of a level (-1: empty), max level, cell centre (x0, y0) of cell (0, 0), shape)."""
     from ..api.coord_ import Coord
     from .plot import _next_level_idx_from_raster_of_integer
     yx = np.stack([y, x], axis=-1).astype(np.float64)
@@ -737,7 +739,7 @@ def _pc_levels_in_memory(x, y, pc, res):
             ras[idx[level] == -1] = np.nan
             cache[level] = ras
         return cache[level]
-    return level_of, coord.maxlevel, (x0, y0), (ny, nx)
+    return level_of, idx.__getitem__, coord.maxlevel, (x0, y0), (ny, nx)
 
 
 class PointLayer(_Layer):
@@ -758,6 +760,11 @@ class PointLayer(_Layer):
                 if level not in cache:
                     cache[level] = zarr.open(str(p / f'{level}.zarr'), mode='r')
                 return cache[level]
+
+            def idx_of(level):
+                if ('idx', level) not in cache:
+                    cache['idx', level] = zarr.open(str(p / f'idx_{level}.zarr'), mode='r')
+                return cache['idx', level]
             max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
             self._x, self._y, self._pc = (zarr.open(str(p / f'{n}.zarr'), mode='r') for n in ('x', 'y', 'pc'))
             self._rtree_dir = p
@@ -777,13 +784,14 @@ class PointLayer(_Layer):
                                      'are not on an integer grid')
                 resolution = 1
             res = float(resolution)
-            level_of, max_level, (x0, y0), _ = _pc_levels_in_memory(self._x, self._y, self._pc, res)
+            level_of, idx_of, max_level, (x0, y0), _ = _pc_levels_in_memory(self._x, self._y, self._pc, res)
             stats = lambda: _array_stats(level_of, max_level)     # noqa: E731
             self._rtree_dir = None
             base = level_of(0)
             xm, ym = x0 + (base.shape[1] - 1) * res, y0 + (base.shape[0] - 1) * res
             self.label = label or 'points'
         self.cx0, self.cy0, self.rx, self.ry = x0, y0, res, res
+        self.idx_of = idx_of         # the point drawn in each cell of a level
         self.crs = _crs(x0, y0, xm, ym, res, crs, self.label)
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
@@ -829,9 +837,19 @@ class PointLayer(_Layer):
         return _stamp(img, row, col, self.indices(values), r)
 
     def locate(self, x, y, s):
-        """Nearest point to data coordinates (`x`, `y`) within a few screen pixels of `s` data units (at least
-        half a cell): dict with its coordinates ``x``, ``y`` and index ``point`` (also ``key``); None
-        without a point."""
+        """The point drawn at data coordinates (`x`, `y`) with screen pixels of `s` data units: dict with its
+        coordinates ``x``, ``y`` and index ``point`` (also ``key``); None without a point. Where the points are
+        rasterized (`s` at least a cell) it is the point of the cell under the cursor at the level shown; where
+        they are drawn one by one, the nearest point within a few screen pixels (at least half a cell)."""
+        if s >= self.cell:
+            level = _level_of(self, s)
+            cell = self._cell_of(x, y, level)
+            if cell is None:
+                return None
+            i = int(self.idx_of(level)[cell])
+            if i < 0:
+                return None
+            return {'point': i, 'key': i, 'x': float(self._x[i]), 'y': float(self._y[i])}
         w = max(0.5 * self.cell, PROBE * s)
         idx = self.points_in((x - w, y - w, x + w, y + w))
         if len(idx) == 0:
@@ -842,11 +860,17 @@ class PointLayer(_Layer):
         return {'point': i, 'key': i, 'x': float(px[k]), 'y': float(py[k])}
 
     def value(self, x, y, s, index=()):
-        """`locate` plus the ``value`` of the point for the slider values `index`."""
+        """`locate` plus the ``value`` drawn there for the slider values `index`: of the cell of the pyramid level
+        shown where the points are rasterized, of the point itself where they are drawn one by one."""
         found = self.locate(x, y, s)
         if found is None:
             return None
-        a = self.pc_post_proc(self._pc, np.array([found['point']]), *self._slider_values(index))
+        if s >= self.cell:
+            level = _level_of(self, s)
+            i, j = self._cell_of(x, y, level)
+            a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+        else:
+            a = self.pc_post_proc(self._pc, np.array([found['point']]), *self._slider_values(index))
         return {**found, 'value': _scalar(a)}
 
     def series(self, x, y, s, ref=None):

@@ -25,6 +25,7 @@ from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
 
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
+_RTREE_PAGE = 512        # points per leaf of the bounding box tree of a point cloud pyramid
 
 def _pyramid_workers(n_workers):
     return min(8, os.cpu_count() or 1) if n_workers is None else n_workers
@@ -315,6 +316,9 @@ def pc_pyramid(
     logger.zarr_info(out_dir/f'y.zarr',out_y_zarr)
     parallel_write_zarr(x, out_x_zarr,(slice(None),))
     parallel_write_zarr(y, out_y_zarr,(slice(None),))
+    # the bounding box tree of the points, for the views that draw and probe the points one by one
+    HilbertRtree.build(x, y, page_size=_RTREE_PAGE).save(str(out_dir/'rtree.zarr'))
+    logger.zarr_info(out_dir/'rtree.zarr', zarr.open(str(out_dir/'rtree.zarr'), mode='r'))
     del x, y, yx
     logger.info('pc data coordinates rendering ends.')
 
@@ -353,19 +357,23 @@ def pc_pyramid(
     logger.info('rendering finished.')
 
 class _LazyRtree:
-    '''HilbertRtree of the pyramid points, built when the points are first queried.
+    '''HilbertRtree of the pyramid points, read from the pyramid (`rtree.zarr`) when the points are first
+    queried; built from the coordinates for pyramids made without it.
 
     The points are only drawn when zoomed in to the finest level, so an overview (or a quicklook) of a large
-    point cloud does not need to read all coordinates.'''
+    point cloud does not touch it.'''
     def __init__(self, pyramid_dir):
         self.pyramid_dir = Path(pyramid_dir)
         self._rtree = None
 
     def bbox_query(self, bounds, x, y):
         if self._rtree is None:
-            x_ = zarr.open(self.pyramid_dir/'x.zarr',mode='r')[:]
-            y_ = zarr.open(self.pyramid_dir/'y.zarr',mode='r')[:]
-            self._rtree = HilbertRtree.build(x_,y_,page_size=512)
+            if (self.pyramid_dir/'rtree.zarr').exists():
+                self._rtree = HilbertRtree.load(str(self.pyramid_dir/'rtree.zarr'))
+            else:
+                x_ = zarr.open(self.pyramid_dir/'x.zarr',mode='r')[:]
+                y_ = zarr.open(self.pyramid_dir/'y.zarr',mode='r')[:]
+                self._rtree = HilbertRtree.build(x_,y_,page_size=_RTREE_PAGE)
         return self._rtree.bbox_query(bounds, x, y)
 
 def _default_pc_post_proc(data_zarr, idx_array, *kdims):

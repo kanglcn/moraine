@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+The probes of the maps of `moraine.cli.view` (the values under the cursor, the clicked pixel or point) give what is drawn at the zoom shown: for rasters the value of the cell of the pyramid level on screen (before: the full resolution pixel under the cursor, which is not what the colour shows at coarse levels), for point clouds the point of that cell and its value (before: the nearest point within 4 screen pixels, found with a bounding box tree built from all coordinates at the first probe; the tree is now used only where the points are drawn one by one)
+
+`pc-pyramid` saves the bounding box tree of the points (`rtree.zarr`) and the views read it: the first zoom to single points, or the first probe of a point, no longer builds the tree from all coordinates (0.2 s per million points, several seconds more when the numba cache is cold). Pyramids made before get the tree built as before
 The maps of `moraine.cli.view` take the width of the notebook (at most 700 pixels high) with the aspect of the scene instead of a fixed 900 x 700 frame, `view(..., size=(width, height))` sets their size, and the lower right corner of a map can be dragged to resize it. Zooming is continuous: the scene fills the map at the start (before, the zoom was a power of 2 and the scene took 50 - 100 % of the frame)
 
 Changing the image of a stack with a slider of `moraine.cli.view` no longer blanks the map until the new tiles arrive: the new tiles are drawn over the old ones, which stay until all are in; and only the layers that depend on the moved slider are redrawn (an amplitude background under a stack, or a point cloud without that slider, is not requested again)
