@@ -152,6 +152,7 @@ def test_phase_stack(stack):
     layer = view(str(pyr), show='intf_all')
     assert [k['name'] for k in layer.kdims] == ['ref', 'sec']
     assert layer.default_index == {'ref': 0, 'sec': 1}        # an interferogram, not image 0 with itself
+    assert layer.widget.panels[0]['layers'][0]['sliders'] == ['ref', 'sec']
     with pytest.raises(ValueError, match='show must be'):
         view(str(pyr), show='interferogram')
 
@@ -308,6 +309,7 @@ def test_coherence_sliders(tmp_path):
     assert [(k['name'], k['max']) for k in layer.kdims] == [('ref', 3), ('sec', 3)]
     assert layer.default_index == {'ref': 0, 'sec': 1} and layer.bar_label == 'phase (rad)'
     assert layer.ts is None                                  # no time series of pairs
+    assert layer.widget.panels[0]['layers'][0]['sliders'] == ['ref', 'sec']
     geom = grid_geom(0, 0, 0, layer.edge_origin)
     t = layer.raster_values(geom, {'ref': 1, 'sec': 3})[:3, :4].ravel()      # pair (1, 3) is k = 3
     np.testing.assert_allclose(t, np.angle(coh[:, 3]), rtol=1e-5)
@@ -386,6 +388,7 @@ def test_composition(ras, grid_pc, mercator_pc, rng):
     data, _ = over._repr_mimebundle_()                       # displayed as a widget in a notebook
     assert 'application/vnd.jupyter.widget-view+json' in data
     assert len(lay.widget.panels) == 3 and max(lay.widget.frame) <= 560      # smaller maps side by side
+    assert [info['sliders'] for info in w.panels[0]['layers']] == [[], ['i'], []]   # the sliders of each layer
     with pytest.raises(ValueError, match='coordinates'):
         (points * view(str(mercator_pc[-1]))).widget
 
@@ -436,6 +439,9 @@ def test_view_messages(grid_pc, monkeypatch):
     msg = sent.pop()[0]
     assert (msg['x'], msg['y']) == (21.0, pytest.approx(29.9))
     assert msg['values'] == [{'label': 'amp', 'value': 1.0}, {'label': 'pc_pyr', 'value': 30021.0, 'point': k}]
+    # continuous zoom: at zoom 2.5 the probe reaches 4 * 2**-2.5 = 0.7 units, point (30, 21) is 0.9 from (21.9, 30)
+    v._on_msg(v, {'type': 'value', 'id': 8, 'x': 22.4, 'y': 30.5, 'z': 2.5}, [])
+    assert sent.pop()[0]['values'] == [{'label': 'amp', 'value': 1.0}]
     # time series of the top layer with one, relative to a reference of the same layer
     v._on_msg(v, {'type': 'locate', 'id': 3, 'x': 3.5, 'y': 3.5, 'z': 2}, [])
     loc = sent.pop()[0]
@@ -457,7 +463,15 @@ def test_map_size(ras, grid_pc):
     w = view(str(pyr)).widget
     assert w.frame == [900, 540] and w.zoom == 0 and w.max_zoom == 4
     assert w.panels[0]['layers'][0]['label'] == 'ras_pyr' and not w.panels[0]['series']
+    assert w.panels[0]['layers'][0]['sliders'] == []
     assert view(str(grid_pc[1])).widget.view_origin == [1.5, 2.5]
+    # the size of the maps: the width of the notebook by default, or given in pixels (by any layer)
+    assert w.size == []
+    assert view(str(pyr), size=(600, 400)).widget.size == [600, 400]
+    assert (view(str(pyr)) * view(str(grid_pc[1]), size=(500, 300))).widget.size == [500, 300]
+    with pytest.raises(ValueError, match='size'):
+        view(str(pyr), size=(0, 400))
+    assert w.pixel_size(2.5) == 2 ** -2.5                    # the zoom is continuous
 
 
 def test_polygon_file(tmp_path, grid_pc, mercator_pc):

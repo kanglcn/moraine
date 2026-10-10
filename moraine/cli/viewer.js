@@ -4,6 +4,8 @@
 import * as L from "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet-src.esm.js";
 
 const LEAFLET_CSS = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css";
+const MAX_HEIGHT = 700;            // of a map sized automatically (screen pixels)
+const MIN_SIZE = [200, 150];       // smallest map (width, height)
 
 function loadCss() {
   if (document.querySelector(`link[href="${LEAFLET_CSS}"]`)) return;
@@ -56,12 +58,20 @@ function drawTicks(container, v0, v1, pos, size, horizontal) {
   }
 }
 
+// a map of `width` x `height` screen pixels; the column of the map (and the axis below it) then follows its width
+function setMapSize(mapEl, plot, width, height) {
+  mapEl.style.width = `${Math.max(MIN_SIZE[0], Math.round(width))}px`;
+  mapEl.style.height = `${Math.max(MIN_SIZE[1], Math.round(height))}px`;
+  plot.style.gridTemplateColumns = "64px auto";
+}
+
 function render({ model, el }) {
   loadCss();
   const mercator = model.get("crs") === "web_mercator";
   const [vox, voy] = model.get("view_origin");
   const [ex0, ey0, ex1, ey1] = model.get("extent");
   const [fw, fh] = model.get("frame");
+  const size = model.get("size");
   const [xlabel, ylabel] = model.get("axis_labels");
   const panels = model.get("panels");
   const dates = model.get("dates");
@@ -142,6 +152,15 @@ function render({ model, el }) {
     },
   });
 
+  // the tile layer of layer `l` of a map (any zoom: the map limits it); the kernel's answers to tiles unloaded
+  // meanwhile are dropped
+  function makeTiles(view, l, opacity) {
+    const layer = new Tiles({ tileSize: 256, bounds, minZoom: -100, maxZoom, panel: view.p, layer: l, opacity,
+                              updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
+    layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
+    return layer;
+  }
+
   function makePanel(panel, p) {
     const box = document.createElement("div");
     box.className = "moraine-tv-panel";
@@ -150,7 +169,7 @@ function render({ model, el }) {
       <div class="moraine-tv-body">
         <div class="moraine-tv-plot">
           <div class="moraine-tv-yaxis"><span class="title"></span><div class="ticks"></div></div>
-          <div class="moraine-tv-map"></div>
+          <div class="moraine-tv-map"><div class="moraine-tv-handle" title="drag to resize the map"></div></div>
           <div></div>
           <div class="moraine-tv-xaxis"><div class="ticks"></div><span class="title"></span></div>
         </div>
@@ -158,9 +177,10 @@ function render({ model, el }) {
       </div>`;
     el.querySelector(".moraine-tv-panels").appendChild(box);
     box.querySelector(".moraine-tv-title").textContent = panel.title;
-    const mapEl = box.querySelector(".moraine-tv-map");
-    mapEl.style.width = `${fw}px`;
-    mapEl.style.height = `${fh}px`;
+    const mapEl = box.querySelector(".moraine-tv-map"), plot = box.querySelector(".moraine-tv-plot");
+    // the size given in python; otherwise the map takes the width of the notebook with the aspect of the scene
+    // once it is in the page (below)
+    if (size.length === 2) setMapSize(mapEl, plot, size[0], size[1]);
     // one colour bar per layer
     for (const info of panel.layers) {
       const bar = document.createElement("div");
@@ -174,9 +194,10 @@ function render({ model, el }) {
       box.querySelector(".moraine-tv-bars").appendChild(bar);
     }
 
-    // the element may not be in the page yet (size 0), so the initial zoom comes from the kernel
+    // the element may not be in the page yet (size 0): the map starts at the kernel's zoom and is fitted to the
+    // data once it has its size (below); the zoom is continuous, tiles are drawn at the nearest integer zoom
     const map = L.map(mapEl, {
-      crs: mercator ? L.CRS.EPSG3857 : GRID, maxZoom, minZoom: mercator ? 0 : zoom - 1, zoomSnap: 1,
+      crs: mercator ? L.CRS.EPSG3857 : GRID, maxZoom, minZoom: mercator ? 0 : zoom - 1, zoomSnap: 0,
       attributionControl: mercator, doubleClickZoom: false, maxBounds: mercator ? undefined : bounds.pad(0.5),
     });
     map.setView(bounds.getCenter(), zoom);
@@ -189,16 +210,16 @@ function render({ model, el }) {
       baseMaps["none"] = L.layerGroup();
       baseMaps["Satellite (Esri)"].addTo(map);
     }
+    const view = { p, map, mapEl, box, tiles: [], control: null, markers: null, polygons: null, resize: null, sketch: null };
     const overlays = {};
-    const tiles = panel.layers.map((info, l) => {
-      const layer = new Tiles({ tileSize: 256, bounds, minZoom: map.getMinZoom(), maxZoom, panel: p, layer: l,
-                                opacity: info.opacity, updateWhenZooming: false, keepBuffer: 1, zIndex: 10 + l });
-      layer.on("tileunload", (e) => pending.delete(e.tile._moraineId));
-      layer.addTo(map);
+    view.tiles = panel.layers.map((info, l) => {
+      const layer = makeTiles(view, l, info.opacity).addTo(map);
       overlays[info.label] = layer;
       return layer;
     });
-    if (mercator || panel.layers.length > 1) L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    if (mercator || panel.layers.length > 1) {
+      view.control = L.control.layers(baseMaps, overlays, { collapsed: true }).addTo(map);
+    }
 
     // axes: range to the right, azimuth down (grid); longitude and latitude in degrees (web mercator)
     const xTicks = box.querySelector(".moraine-tv-xaxis .ticks"), yTicks = box.querySelector(".moraine-tv-yaxis .ticks");
@@ -220,16 +241,47 @@ function render({ model, el }) {
     map.on("move zoom resize", drawAxes);
     drawAxes();
 
-    // once the element has its size in the page, let Leaflet measure it and centre the data again
+    // once the element has its size in the page, let Leaflet measure it and fit the data into it; later size
+    // changes (the handle below) keep the view
     let shown = false;
-    const resize = new ResizeObserver(() => {
+    const ramps = box.querySelectorAll(".moraine-tv-bar .ramp");
+    view.resize = new ResizeObserver(() => {
       if (!mapEl.clientWidth || !mapEl.clientHeight) return;
-      map.invalidateSize();
-      if (!shown) map.setView(bounds.getCenter(), zoom);
+      if (!shown && size.length !== 2) {
+        // the width of the notebook, at most MAX_HEIGHT high, with the aspect of the scene
+        const w = Math.min(mapEl.clientWidth, Math.round(MAX_HEIGHT * fw / fh));
+        setMapSize(mapEl, plot, w, w * fh / fw);
+      }
+      map.invalidateSize({ animate: false });
+      if (!shown) {
+        if (!mercator) {                        // let the data fit however small the map is, and one zoom more
+          map.setMinZoom(-100);
+          map.setMinZoom(Math.floor(map.getBoundsZoom(bounds, false, L.point(4, 4))) - 1);
+        }
+        map.fitBounds(bounds, { animate: false, padding: [4, 4] });
+      }
       shown = true;
+      ramps.forEach((r) => { r.style.height = `${Math.min(mapEl.clientHeight, 300) / Math.max(1, ramps.length)}px`; });
       drawAxes();
     });
-    resize.observe(mapEl);
+    view.resize.observe(mapEl);
+    // drag the lower right corner of the map to resize it
+    const handle = mapEl.querySelector(".moraine-tv-handle");
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();                       // no mouse events for Leaflet: not a drag of the map
+      e.stopPropagation();
+      const start = { x: e.clientX, y: e.clientY, w: mapEl.clientWidth, h: mapEl.clientHeight };
+      const move = (ev) => setMapSize(mapEl, plot, start.w + ev.clientX - start.x, start.h + ev.clientY - start.y);
+      const stop = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", stop);
+        handle.removeEventListener("pointercancel", stop);
+      };
+      handle.setPointerCapture(e.pointerId);
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+    });
 
     // values of all layers under the cursor, at most one request in flight
     let valueId = null, lastPos = null;
@@ -255,9 +307,9 @@ function render({ model, el }) {
     });
     map.on("mouseout", () => { lastPos = null; });
 
-    const markers = L.layerGroup().addTo(map);
-    const polygons = L.layerGroup().addTo(map);
-    return { p, map, tiles, markers, polygons, resize, sketch: null };
+    view.markers = L.layerGroup().addTo(map);
+    view.polygons = L.layerGroup().addTo(map);
+    return view;
   }
   const views = panels.map(makePanel);
 
@@ -292,13 +344,33 @@ function render({ model, el }) {
     sliderInputs[kdim.name] = [input, output];
     sliders.appendChild(row);
   }
-  // the slider values changed on the map or in python: show them and redraw
+  // the slider values changed on the map or in python: show them and replace the tiles of the layers that depend
+  // on the changed sliders; the old tiles stay until the new ones are drawn, the other layers are not touched
+  let shownIndex = { ...model.get("index") };
+  function swapTiles(view, l) {
+    const old = view.tiles[l], next = makeTiles(view, l, old.options.opacity);
+    view.tiles[l] = next;
+    if (view.control) {
+      view.control.removeLayer(old);
+      view.control.addOverlay(next, panels[view.p].layers[l].label);
+    }
+    if (!view.map.hasLayer(old)) return;          // switched off in the layer control: stays off
+    next.once("load", () => old.remove());
+    next.addTo(view.map);
+  }
   function onIndex() {
+    const index = model.get("index");
+    const changed = Object.keys(index).filter((k) => index[k] !== shownIndex[k]);
+    shownIndex = { ...index };
     for (const [name, [input, output]] of Object.entries(sliderInputs)) {
-      input.value = model.get("index")[name];
+      input.value = index[name];
       output.textContent = imageText(Number(input.value));
     }
-    for (const view of views) view.tiles.forEach((t) => t.redraw());   // old tile requests are dropped on unload
+    for (const view of views) {
+      panels[view.p].layers.forEach((info, l) => {
+        if (info.sliders.some((s) => changed.includes(s))) swapTiles(view, l);
+      });
+    }
   }
   model.on("change:index", onIndex);
   // opacity of each layer, to see the layers or the base map below
@@ -347,7 +419,7 @@ function render({ model, el }) {
     });
   }
   function drawChart(values, title) {
-    const W = Math.max(fw + 64, 400), H = 200, m = { l: 56, r: 12, t: 22, b: 34 };
+    const W = Math.max(views[0].mapEl.clientWidth + 64, 400), H = 200, m = { l: 56, r: 12, t: 22, b: 34 };
     const n = values.length, finite = values.filter((v) => v !== null);
     let y0 = Math.min(...finite), y1 = Math.max(...finite);
     if (!finite.length) { y0 = 0; y1 = 1; } else if (y0 === y1) { y0 -= 1; y1 += 1; }

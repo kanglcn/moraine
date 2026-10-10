@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+The maps of `moraine.cli.view` take the width of the notebook (at most 700 pixels high) with the aspect of the scene instead of a fixed 900 x 700 frame, `view(..., size=(width, height))` sets their size, and the lower right corner of a map can be dragged to resize it. Zooming is continuous: the scene fills the map at the start (before, the zoom was a power of 2 and the scene took 50 - 100 % of the frame)
+
+Changing the image of a stack with a slider of `moraine.cli.view` no longer blanks the map until the new tiles arrive: the new tiles are drawn over the old ones, which stay until all are in; and only the layers that depend on the moved slider are redrawn (an amplitude background under a stack, or a point cloud without that slider, is not requested again)
 The tiles of `moraine.cli.view` are sent to the browser as 8 bit palette PNGs (255 colours and a transparent index) instead of RGBA PNGs: a 256 x 256 tile of an interferogram is 66 instead of 206 kB and is encoded in 1.5 instead of 8.9 ms (Campi Flegrei rslc pyramid, one of about 15 tiles on screen), so panning and changing the image are faster over a slow connection. The colours have 255 instead of 256 levels (a change of at most one level); `render` of a layer gives the palette indices (uint8) instead of RGBA, `colorize` is unchanged. nan values stay transparent when the colour limits are equal
 Wrong arguments are reported with the argument, the expected shape and the actual one (`rslc must have 3 dimensions (nlines, width, nimages), got shape (4, 5)`, `give one path or a list of paths for all of ras, pc: ras is a list, pc is a path`, `idx must be sorted and unique`, ...) instead of a bare `AssertionError`; the checks run with `python -O` too, which drops asserts. The commands check their inputs before they create outputs. Spelling in messages and help texts fixed (`dimentation`, `hypothetic test`, `implented`, `Homogenious`)
 
