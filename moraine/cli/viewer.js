@@ -23,11 +23,28 @@ function loadCss() {
   document.head.appendChild(link);
 }
 
-// deck.gl is a classic (UMD) bundle: imported as a module it defines globalThis.deck
-async function loadDeck() {
-  if (!globalThis.deck) await import(DECK_JS);
-  if (!globalThis.deck) throw new Error(`deck.gl did not load from ${DECK_JS}`);
-  return globalThis.deck;
+// deck.gl is a classic (UMD) bundle. Loaded as it is, it registers with the AMD loader of the notebook front end
+// (RequireJS defines `define`) instead of defining globalThis.deck, so it is fetched and imported as a module
+// in which `define`, `exports` and `module` are shadowed: the bundle then takes its global branch.
+let deckLoading = null;
+function loadDeck() {
+  if (globalThis.deck) return Promise.resolve(globalThis.deck);
+  if (!deckLoading) {
+    deckLoading = (async () => {
+      const response = await fetch(DECK_JS);
+      if (!response.ok) throw new Error(`${DECK_JS}: HTTP ${response.status}`);
+      const code = `var define, exports, module;\n${await response.text()}`;
+      const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+      try {
+        await import(url);
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+      if (!globalThis.deck) throw new Error(`${DECK_JS} did not define deck`);
+      return globalThis.deck;
+    })().catch((e) => { deckLoading = null; throw e; });
+  }
+  return deckLoading;
 }
 
 // crs "grid": map position (lng, lat) = data (x, y) - view_origin, y down, 2**z screen pixels per data unit
