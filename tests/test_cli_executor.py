@@ -70,6 +70,26 @@ def test_chunk_task(tmp_path, rng):
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'c.zarr'), mode='r')[:], (a - b) * 0.5)
 
 
+def test_chunk_task_processes_read_ahead(tmp_path, rng):
+    """process workers read the chunks of the next task while a task runs; the results are those of the threads"""
+    a = _stack(tmp_path / 'a.zarr', rng)
+    row = _stack(tmp_path / 'row.zarr', rng, shape=(1, 48), chunks=(1, 48))
+    zarr.open(str(tmp_path / 'sum.zarr'), mode='w', shape=a.shape, dtype=a.dtype, chunks=(16, 48))
+    zarr.open(str(tmp_path / 'diff.zarr'), mode='w', shape=a.shape, dtype=a.dtype, chunks=(16, 48))
+    tasks = []
+    for start in range(0, 64, 16):
+        sl = (slice(start, start + 16), slice(0, 48))
+        tasks.append(([Chunk(str(tmp_path / 'a.zarr'), sl)], [Chunk(str(tmp_path / 'sum.zarr'), sl), Chunk(str(tmp_path / 'diff.zarr'), sl)]))
+    with Executor(processes=True, n_workers=2, threads_per_worker=1) as ex:
+        ex.map_chunks(_two, tasks, scale=2.0, b=Chunk(str(tmp_path / 'row.zarr')))   # a chunk as a keyword argument too
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sum.zarr'), mode='r')[:], a + row)
+    np.testing.assert_allclose(zarr.open(str(tmp_path / 'diff.zarr'), mode='r')[:], (a - row) * 2)
+    # a chunk that cannot be read is the error of its task
+    bad = [([Chunk(str(tmp_path / 'missing.zarr'), (slice(0, 16), slice(0, 48)))], [Chunk(str(tmp_path / 'sum.zarr'), (slice(0, 16), slice(0, 48)))])]
+    with Executor(processes=True, n_workers=1) as ex, pytest.raises(Exception):
+        ex.map_chunks(_square, bad)
+
+
 def test_write_must_cover_whole_chunks(tmp_path, rng):
     _stack(tmp_path / 'a.zarr', rng)
     z = zarr.open(str(tmp_path / 'a.zarr'), mode='r')

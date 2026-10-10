@@ -71,6 +71,12 @@ class Device:
     value: object
 
 
+@dataclass(frozen=True)
+class _Loaded:
+    """A `Chunk` input read ahead by the worker (while the task before it ran); resolved like the chunk itself."""
+    array: object
+
+
 def check_aligned(z, slices, path=''):
     """Raise when `slices` of the zarr array `z` do not cover whole chunks: tasks writing parts of one chunk at the
     same time would overwrite each other."""
@@ -110,6 +116,8 @@ def chunk_task(fn, inputs, outputs, cuda=False, kwargs=None):
     def resolve(a):
         if isinstance(a, Chunk):
             return xp.asarray(a.read()) if cuda else a.read()
+        if isinstance(a, _Loaded):
+            return xp.asarray(a.array) if cuda else a.array
         if isinstance(a, Device):
             return xp.asarray(a.value) if cuda else a.value
         return a
@@ -154,6 +162,13 @@ def _deref(a, cache):
     if isinstance(a, dict):
         return {k: _deref(v, cache) for k, v in a.items()}
     return a
+
+
+def _read_ahead(args):
+    """The arguments of a `chunk_task` with its `Chunk` inputs (and `Chunk` keyword arguments) read into `_Loaded`."""
+    fn, inputs, outputs, cuda, kwargs = args
+    load = lambda a: _Loaded(a.read()) if isinstance(a, Chunk) else a
+    return (fn, [load(a) for a in inputs], outputs, cuda, {k: load(v) for k, v in (kwargs or {}).items()} if kwargs else kwargs)
 
 
 def _gpu_setup():
@@ -202,7 +217,17 @@ def _worker_main(wid, tasks, results, n_threads, env):
                 except BaseException as e:
                     _send_error(results, wid, None, e)
             else:
-                pool.submit(run, *msg[1:])
+                # the chunk inputs of a task are read here, while the threads run the tasks before it (the main process
+                # sends one task more than the threads run at a time): the reads overlap the computing, and the GPU is
+                # touched by the task threads only
+                idx, fn, args = msg[1:]
+                if fn is chunk_task:
+                    try:
+                        args = _read_ahead(args)
+                    except BaseException as e:
+                        _send_error(results, wid, idx, e)
+                        continue
+                pool.submit(run, idx, fn, args)
 
 
 class _Processes:
@@ -280,7 +305,7 @@ class _Processes:
 
         def feed(wid):
             nonlocal running
-            while pending and in_flight[wid] < self.threads:
+            while pending and in_flight[wid] < self.threads + 1:     # one more: its chunks are read while the others run
                 idx = pending.pop(0)
                 self.workers[wid][1].put(('task', idx, fn, tasks[idx]))
                 in_flight[wid] += 1
@@ -342,7 +367,9 @@ class Executor:
     n_workers : int, optional
         number of workers; one per GPU with `cuda`, 1 otherwise
     threads_per_worker : int, optional
-        tasks a worker runs at the same time, 1 by default
+        tasks a worker runs at the same time, 1 by default. A worker process reads the chunks of one more task while
+        it runs them, so it holds the inputs of ``threads_per_worker + 1`` tasks. Keep 1 for the GPUs: numba loads a
+        kernel wrongly when two threads launch it for the first time at once
     processes : bool, optional
         CPU workers as processes instead of threads (for tasks that hold the GIL), False by default
     """
