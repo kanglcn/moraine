@@ -24,6 +24,10 @@ SAMPLE_CELLS = 2**18            # cells of the level used to guess the colours o
 BACKGROUND = (0xf4, 0xf4, 0xf4)  # of PNG images, where no layer has data
 N_COLOURS = 255          # colours of the palette of a layer; the remaining index of the 256 is transparent
 TRANSPARENT = 255        # palette index of the pixels without data (nan)
+# elevation tiles of the 3D views, fetched by the browser like the base maps: AWS Terrain Tiles (Mapzen / Tilezen),
+# Terrarium encoding (height = R * 256 + G + B / 256 - 32768 m), zoom levels 0 - 15
+TERRAIN_TILES = {'url': 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png', 'max_zoom': 15,
+                 'attribution': 'Terrain: Mapzen / AWS Terrain Tiles (SRTM, EU-DEM, 3DEP, ...)'}
 
 # slider names of the named `show` options (the stack dimensions otherwise: i, j)
 SLIDERS = {'phase': ('image',), 'intf_0': ('image',), 'intf_seq': ('image',), 'intf_all': ('ref', 'sec'),
@@ -124,6 +128,19 @@ def _stamp(img, row, col, indices, r):
         ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (indices != TRANSPARENT)
         img[rr[ok], cc[ok]] = indices[ok]
     return img
+
+
+def _terrain(terrain):
+    """Terrain of a 3D view: None (2D maps), the public elevation tiles (True) or a URL template of Terrarium
+    encoded tiles; dict with ``url``, ``max_zoom`` and ``attribution``."""
+    if terrain is None or terrain is False:
+        return None
+    if terrain is True:
+        return dict(TERRAIN_TILES)
+    if isinstance(terrain, str) and all(k in terrain for k in ('{z}', '{x}', '{y}')):
+        return {'url': terrain, 'max_zoom': TERRAIN_TILES['max_zoom'], 'attribution': f'Terrain: {terrain}'}
+    raise ValueError(f'terrain must be True (public elevation tiles) or the URL template of Terrarium encoded tiles '
+                     f'with {{z}}, {{x}} and {{y}}, not {terrain!r}')
 
 
 def _dates(dates):
@@ -474,6 +491,10 @@ def describe(panels)->str:
                          + (f'; opacity {layer.opacity}' if layer.opacity != 1 else ''))
             lines.append(f'    extent {_user_extent(layer.extent, layer.crs)}; levels 0..{layer.max_level}, '
                          f'finest cell {_cell_text(layer, layer.cell)} (png(..., extent=...) to zoom in)')
+    relief = next((layer for layer in layers if layer.terrain), None)
+    if relief is not None:
+        lines.append(f'  3D view over the terrain in a notebook ({relief.terrain["attribution"]}), vertical '
+                     f'exaggeration {relief.exaggeration:g}; the PNG is the 2D map')
     kdims, index = view_sliders(panels)
     dates = view_dates(panels)
     for k in kdims:
@@ -501,7 +522,7 @@ class _Layer(_Shown):
         return [[self]]
 
     def _setup(self, base, levels, max_level, show, image_pairs, sliders, dates, stats, series, default_ts,
-               polygons, cmap, clim, opacity, size, is_pc):
+               polygons, cmap, clim, opacity, size, terrain, exaggeration, is_pc):
         self.shape = tuple(int(n) for n in base.shape[:2])
         self.size = None
         if size is not None:
@@ -509,6 +530,13 @@ class _Layer(_Shown):
             if len(size) != 2 or min(size) <= 0:
                 raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
             self.size = size
+        self.terrain = _terrain(terrain)
+        if self.terrain and self.crs != 'web_mercator':
+            raise ValueError(f'{self.label}: a 3D view over the terrain needs web mercator coordinates (e / n); the '
+                             f'radar grid has no position on the earth')
+        self.exaggeration = float(exaggeration)
+        if not (math.isfinite(self.exaggeration) and self.exaggeration > 0):
+            raise ValueError(f'exaggeration must be a positive number, not {exaggeration!r}')
         self.data_shape, self.dtype = tuple(base.shape), base.dtype
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
@@ -645,7 +673,8 @@ class RasterLayer(_Layer):
     kind = 'raster'
 
     def __init__(self, data, show=None, dates=None, series=None, polygons=None, image_pairs=None, sliders=None,
-                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None):
+                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None, terrain=None,
+                 exaggeration=1.0):
         if isinstance(data, (str, Path)):
             p = Path(data)
             levels = pyramid_levels(p)
@@ -680,7 +709,7 @@ class RasterLayer(_Layer):
             self.crs = _crs(min(x0, xm), min(y0, ym), max(x0, xm), max(y0, ym), self.rx, crs, self.label)
         self.n_points = None
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, base, polygons,
-                    cmap, clim, opacity, size, is_pc=False)
+                    cmap, clim, opacity, size, terrain, exaggeration, is_pc=False)
 
     def locate(self, x, y, s):
         """Pixel under data coordinates (`x`, `y`): dict with its centre ``x``, ``y`` and ``key`` [line,
@@ -751,7 +780,7 @@ class PointLayer(_Layer):
 
     def __init__(self, data, x=None, y=None, resolution=None, show=None, dates=None, series=None, polygons=None,
                  image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None,
-                 size=None):
+                 size=None, terrain=None, exaggeration=1.0):
         self._rtree = None
         if isinstance(data, (str, Path)) and pyramid_levels(Path(data)):
             import toml
@@ -800,7 +829,7 @@ class PointLayer(_Layer):
         self.crs = _crs(x0, y0, xm, ym, res, crs, self.label)
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
-                    polygons, cmap, clim, opacity, size, is_pc=True)
+                    polygons, cmap, clim, opacity, size, terrain, exaggeration, is_pc=True)
         self.data_shape, self.dtype = tuple(self._pc.shape), self._pc.dtype     # the points, not their raster
         self.title = f'{self.label}  {self.data_shape} {self.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
@@ -1032,6 +1061,8 @@ def view(
     opacity:float=1.0,
     label:str=None,
     size:tuple=None,
+    terrain=None,
+    exaggeration:float=1.0,
     bounds:tuple=None,
     resolution:float=None,
     image_pairs:str=None,
@@ -1046,7 +1077,8 @@ def view(
     the values of all layers; click a pixel or point to plot its time series, double click one to make it the
     reference of the time series; draw polygons with the polygon button. In Python, ``.selected``,
     ``.reference``, ``.polygons`` and ``.index`` (slider values) follow the map. Point clouds are drawn as
-    individual points when zoomed in; web mercator coordinates are drawn north up over a base map.
+    individual points when zoomed in; web mercator coordinates are drawn north up over a base map, or over the
+    terrain in 3D with `terrain`.
 
     Parameters
     ----------
@@ -1086,6 +1118,15 @@ def view(
         (width, height) of the map in screen pixels; by default the map takes the width of the notebook (at most
         700 pixels high) with the aspect of the scene (at most 1:4). Drag the lower right corner of a map to
         resize it
+    terrain : bool or str, optional
+        3D view over the terrain in a notebook, web mercator layers only: True for the public elevation tiles
+        (AWS Terrain Tiles: SRTM, EU-DEM, 3DEP, ... heights of about 30 m, zoom levels up to 15, fetched by the
+        browser like the base map), or the URL template ``'https://.../{z}/{x}/{y}.png'`` of another service
+        of Terrarium encoded tiles. The layers and the base map are draped over the terrain; the right mouse
+        button (or ctrl + drag) tilts and rotates the view, a slider sets the vertical exaggeration. Polygons
+        are shown but drawn in 2D views; ``.png`` stays the 2D image
+    exaggeration : float, default: 1.0
+        vertical exaggeration of the terrain of a 3D view (1: true proportions), the start value of its slider
     bounds : tuple, optional
         raster only: (x0, y0, xm, ym), coordinates of the centres of the first and the last pixel; pixel
         (i, j) at range j, azimuth i by default
@@ -1105,7 +1146,8 @@ def view(
         displayed in a notebook; combine with ``*`` and ``+``; ``.png(path)`` saves an image
     """
     kw = dict(show=show, dates=dates, series=series, polygons=polygons, image_pairs=image_pairs, sliders=sliders,
-              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size)
+              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size, terrain=terrain,
+              exaggeration=exaggeration)
     if x is not None or y is not None:
         if x is None or y is None:
             raise ValueError('give both `x` and `y` for point data')

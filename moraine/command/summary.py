@@ -122,6 +122,7 @@ def view(
     out:str,
     show:str=None,
     dates:str=None,
+    terrain:bool=False,
     overwrite:bool=False,
 )->str:
     """Write a Jupyter notebook with an interactive map of every pyramid (`moraine.cli.view`).
@@ -139,6 +140,8 @@ def view(
         what to show of stacks, see `moraine.cli.view`
     dates : str, optional
         toml file with the image ``dates`` (e.g. of `load_gamma_metadata`), shown with the sliders
+    terrain : bool, default: False
+        3D maps over the terrain (public elevation tiles, see `moraine.cli.view`); web mercator pyramids only
     overwrite : bool, default: False
         replace an existing notebook
 
@@ -164,7 +167,8 @@ def view(
             c.update(execution_count=None, outputs=[])
         return c
 
-    arg = (f', show={show!r}' if show else '') + (f', dates={str(Path(dates).resolve())!r}' if dates else '')
+    arg = (f', show={show!r}' if show else '') + (f', dates={str(Path(dates).resolve())!r}' if dates else '') + \
+        (', terrain=True' if terrain else '')
     cells = [cell('markdown', 'Interactive maps of moraine pyramids: zoom and pan to load details, use the sliders '
                               'to change the image of a stack, click a pixel / point for its time series (double '
                               'click: reference). Combine views with `*` (overlay) and `+` (side by side).'),

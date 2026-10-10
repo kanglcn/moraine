@@ -500,6 +500,35 @@ def test_map_size(ras, grid_pc):
     assert w.pixel_size(2.5) == 2 ** -2.5                    # the zoom is continuous
 
 
+def test_terrain(mercator_pc, grid_pc):
+    """3D views: `terrain` and `exaggeration` of the layers reach the widget; web mercator layers only."""
+    from moraine.cli.tiles import TERRAIN_TILES
+    pyr = mercator_pc[4]
+    layer = view(str(pyr), terrain=True, exaggeration=2)
+    assert layer.terrain == TERRAIN_TILES and layer.exaggeration == 2
+    assert all(k in TERRAIN_TILES['url'] for k in ('{z}', '{x}', '{y}')) and TERRAIN_TILES['max_zoom'] == 15
+    w = layer.widget
+    assert w.terrain == TERRAIN_TILES and w.exaggeration == 2 and w.crs == 'web_mercator'
+    assert '3D view over the terrain' in repr(layer) and 'exaggeration 2' in repr(layer)
+    # the maps of a view share one terrain, from any of their layers
+    assert (view(str(pyr)) * layer).widget.terrain == TERRAIN_TILES
+    assert (view(str(pyr)) + layer).widget.exaggeration == 2
+    other = view(str(pyr), terrain='https://tiles.example.org/{z}/{x}/{y}.png')    # another Terrarium service
+    assert other.terrain['url'] == 'https://tiles.example.org/{z}/{x}/{y}.png' and other.terrain['max_zoom'] == 15
+    with pytest.raises(ValueError, match='one terrain'):
+        (layer * other).widget
+    # 2D maps by default
+    flat = view(str(pyr))
+    assert flat.terrain is None and flat.widget.terrain == {} and flat.widget.exaggeration == 1.0
+    assert view(str(pyr), terrain=False).terrain is None and '3D' not in repr(flat)
+    with pytest.raises(ValueError, match='web mercator'):
+        view(str(grid_pc[1]), terrain=True)
+    with pytest.raises(ValueError, match='terrain must be'):
+        view(str(pyr), terrain='https://tiles.example.org/{z}/{x}.png')
+    with pytest.raises(ValueError, match='exaggeration'):
+        view(str(pyr), exaggeration=0)
+
+
 def test_polygon_file(tmp_path, grid_pc, mercator_pc):
     from moraine.api.polygon import read_polygons
     pts, pyr = grid_pc

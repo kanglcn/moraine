@@ -490,3 +490,11 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     assert 'exists' in _json_out(capsys)['error']
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--post_proc', 'phase',
                  '--json']) == 0                                       # the old option name still works
+    # 3D maps over the terrain, for web mercator pyramids
+    nb3d = d / 'v3d.ipynb'
+    assert main(['view', str(d / 'map_pyr'), '-o', str(nb3d), '--terrain', '--json']) == 0
+    code = [''.join(c['source']) for c in json.loads(nb3d.read_text())['cells'] if c['cell_type'] == 'code']
+    assert code[-1].endswith(', terrain=True)')
+    ns = {}
+    exec(code[0], ns)
+    assert eval(code[-1], ns).widget.terrain['url'].endswith('{z}/{x}/{y}.png')

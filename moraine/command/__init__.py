@@ -458,6 +458,8 @@ def _build_parser(with_commands=True):
     p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of stacks, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--dates', help='toml file with the image dates, e.g. the metadata of load-gamma-metadata')
+    p.add_argument('--terrain', action='store_true',
+                   help='3D maps over the terrain (public elevation tiles); web mercator pyramids only')
     p.add_argument('--overwrite', action='store_true', help='replace an existing notebook')
     _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
@@ -504,7 +506,8 @@ def _run(args):
         return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
-        out = view(args.pyramids, args.out, show=args.show, dates=args.dates, overwrite=args.overwrite)
+        out = view(args.pyramids, args.out, show=args.show, dates=args.dates, terrain=args.terrain,
+                   overwrite=args.overwrite)
         return _emit(args, {'notebook': out, 'pyramids': args.pyramids},
                      lambda: print(f'saved {out}: open it in Jupyter or VS Code and run all cells'))
     if sub in ('run', 'status'):

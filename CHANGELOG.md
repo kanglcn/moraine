@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`moraine.cli.view(..., terrain=True)` shows web mercator layers in 3D over the terrain in a notebook (decision 0036): the layers and the base map are draped over the terrain of public elevation tiles (AWS Terrain Tiles, heights of about 30 m up to zoom level 15, fetched by the browser like the base map, no key), the right mouse button (or ctrl + drag) tilts and rotates the view, a slider sets the vertical exaggeration (`exaggeration=`, also readable in python), the cursor shows the height of the terrain with the values, and the clicked point, the reference and the polygons are shown on the terrain (polygons are drawn on 2D maps). Another service of Terrarium encoded tiles can be given as a URL template. `moraine view --terrain` writes notebooks of such maps. The 3D view loads deck.gl from the jsdelivr CDN, for 3D views only; the 2D maps are unchanged and `.png` stays the 2D image
+
 The 04 example keeps, for the refined points, their longitude, latitude and temporal coherence (`pc/pc_lon`, `pc_lat`, `pc_temp_coh`) and takes their height, look vector and slant range from the rasters of 01 (`pc/pc_hgt`, `pc_theta`, `pc_phi`, `pc_range`, new step `geometry`): the inputs of the deformation products
 
 ## 0.10.0

@@ -89,7 +89,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |
 | `moraine/cli/tiles.py` | views (`view`): rasters and point clouds from pyramids or arrays, tiles and PNG images, value / point / time series at a position, `*` overlay and `+` layout, text description | (notebook, no command) |
-| `moraine/cli/viewer.py` | the notebook widget of views (`TileView`; anywidget + Leaflet, tiles rendered by the kernel): maps linked in zoom and pan, merged sliders, time series, reference, polygons; `viewer.js` / `.css` beside it | (notebook, no command) |
+| `moraine/cli/viewer.py` | the notebook widget of views (`TileView`; anywidget + Leaflet, or deck.gl over the terrain in 3D; tiles rendered by the kernel): maps linked in zoom and pan, merged sliders, time series, reference, polygons; `viewer.js` / `.css` beside it | (notebook, no command) |
 
 ## Command layer (moraine/command/)
 

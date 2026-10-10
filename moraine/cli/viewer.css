@@ -44,3 +44,13 @@
 .moraine-tv-chart .dot { fill: #1f77b4; }
 .moraine-tv-panels { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
 .moraine-tv-bars { display: flex; flex-direction: column; gap: 10px; }
+.moraine-tv-plot.no-axes { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+.moraine-tv-map3d { position: relative; overflow: hidden; }
+.moraine-tv-ctl { position: absolute; top: 6px; right: 6px; z-index: 1000; display: flex; flex-direction: column;
+                  gap: 3px; padding: 4px 6px; background: rgba(255, 255, 255, 0.9); border: 1px solid #bbb;
+                  border-radius: 3px; font: 12px sans-serif; }
+.moraine-tv-ctl label { display: flex; align-items: center; gap: 4px; }
+.moraine-tv-ctl button, .moraine-tv-ctl select { font: 12px sans-serif; }
+.moraine-tv-attr { position: absolute; right: 16px; bottom: 0; z-index: 1000; max-width: 85%; padding: 1px 4px;
+                   background: rgba(255, 255, 255, 0.75); font: 10px sans-serif; color: #333; white-space: nowrap;
+                   overflow: hidden; text-overflow: ellipsis; }
