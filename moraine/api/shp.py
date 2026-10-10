@@ -1,4 +1,4 @@
-"""Spatially Homogenious Pixels Identification"""
+"""Spatially Homogeneous Pixels Identification"""
 
 
 __all__ = ['ks_test', 'select_shp']

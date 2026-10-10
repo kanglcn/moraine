@@ -1,4 +1,4 @@
-"""Spatially Homogenious Pixels Identification"""
+"""Spatially Homogeneous Pixels Identification"""
 
 
 __all__ = ['shp_test', 'select_shp']
@@ -10,6 +10,7 @@ import numpy as np
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices, chunkwise_slicing_mapping
 from .logging import mc_logger
+from .zarr_ import check_ndim
 from .executor import Executor, Chunk
 
 
@@ -37,7 +38,7 @@ def shp_test(
     n_workers=None,
     threads_per_worker=None,
 ):
-    """SHP identification through hypothetic test, and the selection of the SHPs at the level `alpha`.
+    """SHP identification through hypothesis test, and the selection of the SHPs at the level `alpha`.
 
     Parameters
     ----------
@@ -73,13 +74,13 @@ def shp_test(
     """
     logger = logging.getLogger(__name__)
     if not method: method = 'ks'
-    logger.info(f'hypothetic test method: {method}')
+    logger.info(f'hypothesis test method: {method}')
     if method != 'ks':
-        logger.warning('Currently only KS test is implented. Switching to it.')
+        logger.warning('Currently only KS test is implemented. Switching to it.')
         method = 'ks'
     rslc_zarr = zarr.open(rslc, mode='r')
     logger.zarr_info(rslc, rslc_zarr)
-    assert rslc_zarr.ndim == 3, " rslcs dimentation is not 3."
+    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
     nlines, width, nimages = rslc_zarr.shape
     if chunks is None: chunks = rslc_zarr.chunks[:2]
     chunks = tuple(chunks)
@@ -121,7 +122,7 @@ def select_shp(
     Parameters
     ----------
     pvalue : str
-        input: pvalue of hypothetic test
+        input: pvalue of hypothesis test
     is_shp : str
         output: bool array, True for SHPs, same shape as `pvalue`
     shp_num : str
@@ -141,7 +142,7 @@ def select_shp(
     """
     logger = logging.getLogger(__name__)
     p_zarr = zarr.open(pvalue, mode='r'); logger.zarr_info(pvalue, p_zarr)
-    assert p_zarr.ndim == 4, " pvalue dimentation is not 4."
+    check_ndim('pvalue', p_zarr, 4, '(nlines, width, az_win, r_win)')
     nlines, width, az_win, r_win = p_zarr.shape
     if chunks is None: chunks = p_zarr.chunks[:2]
     chunks = tuple(chunks)

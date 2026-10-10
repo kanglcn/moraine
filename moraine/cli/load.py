@@ -76,7 +76,8 @@ def _fetch_slc_par_date(rslc_dir,
     dates = []
     for rslc in sorted(rslc_dir.glob('*.rslc')):
         rslc_par = rslc.parent / (rslc.name + '.par')
-        assert rslc_par.exists(), f'{str(rslc_par)} not exists!'
+        if not rslc_par.exists():
+            raise FileNotFoundError(f'{rslc_par} does not exist')
         date = rslc.stem
 
         rslcs.append(rslc)

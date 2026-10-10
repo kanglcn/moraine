@@ -22,9 +22,9 @@ def test_check_idx_sorted(rng):
     _check_idx_sorted(np.array([7]))
     _check_idx_sorted(np.array([], dtype=np.int64))
     for idx in ([5, 3, 4, 1], [1, 2, 2, 3], [1, 3, 2]):
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match='sorted and unique'):
             _check_idx_sorted(np.array(idx))
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match='sorted and unique'):
         pc_union(np.array([3, 1]), np.array([2]))
 
 

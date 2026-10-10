@@ -76,9 +76,13 @@ class ZarrDir():
         dim0_chunks = []
         for zarr_path in self.zarr_path_list:
             data_zarr = zarr.open(zarr_path,mode='r')
-            assert data_zarr.chunks[0] == data_zarr.shape[0]
+            if data_zarr.chunks[0] != data_zarr.shape[0]:
+                raise ValueError(f'{zarr_path}: the points of a chunk array must be in one chunk, '
+                                 f'got chunks {data_zarr.chunks} for shape {data_zarr.shape}')
             # one image per chunk (stacks) or the whole window of a point in one chunk (window arrays, decision 0032)
-            assert data_zarr.chunks[1:] in ((1,)*(data_zarr.ndim-1), data_zarr.shape[1:])
+            if data_zarr.chunks[1:] not in ((1,)*(data_zarr.ndim-1), data_zarr.shape[1:]):
+                raise ValueError(f'{zarr_path}: a chunk array must have one image or the whole window per chunk, '
+                                 f'got chunks {data_zarr.chunks} for shape {data_zarr.shape}')
             dim0_shape += data_zarr.shape[0]
             dim0_chunks.append(data_zarr.chunks[0])
         self.shape = (dim0_shape,*zarr0.shape[1:])
@@ -90,6 +94,12 @@ class ZarrDir():
         zarr_dir = Path(zarr_dir)
         zarr_path_list = sorted(zarr_dir.glob('*.zarr'),key=lambda path: int(path.stem)) # if one chunk is missing, it is ok
         return cls(zarr_path_list)
+
+def check_ndim(name, z, ndim, layout):
+    """raise a ValueError when the array `z` (zarr or numpy) of the argument `name` does not have `ndim` dimensions,
+    `layout` describes the expected shape, e.g. '(nlines, width, nimages)'"""
+    if z.ndim != ndim:
+        raise ValueError(f'{name} must have {ndim} dimensions {layout}, got shape {tuple(z.shape)}')
 
 def whole_trailing(z):
     """True for a window array: the trailing dimensions of `z` in one chunk, i.e. the whole window of a point or

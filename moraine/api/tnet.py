@@ -10,7 +10,8 @@ from .utils_ import ngjit
 
 def _imagepair_from_bandwidth(nimages,bandwidth=None):
     if bandwidth is None: bandwidth = nimages
-    assert nimages >= bandwidth
+    if bandwidth > nimages:
+        raise ValueError(f'bandwidth {bandwidth} is larger than the number of images {nimages}')
     ref, sec = np.triu_indices(nimages, 1)
     idx = np.where((sec-ref)<=bandwidth)
     return np.stack((ref[idx], sec[idx]),axis=-1).astype(np.int32)
@@ -83,12 +84,14 @@ class TempNet(object):
             sec = image_pairs[:,1]
         else:
             if isinstance(ref,int):
-                assert isinstance(sec,int)
+                if not isinstance(sec,int):
+                    raise TypeError('ref and sec must both be integers or both sequences')
                 single_input = True
                 ref = np.array([ref,]); sec = np.array([sec,])
             else:
                 ref = np.array(ref); sec = np.array(sec)
-            assert len(ref) == len(sec)
+            if len(ref) != len(sec):
+                raise ValueError(f'ref and sec must have the same length, got {len(ref)} and {len(sec)}')
 
         query_1d = ref*self._n_images+sec
         mask = np.isin(query_1d,self._image_pairs_1d,assume_unique=True,invert=True)

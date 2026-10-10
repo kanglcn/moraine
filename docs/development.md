@@ -141,6 +141,8 @@ Run the layers that the change can affect, from cheap to expensive:
 ruff check                    # syntax errors and undefined names (rules in pyproject.toml)
 pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
 pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
+                              # (with a GPU the process leaves through os._exit after the report: numba-cuda 0.30
+                              # crashes in the interpreter teardown; the exit code is still the test result)
 pytest -m slow                # CLI processing chain and GAMMA loading, about 3 min (15 min more without data/gamma/sim_orb)
 git diff --check              # whitespace errors
 ```
