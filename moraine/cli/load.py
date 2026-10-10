@@ -85,13 +85,13 @@ def _fetch_slc_par_date(rslc_dir,
     rslcs_df = pd.DataFrame({'date':dates,'rslc':rslcs,'par':rslc_pars})
     return rslcs_df
 
-@mjit(nopython=True, parallel=True, nogil=True)
 def _flatten_rslc_task(rslc, sim_orb, width, out, k):
     """read one gamma rslc and its simulated orbital phase, flatten it and write image `k` of the zarr `out`"""
     flat = _flatten_rslc(read_gamma_image(sim_orb, width, dtype='float'), read_gamma_image(rslc, width, dtype='fcomplex'))
     Chunk(out, (slice(0, flat.shape[0]), slice(0, flat.shape[1]), slice(k, k+1))).write(flat[:, :, None])
 
 
+@mjit(nopython=True, parallel=True, nogil=True)
 def _flatten_rslc(sim_orb,rslc):
     y = np.empty(rslc.shape, rslc.dtype)
     for i in numba.prange(len(rslc)):
