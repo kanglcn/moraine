@@ -1,8 +1,14 @@
 .moraine-tv { font: 12px sans-serif; color: #222; }
 .moraine-tv-title { font-weight: bold; margin: 4px 0; }
 .moraine-tv-body { display: flex; align-items: center; gap: 8px; }
-.moraine-tv-map { background: #f4f4f4; border: 1px solid #ccc; }
-.moraine-tv-plot { display: grid; grid-template-columns: 64px auto; grid-template-rows: auto 38px; }
+.moraine-tv-panel { flex: 1 1 360px; min-width: 0; }
+.moraine-tv-map { width: 100%; min-width: 200px; min-height: 150px; box-sizing: border-box; background: #f4f4f4;
+                  border: 1px solid #ccc; }
+.moraine-tv-handle { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; z-index: 1001;
+                     cursor: nwse-resize; touch-action: none; clip-path: polygon(100% 0, 100% 100%, 0 100%);
+                     background: repeating-linear-gradient(135deg, transparent 0 3px, #999 3px 5px); }
+.moraine-tv-plot { display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto 38px;
+                   flex: 1 1 auto; min-width: 0; }
 .moraine-tv-xaxis, .moraine-tv-yaxis { position: relative; }
 .moraine-tv-xaxis .ticks, .moraine-tv-yaxis .ticks { position: absolute; inset: 0; }
 .moraine-tv-xaxis .tick { position: absolute; top: 0; transform: translateX(-50%); padding-top: 5px;

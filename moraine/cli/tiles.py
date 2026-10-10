@@ -494,8 +494,14 @@ class _Layer(_Shown):
         return [[self]]
 
     def _setup(self, base, levels, max_level, show, image_pairs, sliders, dates, stats, series, default_ts,
-               polygons, cmap, clim, opacity, is_pc):
+               polygons, cmap, clim, opacity, size, is_pc):
         self.shape = tuple(int(n) for n in base.shape[:2])
+        self.size = None
+        if size is not None:
+            size = tuple(int(v) for v in size)
+            if len(size) != 2 or min(size) <= 0:
+                raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
+            self.size = size
         self.data_shape, self.dtype = tuple(base.shape), base.dtype
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
@@ -621,7 +627,7 @@ class RasterLayer(_Layer):
     kind = 'raster'
 
     def __init__(self, data, show=None, dates=None, series=None, polygons=None, image_pairs=None, sliders=None,
-                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None):
+                 bounds=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None, size=None):
         if isinstance(data, (str, Path)):
             p = Path(data)
             levels = pyramid_levels(p)
@@ -654,7 +660,7 @@ class RasterLayer(_Layer):
             self.crs = _crs(min(x0, xm), min(y0, ym), max(x0, xm), max(y0, ym), self.rx, crs, self.label)
         self.n_points = None
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, base, polygons,
-                    cmap, clim, opacity, is_pc=False)
+                    cmap, clim, opacity, size, is_pc=False)
 
     def locate(self, x, y, s):
         """Pixel under data coordinates (`x`, `y`): dict with its centre ``x``, ``y`` and ``key`` [line,
@@ -722,7 +728,8 @@ class PointLayer(_Layer):
     kind = 'point cloud'
 
     def __init__(self, data, x=None, y=None, resolution=None, show=None, dates=None, series=None, polygons=None,
-                 image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None):
+                 image_pairs=None, sliders=None, crs=None, cmap=None, clim=None, opacity=1.0, label=None,
+                 size=None):
         self._rtree = None
         if isinstance(data, (str, Path)) and pyramid_levels(Path(data)):
             import toml
@@ -763,7 +770,7 @@ class PointLayer(_Layer):
         self.crs = _crs(x0, y0, xm, ym, res, crs, self.label)
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
-                    polygons, cmap, clim, opacity, is_pc=True)
+                    polygons, cmap, clim, opacity, size, is_pc=True)
         self.data_shape = tuple(self._pc.shape)     # the points, not their raster
         self.title = f'{self.label}  {self.data_shape} {self.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
@@ -978,6 +985,7 @@ def view(
     clim:tuple=None,
     opacity:float=1.0,
     label:str=None,
+    size:tuple=None,
     bounds:tuple=None,
     resolution:float=None,
     image_pairs:str=None,
@@ -1028,6 +1036,10 @@ def view(
         opacity of the layer, 0 - 1
     label : str, optional
         name of the layer; the pyramid directory name by default
+    size : tuple, optional
+        (width, height) of the map in screen pixels; by default the map takes the width of the notebook (at most
+        700 pixels high) with the aspect of the scene (at most 1:4). Drag the lower right corner of a map to
+        resize it
     bounds : tuple, optional
         raster only: (x0, y0, xm, ym), coordinates of the centres of the first and the last pixel; pixel
         (i, j) at range j, azimuth i by default
@@ -1047,7 +1059,7 @@ def view(
         displayed in a notebook; combine with ``*`` and ``+``; ``.png(path)`` saves an image
     """
     kw = dict(show=show, dates=dates, series=series, polygons=polygons, image_pairs=image_pairs, sliders=sliders,
-              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label)
+              crs=crs, cmap=cmap, clim=clim, opacity=opacity, label=label, size=size)
     if x is not None or y is not None:
         if x is None or y is None:
             raise ValueError('give both `x` and `y` for point data')
