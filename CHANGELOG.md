@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`load-gamma-flatten-rslc` failed with a numba typing error since the commands run their tasks through the executor: the numba decorator had moved from the flattening loop to the task that reads the GAMMA files and writes the zarr
+
 The point cloud commands (`ras2pc`, `ras2pc-ras-chunk`, `pc2ras`, `pc-concat`, `pc-sort`, `pc-union`, `pc-intersect`, `pc-diff`, `pc-select-data`, `data-reduce`) run 4 threads by default instead of 1: their tasks are a few zarr chunk operations per channel, each a round trip to zarr's event loop of about 5 ms, and the threads overlap them. Campi Flegrei commands: `pc-union` 4 instead of 17 s, `pc-select-data` 3 instead of 11 s, `ras2pc` 4 instead of 15 s, `pc-concat` 5 instead of 13 s (wall time, the old numbers with a cold file cache); the same results. `threads_per_worker` still sets it
 
 `shp-test` selects the SHPs in the same pass as the test: its outputs are now `is_shp` and `shp_num` (with `alpha`, default 0.05), what `select-shp` computes from the p values, and the p values are an optional output `pvalue` after the window sizes in the argument order (`shp_test(rslc, is_shp, shp_num, az_half_win, r_half_win, alpha=0.05, pvalue=None, ...)`). The 03 example no longer writes the p values (2 GB for the sample data) nor runs `select-shp`, which stays for p values kept with `pvalue`. `shp_test` + `select_shp` of the 03 pipeline: 13 instead of 31 s on the sample data, 20 instead of 29 s on Campi Flegrei (A100); the same SHPs
