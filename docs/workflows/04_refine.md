@@ -37,7 +37,7 @@ Outputs (WORK/pc/): merged candidates `pc_can_*`; refined points `pc_hix.zarr`, 
 | `pc_can_temp_coh_pyramid` | p50 0.53, p99 0.99 | 0..1 |
 | refined points (`pc_hix`) | 352 433 (36 % of the candidates) | |
 
-Run time: about 40 s with an A100 (n2ft 16 s). The GPU results of `n2f` and `n2ft` differ by rounding between
+Run time: about 23 s with an A100 (n2ft 14 s). The GPU results of `n2f` and `n2ft` differ by rounding between
 runs, so a few points (about 1 in 10 000) may be selected differently.
 
 ## Checks
