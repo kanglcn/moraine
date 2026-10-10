@@ -11,12 +11,12 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0001](0001-record-decisions.md) | Record design decisions as ADRs in docs/decisions | Accepted |
 | [0002](0002-pytorch-for-deep-learning.md) | Deep learning inference uses PyTorch only | Accepted |
 | [0003](0003-plain-python-no-nbdev.md) | Develop moraine as a plain Python package, not with nbdev | Accepted |
-| [0004](0004-no-docs-website.md) | No documentation website for now | Superseded by 0032 |
+| [0004](0004-no-docs-website.md) | No documentation website for now | Superseded by 0037 |
 | [0005](0005-cli-generated-from-docstrings.md) | The command line is generated from moraine.cli signatures and docstrings | Accepted |
 | [0006](0006-toml-pipelines.md) | Processing chains are TOML pipelines that resume | Accepted |
 | [0007](0007-visualization-through-pyramids.md) | Visualization and result statistics go through pyramids | Superseded by 0018 |
 | [0008](0008-tool-independent-agent-docs.md) | Agent documentation is tool independent and tested | Accepted |
-| [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Superseded by 0033 |
+| [0009](0009-verified-examples.md) | Example pipelines are verified on real data | Superseded by 0038 |
 | [0010](0010-versioned-contracts.md) | Formats others depend on are versioned contracts | Accepted |
 | [0011](0011-architecture-map.md) | The module map and layer rules are tested | Accepted |
 | [0012](0012-network-emcf-inversion.md) | Redundant networks, EMCF unwrapping and time series inversion | Accepted |

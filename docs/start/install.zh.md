@@ -17,7 +17,7 @@ conda install -c conda-forge moraine
 
 ## GPU（CUDA）
 
-GPU 代码需要 cupy、numba-cuda、dask-cuda 和 rmm，它们必须与机器的 CUDA 驱动匹配。先看驱动支持的最高 CUDA 版本：
+GPU 代码需要 cupy 和 numba-cuda，它们必须与机器的 CUDA 驱动匹配。先看驱动支持的最高 CUDA 版本：
 
 ```bash
 nvidia-smi
@@ -34,13 +34,12 @@ nvidia-smi
 ```bash
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy numba-cuda cuda-version=11.8
-conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
 pip install moraine
 ```
 
 !!! note "moraine 怎样找到 GPU"
     只有当 `CUDA_VISIBLE_DEVICES` 设为非空值时 moraine 才使用 GPU；否则每条命令都在 CPU 上运行（`cuda = false`）。
-    GPU 命令为列出的每块 GPU 启动一个 dask worker；少列几块就能留出空闲的 GPU。numba-cuda 通过激活的 conda 环境
+    GPU 命令为列出的每块 GPU 启动一个 worker 进程；少列几块就能留出空闲的 GPU。numba-cuda 通过激活的 conda 环境
     （`CONDA_PREFIX`）或 `CUDA_HOME` 找 CUDA 库；脚本直接调用某个环境的 python 而没有激活它时，moraine 会把
     `CUDA_HOME` 设为该环境。
 

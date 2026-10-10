@@ -16,10 +16,10 @@ moraine 由哪些部分组成、它们怎样配合。这里的十分钟能省下
 | 层 | 命名空间 | 数据 | 一次调用处理 |
 |---|---|---|---|
 | API | `moraine.*`（`import moraine as mr`） | 内存中的 numpy（CPU，numba）或 cupy（GPU）数组；输出与输入同类 | 一个单元：整幅场景的一景影像或一个像对，或一块像元 / 点及其完整时间序列 |
-| CLI | `moraine.cli.*`（`import moraine.cli as mc`） | 磁盘上的 zarr 数据集，可大于内存；用 dask 分块，在 CPU 或多块 GPU 上 | 整个数据集 |
+| CLI | `moraine.cli.*`（`import moraine.cli as mc`） | 磁盘上的 zarr 数据集，可大于内存；由 moraine 自己的 worker 分块处理，CPU 上用线程，每块 GPU 一个进程 | 整个数据集 |
 | 命令 | `moraine COMMAND ...`、`moraine run FILE` | 同样的 zarr 数据集 | 整个数据集，从 shell 或 pipeline 文件运行 |
 
-CLI 函数不是 API 函数的简单封装：它把数据切成 API 函数能处理的单元，在数量受限的 dask worker 里映射这些单元，
+CLI 函数不是 API 函数的简单封装：它把数据切成 API 函数能处理的单元，作为执行器的任务来运行（CPU 上是线程，每块 GPU 一个进程；决策 0033、0034），
 再写回 zarr。每个 `moraine.cli` 函数都是 `moraine` 可执行程序的一条命令，帮助由 docstring 生成（决策 0005），
 所以三层永远一致。`help(mr.emi)`、`help(mc.emi)` 和 `moraine emi --help` 说的是同一件事。
 
@@ -50,7 +50,7 @@ moraine emi --coh ds/ds_can_coh.zarr --ph ds/ds_can_ph.zarr --cuda
 
 ## 分块
 
-zarr 数组按块存放，dask 并行处理各块；块的布局决定内存和速度。moraine 的约定（决策 0019）是：**空间上分块，
+zarr 数组按块存放，worker 并行处理各块；块的布局决定内存和速度。moraine 的约定（决策 0019）是：**空间上分块，
 每景影像（或每个像对）一个块**，例如栅格堆栈 `(lines_block, width_block, 1)`、点云堆栈 `(points_block, 1)`。
 按影像处理的步骤读整块，按空间块处理的步骤读每景影像的一块，都不需要重新分块。命令有 `chunks`（处理）和
 `out_chunks`（存储）参数；块太小时间都花在调度上，太大则内存不够。栅格沿方位向而不是距离向切分。
@@ -77,5 +77,5 @@ zarr 数组按块存放，dask 并行处理各块；块的布局决定内存和�
 ## GPU 还是 CPU
 
 API 函数接受 numpy 或 cupy 数组，按类型分派（`moraine.api.utils_.get_array_module`）；CLI 函数和命令用 `cuda`
-参数（每块 GPU 一个 dask worker，一个 rmm 内存池）。只有 `CUDA_VISIBLE_DEVICES` 列出了 GPU 才会用它。影像很多
+参数（每块 GPU 一个 worker 进程，从 cupy 的内存池分配）。只有 `CUDA_VISIBLE_DEVICES` 列出了 GPU 才会用它。影像很多
 （超过约 100 景）时，相位连接在多核 CPU 上可能比单块 GPU 更快；指南里有数字。

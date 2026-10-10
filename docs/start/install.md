@@ -17,7 +17,7 @@ conda install -c conda-forge moraine
 
 ## GPU (CUDA)
 
-The GPU code needs cupy, numba-cuda, dask-cuda and rmm, which have to match the CUDA driver of the machine.
+The GPU code needs cupy and numba-cuda, which have to match the CUDA driver of the machine.
 Find the highest CUDA version the driver supports:
 
 ```bash
@@ -35,13 +35,12 @@ Install the packages for that version (here 11.8 as an example) with conda, then
 ```bash
 conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
 conda install -c conda-forge cupy numba-cuda cuda-version=11.8
-conda install -c rapidsai -c conda-forge -c nvidia dask-cuda rmm cuda-version=11.8
 pip install moraine
 ```
 
 !!! note "How moraine finds the GPU"
     moraine uses a GPU only when `CUDA_VISIBLE_DEVICES` is set to a non-empty value; without it every
-    command runs on the CPU (`cuda = false`). GPU commands start one dask worker per listed GPU; list fewer
+    command runs on the CPU (`cuda = false`). GPU commands start one worker process per listed GPU; list fewer
     GPUs to leave some free. numba-cuda finds the CUDA libraries through the activated conda environment
     (`CONDA_PREFIX`) or `CUDA_HOME`; when a script calls the python of an environment without activating it,
     moraine sets `CUDA_HOME` to that environment.

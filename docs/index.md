@@ -81,7 +81,7 @@ errors by phase closure. [unwrap](api/unwrap.md)
 </div>
 <div class="mo-card" markdown>
 ### Big data
-Arrays in memory are numpy or cupy, on disk zarr; the commands process chunks with dask on CPUs or several GPUs,
+Arrays in memory are numpy or cupy, on disk zarr; the commands process chunks with their own workers on CPUs or several GPUs,
 larger than memory. [Concepts](start/concepts.md)
 </div>
 <div class="mo-card" markdown>
@@ -100,7 +100,7 @@ Every function is a command with complete help, `--json` output and pipelines th
 
     ```python
     import moraine as mr          # arrays in memory (numpy on the CPU, cupy on the GPU)
-    import moraine.cli as mc      # zarr in, zarr out, chunk by chunk with dask
+    import moraine.cli as mc      # zarr in, zarr out, chunk by chunk
 
     ph = mr.emi(coh)              # phase linking of a block of points
     mc.emi('ds/coh.zarr', 'ds/ph.zarr', cuda=True)   # the same for a whole data set
@@ -123,6 +123,6 @@ Every function is a command with complete help, `--json` output and pipelines th
     Any coding agent that works in the repository (Claude Code, Codex, Cursor, ...) reads `AGENTS.md` and
     does the rest. See [Talk to an agent](agent/index.md).
 
-Install with `pip install moraine` (CPU) or add cupy, numba-cuda, dask-cuda and rmm with conda for the GPU:
+Install with `pip install moraine` (CPU) or add cupy and numba-cuda with conda for the GPU:
 [Install](start/install.md).
 </div>

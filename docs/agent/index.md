@@ -101,31 +101,30 @@ and the western suburbs of Naples, not the craters and slopes:
 <div class="mo-msg mo-msg--agent" markdown>
 <div class="mo-avatar">AI</div>
 <div class="mo-bubble" markdown>
-**3. DS.** The Campi Flegrei tutorial uses the window and thresholds of the example (11 x 11 window, `alpha`
-0.05, at least 50 SHPs, weighted temporal coherence 0.9), so I run it as it is.
+**3. DS.** The Campi Flegrei tutorial uses the window and thresholds of the example (7 x 27 window, `alpha`
+0.05, at least 80 SHPs, weighted temporal coherence 0.85), so I run it as it is.
 
 ```console
 $ moraine run examples/03_ds.toml --workdir manual_demo/campi --var shape=981,4160
-[shp_test] shp-test ... done in 25.8 s
-[select_shp] select-shp ... done in 13.2 s
-[phase_linking] emperical-co-emi-temp-coh-pc ... done in 95.7 s
-[ds_ph_pyramid] pc-pyramid ... done in 9.4 s
-(17 steps, 162 s)
+[shp_test] shp-test ... done in 9.0 s
+[phase_linking] emperical-co-emi-temp-coh-pc ... done in 18.6 s
+[ds_ph_pyramid] pc-pyramid ... done in 5.1 s
+(16 steps, 42 s)
 $ moraine info ds/ras_shp_num_pyramid ds/ds_can_t_coh_w_pyramid ds/ds_can_n_components_pyramid \
       ds/ds_can_hix.zarr ds/ds_connected_hix.zarr ds/ds_hix.zarr
-  ds/ras_shp_num_pyramid: ... min=0.0, max=121.0, p50=20.0, p99=110.0
-  ds/ds_can_t_coh_w_pyramid: ... p01=0.473767, p50=0.62943, p99=0.963676
-  ds/ds_can_n_components_pyramid: ... min=1.0, max=84.0, p50=5.0
-  ds/ds_can_hix.zarr: int64 (1207828,)
-  ds/ds_connected_hix.zarr: int64 (216506,)
-  ds/ds_hix.zarr: int64 (77295,)
+  ds/ras_shp_num_pyramid: ... min=0.0, max=189.0, p50=29.0, p99=170.0
+  ds/ds_can_t_coh_w_pyramid: ... p01=0.266186, p50=0.589956, p99=0.959546
+  ds/ds_can_n_components_pyramid: ... min=1.0, max=85.0, p50=3.0
+  ds/ds_can_hix.zarr: int64 (1123313,)
+  ds/ds_connected_hix.zarr: int64 (326851,)
+  ds/ds_hix.zarr: int64 (167007,)
 ```
 
-1 207 828 pixels have at least 50 SHPs; 216 506 of them (17.9 %) have all 92 images connected by coherent image
-pairs, and 77 295 of those reach a weighted temporal coherence of 0.9: the DS, 6.4 % of the candidates, as the
-guide expects for this data set. Half of the land pixels have fewer than 50 SHPs: at the full Sentinel-1
-resolution an 11 x 11 window covers only 26 m across track. The guide names `t_coh_w_min` as the first knob
-(`--var t_coh_w_min=0.85` keeps 129 798 points); I keep the default and report it. The weighted temporal coherence is high on the homogeneous slopes and
+1 123 313 pixels have at least 80 SHPs; 326 851 of them (29.1 %) have all 92 images connected by coherent image
+pairs, and 167 007 of those reach a weighted temporal coherence of 0.85: the DS, 14.9 % of the candidates, as the
+guide expects for this data set. The 7 x 27 window of the example is about 100 m x 60 m on the ground: at the full
+Sentinel-1 resolution an 11 x 11 window would cover only 26 m across track and give too few SHPs for 92 images.
+The guide names `t_coh_w_min` as the first knob (`--var t_coh_w_min=0.9` keeps 96 741 points); I keep the default and report it. The weighted temporal coherence is high on the homogeneous slopes and
 fields, and the phase linked 2019 to 2021 interferogram of the DS is spatially consistent, with the fringes of
 the uplift around Pozzuoli:
 
@@ -144,19 +143,19 @@ the uplift around Pozzuoli:
 ```console
 $ moraine run examples/04_refine.toml --workdir manual_demo/campi
 [merge] pc-union ... done in 8.4 s
-[n2ft] n2ft ... done in 63.4 s
+[n2ft] n2ft ... done in 28.1 s
 [temp_coh] temp-coh ... done in 6.6 s
 [pc_ph_pyramid] pc-pyramid ... done in 11.0 s
 (9 steps, 95 s)
 $ moraine info pc/pc_can_hix.zarr pc/pc_can_temp_coh_pyramid pc/pc_hix.zarr
   pc/pc_can_hix.zarr: int64 (590677,)
-  pc/pc_can_temp_coh_pyramid: ... p01=0.145293, p50=0.689645, p99=0.99046
+  pc/pc_can_temp_coh_pyramid: ... p01=0.21278, p50=0.792471, p99=0.995184
   pc/pc_hix.zarr: int64 (223875,)
 $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 -o 04_pc_intf_0_91.png
 $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 --extent 14.08,40.80,14.16,40.86 -o zoom.png
 ```
 
-PS candidates and DS merge into 590 677 points; after the Noise2Fringe Transformer 223 875 (38 %) have a temporal
+PS candidates and DS merge into 675 687 points; after the Noise2Fringe Transformer 330 754 (49 %) have a temporal
 coherence above 0.8. Their interferogram between the first and the last image shows the concentric fringes of
 the caldera uplift centred on Pozzuoli, about ten fringes over three years, continuous across the town; zoomed in
 (level 0, single points) the fringes are still there in the dense parts:
@@ -185,7 +184,7 @@ $ moraine info unw/pc_unw.zarr unw/pc_unw_pyramid
   unw/pc_unw_pyramid: ... min=-17.2502, max=13.8788, p01=-6.97704, p50=-0.147673, p99=5.69298
 ```
 
-91 sequential interferograms of 223 875 points unwrapped in one second; the values stay within a few multiples of
+91 sequential interferograms of 330 754 points unwrapped in 2 seconds; the values stay within a few multiples of
 2π as the guide expects, and rewrapping the result gives back the input phase (largest difference 5.6e-7 rad over
 the first ten interferograms). The unwrapped 12 day interferograms are smooth, without isolated 2π jumps between
 neighbouring areas:
@@ -209,13 +208,13 @@ on one A100; every result is within the ranges of the guides.
 |---|---|---|
 | load | `raw/rslc.zarr` (981, 4160, 92) | |
 | PS candidates | `ps/ps_can_hix.zarr` | 530 886 |
-| DS | `ds/ds_hix.zarr`, `ds/ds_ph.zarr` | 77 295 of 1 207 828 candidates |
-| refined points | `pc/pc_hix.zarr`, `pc/pc_ph.zarr` (223 875, 92) | 223 875 |
-| unwrapped | `unw/pc_unw.zarr` (223 875, 91), radians | |
+| DS | `ds/ds_hix.zarr`, `ds/ds_ph.zarr` | 167 007 of 1 123 313 candidates |
+| refined points | `pc/pc_hix.zarr`, `pc/pc_ph.zarr` (330 754, 92) | 330 754 |
+| unwrapped | `unw/pc_unw.zarr` (330 754, 91), radians | |
 
 What I see: the uplift of the caldera, centred on Pozzuoli, as about ten fringes between 2019-01-02 and
 2021-12-29 in the phase linked and filtered points, and smooth unwrapped 12 day interferograms. Two things to
-decide: the DS selection kept 6.4 % of the candidates (`t_coh_w_min` 0.9); lowering it to 0.85 keeps more points on
+decide: the DS selection kept 14.9 % of the candidates (`t_coh_w_min` 0.85); lowering it to 0.8 keeps more points on
 the slopes. And the unwrapped phases have no spatial reference yet: compare points relative to each other, or
 choose a reference point in `view.ipynb` (double click) before you read displacements.
 </div>

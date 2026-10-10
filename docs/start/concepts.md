@@ -19,11 +19,11 @@ project files; every result is an array you can open with any tool.
 | layer | namespace | data | one call processes |
 |---|---|---|---|
 | API | `moraine.*` (`import moraine as mr`) | numpy (CPU, numba) or cupy (GPU) arrays in memory; the result is the same kind as the input | one unit: one image or image pair of the scene, or one block of pixels / points with its whole time series |
-| CLI | `moraine.cli.*` (`import moraine.cli as mc`) | zarr datasets on disk, larger than memory; chunked with dask on CPUs or several GPUs | a whole data set |
+| CLI | `moraine.cli.*` (`import moraine.cli as mc`) | zarr datasets on disk, larger than memory; processed chunk by chunk by moraine's own workers, threads on the CPU or one process per GPU | a whole data set |
 | command | `moraine COMMAND ...`, `moraine run FILE` | the same zarr datasets | a whole data set, from the shell or a pipeline file |
 
 The CLI functions are not wrappers of the API functions: they cut the data into the units the API functions
-take, map them with dask inside a bounded number of workers, and write zarr. Every `moraine.cli` function is a
+take, run them as the tasks of an executor (threads on the CPU, one process per GPU; decisions 0033, 0034), and write zarr. Every `moraine.cli` function is a
 command of the `moraine` executable, with its help generated from the docstring (decision 0005), so the three
 layers always agree. `help(mr.emi)`, `help(mc.emi)` and `moraine emi --help` describe the same thing.
 
@@ -59,7 +59,7 @@ radians `(n_points, n_pairs)`.
 
 ## Chunks
 
-zarr arrays are stored in chunks, dask processes them in parallel; the chunk layout decides the memory and the
+zarr arrays are stored in chunks, the workers process them in parallel; the chunk layout decides the memory and the
 speed. moraine's convention (decision 0019): **blocks in space, one image (or image pair) per chunk**,
 e.g. `(lines_block, width_block, 1)` for a raster stack and `(points_block, 1)` for a point cloud stack. A step per
 image then reads whole chunks, and a step per block reads one chunk of every image, both without rechunking.
@@ -93,6 +93,6 @@ read.
 ## GPU or CPU
 
 API functions accept numpy or cupy arrays and dispatch on the type (`moraine.api.utils_.get_array_module`);
-CLI functions and commands take `cuda` (one dask worker per GPU, an rmm memory pool). A GPU is used only when
+CLI functions and commands take `cuda` (one worker process per GPU, allocating from cupy's memory pool). A GPU is used only when
 `CUDA_VISIBLE_DEVICES` names one. The phase linking of many images (more than about 100) can be faster on a
 machine with many CPU cores than on one GPU; the guides give the numbers.

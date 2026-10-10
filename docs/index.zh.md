@@ -76,7 +76,7 @@ EMI，对非正定的相干矩阵做自适应正则化；加权时间相干性�
 </div>
 <div class="mo-card" markdown>
 ### 大数据
-内存中是 numpy 或 cupy 数组，磁盘上是 zarr；命令用 dask 分块处理，CPU 或多块 GPU，数据可以大于内存。[概念](start/concepts.md)
+内存中是 numpy 或 cupy 数组，磁盘上是 zarr；命令用自己的 worker 分块处理，CPU 或多块 GPU，数据可以大于内存。[概念](start/concepts.md)
 </div>
 <div class="mo-card" markdown>
 ### 为 agent 而生
@@ -93,7 +93,7 @@ EMI，对非正定的相干矩阵做自适应正则化；加权时间相干性�
 
     ```python
     import moraine as mr          # 内存中的数组（CPU 上 numpy，GPU 上 cupy）
-    import moraine.cli as mc      # zarr 进、zarr 出，用 dask 分块处理
+    import moraine.cli as mc      # zarr 进、zarr 出，分块处理
 
     ph = mr.emi(coh)              # 一块点的相位连接
     mc.emi('ds/coh.zarr', 'ds/ph.zarr', cuda=True)   # 整个数据集
@@ -115,5 +115,5 @@ EMI，对非正定的相干矩阵做自适应正则化；加权时间相干性�
 
     任何在仓库里工作的编程 agent（Claude Code、Codex、Cursor 等）读 `AGENTS.md` 后就能完成其余的事。见[与 AI 对话](agent/index.md)。
 
-安装：`pip install moraine`（CPU），GPU 另用 conda 装 cupy、numba-cuda、dask-cuda 和 rmm：[安装](start/install.md)。
+安装：`pip install moraine`（CPU），GPU 另用 conda 装 cupy 和 numba-cuda：[安装](start/install.md)。
 </div>

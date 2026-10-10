@@ -37,15 +37,15 @@ coherence `pc_temp_coh.zarr`, and the geometry the deformation products need: he
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 590 677 | about PS + DS minus overlap |
-| `pc_can_temp_coh_pyramid` | p50 0.69, p01 0.15, p99 0.99 | 0..1 |
-| refined points (`pc_hix`) | 223 875 (38 % of the candidates) | |
+| merged candidates | 675 687 | about PS + DS minus overlap |
+| `pc_can_temp_coh_pyramid` | p50 0.79, p01 0.21, p99 0.995 | 0..1 |
+| refined points (`pc_hix`) | 330 754 (49 % of the candidates; 99.9 % of the DS, 32 % of the PS candidates that are not DS) | |
 
-Run time: 95 s with an A100 (n2ft 63 s for 91 image pairs).
+Run time: about 40 s with an A100 (n2ft 28 s for 91 image pairs).
 
 ## Figures
 
-Quicklooks of the sample data run of 2026-10-08 (the numbers above are from the same run):
+Quicklooks of the sample data run of 2026-10-10 (the numbers above are from the same run):
 
 ![Temporal coherence of the merged candidates after the Noise2Fringe Transformer](../assets/campi/04_temp_coh.webp)
 

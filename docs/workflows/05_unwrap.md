@@ -25,20 +25,20 @@ the sample data set (981 x 4160, 2.329562 m and 13.9516 m).
 
 Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phase in radians.
 
-## Expected results (sample data, Campi Flegrei, 223 875 points, 91 sequential interferograms)
+## Expected results (sample data, Campi Flegrei, 330 754 points, 91 sequential interferograms)
 
 | result | sample value | sane range |
 |---|---|---|
-| `unw/pc_unw_pyramid` | p01 -7.0, p50 -0.15, p99 5.7, min -17.3, max 13.9 | a few multiples of 2 pi |
+| `unw/pc_unw_pyramid` | p01 -7.1, p50 -0.15, p99 5.8, min -17.3, max 14.5 | a few multiples of 2 pi |
 
-Run time: 1.0 s for the 91 interferograms (CPU, 128 cores); the pyramid takes 16 s.
+Run time: 1.7 s for the 91 interferograms (CPU, 128 cores); the pyramid takes 5 s.
 
 Correctness check (in python): rewrapping the result must give the input phase,
 `np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 5.6e-7 rad).
 
 ## Figures
 
-Quicklook of the sample data run of 2026-10-08 (the numbers above are from the same run):
+Quicklook of the sample data run of 2026-10-10 (the numbers above are from the same run):
 
 ![Unwrapped sequential interferogram 45](../assets/campi/05_unw_45.webp)
 
@@ -71,9 +71,9 @@ range_pixel_spacing = 2.329562
 azimuth_pixel_spacing = 13.9516
 ```
 
-Sample data (2026-10-08): 270 interferograms of 92 images, 7.9 s for the 223 875 refined points; rewrapping
-gives the input phase (max 2.0e-6 rad). The loops of image pairs do not close at every point after EMCF: on
-the sample, loops fail at 8.4 % of the points, with on average 0.04 % of the interferograms of a point not fitting
+Sample data (2026-10-10): 270 interferograms of 92 images  14 s for the 330 754 refined points; rewrapping
+gives the input phase (max 2.3e-6 rad). The loops of image pairs do not close at every point after EMCF: on
+the sample  loops fail at 1.1 % of the points  with on average 0.01 % of the interferograms of a point not fitting
 them. The phase closure correction is a separate step, after `emcf-pc` or `mcf-pc`; it also gives the unwrapped
 phase of every image:
 
@@ -98,12 +98,12 @@ the median edge length, e.g. a cluster or an island) is shifted by whole cycles 
 disagree with the majority (MintPy's phase closure correction, decision 0021); points of regions of fewer
 than 30 points are corrected one by one and marked -1 in `region`. Where the correction of its region does
 not close every loop of a point, the interferograms fitting most of its loops are kept (decision 0022). Sample
-data: 6.0 s, 302 regions (2.3 % of the points in smaller ones), the unwrapped phase changed at 8.4 % of the
-points, on average in 0.04 % of their interferograms (`change_fraction` p99 0.007, max 0.07).
+data: 10 s, 87 regions (0.4 % of the points in smaller ones), the unwrapped phase changed at 1.1 % of the
+points, on average in 0.01 % of their interferograms (`change_fraction` p99 0.004, max 0.07).
 
 Output: `ts` (n_points, nimages) float32, the unwrapped phase of every image in radians relative to image
 `ref` (default 0, its column is 0); interferogram (a, b) is `ts[:, a] - ts[:, b]`, so every loop closes.
-Rewrapping `ts[:, j]` gives the phase of `ph[:, j] * conj(ph[:, ref])` (sample: max 6.6e-7 rad). `ts` has no
+Rewrapping `ts[:, j]` gives the phase of `ph[:, j] * conj(ph[:, ref])` (sample: max 3.7e-06 rad). `ts` has no
 spatial reference yet: compare points only relative to each other. Without a truth it is unknown whether every
 change is right: it relies on most interferograms of a region being right, so look at the quicklooks of `ts`,
 `misclosure_fraction` and `change_fraction`. 10 million points, 100 images, 294 interferograms: 145 s, 3.3 GB
