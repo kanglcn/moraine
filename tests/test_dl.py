@@ -69,6 +69,24 @@ def test_missing_model_file(tmp_path):
         _load_model('n2f', str(tmp_path / 'nothing.pth'))
 
 
+@pytest.mark.gpu
+def test_n2f_half_model(intf):
+    """the GPU model of n2f: float16 weights in the channels last layout, float32 output with unit amplitude"""
+    import cupy as cp
+    from moraine.api.dl import _infer_unet, _pre_infer_n2f_cp
+    half = _get_model('n2f', device='cuda:0', half=True); full = _get_model('n2f', device='cuda:0')
+    assert half is not full
+    conv = next(m for m in half.modules() if isinstance(m, torch.nn.Conv2d))
+    assert conv.weight.dtype == torch.float16 and conv.weight.is_contiguous(memory_format=torch.channels_last)
+    x, mask = _pre_infer_n2f_cp(cp.asarray(intf))
+    out = _infer_unet(half, x)
+    assert isinstance(out, cp.ndarray) and out.dtype == np.float32 and out.shape == x.shape
+    np.testing.assert_allclose(cp.hypot(out[0, 0], out[0, 1]).get(), 1, rtol=1e-5)
+    ref = _infer_unet(full, x)
+    d = _phase_diff((out[0, 0] + 1j * out[0, 1]).get(), (ref[0, 0] + 1j * ref[0, 1]).get())
+    assert np.median(d) < 2e-3 and np.percentile(d, 99) < 5e-2  # float16 against the TF32 model: p99 about 3e-3 rad
+
+
 @pytest.mark.parametrize('gpu', GPU)
 def test_n2f(intf, gpu):
     x = intf.copy(); x[0, 0] = 0  # GAMMA writes 0 where there are no data
@@ -85,8 +103,11 @@ def test_n2f(intf, gpu):
         assert isinstance(out_cp, cp.ndarray)
         np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
-        # NaN pixels are filled with random phase, compare medians; TF32 adds ~1e-3 rad
+        # NaN pixels are filled with random phase, compare medians; the GPU runs the network in float16: ~1e-3 rad
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
+        assert out_cp.dtype == np.complex64
+        finite = out_cp.get()[np.isfinite(out_cp.get())]
+        np.testing.assert_allclose(np.abs(finite), 1, rtol=1e-4)  # unit amplitude: normalized in float32
         np.testing.assert_array_equal(np.isnan(mr.api.dl._n2f_np_in_gpu(x)), np.isnan(out))
         np.testing.assert_array_equal(x, x0)
 

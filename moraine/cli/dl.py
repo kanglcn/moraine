@@ -132,7 +132,7 @@ def _cli_n2f_out_chunk(
     # the output chunk stays on the GPU until all pairs are filtered: one copy to the host instead of one per pair
     out = xp.empty((out_slices[0].stop-out_slices[0].start, out_slices[1].stop-out_slices[1].start, image_pairs.shape[0]),
                    dtype=rslc_zarr.dtype)
-    model = _get_model('n2f', model, _cuda_device() if cuda else 'cpu')
+    model = _get_model('n2f', model, _cuda_device() if cuda else 'cpu', half=cuda)
     for in_slices, map_slices, local_slices in tiles:
         # the rslc of the tile with its overlap for all images: every image is read once per tile
         stack = xp.asarray(parallel_read_zarr(rslc_zarr, (*in_slices, slice(None))))
@@ -162,12 +162,13 @@ def n2f(
     n_workers=None,
     threads_per_worker=None,
 ):
-    """Noise2Fringe (n2f) filtering of raster interferograms.
+    """Noise2Fringe (n2f) filtering of raster interferograms. With `cuda` the network runs in half precision.
 
     A task filters one output chunk with all image pairs: it holds the rslc of one processing chunk with its
     overlap for all images (8 bytes per pixel and image), the filtered interferograms of the output chunk (8 bytes
-    per pixel and image pair) and the model's activations of one interferogram (about 2 kB per pixel of the
-    processing chunk); with `cuda` all of it on the GPU. A worker runs `threads_per_worker` tasks at a time.
+    per pixel and image pair) and the model's activations of one interferogram (about 1 kB per pixel of the
+    processing chunk on the GPU, 2 kB on the CPU); with `cuda` all of it on the GPU. A worker runs
+    `threads_per_worker` tasks at a time.
 
     Parameters
     ----------

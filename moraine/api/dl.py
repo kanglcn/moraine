@@ -100,6 +100,7 @@ def _load_model(
     path:str=None,
     device:str='cpu',
     compile:bool=False,
+    half:bool=False,
 ):
     """load a deep learning model for inference. Loaded models are cached.
 
@@ -113,6 +114,8 @@ def _load_model(
         torch device
     compile : bool, default: False
         compile the model with torch.compile
+    half : bool, default: False
+        run the model in half precision (float16), on a GPU only
     """
     torch = _import_torch()
     if path is None:
@@ -137,14 +140,17 @@ def _load_model(
         from .unet_torch_ import fold_batch_norms
         fold_batch_norms(model)
     model.to(device)
+    if half:
+        # float16 weights and activations in the channels last layout, the layout of the tensor core convolution kernels
+        model = model.half().to(memory_format=torch.channels_last)
     if compile:
         # n2ft is called with a different number of points and interferograms every time: one graph with symbolic
         # shapes instead of a compilation per shape
         model = torch.compile(model, dynamic=True if name == 'n2ft' else None)
     return model
 
-def _get_model(name, path=None, device='cpu', compile=False):
-    return _load_model(name, None if path is None else str(path), device, compile)
+def _get_model(name, path=None, device='cpu', compile=False, half=False):
+    return _load_model(name, None if path is None else str(path), device, compile, half)
 
 def _cuda_device():
     return f'cuda:{cp.cuda.runtime.getDevice()}'
@@ -153,7 +159,7 @@ def _infer_unet(
     model,
     x,
 ):
-    """run the unet model, output is the same kind of array as the input
+    """run the unet model, output is the same kind of array as the input, float32 with unit norm over the channels
 
     Parameters
     ----------
@@ -162,11 +168,18 @@ def _infer_unet(
         model input, np.ndarray or cp.ndarray, shape (1, in_channels, nlines, width)
     """
     torch = _import_torch()
+    param = next(model.parameters())
+    def run(t):
+        if param.dtype == torch.float32:
+            return model(t)
+        # half precision model: the input in its dtype and layout, the output normalized again in float32 (the model
+        # normalizes in float16, the amplitude is then 1 within 1e-3)
+        t = t.to(param.dtype, memory_format=torch.channels_last)
+        return torch.nn.functional.normalize(model(t).float(), dim=1).contiguous()
     with torch.inference_mode():
         if isinstance(x, np.ndarray):
-            device = next(model.parameters()).device
-            return model(torch.from_numpy(x).to(device)).cpu().numpy()
-        return cp.from_dlpack(model(torch.from_dlpack(cp.ascontiguousarray(x))))
+            return run(torch.from_numpy(x).to(param.device)).cpu().numpy()
+        return cp.from_dlpack(run(torch.from_dlpack(cp.ascontiguousarray(x))))
 
 @ngpjit
 def _pre_infer_n2f_numba(intf):
@@ -292,7 +305,9 @@ def n2f(
     depths:tuple=(0,0),
     model:str=None,
 ):
-    """Parameters
+    """Noise2Fringe filtering of an interferogram; on the GPU (cupy input) the network runs in half precision.
+
+    Parameters
     ----------
     intf : np.ndarray
         interferogram, 2d np.complex64 or cp.complex64
@@ -314,7 +329,7 @@ def n2f(
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
             out[out_slice] = _infer_n2f_cpu(_nan_where_zero(intf[in_slice]),model)[map_slice]
     else:
-        model = _get_model('n2f', model, _cuda_device())
+        model = _get_model('n2f', model, _cuda_device(), half=True)
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
             out[out_slice] = _infer_n2f_gpu(_nan_where_zero(intf[in_slice]),model)[map_slice]
 
@@ -344,7 +359,7 @@ def _n2f_np_in_gpu(
     in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
     out = np.empty_like(intf)
 
-    model = _get_model('n2f', model, _cuda_device())
+    model = _get_model('n2f', model, _cuda_device(), half=True)
     for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
         out[out_slice] = _infer_n2f_gpu(_nan_where_zero(cp.asarray(intf[in_slice])),model)[map_slice].get()
     return out
