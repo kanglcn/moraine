@@ -119,7 +119,8 @@ def temp_coh(
         the CUDA block size, a multiple of 32, only applied for cuda
     """
     xp = get_array_module(intf)
-    assert intf.ndim == rslc.ndim
+    if intf.ndim != rslc.ndim:
+        raise ValueError(f'intf and rslc must both be rasters or both point clouds, got {intf.ndim} and {rslc.ndim} dimensions')
     if intf.ndim == 3:
         # convert to pc
         is_ras = True

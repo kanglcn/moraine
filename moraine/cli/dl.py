@@ -20,7 +20,7 @@ import moraine as mr
 import moraine.cli as mc
 from ..api.utils_ import get_array_module
 from ..api.chunk_ import chunkwise_knn_mapping
-from .zarr_ import parallel_read_zarr, parallel_write_zarr
+from .zarr_ import parallel_read_zarr, parallel_write_zarr, check_ndim
 from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
 from .logging import mc_logger
 from .executor import Executor
@@ -204,7 +204,7 @@ def n2f(
 
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path, rslc_zarr)
-    assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
+    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
     nlines, width, nimage = rslc_zarr.shape
     if chunks is None: chunks = rslc_zarr.chunks[:2]
     if out_chunks is None: out_chunks = rslc_zarr.chunks[:2]
@@ -368,7 +368,7 @@ def n2ft(
 
     rslc_zarr = zarr.open(rslc_path,mode='r')
     logger.zarr_info(rslc_path, rslc_zarr)
-    assert rslc_zarr.ndim == 2, "rslc dimentation is not 2."
+    check_ndim('rslc', rslc_zarr, 2, '(n_points, nimages)')
     npoint, nimage = rslc_zarr.shape
 
     nimage_pairs = image_pairs.shape[0]

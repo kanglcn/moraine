@@ -114,7 +114,8 @@ def ras_pyramid(
 
 def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
-    assert len(kdims) == data_n_kdim
+    if len(kdims) != data_n_kdim:
+        raise ValueError(f'{len(kdims)} indices given for data with {data_n_kdim} index dimensions')
     if len(kdims) == 0:
         # zarr do not support empty tuple as input
         return data_zarr[yslice,xslice]
@@ -124,15 +125,17 @@ def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
 
 def _ras_phase_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
-    assert len(kdims) == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
-    assert data_n_kdim == 1
-    assert np.iscomplexobj(data_zarr)
+    if data_n_kdim != 1 or not np.iscomplexobj(data_zarr):
+        raise ValueError(f'phase needs complex data with one index dimension, got {data_zarr.dtype} with {data_n_kdim}')
     return np.angle(data_zarr[yslice,xslice,i])
 
 def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
-    assert len(kdims) == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -140,7 +143,8 @@ def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
         else:
             return data_zarr[yslice,xslice,0]-data_zarr[yslice,xslice,i]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[yslice,xslice,0,i])
         else:
@@ -148,7 +152,8 @@ def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
 
 def _ras_inf_seq_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
-    assert len(kdims) == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -156,14 +161,16 @@ def _ras_inf_seq_post_proc(data_zarr, xslice, yslice, *kdims):
         else:
             return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,i+1]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[yslice,xslice,i,i+1])
         else:
             return data_zarr[yslice,xslice,i,i+1]
 def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
     data_n_kdim = data_zarr.ndim - 2
-    assert len(kdims) == 2
+    if len(kdims) != 2:
+        raise ValueError(f'this show needs two indices, got {len(kdims)}')
     i,j = kdims
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -171,7 +178,8 @@ def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
         else:
             return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,j]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[yslice,xslice,i,j])
         else:
@@ -276,7 +284,8 @@ def pc_pyramid(
     logger.info(f'rendering point cloud data coordinates:')
     if x is None and y is None:
         yx_zarr = zarr.open(yx,mode='r')
-        assert yx_zarr.shape[1] == 2
+        if yx_zarr.ndim != 2 or yx_zarr.shape[1] != 2:
+            raise ValueError(f'yx must have shape (n_points, 2), got {yx_zarr.shape}')
         yx = parallel_read_zarr(yx_zarr,(slice(None),slice(0,2)))
     else:
         y_zarr = zarr.open(y,mode='r')
@@ -361,7 +370,8 @@ class _LazyRtree:
 
 def _default_pc_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
-    assert len(kdims) == data_n_kdim
+    if len(kdims) != data_n_kdim:
+        raise ValueError(f'{len(kdims)} indices given for data with {data_n_kdim} index dimensions')
     if len(kdims) == 0:
         return data_zarr[idx_array]
     else:
@@ -370,15 +380,17 @@ def _default_pc_post_proc(data_zarr, idx_array, *kdims):
 
 def _pc_phase_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
-    assert len(kdims) == 1
-    assert data_n_kdim == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
-    assert np.iscomplexobj(data_zarr)
+    if data_n_kdim != 1 or not np.iscomplexobj(data_zarr):
+        raise ValueError(f'phase needs complex data with one index dimension, got {data_zarr.dtype} with {data_n_kdim}')
     return np.angle(data_zarr[idx_array,i])
 
 def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
-    assert len(kdims) == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -386,7 +398,8 @@ def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
         else:
             return data_zarr[idx_array,0]-data_zarr[idx_array,i]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[idx_array,0,i])
         else:
@@ -394,7 +407,8 @@ def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
 
 def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
-    assert len(kdims) == 1
+    if len(kdims) != 1:
+        raise ValueError(f'this show needs one index, got {len(kdims)}')
     i = kdims[0]
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -402,7 +416,8 @@ def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
         else:
             return data_zarr[idx_array,i]-data_zarr[idx_array,i+1]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[idx_array,i,i+1])
         else:
@@ -410,7 +425,8 @@ def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
 
 def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
     data_n_kdim = data_zarr.ndim - 1
-    assert len(kdims) == 2
+    if len(kdims) != 2:
+        raise ValueError(f'this show needs two indices, got {len(kdims)}')
     i,j = kdims
     if data_n_kdim == 1:
         if np.iscomplexobj(data_zarr):
@@ -418,7 +434,8 @@ def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
         else:
             return data_zarr[idx_array,i]-data_zarr[idx_array,j]
     else:
-        assert data_n_kdim == 2
+        if data_n_kdim != 2:
+            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
         if np.iscomplexobj(data_zarr):
             return np.angle(data_zarr[idx_array,i,j])
         else:

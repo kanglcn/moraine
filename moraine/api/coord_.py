@@ -30,12 +30,14 @@ class Coord(object):
     def __init__(self,x0,dx,nx,y0,dy,ny):
         self.x0 = x0
         self.dx = dx
-        assert nx <2**31-1, "nx too big, may cause integer overflow."
+        if nx >= 2**31-1:
+            raise ValueError(f'nx = {nx} is too large for 32 bit indices')
         self.nx = nx
         self.xm = x0+(nx-1)*dx
         self.y0 = y0
         self.dy = dy
-        assert ny <2**31-1, "ny too big, may cause integer overflow."
+        if ny >= 2**31-1:
+            raise ValueError(f'ny = {ny} is too large for 32 bit indices')
         self.ny = ny
         self.ym = y0+(ny-1)*dy
         self.maxlevel = math.floor(math.log2(min(nx,ny)))

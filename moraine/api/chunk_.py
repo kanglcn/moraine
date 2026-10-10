@@ -27,15 +27,16 @@ def fill_slice(
             start = 0
         else:
             start = slice_i.start
-        assert start>=0
-        assert start<shape[i]
+        if not 0 <= start < shape[i]:
+            raise ValueError(f'slice start {start} is outside the shape {shape[i]} of dimension {i}')
         if slice_i.stop is None:
             stop = shape[i]
         else:
             stop = slice_i.stop
-        assert stop > start
-        assert stop <= shape[i]
-        assert (slice_i.step is None) or (slice_i.step == 1)
+        if not start < stop <= shape[i]:
+            raise ValueError(f'slice stop {stop} must be after the start {start} and within the shape {shape[i]} of dimension {i}')
+        if slice_i.step not in (None, 1):
+            raise ValueError('slices with a step are not supported')
         step = 1
         out_slices.append(slice(start,stop,step))
     return tuple(out_slices)

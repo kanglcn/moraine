@@ -399,8 +399,8 @@ def isPD(co:np.ndarray,
     return is_PD
 
 '''
-    The method is presented in [1]. John D'Errico implented it in MATLAB [2] under BSD
-    Licence and [3] implented it with Python/Numpy based on [2] also under BSD Licence.
+    The method is presented in [1]. John D'Errico implemented it in MATLAB [2] under BSD
+    Licence and [3] implemented it with Python/Numpy based on [2] also under BSD Licence.
     This is a cupy implentation with stack of matrix supported.
 
     [1] N.J. Higham, "Computing a nearest symmetric positive semidefinite
@@ -452,7 +452,8 @@ def nearestPD(co:np.ndarray,
             break
         k+=1
         mineig = xp.amin(xp.linalg.eigvalsh(A3),axis=-1)
-        assert xp.isfinite(mineig).all()
+        if not xp.isfinite(mineig).all():
+            raise RuntimeError('non-finite eigenvalues while regularizing the coherence matrices')
         A3 += (~is_pd[...,None,None] * I) * (-mineig * k**2 + spacing)[...,None,None]
     #print(k)
     return A3

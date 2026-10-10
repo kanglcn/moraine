@@ -113,6 +113,19 @@ def _gather_channels(ex, fn, in_paths, out_paths, refs, n_pc, chunks, desc, logg
             tasks.append(([Chunk(path, col(z.shape[0])) for path, z in zip(ins, zs)] + list(refs), [Chunk(out, col(n_pc))]))
     ex.map_chunks(fn, tasks, desc=desc)
 
+def _path_lists(**paths):
+    """the path arguments as lists: every argument one path (a string) or every argument a list of paths of the same length"""
+    kinds = {name: 'list' if isinstance(value, (list, tuple)) else 'path' for name, value in paths.items()}
+    if len(set(kinds.values())) > 1:
+        raise ValueError('give one path or a list of paths for all of ' + ', '.join(paths) + ': '
+                         + ', '.join(f'{name} is a {kind}' for name, kind in kinds.items()))
+    lists = [list(value) if kinds[name] == 'list' else [value] for name, value in paths.items()]
+    if len({len(l) for l in lists}) > 1:
+        raise ValueError(', '.join(paths) + ' must have the same number of paths, got '
+                         + ', '.join(f'{len(l)} for {name}' for name, l in zip(paths, lists)))
+    return lists
+
+
 @mc_logger
 def gix2bool(gix:str,
              is_pc:str,
@@ -137,8 +150,8 @@ def gix2bool(gix:str,
 
     gix_zarr = zarr.open(gix,mode='r')
     logger.zarr_info('gix',gix_zarr)
-    assert gix_zarr.ndim == 2, "gix dimentation is not 2."
-    assert gix_zarr.shape[1] == 2
+    if gix_zarr.ndim != 2 or gix_zarr.shape[1] != 2:
+        raise ValueError(f'gix must have shape (n_points, 2), got {gix_zarr.shape}')
     logger.info('loading gix into memory.')
     gix = zarr.open(gix,mode='r')[:]
 
@@ -215,12 +228,7 @@ def ras2pc(
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
-    if isinstance(ras,str):
-        assert isinstance(pc,str)
-        ras_list = [ras]; pc_list = [pc]
-    else:
-        assert isinstance(ras,list); assert isinstance(pc,list)
-        ras_list = ras; pc_list = pc
+    ras_list, pc_list = _path_lists(ras=ras, pc=pc)
     shape = zarr.open(ras_list[0],mode='r').shape[:2]
     idx_zarr = zarr.open(idx,mode='r'); logger.zarr_info(idx,idx_zarr)
     if chunks is None: chunks = idx_zarr.chunks[0]
@@ -286,7 +294,8 @@ def pc_concat(
             pcs_path = sorted(pcs_path.glob('*.zarr'),key=lambda path: int(path.stem))
         pcs_path = [pcs_path,]
     elif isinstance(pc_path,list):
-        assert isinstance(pcs_path,list)
+        if not isinstance(pcs_path, list):
+            raise ValueError('pcs must be a list of paths when pc is a list of paths')
         pcs_path_ = []
         for one_pcs_path in pcs_path:
             if isinstance(one_pcs_path,str):
@@ -366,12 +375,7 @@ def ras2pc_ras_chunk(
         tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
-    if isinstance(ras,str):
-        assert isinstance(pc,str)
-        ras_list = [ras]; pc_list = [pc]
-    else:
-        assert isinstance(ras,list); assert isinstance(pc,list)
-        ras_list = ras; pc_list = pc
+    ras_list, pc_list = _path_lists(ras=ras, pc=pc)
     ras0_zarr = zarr.open(ras_list[0],mode='r')
     shape = ras0_zarr.shape[:2]
     if chunks is None: chunks = ras0_zarr.chunks[:2]
@@ -449,16 +453,12 @@ def pc2ras(
         gix = idx_zarr[:]
     else:
         logger.info('loading hix into memory and convert to gix')
-        assert shape is not None, "shape not provided for hillbert index input"
+        if shape is None:
+            raise ValueError('shape is needed with a hilbert index input (idx with one column)')
         gix = mr.pc_gix(idx_zarr[:],shape=shape)
     n_pc = gix.shape[0]
     shape = tuple(shape); chunks = tuple(chunks)
-    if isinstance(pc,str):
-        assert isinstance(ras,str)
-        pc_list = [pc]; ras_list = [ras]
-    else:
-        assert isinstance(pc,list); assert isinstance(ras,list)
-        pc_list = pc; ras_list = ras
+    pc_list, ras_list = _path_lists(pc=pc, ras=ras)
     # one task per channel of every point cloud: the values of the points in, the image out
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         gix_ref = ex.put(gix)
@@ -585,12 +585,7 @@ def pc_sort(
     if pc_in is None:
         logger.info('no point cloud data provided, exit.')
         return None
-    if isinstance(pc_in,str):
-        assert isinstance(pc,str)
-        pc_in_list = [pc_in]; pc_list = [pc]
-    else:
-        assert isinstance(pc_in,list); assert isinstance(pc,list)
-        pc_in_list = pc_in; pc_list = pc
+    pc_in_list, pc_list = _path_lists(pc_in=pc_in, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
@@ -657,12 +652,7 @@ def pc_union(
     if pc1 is None:
         logger.info('no point cloud data provided, exit.')
         return None
-    if isinstance(pc1,str):
-        assert isinstance(pc2,str); assert isinstance(pc,str)
-        pc1_list = [pc1]; pc2_list = [pc2]; pc_list = [pc]
-    else:
-        assert isinstance(pc1,list); assert isinstance(pc2,list); assert isinstance(pc,list)
-        pc1_list = pc1; pc2_list = pc2; pc_list = pc
+    pc1_list, pc2_list, pc_list = _path_lists(pc1=pc1, pc2=pc2, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         refs = [ex.put(inv_iidx1), ex.put(inv_iidx2), ex.put(iidx2), n_pc]
         _gather_channels(ex, _pc_union, [[a, b] for a, b in zip(pc1_list, pc2_list)], pc_list, refs, n_pc, chunks, 'channels', logger)
@@ -739,12 +729,7 @@ def pc_intersect(
     else:
         logger.info('select pc2 as pc_input.')
         iidx = iidx2; pc_input = pc2
-    if isinstance(pc_input,str):
-        assert isinstance(pc,str)
-        pc_input_list = [pc_input]; pc_list = [pc]
-    else:
-        assert isinstance(pc_input,list); assert isinstance(pc,list)
-        pc_input_list = pc_input; pc_list = pc
+    pc_input_list, pc_list = _path_lists(pc_input=pc_input, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_input_list], pc_list, [ex.put(iidx)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
@@ -807,12 +792,7 @@ def pc_diff(
     if pc1 is None:
         logger.info('no point cloud data provided, exit.')
         return None
-    if isinstance(pc1,str):
-        assert isinstance(pc,str)
-        pc1_list = [pc1]; pc_list = [pc]
-    else:
-        assert isinstance(pc1,list); assert isinstance(pc,list)
-        pc1_list = pc1; pc_list = pc
+    pc1_list, pc_list = _path_lists(pc1=pc1, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc1_list], pc_list, [ex.put(iidx1)], n_pc, chunks, 'channels', logger)
     logger.info('done.')
@@ -950,12 +930,7 @@ def pc_select_data(
     np.testing.assert_array_equal(iidx,np.arange(iidx.shape[0]),err_msg='idx have points that are not covered by idx_in.')
     n_pc = iidx_in.shape[0]
     if chunks is None: chunks = idx_zarr.chunks[0]
-    if isinstance(pc_in,str):
-        assert isinstance(pc,str)
-        pc_in_list = [pc_in]; pc_list = [pc]
-    else:
-        assert isinstance(pc_in,list); assert isinstance(pc,list)
-        pc_in_list = pc_in; pc_list = pc
+    pc_in_list, pc_list = _path_lists(pc_in=pc_in, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx_in)], n_pc, chunks, 'channels', logger)
     logger.info('done.')

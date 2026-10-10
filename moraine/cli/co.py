@@ -11,7 +11,7 @@ import numpy as np
 import moraine as mr
 from ..api.chunk_ import all_chunk_slices_with_overlap
 from .logging import mc_logger
-from .zarr_ import parallel_read_zarr
+from .zarr_ import parallel_read_zarr, check_ndim
 from .executor import Executor, Chunk, Device
 from .utils_ import mk_clean_dir
 from .pl import _pc_by_ras_chunk, _make_pc_zarr
@@ -69,7 +69,7 @@ def emperical_co_pc(
     if n_looks_dir is not None: n_looks_dir = Path(n_looks_dir); mk_clean_dir(n_looks_dir)
     rslc_zarr = zarr.open(rslc, mode='r')
     logger.zarr_info(rslc, rslc_zarr)
-    assert rslc_zarr.ndim == 3, "rslc dimentation is not 3."
+    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
     nlines, width, nimage = rslc_zarr.shape
     if chunks is None: chunks = rslc_zarr.chunks[:2]
     chunks = tuple(chunks)
@@ -83,7 +83,7 @@ def emperical_co_pc(
     logger.info(f'parallel processing azimuth, range chunk size: {chunks}')
     gix_zarr = zarr.open(gix, mode='r')
     logger.zarr_info(gix, gix_zarr)
-    assert gix_zarr.ndim == 2, "gix dimentation is not 2."
+    check_ndim('gix', gix_zarr, 2, '(n_points, 2)')
     logger.info('loading gix into memory.')
     gix = parallel_read_zarr(gix_zarr, (slice(None), slice(None)))
     logger.info('convert gix to the order of ras chunk')
