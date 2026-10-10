@@ -1,0 +1,1375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://kanglcn.github.io/moraine/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/development/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/development/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/development/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/roadmap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/roadmap/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/roadmap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/viewer/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/viewer/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/viewer/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/agent/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/agent/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/agent/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/calamp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/calamp/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/calamp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/cli/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/cli/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/cli/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/co/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/co/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/co/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/dl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/dl/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/dl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/pc/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pc/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pc/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/pl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pl/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/polygon/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/polygon/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/polygon/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/pqm/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pqm/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pqm/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/ps/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/rtree/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/rtree/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/rtree/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/shp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/shp/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/shp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/tnet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/tnet/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/tnet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/unwrap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/api/utils/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/utils/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/utils/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/builtin/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/builtin/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/builtin/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/co/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/co/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/co/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/dl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/dl/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/dl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/load/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/math/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/math/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/math/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/pc/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pc/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pc/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/pl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pl/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/plot/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/plot/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/plot/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/polygon/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/polygon/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/polygon/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/pqm/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pqm/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pqm/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/ps/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/pu/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pu/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pu/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/shp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/shp/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/shp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/tnet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/tnet/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/tnet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/cli/transform/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/transform/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/transform/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/contracts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/contracts/data/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/data/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/data/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/contracts/json-output/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/json-output/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/json-output/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/contracts/pipeline-file/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/pipeline-file/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/pipeline-file/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/contracts/pyramid/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/pyramid/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/pyramid/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0001-record-decisions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0001-record-decisions/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0001-record-decisions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0002-pytorch-for-deep-learning/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0002-pytorch-for-deep-learning/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0002-pytorch-for-deep-learning/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0003-plain-python-no-nbdev/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0003-plain-python-no-nbdev/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0003-plain-python-no-nbdev/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0004-no-docs-website/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0004-no-docs-website/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0004-no-docs-website/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0005-cli-generated-from-docstrings/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0005-cli-generated-from-docstrings/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0005-cli-generated-from-docstrings/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0006-toml-pipelines/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0006-toml-pipelines/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0006-toml-pipelines/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0007-visualization-through-pyramids/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0007-visualization-through-pyramids/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0007-visualization-through-pyramids/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0008-tool-independent-agent-docs/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0008-tool-independent-agent-docs/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0008-tool-independent-agent-docs/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0009-verified-examples/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0009-verified-examples/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0009-verified-examples/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0010-versioned-contracts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0010-versioned-contracts/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0010-versioned-contracts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0011-architecture-map/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0011-architecture-map/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0011-architecture-map/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0012-network-emcf-inversion/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0012-network-emcf-inversion/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0012-network-emcf-inversion/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0013-own-delaunay-and-mcf/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0013-own-delaunay-and-mcf/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0013-own-delaunay-and-mcf/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0014-interactive-views-as-notebooks/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0014-interactive-views-as-notebooks/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0014-interactive-views-as-notebooks/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0015-api-package/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0015-api-package/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0015-api-package/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0016-tile-viewer-anywidget-leaflet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0016-tile-viewer-anywidget-leaflet/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0016-tile-viewer-anywidget-leaflet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0017-polygons-as-geojson/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0017-polygons-as-geojson/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0017-polygons-as-geojson/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0018-one-viewer/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0018-one-viewer/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0018-one-viewer/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0019-chunks-space-blocks-one-image/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0019-chunks-space-blocks-one-image/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0019-chunks-space-blocks-one-image/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0020-emcf-any-image-pair-network/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0020-emcf-any-image-pair-network/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0020-emcf-any-image-pair-network/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0021-closure-correction-by-regions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0021-closure-correction-by-regions/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0021-closure-correction-by-regions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0022-closure-correction-outputs-phase-time-series/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0022-closure-correction-outputs-phase-time-series/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0022-closure-correction-outputs-phase-time-series/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0023-emi-adaptive-regularization/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0023-emi-adaptive-regularization/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0023-emi-adaptive-regularization/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0024-weighted-ds-temporal-coherence/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0024-weighted-ds-temporal-coherence/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0024-weighted-ds-temporal-coherence/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0025-oversampling-from-speckle-correlation/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0025-oversampling-from-speckle-correlation/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0025-oversampling-from-speckle-correlation/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0026-emi-regularized-by-default/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0026-emi-regularized-by-default/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0026-emi-regularized-by-default/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0027-small-ds-quality-interface/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0027-small-ds-quality-interface/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0027-small-ds-quality-interface/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0028-ds-selection-by-connected-image-pairs/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0028-ds-selection-by-connected-image-pairs/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0028-ds-selection-by-connected-image-pairs/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0029-numba-cache-by-source-hash/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0029-numba-cache-by-source-hash/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0029-numba-cache-by-source-hash/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0030-gpu-kernels-in-numba-cuda/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0030-gpu-kernels-in-numba-cuda/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0030-gpu-kernels-in-numba-cuda/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0031-gpu-emi-kernel/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0031-gpu-emi-kernel/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0031-gpu-emi-kernel/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0032-window-arrays-whole-window-per-chunk/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0032-window-arrays-whole-window-per-chunk/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0032-window-arrays-whole-window-per-chunk/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0033-executor-for-commands/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0033-executor-for-commands/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0033-executor-for-commands/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0034-own-workers-no-dask/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0034-own-workers-no-dask/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0034-own-workers-no-dask/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0035-pyramid-levels-and-statistics/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0035-pyramid-levels-and-statistics/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0035-pyramid-levels-and-statistics/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0036-3d-views-over-terrain/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0036-3d-views-over-terrain/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0036-3d-views-over-terrain/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0037-manual-website-generated/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0037-manual-website-generated/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0037-manual-website-generated/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/decisions/0038-sample-data-campi-flegrei/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0038-sample-data-campi-flegrei/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0038-sample-data-campi-flegrei/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/dev/agents/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/agents/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/agents/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/dev/architecture/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/architecture/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/dev/changelog/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/changelog/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/start/checking/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/checking/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/checking/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/start/concepts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/concepts/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/concepts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/start/install/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/install/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/install/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/01_load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/01_load/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/01_load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/02_ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/02_ps/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/02_ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/03_ds/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/03_ds/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/03_ds/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/04_refine/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/04_refine/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/04_refine/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/05_unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/05_unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/05_unwrap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/01_load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/01_load/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/01_load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/02_ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/02_ps/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/02_ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/03_ds/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/03_ds/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/03_ds/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/04_refine/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/04_refine/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/04_refine/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/workflows/05_unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/05_unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/05_unwrap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/development/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/development/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/development/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/roadmap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/roadmap/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/roadmap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/viewer/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/viewer/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/viewer/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/agent/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/agent/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/agent/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/calamp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/calamp/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/calamp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/cli/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/cli/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/cli/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/co/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/co/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/co/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/dl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/dl/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/dl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/pc/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pc/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pc/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/pl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pl/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/polygon/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/polygon/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/polygon/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/pqm/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/pqm/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/pqm/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/ps/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/rtree/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/rtree/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/rtree/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/shp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/shp/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/shp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/tnet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/tnet/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/tnet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/unwrap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/api/utils/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/api/utils/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/api/utils/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/builtin/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/builtin/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/builtin/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/co/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/co/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/co/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/dl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/dl/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/dl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/load/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/math/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/math/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/math/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/pc/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pc/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pc/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/pl/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pl/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pl/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/plot/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/plot/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/plot/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/polygon/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/polygon/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/polygon/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/pqm/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pqm/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pqm/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/ps/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/pu/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/pu/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/pu/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/shp/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/shp/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/shp/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/tnet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/tnet/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/tnet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/cli/transform/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/cli/transform/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/cli/transform/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/contracts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/contracts/data/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/data/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/data/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/contracts/json-output/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/json-output/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/json-output/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/contracts/pipeline-file/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/pipeline-file/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/pipeline-file/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/contracts/pyramid/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/contracts/pyramid/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/contracts/pyramid/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0001-record-decisions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0001-record-decisions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0001-record-decisions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0002-pytorch-for-deep-learning/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0002-pytorch-for-deep-learning/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0002-pytorch-for-deep-learning/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0003-plain-python-no-nbdev/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0003-plain-python-no-nbdev/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0003-plain-python-no-nbdev/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0004-no-docs-website/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0004-no-docs-website/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0004-no-docs-website/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0005-cli-generated-from-docstrings/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0005-cli-generated-from-docstrings/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0005-cli-generated-from-docstrings/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0006-toml-pipelines/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0006-toml-pipelines/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0006-toml-pipelines/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0007-visualization-through-pyramids/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0007-visualization-through-pyramids/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0007-visualization-through-pyramids/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0008-tool-independent-agent-docs/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0008-tool-independent-agent-docs/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0008-tool-independent-agent-docs/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0009-verified-examples/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0009-verified-examples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0009-verified-examples/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0010-versioned-contracts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0010-versioned-contracts/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0010-versioned-contracts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0011-architecture-map/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0011-architecture-map/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0011-architecture-map/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0012-network-emcf-inversion/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0012-network-emcf-inversion/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0012-network-emcf-inversion/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0013-own-delaunay-and-mcf/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0013-own-delaunay-and-mcf/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0013-own-delaunay-and-mcf/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0014-interactive-views-as-notebooks/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0014-interactive-views-as-notebooks/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0014-interactive-views-as-notebooks/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0015-api-package/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0015-api-package/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0015-api-package/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0016-tile-viewer-anywidget-leaflet/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0016-tile-viewer-anywidget-leaflet/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0016-tile-viewer-anywidget-leaflet/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0017-polygons-as-geojson/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0017-polygons-as-geojson/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0017-polygons-as-geojson/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0018-one-viewer/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0018-one-viewer/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0018-one-viewer/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0019-chunks-space-blocks-one-image/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0019-chunks-space-blocks-one-image/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0019-chunks-space-blocks-one-image/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0020-emcf-any-image-pair-network/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0020-emcf-any-image-pair-network/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0020-emcf-any-image-pair-network/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0021-closure-correction-by-regions/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0021-closure-correction-by-regions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0021-closure-correction-by-regions/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0022-closure-correction-outputs-phase-time-series/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0022-closure-correction-outputs-phase-time-series/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0022-closure-correction-outputs-phase-time-series/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0023-emi-adaptive-regularization/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0023-emi-adaptive-regularization/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0023-emi-adaptive-regularization/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0024-weighted-ds-temporal-coherence/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0024-weighted-ds-temporal-coherence/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0024-weighted-ds-temporal-coherence/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0025-oversampling-from-speckle-correlation/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0025-oversampling-from-speckle-correlation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0025-oversampling-from-speckle-correlation/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0026-emi-regularized-by-default/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0026-emi-regularized-by-default/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0026-emi-regularized-by-default/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0027-small-ds-quality-interface/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0027-small-ds-quality-interface/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0027-small-ds-quality-interface/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0028-ds-selection-by-connected-image-pairs/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0028-ds-selection-by-connected-image-pairs/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0028-ds-selection-by-connected-image-pairs/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0029-numba-cache-by-source-hash/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0029-numba-cache-by-source-hash/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0029-numba-cache-by-source-hash/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0030-gpu-kernels-in-numba-cuda/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0030-gpu-kernels-in-numba-cuda/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0030-gpu-kernels-in-numba-cuda/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0031-gpu-emi-kernel/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0031-gpu-emi-kernel/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0031-gpu-emi-kernel/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0032-window-arrays-whole-window-per-chunk/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0032-window-arrays-whole-window-per-chunk/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0032-window-arrays-whole-window-per-chunk/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0033-executor-for-commands/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0033-executor-for-commands/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0033-executor-for-commands/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0034-own-workers-no-dask/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0034-own-workers-no-dask/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0034-own-workers-no-dask/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0035-pyramid-levels-and-statistics/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0035-pyramid-levels-and-statistics/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0035-pyramid-levels-and-statistics/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0036-3d-views-over-terrain/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0036-3d-views-over-terrain/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0036-3d-views-over-terrain/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0037-manual-website-generated/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0037-manual-website-generated/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0037-manual-website-generated/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/decisions/0038-sample-data-campi-flegrei/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/decisions/0038-sample-data-campi-flegrei/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/decisions/0038-sample-data-campi-flegrei/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/dev/agents/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/agents/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/agents/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/dev/architecture/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/architecture/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/dev/changelog/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/dev/changelog/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/dev/changelog/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/start/checking/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/checking/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/checking/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/start/concepts/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/concepts/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/concepts/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/start/install/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/start/install/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/start/install/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/01_load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/01_load/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/01_load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/02_ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/02_ps/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/02_ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/03_ds/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/03_ds/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/03_ds/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/04_refine/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/04_refine/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/04_refine/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/05_unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/tutorials/CampiFlegrei/05_unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/tutorials/CampiFlegrei/05_unwrap/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/01_load/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/01_load/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/01_load/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/02_ps/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/02_ps/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/02_ps/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/03_ds/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/03_ds/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/03_ds/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/04_refine/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/04_refine/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/04_refine/"/>
+    </url>
+    <url>
+        <loc>https://kanglcn.github.io/moraine/zh/workflows/05_unwrap/</loc>
+        <lastmod>2026-10-10</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="zh" href="https://kanglcn.github.io/moraine/zh/workflows/05_unwrap/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://kanglcn.github.io/moraine/workflows/05_unwrap/"/>
+    </url>
+</urlset>

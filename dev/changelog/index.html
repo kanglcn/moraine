@@ -1,0 +1,3816 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Modern Radar Interferometry Environment. InSAR post-processing for the big data era, driven by a command line that AI agents speak.">
+      
+      
+      
+        <link rel="canonical" href="https://kanglcn.github.io/moraine/dev/changelog/">
+      
+      
+        <link rel="prev" href="../../roadmap/">
+      
+      
+        <link rel="next" href="../agents/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../zh/dev/changelog/" hreflang="zh">
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Changelog - moraine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_markdown_exec_pyodide.css">
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../assets/css/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#release-notes" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="moraine" class="md-header__button md-logo" aria-label="moraine" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            moraine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../zh/dev/changelog/" hreflang="zh" class="md-select__link">
+              中文
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/kanglcn/moraine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kanglcn/moraine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../start/install/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Start
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../workflows/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Workflows
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../cli/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Command line
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../api/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Python API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Development
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="moraine" class="md-nav__button md-logo" aria-label="moraine" data-md-component="logo">
+      
+  <img src="../../assets/logo.svg" alt="logo">
+
+    </a>
+    moraine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/kanglcn/moraine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kanglcn/moraine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../agent/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Start
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start/concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../start/checking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../workflows/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workflows
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Workflows
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/01_load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 Load GAMMA results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/02_ps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 PS candidates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/03_ds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 DS processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/04_refine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 Merge and refine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../workflows/05_unwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 Phase unwrapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contracts/pipeline-file/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../cli/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Command line
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/builtin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Built-in commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    load
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/transform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    transform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/tnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tnet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    math
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/polygon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    polygon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/pc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/ps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/shp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    shp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/co/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    co
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/pl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/dl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/pqm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pqm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/pu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli/plot/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    plot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contracts/json-output/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON output
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python API
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Python API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/calamp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    calamp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/rtree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    rtree
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/tnet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tnet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/polygon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    polygon
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/ps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/shp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    shp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/co/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    co
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/dl/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dl
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/pqm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pqm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/unwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unwrap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    moraine.cli in python
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../tutorials/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/CampiFlegrei/01_load/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 Load data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/CampiFlegrei/02_ps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 PS processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/CampiFlegrei/03_ds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 DS processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/CampiFlegrei/04_refine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 Pixel refinement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/CampiFlegrei/05_unwrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 Phase unwrapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../decisions/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developing moraine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../contracts/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contracts
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7_4" id="__nav_7_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contracts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contracts/data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data conventions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contracts/pyramid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pyramids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.10.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#085" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#084" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#083" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#082" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.8.2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bugs-squashed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bugs Squashed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#description-of-the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Description of the problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minimal-complete-verifiable-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal Complete Verifiable Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-error-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full error message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System information
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#are-you-willing-to-help-fix-this-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Are you willing to help fix this bug?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#081" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.6
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#065" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#062" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#042" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent instructions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unreleased" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.10.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#090" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.9.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#085" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#084" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#083" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#082" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.8.2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bugs-squashed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bugs Squashed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#description-of-the-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Description of the problem
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minimal-complete-verifiable-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal Complete Verifiable Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-error-message" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full error message
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System information
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#are-you-willing-to-help-fix-this-bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Are you willing to help fix this bug?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#081" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#080" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.8.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.7.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.6
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#065" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.5
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#062" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.6.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#051" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#042" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.4.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#032" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#031" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#030" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.3.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#004" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.4
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#003" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.3
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#002" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.2
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#001" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.0.1
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<!-- CHANGELOG.md of the repository, included as a snippet -->
+<h1 id="release-notes">Release notes<a class="headerlink" href="#release-notes" title="Permanent link">&para;</a></h1>
+<!-- do not remove -->
+
+<h2 id="unreleased">Unreleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<p>The manual is back, at https://kanglcn.github.io/moraine/ (decision 0037, superseding 0004): a MkDocs Material website in English and Chinese built by <code>mkdocs build --strict</code> from the docstrings (Python API reference, one page per <code>moraine.api</code> module with examples that run at build time), the command registry (command line reference, one page per <code>moraine.cli</code> module with the argument tables of <code>--help</code> and the steps of <code>examples/*.toml</code> that use each command), the markdown of <code>docs/</code> (workflows, contracts, decisions, development, roadmap), the Campi Flegrei tutorial notebooks (text and code) and a recorded session of an AI agent processing the Campi Flegrei data set. <code>pip install -e '.[docs]'</code> installs the tools (new optional dependency group <code>docs</code>); the CI builds the site on every push and deploys <code>main</code> to the <code>gh-pages</code> branch</p>
+<p>The sample data set of the examples and the workflow guides is Campi Flegrei (decision 0038, superseding the data set of 0009): the <code>[vars]</code> defaults of <code>examples/*.toml</code> (reference 20200707, geocoding prefix 20200707, shape 981 x 4160, pixel spacings 2.329562 m and 13.9516 m) and the expected results, run times and figures of <code>docs/workflows/</code> come from a run of the five pipelines on it (2026-10-08); the tests keep using <code>data/gamma</code></p>
+<p>The 04 example merges the DS before the PS candidates (<code>pc-union</code> keeps the data of its first input for a point in both): a point that is a DS and a PS candidate now goes into the refinement with its phase linked history instead of the raw phase of its pixel. On the sample data 29 % of the DS are PS candidates too; with the raw phase 10 % of them passed the n2ft refinement, with the linked phase 91 % (Campi Flegrei: 23 % of the DS, 1 % -&gt; 99.9 %), so the refined points are 477 440 instead of 352 482 (Campi Flegrei 241 064 instead of 223 847) with the same share of good points among the others. The tutorials of Campi Flegrei and Xinpu merge in the same order</p>
+<p>The 03 example selects the DS with a weighted temporal coherence of at least 0.85 instead of 0.9 (<code>t_coh_w_min</code>): measured against the n2ft refinement, the quality of the DS rises with the weighted temporal coherence all the way to 1 (sample data: 69 % of the points between 0.85 and 0.9 pass the refinement, 83 % between 0.9 and 0.95, 87 % above), so the lower threshold adds points of a quality the refinement sorts out; the refined points of the sample data are 549 341 instead of 477 440. <code>alpha</code> of <code>shp-test</code> stays 0.05: a larger value loses points without a cleaner phase history (0.2: 82 % instead of 88 % pass the refinement). With about 90 images the SHP window should be larger: the Campi Flegrei tutorial uses <code>az_half_win = 3</code>, <code>r_half_win = 13</code> (7 x 27 pixels, about 100 m x 60 m on the ground) with at least 80 SHPs, which doubles the DS at the same quality (167 007 instead of 77 295 with <code>t_coh_w_min</code> 0.85)</p>
+<p><code>moraine.cli.view(..., terrain=True)</code> shows web mercator layers in 3D over the terrain in a notebook (decision 0036): the layers and the satellite base map are draped over the terrain of public elevation tiles (AWS Terrain Tiles, heights of about 30 m up to zoom level 15, fetched by the browser like the base map, no key), the right mouse button (or ctrl + drag) tilts and rotates the view, which zooms two levels further than the 2D map, the cursor shows the height of the terrain with the values, and the clicked point, the reference and the polygons are shown on the terrain (polygons are drawn on 2D maps). Another service of Terrarium encoded tiles can be given as a URL template; beyond its last zoom level the terrain of a tile is interpolated from its parent tile, so that the meshes and the textures draped over them follow the zoom of the view. The base map of the 3D views is Esri's satellite imagery: its tiles may be read by the GPU, which CARTO and OpenStreetMap refuse. <code>moraine view --terrain</code> writes notebooks of such maps. The 3D view loads deck.gl from the jsdelivr CDN, for 3D views only; the 2D maps are unchanged and <code>.png</code> stays the 2D image</p>
+<p>The 04 example keeps, for the refined points, their longitude, latitude and temporal coherence (<code>pc/pc_lon</code>, <code>pc_lat</code>, <code>pc_temp_coh</code>) and takes their height, look vector and slant range from the rasters of 01 (<code>pc/pc_hgt</code>, <code>pc_theta</code>, <code>pc_phi</code>, <code>pc_range</code>, new step <code>geometry</code>): the inputs of the deformation products</p>
+<h2 id="0100">0.10.0<a class="headerlink" href="#0100" title="Permanent link">&para;</a></h2>
+<p><code>ras-pyramid</code> and <code>pc-pyramid</code> have a <code>method</code>: the levels of a pyramid are the mean of the blocks of the data (<code>method = "mean"</code>: nan left out, complex data averaged as complex numbers, integer and boolean data as float32 levels) or, as before and by default, every 2nd pixel (<code>decimate</code>) / the first point of each block (<code>first</code>). The mean is a multilook, so the whole scene of a mean pyramid shows the fringes of a phase history or of filtered interferograms and the smooth values of coherences, counts and unwrapped phases, where a decimated one shows speckle. It is right for real values and for phases relative to a reference image, not for the SLC pixels of an rslc stack (the scatterer phases of neighbouring pixels differ), so the rslc pyramid stays decimated while the other pyramids of the example pipelines are made with <code>method = "mean"</code>, and the 02 example builds a mean pyramid of the n2f interferograms to check the fringes of the whole scene (decision 0035). The marker of a pyramid records the <code>method</code>, <code>moraine info</code> reports it. Bug fixed on the way: the cells without points of the pyramid of an integer point cloud (e.g. <code>n_components</code>) held 0 instead of nan and were drawn as the value 0; the cells of integer and boolean point clouds are float32 now, nan where empty</p>
+<p><code>ras-pyramid</code> reads the raster in bands of <code>rows</code> lines (a power of 2, default 1024) instead of a whole channel per process, so that its memory is bounded for any raster size: a process needs about 1 GB plus 3 x rows x width x itemsize bytes (an 8000 x 8000 complex64 raster: 1.4 GB with the default, 2.9 GB for a whole channel before). The pyramid is the same bit for bit</p>
+<p><code>ras-pyramid</code> and <code>pc-pyramid</code> compute the statistics of all the data while they build the pyramid and store them in it (the marker of <code>0.zarr</code>, and per image or channel in <code>stats.zarr</code>): <code>moraine info</code> and the colour range of <code>moraine.cli.view</code> are exact (nan fraction, minimum, maximum, mean and standard deviation of all the values, percentiles of a regular sample of 8 million values) and instant instead of being computed from a coarse level at every call (0.3 s for the Campi Flegrei rslc pyramid); <code>info</code> also names the images of a stack that are all nan or constant. The statistics of pyramids made before still come from a coarse level
+The probes of the maps of <code>moraine.cli.view</code> (the values under the cursor, the clicked pixel or point) give what is drawn at the zoom shown: for rasters the value of the cell of the pyramid level on screen (before: the full resolution pixel under the cursor, which is not what the colour shows at coarse levels), for point clouds the point of that cell and its value (before: the nearest point within 4 screen pixels, found with a bounding box tree built from all coordinates at the first probe; the tree is now used only where the points are drawn one by one)</p>
+<p><code>pc-pyramid</code> saves the bounding box tree of the points (<code>rtree.zarr</code>) and the views read it: the first zoom to single points, or the first probe of a point, no longer builds the tree from all coordinates (0.2 s per million points, several seconds more when the numba cache is cold). Pyramids made before get the tree built as before
+The maps of <code>moraine.cli.view</code> take the width of the notebook (at most 700 pixels high) with the aspect of the scene instead of a fixed 900 x 700 frame, <code>view(..., size=(width, height))</code> sets their size, and the lower right corner of a map can be dragged to resize it. Zooming is continuous: the scene fills the map at the start (before, the zoom was a power of 2 and the scene took 50 - 100 % of the frame)</p>
+<p>Changing the image of a stack with a slider of <code>moraine.cli.view</code> no longer blanks the map until the new tiles arrive: the new tiles are drawn over the old ones, which stay until all are in; and only the layers that depend on the moved slider are redrawn (an amplitude background under a stack, or a point cloud without that slider, is not requested again)
+The tiles of <code>moraine.cli.view</code> are sent to the browser as 8 bit palette PNGs (255 colours and a transparent index) instead of RGBA PNGs: a 256 x 256 tile of an interferogram is 66 instead of 206 kB and is encoded in 1.5 instead of 8.9 ms (Campi Flegrei rslc pyramid, one of about 15 tiles on screen), so panning and changing the image are faster over a slow connection. The colours have 255 instead of 256 levels (a change of at most one level); <code>render</code> of a layer gives the palette indices (uint8) instead of RGBA, <code>colorize</code> is unchanged. nan values stay transparent when the colour limits are equal
+Wrong arguments are reported with the argument, the expected shape and the actual one (<code>rslc must have 3 dimensions (nlines, width, nimages), got shape (4, 5)</code>, <code>give one path or a list of paths for all of ras, pc: ras is a list, pc is a path</code>, <code>idx must be sorted and unique</code>, ...) instead of a bare <code>AssertionError</code>; the checks run with <code>python -O</code> too, which drops asserts. The commands check their inputs before they create outputs. Spelling in messages and help texts fixed (<code>dimentation</code>, <code>hypothetic test</code>, <code>implented</code>, <code>Homogenious</code>)</p>
+<p><code>bool2gix</code> wrote the grid index as a bool array (every index 1): it writes the integer index now; the command has a test</p>
+<p>The help of a list argument that is not a list of paths shows <code>STR</code> instead of <code>PATH</code> (<code>emcf-pc --dates STR [STR ...]</code>)</p>
+<p><code>n2f</code> runs its network in half precision (float16) on the GPU (the command with <code>cuda</code>, the API with a cupy input), weights and activations in the channels last layout of the tensor core kernels; the output is normalized again in float32, so the amplitude stays 1. An A100 filters a (1000, 1000) processing chunk in 12 instead of 21 ms, the activations take half the memory; the <code>n2f</code> command on Campi Flegrei (981 x 4160 pixels, 91 image pairs) takes 18 instead of 22 s from the start of the workers to the end (the rest reads the rslc and writes the interferograms), the <code>n2f</code> step of the 02 pipeline 18 instead of 21 s on Campi Flegrei and 9.3 instead of 9.6 s on the sample data, where the step is mostly its fixed costs. With the same input the phases differ from the TF32 convolutions used before by 4e-4 rad for the typical pixel, by 3e-3 rad (Campi Flegrei) to 8e-3 rad (sample data) for 99 % of the pixels and up to 0.3 rad (3 rad on the sample data) at single pixels of noise; the TF32 model was itself off strict float32 by 1.6e-3 and 3.4e-3 rad for 99 % of the pixels. The PS candidates of the 02 pipeline change by about 0.1 %: on Campi Flegrei 587 of 530 000 candidates of the temporal coherence are lost and 574 gained, the same order as between two runs of the same code (526 and 537), which give a random phase to the pixels without data. The CPU keeps float32, <code>n2fs3d</code> keeps float32 (TF32 on the GPU)</p>
+<p>The worker processes of the commands (the GPU workers, and the CPU workers with <code>processes</code>) read the chunks of the next task while a task runs: the main process sends one task more than a worker runs at a time, and the worker reads its inputs before handing it to the task threads. A worker holds the inputs of one task more. The steps bound by reading gain the overlap: <code>shp-test</code> on Campi Flegrei 11.1 instead of 12.6 s, <code>temp-coh</code> on the GPU 11.1 instead of 12.0 s; steps bound by computing (the phase linking) or by reading alone (<code>amp-disp</code>) do not change; identical results. The GPU workers keep one task at a time: numba loads a kernel wrongly when two threads launch it for the first time at once</p>
+<p>A number given to a command as text that is not one, e.g. an empty <code>--var NAME=</code> substituted into a pipeline step, is reported as such when the arguments are read (<code>mcf-pc: argument range_pixel_spacing = '' is not a number</code>) instead of failing inside the command with <code>could not convert string to float</code></p>
+<p><code>temp-coh</code> (command and API) checks that the interferograms and the rslc have the same points or pixels and that the image pairs fit them, and names the likely cause (<code>intf</code> and <code>rslc</code> swapped); before, swapped inputs indexed outside the arrays and the GPU reported an illegal address</p>
+<p><code>load-gamma-flatten-rslc</code> failed with a numba typing error since the commands run their tasks through the executor: the numba decorator had moved from the flattening loop to the task that reads the GAMMA files and writes the zarr</p>
+<p>The point cloud commands (<code>ras2pc</code>, <code>ras2pc-ras-chunk</code>, <code>pc2ras</code>, <code>pc-concat</code>, <code>pc-sort</code>, <code>pc-union</code>, <code>pc-intersect</code>, <code>pc-diff</code>, <code>pc-select-data</code>, <code>data-reduce</code>) run 4 threads by default instead of 1: their tasks are a few zarr chunk operations per channel, each a round trip to zarr's event loop of about 5 ms, and the threads overlap them. Campi Flegrei commands: <code>pc-union</code> 4 instead of 17 s, <code>pc-select-data</code> 3 instead of 11 s, <code>ras2pc</code> 4 instead of 15 s, <code>pc-concat</code> 5 instead of 13 s (wall time, the old numbers with a cold file cache); the same results. <code>threads_per_worker</code> still sets it</p>
+<p><code>shp-test</code> selects the SHPs in the same pass as the test: its outputs are now <code>is_shp</code> and <code>shp_num</code> (with <code>alpha</code>, default 0.05), what <code>select-shp</code> computes from the p values, and the p values are an optional output <code>pvalue</code> after the window sizes in the argument order (<code>shp_test(rslc, is_shp, shp_num, az_half_win, r_half_win, alpha=0.05, pvalue=None, ...)</code>). The 03 example no longer writes the p values (2 GB for the sample data) nor runs <code>select-shp</code>, which stays for p values kept with <code>pvalue</code>. <code>shp_test</code> + <code>select_shp</code> of the 03 pipeline: 13 instead of 31 s on the sample data, 20 instead of 29 s on Campi Flegrei (A100); the same SHPs</p>
+<p>The window arrays of the SHP test (<code>shp-test</code> p values, <code>select-shp</code> SHP flags, both <code>(nlines, width, az_win, r_win)</code>, and the point windows of <code>ras2pc-ras-chunk</code>, <code>(n_points, az_win, r_win)</code>) are chunked with the whole window of a pixel in one chunk instead of one window cell per chunk (decision 0032): every block was written and read through 121 chunk operations for an 11 x 11 window. Campi Flegrei (981 x 4160 pixels, 92 images): <code>select-shp</code> 8.5 instead of 19 s, <code>ras2pc-ras-chunk</code> of the SHP flags 2.2 instead of 4.6 s; sample data (2500 x 1834, 17 images): 12 instead of 10 s and 3.4 instead of 9.3 s (a block of p values is now one 484 MB chunk, decompressed by one thread). The values are the same, arrays with the old chunks are still read, and <code>pc-concat</code> keeps the layout of its input</p>
+<p>The example pipelines run <code>amp-disp</code> and <code>temp-coh</code> on the CPU (<code>cuda = false</code> in their steps): the commands read the stack once and reduce it, and starting a GPU worker costs more than the GPU saves (Campi Flegrei, 981 x 4160 x 92: the <code>amp-disp</code> command takes 7 instead of 15 s, <code>temp-coh</code> 9 instead of 16 s; the results differ by 1e-6). The GPU versions stay</p>
+<p>rmm is no longer used (decision 0034): the GPU workers allocate through cupy's own memory pool and torch through its own caching allocator, nothing is reserved; the commands lose <code>rmm_pool_size</code> (pipeline files that set it fail with an unknown argument; the <code>rmm_pool_size</code> of <code>n2ft</code> described below is gone with it). On Campi Flegrei (A100) every step takes the same time with and without the rmm pool, and <code>n2ft --compile</code> tunes its kernels in every case. (<code>n2f</code> without a pool had torch allocating through rmm's plain cudaMalloc / cudaFree, 3 times slower: 72 instead of 23 s.) A worker process of a command that dies without reporting (killed, a crash in a kernel, a script without the <code>if __name__ == '__main__'</code> guard that <code>spawn</code> needs) is an error naming the worker and its exit code; before, the command waited for it without end</p>
+<p>dask is no longer a dependency (decision 0034): the commands run their tasks with moraine's own workers, threads of the command's process (CPU) or processes started with <code>spawn</code>, one per GPU of <code>CUDA_VISIBLE_DEVICES</code> (<code>cuda</code>), allocating from cupy's memory pool. dask-cuda is no longer needed for the GPU; <code>psutil</code> is a dependency of its own. Breaking: the commands lose <code>**dask_cluster_arg</code>, so pipeline files with dask options in <code>[step.kw]</code> (e.g. <code>memory_limit</code>) fail with "unknown worker arguments"; <code>moraine.cli.dask_from_zarr</code>, <code>dask_from_zarr_overlap</code> and <code>dask_to_zarr</code> are removed and the zarr helpers (<code>parallel_read_zarr</code>, <code>parallel_write_zarr</code>, <code>ZarrDir</code>) live in <code>moraine.cli.zarr_</code>. A GPU command starts its workers in 2 to 3 s instead of 4 to 7 s and stops them at once; the pipelines 02 to 05 of Campi Flegrei on one A100 take 155 instead of 178 s (<code>amp-disp</code> 6 instead of 11 s, <code>shp-test</code> 16 instead of 20, the fused DS step 21 instead of 25, <code>pc-union</code> 4 instead of 7)</p>
+<p>The commands run their work through <code>moraine.cli.executor</code> (decision 0033): a task is a plain function on chunks of zarr arrays (<code>Chunk</code>, <code>chunk_task</code>), run by an <code>Executor</code> in threads, processes or one process per GPU, instead of a dask array graph built by hand in every command. The results are the same (checked bit for bit on a crop of the sample data and on Campi Flegrei); the progress is logged at every tenth of the tasks instead of a progress bar, and the steps are faster without the graph (Campi Flegrei on one A100: 03_ds 109 -&gt; 71 s, phase linking 51 -&gt; 25 s). Output chunks are the chunk size given, no longer clipped to the array shape (e.g. (1000, 1000) instead of (981, 1000) for a raster of 981 lines). <code>math</code> writes the dtype of its expression (before: always float64, which dropped the imaginary part of complex results); <code>temp-coh</code> accepts an integer chunk size for point clouds (it failed before). <code>moraine.cli.dask_from_zarr</code>, <code>dask_from_zarr_overlap</code> and <code>dask_to_zarr</code> are no longer used by the commands</p>
+<p><code>pc-pyramid</code> and <code>ras-pyramid</code> render the channels in 8 forked processes (<code>n_workers</code>) instead of a dask cluster of one worker with 2 threads: the work per channel is Python code that threads cannot share, and the cluster took longer to start than the rendering. Campi Flegrei on an A100 node: the pyramid of 223 890 points x 92 images takes 6 instead of 25 s, of the 981 x 4160 x 92 rslc 8 instead of 28 s, of one 981 x 4160 raster 4 instead of 9 s; the pyramids are identical. The arguments <code>processes</code>, <code>threads_per_worker</code> and the dask cluster arguments of the two commands are gone: remove them from pipeline files that set them</p>
+<p>The batch norm layers of the loaded <code>n2f</code> and <code>n2fs3d</code> models are folded into their convolutions (<code>fold_batch_norms</code> of the UNet): the model runs 17 % faster on an A100 (981 x 4160 pixels: 86 instead of 104 ms per interferogram); the results change by rounding (float32 up to 3e-5, typically 2e-4 rad with the TF32 convolutions of the GPU)</p>
+<p><code>n2f</code> (command) filters one output chunk of the raster with all image pairs per task instead of one image pair of the whole raster: the rslc of a processing chunk is read once for all pairs, the output chunk is written once, and the filtered interferograms stay on the GPU until the chunk is done. On 981 x 4160 Campi Flegrei pixels with 91 image pairs the computing takes 19 instead of 29 s on an A100 (command 31 instead of 39 s); the results are the same up to rounding and the random phase given to pixels without data. The processing chunks (<code>chunks</code>, with <code>depths</code> of overlap) are cut at the output chunks (<code>out_chunks</code>); a task holds the rslc of one processing chunk for all images and the filtered output chunk (8 bytes per pixel and image / image pair), on the GPU with <code>cuda</code></p>
+<p><code>n2ft --compile</code> failed in the GPU workers when torch.compile tuned its kernels for the first time on a machine (<code>CUDAPluggableAllocator does not yet support getDeviceStats</code>): torch allocated from the rmm pool, which has no memory statistics. The command no longer makes an rmm pool by default (<code>rmm_pool_size=None</code>, the model allocates with torch); with a pool, the compiled model runs without the kernel tuning (about 2 times slower)</p>
+<p>A model call of <code>n2ft</code> (API and command) filters as many interferograms of a processing chunk as a fifth of the GPU memory holds (about 8 kB per point and interferogram; 200 000 point-interferograms on the CPU as before) instead of 200 000 point-interferograms: more work per kernel. On an 80 GB A100 the eager model takes 0.24 instead of 0.35 µs per point and interferogram; the <code>n2ft</code> step of the 04 pipeline takes 29 instead of 37 s on Campi Flegrei (590 667 points, 91 pairs) and 17 instead of 19 s on the sample data; the phases change by rounding (at most 1.8e-4 rad)</p>
+<p>The batch norm layers of the loaded <code>n2ft</code> model are replaced by the per channel affine function they compute in evaluation mode (<code>fold_batch_norms</code>): the eager model runs 8 % faster on an A100 (200 000 Campi Flegrei points x 91 pairs: 7.0 instead of 7.6 s), and the compiled model no longer compiles again (34 s each time) when the batch of interferograms crosses a size threshold of the cuDNN batch norm kernels; the phases change by rounding (at most 1.8e-4 rad)</p>
+<p>The neighbour searches of the <code>n2ft</code> structure (16 and 3 nearest neighbours at the 4 sampling levels of a processing chunk) run in 8 threads instead of one per core: the structure of a 23 000-point chunk takes 70 instead of 190 ms on a 128-core machine (the queries 21 instead of 120 ms). It runs in parallel to the model, so the filtering only gets faster where the model is faster than the structure (<code>compile</code>, or a slow CPU)</p>
+<p><code>n2ft</code> with <code>compile</code> compiled the model a second time (14 s) when the interferograms of a processing chunk did not divide into its batches and the last batch was a single interferogram (e.g. 91 interferograms in batches of 9): the batches of a chunk are now as equal as possible and never a single interferogram, and the model sees the same tensor layout for every batch size, so the model is compiled once per process; on 590 667 Campi Flegrei points with 91 image pairs the compiled model takes 2.7 instead of 8.2 s per 200 000 points after its compilation</p>
+<p>The halo search of <code>n2ft</code> (command and API: the k nearest neighbours of the points of every processing chunk) queries one KD-tree of all points in 32 threads instead of building a tree per chunk in joblib processes: 0.5 instead of 7.5 s for the 590 667 Campi Flegrei points (30 chunks) in the command, and 6 instead of 11 s for 10 million points; the main process needs 16 x <code>k</code> x <code>chunks</code> bytes per thread (41 MB by default). The <code>n2ft</code> step of the 04 pipeline takes 37 instead of 42 s on Campi Flegrei and 19 instead of 29 s on the sample data (A100). The halos are now exactly the nearest neighbours: before, the halo of a chunk was estimated from the k-th neighbour distances of its border points and could miss some (sample data: 15 of the 1.2 million halo points, in 6 of 50 chunks), and since the filter sees the whole chunk, the phases of those chunks change (p99 0.1 rad, refined points 352 433 instead of 352 434); on Campi Flegrei nothing changes. joblib is no longer a dependency</p>
+<p><code>n2ft</code> (API and command) filters several interferograms of the same points in one model call (up to 200 000 point-interferograms, about 1.6 GB of GPU memory), the command filters all image pairs of a processing chunk at once instead of one pair at a time, the sampling and neighbour structure and the phasors of the next two processing chunks are prepared in threads while the model filters the current one, and the phasors are normalized on the GPU: on 590 667 Campi Flegrei points with 91 image pairs the <code>n2ft</code> step takes 42 instead of 69 s on an A100 (sample data: 29 instead of 38 s); the phases differ by rounding (at most 1.4e-4 rad) and the refined points are the same. The command has a <code>compile</code> option like the API: the model is compiled with torch.compile in every worker (15-40 s once per worker, less when torch has cached it) and then runs about 3 times faster; by default (<code>compile</code> not given) it is compiled when points times image pairs is at least 1e8, which is where the compilation pays off (not for Campi Flegrei with 5.4e7, where the compiled command is slower); the command logs the choice</p>
+<p><code>emperical_co_emi_temp_coh_pc</code> (API and command) processes as many points at once as 1 GiB of coherence matrices hold instead of 1000: thousands of small GPU operations per batch made the command slow for few images. On the sample data (17 images, 4.1 M candidates) the command takes 41 instead of 75 s on an A100 and 28 instead of 42 s on the CPU; with 92 images the batch is about 32 000 points and a point takes 25 instead of 28 µs on the GPU. A task holds up to about 2 GiB (the coherence matrices and, on the GPU, the samples of their estimation; CPU peak 4.7 instead of 2.9 GB with the default 2 threads on the sample); <code>batch_size</code> still sets the number of points</p>
+<p>The GPU kernels are cached on disk like the CPU functions (decision 0029): the first GPU <code>emi</code> or <code>emperical-co-emi-temp-coh-pc</code> of a process (every pipeline step, every dask worker) no longer compiles the EMI kernel for 15 s, it loads it in about 0.5 s; the other GPU kernels save 0.3-0.9 s each</p>
+<p>The GPU <code>emi</code> chooses its block size (128, 256 or 512 threads) by the number of images: the size whose blocks fit the most times into a multiprocessor. With many images only one block fits and a wider block divides the work of a step among more warps: on an A100 per point 13 instead of 14 µs for 128 images (128 CPU cores 24 µs), 26 instead of 36 µs for 150 images (CPU 26 µs), 48 instead of 67 µs for 196 images (CPU 54 µs); up to about 100 images nothing changes</p>
+<p>The GPU <code>emi</code> gave a wrong phase history (errors up to π: the second eigenvector) for rare points: when a pivot of the Sturm sequence of its eigenvalue search rounded to exactly 0, it was counted as non-negative but used as a negative pivot (2 of the 4.1 M DS candidates of the sample data). The pivot is now replaced before it is counted, as in LAPACK</p>
+<p>The GPU kernel of <code>emi</code> is 2.1-2.5 times faster: on an A100 4.7 instead of 10.2 µs per point for 92 images (128 CPU cores: 11 µs), 2.1 instead of 5.1 µs for 60 images, 14 instead of 31 µs for 128 images (CPU 24 µs), 36 instead of 79 µs for 150 images (CPU 26 µs), 67 instead of 141 µs for 196 images (CPU 54 µs). The phases differ from before by float32 rounding (max phase difference to the float64 EMI on 2000 Campi Flegrei DS candidates, 92 images: p99 2.5e-4 instead of 3.3e-4 rad, max 1.1e-3 instead of 2.7e-3; CPU 2.7e-4 / 1.1e-3). The loops are controlled with 32-bit integers, the loops over the triangle of the matrices have a uniform trip count, the inverse is swept four pivots at a time, the matrix-vector products use 2 / 4 threads per row for small trailing blocks, and the kernel is compiled with at most 72 registers. The fused command <code>emperical-co-emi-temp-coh-pc</code> takes 30 instead of 36 µs per point on 20 000 Campi Flegrei candidates (92 images, batch 1000)</p>
+<p><code>select_shp</code> (command <code>select-shp</code>) selected the wrong pixels: it kept the pixels whose KS p value is below <code>p_max</code>, i.e. those whose amplitude distribution differs significantly from the centre pixel, so the DS candidates were mostly bright or dark pixels among different neighbours and their coherence was dominated by a few bright pixels (patchy phase in low coherence interferograms). The SHPs are now the pixels whose p value is at least the significance level, and the argument <code>p_max</code> is renamed <code>alpha</code> (default 0.05; a larger value keeps fewer SHPs). Pipeline files and scripts with <code>p_max</code> must change it to <code>alpha</code>. The KS p value of identical samples (the centre pixel itself) is now 1 instead of 0. Every result from <code>select-shp</code> on needs to be recomputed</p>
+<p><code>emi</code> (also in the commands <code>emi</code> and <code>emperical-co-emi-temp-coh-pc</code>) with the default <code>regularize=True</code> runs in a numba.cuda kernel on the GPU instead of cupy (decision 0031): on 20 000 Campi Flegrei DS candidates (92 images) on an A100 10 instead of 43 µs per point, and no GPU memory beyond the input and output instead of 445 kB per point (8.5 GiB for 20 000 points); the fused command takes 39 instead of 72 µs per point (batch 1000) and 35 instead of 68 µs with batches of 10 000 points, which need 2.0 instead of 6.0 GiB. The phases are closer to the CPU (max difference per point p99 3e-4 instead of 2e-3 rad); on the sample data the selected DS do not change. With 30 or fewer images the speed is about the same as before (10 images: 0.5 instead of 0.2 µs). With many images the GPU slows down faster than the CPU (128 images 31 µs, 196 images 132 µs per point; 128 CPU cores: 24, 54): see the 03 guide. <code>regularize=False</code> and more than 198 images (A100) still use cupy</p>
+<p>With numba-cuda, GPU kernels failed to compile when the python of a conda environment was run without activating it (libnvvm not found: e.g. scripts, batch jobs or the pre-commit hook calling the python by its path); moraine now sets <code>CUDA_HOME</code> to that environment when neither <code>CUDA_HOME</code>, <code>CUDA_PATH</code> nor <code>CONDA_PREFIX</code> is set</p>
+<p><code>numba-cuda</code> (NVIDIA) is a GPU dependency, installed with conda like cupy (README): the GPU kernels are numba.cuda kernels (decision 0030), and it starts them about 4 times faster than the deprecated CUDA target built into numba (110 instead of 450 us per launch)</p>
+<p>No cupy ElementwiseKernel is left; the GPU kernels are numba.cuda kernels or cupy matrix products. <code>temp_coh</code> (one warp per point) takes 1.8 instead of 7.9 ms for 981 x 1000 points and 91 image pairs on an A100, <code>amp_disp</code> (one warp per pixel) 1.7 instead of 2.2 ms for 981 x 1000 x 92, <code>emperical_co</code> 9 instead of 64 ms for 100 x 100 x 92; the small per pixel kernels of <code>n2f</code> / <code>n2fs3d</code> and <code>ad_intf_pc</code> take 0.1-1 ms more per call, the launch overhead of numba.cuda. The results are the same, or differ by float32 rounding; <code>emperical_co</code> ignores <code>block_size</code></p>
+<p>Compiled numba functions are cached on disk, in a directory named after a hash of the moraine sources (<code>~/.cache/moraine/numba/</code>, decision 0029): the first call in a process takes 0.4 instead of 11 s for the fused DS step and 0.2 instead of 5 s for the SHP test, once a version of the code has run. The functions that used numba's own cache (unwrapping, chunking, amplitude) could keep old machine code after a change of another file; they use the new cache too</p>
+<p><code>ks_test</code> (command <code>shp-test</code>) looks the p value up in a table of the n + 1 possible KS statistics and uses the symmetry of the test: 2.2 times faster on the CPU (300 x 1000 pixels, 92 images, 11 x 11 window: 158 instead of 344 ms), the same p values bit for bit; on the GPU a numba.cuda kernel replaces the cupy kernels (43 instead of 53 ms) and the results are now the same as on the CPU (they differed by up to 2e-7). With <code>return_dist</code> the CPU left <code>dist</code> uninitialized where the other pixel is nan; it is nan there now</p>
+<p><code>emperical_co_pc</code> (also in <code>emperical-co-pc</code> and <code>emperical-co-emi-temp-coh-pc</code>) computes the coherence of all image pairs of a point from one matrix product of its SHP samples: on 20 000 Campi Flegrei DS candidates (92 images, 4186 pairs) 2.0 instead of 37 µs per point on an A100 and 2.8 instead of 13 µs on 128 CPU cores; the fused command takes 73 instead of 258 µs per point on the GPU and 30 instead of 45 µs on the CPU. The GPU uses up to 1 GiB more memory. The coherence changes by float32 rounding (at most 2e-6), the DS selected on that sample do not change; <code>block_size</code> has no effect any more</p>
+<p><code>n2ft</code> (command) filters one output chunk of points with all image pairs per task instead of all points per image pair: the sampling and neighbour structure of every processing chunk is computed once instead of once per image pair, and a worker holds the rslc of its chunk instead of whole images. 531 k points (Campi Flegrei PS candidates) on one A100: 62 s instead of 438 s for 91 image pairs, worker peak memory 1.4 instead of 2.8 GB; on the CPU 289 s instead of 351 s for 10 image pairs. 10 million points, 2 image pairs: 125 s instead of 200 s, worker 1.4 instead of 2.3 GB, main process 1.1 instead of 1.2 GB. The results are identical; the processing chunks no longer cross the output chunks, and when <code>chunks</code> divides <code>out_chunks</code> (as in the examples) they are the same as before</p>
+<p>Errors of the parallel zarr reads and writes of the commands (e.g. a corrupted chunk, a read-only output) are raised; before, a failed read returned uninitialized values and a failed write was ignored</p>
+<p><code>pc_union</code>, <code>pc_intersect</code> and <code>pc_diff</code> (commands <code>pc-union</code>, <code>pc-intersect</code>, <code>pc-diff</code>, <code>pc-select-data</code>) check that the indices are sorted and without duplicates, as <code>docs/contracts/data.md</code> requires: the check let unsorted indices through (<code>pc_union</code> then merged them wrongly) and rejected point clouds of zero or one point</p>
+<p><code>temp_coh</code> on the CPU no longer normalizes the arrays passed to it (<code>intf</code>, <code>rslc</code>) in place; the results are the same</p>
+<p><code>n2f</code> and <code>n2fs3d</code> no longer change the interferogram passed to them (pixels with an amplitude below 1e-30, no data in GAMMA files, were set to NaN in place); the results are the same</p>
+<p><code>examples/03_ds.toml</code> selects the DS by the connectivity of the coherent image pairs (<code>n_components == 1</code>) and the weighted temporal coherence (<code>t_coh_w_min</code>, 0.9) instead of the plain temporal coherence &gt;= 0.8 (decision 0028, <code>docs/workflows/03_ds.md</code>): <code>ds_temp_coh(..., n_looks=...)</code> also returns <code>n_components</code>, the number of connected components of the graph of the images whose edges are the coherent image pairs (<code>alpha</code>, default 1e-3, is the probability that a point without any coherent pair has all images connected); the commands <code>ds-temp-coh</code> and <code>emperical-co-emi-temp-coh-pc</code> get the output <code>n_components</code> / <code>n_components_dir</code> and the input <code>alpha</code>. Breaking: the weighted outputs of <code>ds_temp_coh</code> and <code>emperical_co_emi_temp_coh_pc</code> have one more element. The weighted value is higher than the plain one, so 0.8 would keep too many points; on the sample data the selection is a little looser than the plain 0.8. The tutorials follow in a separate change.</p>
+<p><code>emi</code> on the CPU (also inside <code>emperical-co-emi-temp-coh-pc</code>) was about 2·10⁴ times slower than it should be on many-core machines: the multithreaded BLAS (MKL, OpenBLAS) started its own threads in every call from the numba threads (128 x 128 threads on 128 cores; 187 ms instead of 7.6 µs per point for 60 images). Its threads are now limited to one while the kernel runs (new dependency <code>threadpoolctl</code>). The kernel also computes only the smallest eigenpair (LAPACK <code>cheevr</code>) instead of all: 1.5-1.8 times faster, 3.4-5 µs per point for 60 images, 8-12 µs for 92 images on 128 cores; the phase histories change only by float32 rounding</p>
+<p>Faster CPU kernels of decisions 0024 and 0025: <code>ds_temp_coh</code> 1.6-3 times (real arithmetic; 100 000 points x 4186 image pairs: 46 instead of 86 ms), the effective number of looks of the SHP sets 30-95 times (pair counts per lag by popcount; identical results), the speckle correlation of a 1000 x 1000 chunk 6 times (local power normalization in numba instead of scipy, 9 instead of 57 ms)</p>
+<p>The DS tutorials (<code>nbs/Tutorials/CLI/*/03_ds.ipynb</code>, <code>nbs/Tutorials/DS_Processing.ipynb</code>) and <code>nbs/Introduction/software_architecture.ipynb</code> use <code>emi</code> without the EMI quality and select DS by temporal coherence, as <code>examples/03_ds.toml</code>; <code>Xinpu/03_ds.ipynb</code> also shows the effective number of looks of the SHPs (<code>emperical-co-pc --n_looks_dir</code>) and compares the temporal coherence with the weighted one and the effective number of image pairs (<code>ds-temp-coh --n_looks</code>, and the same from the fused command)</p>
+<p><code>emi</code> returns the phase history only and <code>emperical_co_emi_temp_coh_pc</code> returns <code>(ph, t_coh)</code> (with <code>weighted=True</code> also <code>t_coh_w</code>, <code>eff_n_pairs</code>): the EMI quality is no longer an output, and the commands lose <code>emi_quality</code> (<code>emi</code>) and <code>emi_quality_dir</code> (<code>emperical-co-emi-temp-coh-pc</code>). With the regularization it is not comparable between points; select DS by temporal coherence. <code>ph, quality = emi(coh)</code> becomes <code>ph = emi(coh)</code> (<code>emi(coh)[0]</code> still runs, but gives the phase history of the first point) (decision 0027)</p>
+<p>Weighted DS temporal coherence: <code>ds_temp_coh(coh, ph, n_looks=...)</code> (command <code>ds-temp-coh</code> with the input <code>n_looks</code> and the outputs <code>t_coh_w</code>, <code>eff_n_pairs</code>) also returns the temporal coherence with the image pairs weighted by their squared coherence without the noise bias, so that incoherent pairs (long time spans in vegetation) do not lower it, and the effective number of image pairs it rests on. <code>n_looks</code> is the effective number of independent looks of the SHP set of each point, from the positions of the SHPs and the speckle correlation measured in the rslc (neighbouring pixels are correlated: with Sentinel-1 IW 121 SHPs are about 45 independent looks): <code>emperical_co_pc(..., return_n_looks=True)</code> (command <code>emperical-co-pc --n_looks_dir</code>). The fused <code>emperical_co_emi_temp_coh_pc(..., weighted=True)</code> (command: <code>t_coh_w_dir</code>, <code>eff_n_pairs_dir</code>) gives the same results. On Xinpu the points with temporal coherence &lt; 0.6 but a weighted one &gt;= 0.8 agree with their neighbours (spatial consistency 0.5 against 0.15 for a weighted one &lt; 0.6). CPU numba, GPU numba.cuda: 5 ms for 100 000 points x 4186 image pairs on an A100 (decisions 0024, 0025, 0027)</p>
+<p><code>emi</code> and <code>emperical_co_emi_temp_coh_pc</code> (commands <code>emi</code>, <code>emperical-co-emi-temp-coh-pc</code>) regularize the coherence matrices that are not positive definite (<code>regularize</code>, default True). EMI needs a positive definite coherence magnitude matrix, which most DS candidates lack when the number of images approaches the number of independent looks of the SHPs: their phase history was noise (Campi Flegrei, 92 images, 11 x 11 window: 97 % of 1.79 million candidates). Such points get the coherence matrix (1 - beta) coh + beta I with the smallest beta their data need (median 0.27 there); points with a well conditioned positive definite matrix do not change. On Campi Flegrei 1 187 702 candidates reach a temporal coherence of 0.8 instead of 49 089, with continuous fringes of the caldera uplift. <code>examples/03_ds.toml</code> selects DS by temporal coherence alone; <code>regularize = false</code> gives the old results (decisions 0023, 0026)</p>
+<p><code>ds_temp_coh</code> on the GPU is 5 times faster (numba.cuda kernel with one warp per point; 100 000 points x 4186 image pairs: 3.9 ms instead of 22 ms on an A100); the results differ only by float32 rounding</p>
+<p><code>load-gamma-flatten-rslc</code> has the argument <code>gamma_threads</code> (default: the number of CPU cores, at most 64): the number of threads of each <code>phase_sim_orb</code> run (GAMMA uses 8 without it); on 128 cores one image takes 1.5 s instead of 10 s with the same result</p>
+<p>The CLI tutorials (<code>nbs/Tutorials/CLI/</code>) use two sample data sets, one folder each with the same five notebooks (<code>01_load</code> ... <code>05_unwrap</code>): <code>Xinpu/</code> (landslide, Three Gorges, Sentinel-1 ascending) and <code>CampiFlegrei/</code> (caldera uplift, Sentinel-1 descending); the data are in <code>data/</code> and read from the GAMMA results</p>
+<p><code>moraine quicklook --extent</code> and <code>view(...).png(..., extent=...)</code> draw a part of the scene, from the finest pyramid level that fits, down to the data (degrees on web mercator maps, pixels on the radar grid); the title gives the extent and the level, <code>repr</code> of a view the extent and the finest cell of every layer, so that agents can zoom into what they look at</p>
+<p>Data conventions (<code>docs/contracts/data.md</code>): stacks are chunked by blocks in space and one image (or image pair) per chunk; commands expect this layout (decision 0019)</p>
+<p>The API modules moved from <code>moraine/</code> to <code>moraine/api/</code>, phase unwrapping to <code>moraine/api/unwrap/</code> (<code>mcf.py</code>, <code>emcf.py</code>, <code>gamma.py</code>, <code>delaunay_.py</code>; <code>moraine/pu.py</code> is split). <code>import moraine</code> still exports the same names (<code>moraine.mcf_pc</code>, ...); code importing modules directly changes, e.g. <code>from moraine.pu import mcf_pc</code> becomes <code>from moraine.api.unwrap import mcf_pc</code>. The downloaded deep learning models stay in <code>moraine/dl_model/</code></p>
+<p>Deep learning models run on PyTorch instead of ONNX Runtime; torch is an optional dependency (<code>pip install moraine[dl]</code>) and the models are downloaded as <code>.pth</code> files by <code>download_dl_model()</code></p>
+<p><code>n2ft</code> results are reproducible (fixed farthest point sampling start)</p>
+<p>Development moved from nbdev notebooks to plain python: packaging in <code>pyproject.toml</code>, numpy style docstrings, pytest tests in <code>tests/</code>; the nbdev documentation site is removed</p>
+<p><code>moraine ... --json</code> output has <code>version</code> and <code>ok</code> fields; pyramids record their format version in <code>0.zarr</code>; pipeline files may declare <code>[pipeline] version</code>. The formats are specified in <code>docs/contracts/</code></p>
+<p>New <code>emcf_pc</code>: extended minimum cost flow (EMCF) unwrapping of the interferograms of any network of image pairs (<code>image_pairs</code>, by default every image with the next three); the loops of the network are used against unwrapping errors; <code>temporal_cost</code> (constant or time span) and <code>spatial_cost</code> (constant, edge length, point <code>weight</code>; both constant by default) choose where corrections go; by default as many interferograms are unwrapped at the same time as the available cores and half of the available memory allow. On a synthetic benchmark with known truth (<code>tests/unwrap_benchmark.py</code>, every image with the next three): median 0.83 % wrong (point, interferogram) against 1.54 % for <code>mcf_pc</code>. Decisions 0012 (stage 3) and 0020. The <code>emcf-pc</code> command takes the image pairs (e.g. from <code>image-pairs --bandwidth 3</code>), the pixel spacings and optionally the dates instead of <code>meta.toml</code>, needs <code>ph</code> chunked one image per chunk and processes the points in blocks and the interferograms one by one (10 million points, 100 images: 8.2 GB peak memory with 4 interferograms at the same time); <code>misclosure</code>, the <code>pairs</code> output, <code>t_scale</code>, <code>bperp_scale</code>, <code>repair</code> and <code>exclude</code> are removed</p>
+<p>New <code>unwrap_correct_closure_pc</code>: correction of unwrapping errors by phase closure per region, as in MintPy (Yunjun et al. 2019): where the unwrapped interferograms of a loop of image pairs do not add up to zero, the interferograms of every region (points connected without long edges, e.g. an island) are corrected by whole cycles; points of small regions one by one. Works after any unwrapper; returns the unwrapped phase of every image <code>ts</code> (n_points, nimages) relative to the reference image <code>ref</code> (default 0), whose differences close every loop, the per point <code>misclosure_fraction</code> (before the correction), <code>change_fraction</code> (interferograms changed by the correction, a point quality for masking; errors that close every loop are not seen) and the regions. After <code>emcf_pc</code> on the benchmark: median 0.81 % wrong. Decisions 0021 and 0022 (no separate time series inversion). Command <code>unwrap-correct-closure-pc</code> (per block of points, per interferogram, per block of points; optional outputs <code>misclosure_fraction</code>, <code>change_fraction</code> and <code>region</code>; 10 million points, 100 images, 294 interferograms: 145 s, 3.3 GB)</p>
+<p>One viewer, <code>moraine.cli.view(data, ...)</code>, replaces the holoviews plots: interactive maps in Jupyter / VS Code notebooks (no server or port forwarding) of pyramids, rasters in memory and point data; <code>show=</code> a name ('phase', 'intf_seq', 'intf_all', 'coh', ...) or a function <code>lambda v, ref, sec: ...</code> whose arguments are sliders; <code>a * b</code> overlays views, <code>a + b</code> shows them side by side with linked zoom and pan; click a pixel / point for its time series (<code>series=</code>), double click for its reference; web mercator data over a satellite / street base map; polygons drawn on the map saved to <code>polygons='file.geojson'</code>; <code>.selected</code>, <code>.reference</code>, <code>.index</code> in python; <code>repr</code> describes a view and <code>.png(path)</code> saves an image. <code>moraine view PYRAMID ... -o view.ipynb [--show] [--dates]</code> writes a notebook of such maps and <code>moraine quicklook</code> draws with it (<code>--show</code>, the old <code>--post_proc</code> still works). Removed: <code>ras_plot</code>, <code>pc_plot</code>, <code>ts_plot</code>, <code>bg_alpha</code>, <code>view_pyramid</code> and the dependencies holoviews, bokeh, jupyter_bokeh; anywidget is a dependency</p>
+<p>New command <code>polygon-mask</code>: bool mask of a raster or point cloud inside or outside the polygons of a GeoJSON file (longitude / latitude or radar grid coordinates); <code>moraine.read_polygons</code>, <code>write_polygons</code>, <code>polygons_contain</code></p>
+<p><code>mcf_pc</code> / <code>mcf-pc</code>: new option <code>spatial_cost</code> ('constant', the default and the former behaviour, or 'length': phase jumps first on long edges). The <code>mcf-pc</code> command takes the pixel spacings (<code>range_pixel_spacing</code>, <code>azimuth_pixel_spacing</code>; the grid index is converted to meters), needs <code>ph</code> chunked one image per chunk and unwraps the interferograms in threads instead of dask processes: one copy of the network, <code>n_workers</code> by default bounded by the cores and half of the available memory; <code>threads_per_worker</code> and the dask cluster arguments are removed (10 million points, 16 interferograms, 8 at the same time: 28 s and 10 GB against 36 s and 17.5 GB with processes)</p>
+<p><code>mcf_pc</code> / <code>mcf-pc</code> use an own Delaunay triangulation and a successive shortest path min cost flow on its half-edges: exactly optimal, independent of the point order, about 7 times faster than before (10 million points in 16 s, GAMMA mcf_pt 35 s) with about 5 times less memory; new option <code>earth_cost</code> (default 1). OR-Tools is no longer a dependency</p>
+<p><code>gamma_mcf_pt</code>: float64 weights are converted to the FLOAT type mcf_pt reads (they were misread); the <code>gamma-mcf-pt</code> command passes <code>ref_point</code> on (it was ignored and the first point always used) and its default is 0, the first point as documented</p>
+<p><code>pc_pyramid</code> / <code>pc-pyramid</code>: the grid reaches the cells of the largest coordinates; the points of the last line and column were merged into the previous cells (one point per cell kept), and whether they were depended on rounding for coordinates that are not multiples of <code>ras_resolution</code>. Rebuild point cloud pyramids to see those points</p>
+<p>Commands recognize outputs named without <code>/</code> or <code>.</code> (e.g. <code>--out_dir pyr</code>); <code>main()</code> returns 1 for a failed pipeline instead of raising <code>SystemExit</code></p>
+<p><code>emi</code> command: <code>ref</code> was ignored, the first image was always the reference</p>
+<p>Bugs squashed: CPU <code>ad_intf_pc</code> (undefined name), <code>isPD</code>/<code>nearestPD</code> on numpy arrays, <code>HilbertRtree.save</code>/<code>load</code> with zarr 3</p>
+<h2 id="090">0.9.0<a class="headerlink" href="#090" title="Permanent link">&para;</a></h2>
+<p>Add mcf_pc API and CLI</p>
+<p>Add interative point plot tool</p>
+<h2 id="085">0.8.5<a class="headerlink" href="#085" title="Permanent link">&para;</a></h2>
+<h2 id="084">0.8.4<a class="headerlink" href="#084" title="Permanent link">&para;</a></h2>
+<p>Add n2ft model</p>
+<p>Add API for plot</p>
+<h2 id="083">0.8.3<a class="headerlink" href="#083" title="Permanent link">&para;</a></h2>
+<p>Move two deep learning models out of the package to prevent too big pypi package</p>
+<p>update cli.co use image_pairs in memory rather than tnet file;</p>
+<p>fix plot bugs in functions for general read zarr file, and change seq_intf from (i, i-1) to (i,i+1);</p>
+<p>add multilook and intf to api.co;</p>
+<p>finish gamma phase wrapping API and CLI;</p>
+<p>move read/write gamma file to a seperate module from cli.load</p>
+<h2 id="082">0.8.2<a class="headerlink" href="#082" title="Permanent link">&para;</a></h2>
+<p>bug fixed for cli.emperical_co_pc</p>
+<h3 id="bugs-squashed">Bugs Squashed<a class="headerlink" href="#bugs-squashed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Data format scomplex is not supported. (<a href="https://github.com/kanglcn/moraine/issues/20">#20</a>)</li>
+<li>
+<h3 id="description-of-the-problem">Description of the problem<a class="headerlink" href="#description-of-the-problem" title="Permanent link">&para;</a></h3>
+</li>
+</ul>
+<p>The package doesn't support scomplex data, so if the preprocessed rslc data is saved as scomplex, you are supposed to convert it to fcomplex and then process it with this package. </p>
+<h3 id="minimal-complete-verifiable-example">Minimal Complete Verifiable Example<a class="headerlink" href="#minimal-complete-verifiable-example" title="Permanent link">&para;</a></h3>
+<p><em>No response</em></p>
+<h3 id="full-error-message">Full error message<a class="headerlink" href="#full-error-message" title="Permanent link">&para;</a></h3>
+<p><em>No response</em></p>
+<h3 id="system-information">System information<a class="headerlink" href="#system-information" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>numpy<span class="w"> </span>version<span class="w"> </span><span class="m">1</span>.22.4
+</code></pre></div>
+<h3 id="are-you-willing-to-help-fix-this-bug">Are you willing to help fix this bug?<a class="headerlink" href="#are-you-willing-to-help-fix-this-bug" title="Permanent link">&para;</a></h3>
+<p>No</p>
+<h2 id="081">0.8.1<a class="headerlink" href="#081" title="Permanent link">&para;</a></h2>
+<p>implement parallel zarr io</p>
+<p>modify <code>emperical_co_pc</code> and necessary utils
+for independent ras chunkwise processing </p>
+<p>add <code>emperical_co_emi_temp_coh_pc</code> to 
+- only processing a small batch in one chunk to prevent
+holding the coherence matrix for all chunk which may exceed
+memory limit;
+- prevent writing coherence matrix which may exceed disk space limit.</p>
+<h2 id="080">0.8.0<a class="headerlink" href="#080" title="Permanent link">&para;</a></h2>
+<ul>
+<li>add cpu version of all functions and make use cpu as default</li>
+<li>add default args to dask cluster and allow users to configure that</li>
+<li>only calculate low tri of coherence matrix and copy its conj to up tri</li>
+<li>more flexiable plot functions</li>
+<li>carefully deal with nan values for all functions</li>
+<li>Update <code>pl.temp_coh</code> with elementwise kernel</li>
+</ul>
+<h2 id="070">0.7.0<a class="headerlink" href="#070" title="Permanent link">&para;</a></h2>
+<p>Make cuda depedency optional</p>
+<h2 id="066">0.6.6<a class="headerlink" href="#066" title="Permanent link">&para;</a></h2>
+<p>Test</p>
+<h2 id="065">0.6.5<a class="headerlink" href="#065" title="Permanent link">&para;</a></h2>
+<p>Test</p>
+<h2 id="064">0.6.4<a class="headerlink" href="#064" title="Permanent link">&para;</a></h2>
+<p>Test</p>
+<h2 id="063">0.6.3<a class="headerlink" href="#063" title="Permanent link">&para;</a></h2>
+<p>Test</p>
+<h2 id="062">0.6.2<a class="headerlink" href="#062" title="Permanent link">&para;</a></h2>
+<p>Test</p>
+<h2 id="061">0.6.1<a class="headerlink" href="#061" title="Permanent link">&para;</a></h2>
+<p>Bug fix</p>
+<h2 id="060">0.6.0<a class="headerlink" href="#060" title="Permanent link">&para;</a></h2>
+<p>Rename to Moraine</p>
+<p>Add CLI plot</p>
+<p>Package Reconstruction</p>
+<h2 id="051">0.5.1<a class="headerlink" href="#051" title="Permanent link">&para;</a></h2>
+<p>Fix the doc generation</p>
+<h2 id="050">0.5.0<a class="headerlink" href="#050" title="Permanent link">&para;</a></h2>
+<p>New features:</p>
+<p>Add CLI for temporal coherence estimation for DS</p>
+<p>Add dispersion index calculation for PS</p>
+<p>Add logic operation for pc index</p>
+<p>Add <code>transform</code> for coordinate reprojection</p>
+<p>Add holoviews plot</p>
+<p>Maintain:</p>
+<p>Using <code>with ... as:</code> to prevent dask cluster unclosed</p>
+<p>Remove all plot options in CLI</p>
+<p>Set all thread per worker for local cuda cluster to 1</p>
+<p>Use progressbar</p>
+<p>Update doc theme</p>
+<p>Reorginaze Tutorial</p>
+<h2 id="042">0.4.2<a class="headerlink" href="#042" title="Permanent link">&para;</a></h2>
+<p>Finish point cloud manipulation functions and commands</p>
+<p>Add utils for automatically determine chunk_size</p>
+<h2 id="041">0.4.1<a class="headerlink" href="#041" title="Permanent link">&para;</a></h2>
+<p>Fix a small deploy issue</p>
+<h2 id="040">0.4.0<a class="headerlink" href="#040" title="Permanent link">&para;</a></h2>
+<p>Modify gamma load function for more precise look vector</p>
+<p>Add point cloud manipulation</p>
+<p>Add Introduction section and add more detail on readme</p>
+<p>Add utils, logger.zarr_info logger.darr_info</p>
+<p>Rename emperical_co_sp to emperical_co_pc</p>
+<h2 id="032">0.3.2<a class="headerlink" href="#032" title="Permanent link">&para;</a></h2>
+<p>Modify the gamma load funtion to make it faster</p>
+<h2 id="031">0.3.1<a class="headerlink" href="#031" title="Permanent link">&para;</a></h2>
+<p>Add DS processing from CLI tutorial and fix bugs</p>
+<h2 id="030">0.3.0<a class="headerlink" href="#030" title="Permanent link">&para;</a></h2>
+<p>Add interface to load gamma result</p>
+<h2 id="020">0.2.0<a class="headerlink" href="#020" title="Permanent link">&para;</a></h2>
+<p>Add ks_test, select_ds_can, emperical_co_sp, emi CLI</p>
+<p>Add log and sparse utils</p>
+<p>Add test script</p>
+<h2 id="010">0.1.0<a class="headerlink" href="#010" title="Permanent link">&para;</a></h2>
+<p>Refine phase linking EMI</p>
+<p>Add function to estimate temporal coherence</p>
+<p>Add tutorial for dask processing</p>
+<p>Update the test in API notebooks</p>
+<h2 id="004">0.0.4<a class="headerlink" href="#004" title="Permanent link">&para;</a></h2>
+<p>Add covariance/coherence matrix estimation for sparse data</p>
+<p>Add phase linking method: EMI</p>
+<p>Add tutorial for DS processing (still under construction)</p>
+<h2 id="003">0.0.3<a class="headerlink" href="#003" title="Permanent link">&para;</a></h2>
+<p>Add ks test</p>
+<p>Add covariance/coherence matrix estimation</p>
+<p>Add tutorial for adaptive multilooking</p>
+<h2 id="002">0.0.2<a class="headerlink" href="#002" title="Permanent link">&para;</a></h2>
+<p>Remove cupy requirement for automatically publish to pypi</p>
+<h2 id="001">0.0.1<a class="headerlink" href="#001" title="Permanent link">&para;</a></h2>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../roadmap/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Roadmap">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Roadmap
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../agents/" class="md-footer__link md-footer__link--next" aria-label="Next: Agent instructions">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Agent instructions
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      moraine is GPL-3.0; the deep learning models are CC BY-NC-SA 4.0
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/kanglcn/moraine" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://pypi.org/project/moraine/" target="_blank" rel="noopener" title="pypi.org" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.8 200.5c-7.7-30.9-22.3-54.2-53.4-54.2h-40.1v47.4c0 36.8-31.2 67.8-66.8 67.8H172.7c-29.2 0-53.4 25-53.4 54.3v101.8c0 29 25.2 46 53.4 54.3 33.8 9.9 66.3 11.7 106.8 0 26.9-7.8 53.4-23.5 53.4-54.3v-40.7H226.2v-13.6h160.2c31.1 0 42.6-21.7 53.4-54.2 11.2-33.5 10.7-65.7 0-108.6M286.2 444.7a20.4 20.4 0 1 1 0-40.7 20.4 20.4 0 1 1 0 40.7M167.8 248.1h106.8c29.7 0 53.4-24.5 53.4-54.3V91.9c0-29-24.4-50.7-53.4-55.6-35.8-5.9-74.7-5.6-106.8.1-45.2 8-53.4 24.7-53.4 55.6v40.7h106.9v13.6h-147c-31.1 0-58.3 18.7-66.8 54.2-9.8 40.7-10.2 66.1 0 108.6 7.6 31.6 25.7 54.2 56.8 54.2H101v-48.8c0-35.3 30.5-66.4 66.8-66.4m-6.6-183.4a20.4 20.4 0 1 1 0 40.8 20.4 20.4 0 1 1 0-40.8"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.indexes", "navigation.top", "navigation.footer", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../assets/_markdown_exec_pyodide.js"></script>
+      
+        <script src="../../assets/js/fringes.js"></script>
+      
+    
+  </body>
+</html>
