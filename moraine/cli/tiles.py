@@ -541,7 +541,8 @@ class _Layer(_Shown):
 
     def describe(self):
         return (f'{self.label}: {self.kind} {self.data_shape} {self.dtype}'
-                + (f', show={self.show_name!r}' if self.show_name else ''))
+                + (f', show={self.show_name!r}' if self.show_name else '')
+                + (' (mean levels)' if self.method == 'mean' else ''))
 
     # geometry
     @property
@@ -633,8 +634,10 @@ class RasterLayer(_Layer):
                 return cache[level]
             max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
             self.label = label or p.name
+            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
         else:
             a = data
+            self.method = None
             max_level = max(int(math.floor(math.log2(max(min(a.shape[:2]), 1)))), 0)
 
             def level_of(level):
@@ -737,6 +740,7 @@ class PointLayer(_Layer):
             max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
             self._x, self._y, self._pc = (zarr.open(str(p / f'{n}.zarr'), mode='r') for n in ('x', 'y', 'pc'))
             self._rtree_dir = p
+            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
             x0, y0, xm, ym = (float(v) for v in toml.load(p / 'bounds.toml')['bounds'])
             base = level_of(0)
             ny, nx = base.shape[:2]
@@ -756,6 +760,7 @@ class PointLayer(_Layer):
             level_of, max_level, (x0, y0), _ = _pc_levels_in_memory(self._x, self._y, self._pc, res)
             stats = lambda: _array_stats(level_of, max_level)     # noqa: E731
             self._rtree_dir = None
+            self.method = None
             base = level_of(0)
             xm, ym = x0 + (base.shape[1] - 1) * res, y0 + (base.shape[0] - 1) * res
             self.label = label or 'points'
@@ -764,7 +769,7 @@ class PointLayer(_Layer):
         self.n_points = int(self._pc.shape[0])
         self._setup(base, level_of, max_level, show, image_pairs, sliders, dates, stats, series, self._pc,
                     polygons, cmap, clim, opacity, is_pc=True)
-        self.data_shape = tuple(self._pc.shape)     # the points, not their raster
+        self.data_shape, self.dtype = tuple(self._pc.shape), self._pc.dtype     # the points, not their raster
         self.title = f'{self.label}  {self.data_shape} {self.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
 

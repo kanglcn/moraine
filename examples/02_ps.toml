@@ -25,6 +25,7 @@ name = "adi_pyramid"
 run = "ras-pyramid"
 ras = "ps/ras_adi.zarr"
 out_dir = "ps/ras_adi_pyramid"
+method = "mean"
 
 [[step]]
 name = "ps_can_adi"               # candidates 1: ADI below 0.4
@@ -49,6 +50,13 @@ intf = "ps/ras_n2f_intf.zarr"
 image_pairs = "ps/pairs_seq.txt"
 
 [[step]]
+name = "n2f_intf_pyramid"         # the filtered interferograms, averaged for the overview of the whole scene
+run = "ras-pyramid"
+ras = "ps/ras_n2f_intf.zarr"
+out_dir = "ps/ras_n2f_intf_pyramid"
+method = "mean"
+
+[[step]]
 name = "n2f_temp_coh"
 run = "temp-coh"
 intf = "ps/ras_n2f_intf.zarr"
@@ -62,6 +70,7 @@ name = "temp_coh_pyramid"
 run = "ras-pyramid"
 ras = "ps/ras_temp_coh.zarr"
 out_dir = "ps/ras_temp_coh_pyramid"
+method = "mean"
 
 [[step]]
 name = "ps_can_n2f"               # candidates 2: temporal coherence above 0.58
@@ -104,6 +113,7 @@ name = "ps_can_pyramid"           # ADI of the candidates on the map
 run = "pc-pyramid"
 pc = "ps/ps_can_adi.zarr"
 out_dir = "ps/ps_can_adi_pyramid"
+method = "mean"
 x = "ps/ps_can_e.zarr"
 y = "ps/ps_can_n.zarr"
 ras_resolution = 20

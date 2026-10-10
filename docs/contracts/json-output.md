@@ -127,8 +127,9 @@ data only `true_fraction` is given.
 | `path` | string | the path |
 | `kind` | string | `raster pyramid` or `point cloud pyramid` |
 | `shape` | list of integers | shape of level 0 |
-| `dtype` | string | numpy dtype |
+| `dtype` | string | numpy dtype of the data (of the points for a point cloud pyramid) |
 | `levels` | integer | number of levels |
+| `method` | string | *optional*, how the levels are made: `decimate` or `mean` (rasters), `first` or `mean` (point clouds); absent for pyramids made before it existed |
 | `stats_level` | integer | level used for the statistics, 0 when they are of all the data |
 | `nan_fraction` | number | *optional*, fraction of nan values |
 | `min` | number | *optional*, minimum (finite values) |

@@ -28,7 +28,7 @@ Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phas
 
 | result | sample value | sane range |
 |---|---|---|
-| `unw/pc_unw_pyramid` | p01 -6.0, p50 0.08, p99 10.4, min -20.7, max 18.5 | a few multiples of 2 pi |
+| `unw/pc_unw_pyramid` | p01 -8.3, p50 -0.1, p99 9.4, min -20.7, max 18.5 | a few multiples of 2 pi |
 
 Run time: 2.3 s for 352 530 points and 16 interferograms (CPU, 16 at the same time).
 
