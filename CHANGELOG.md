@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+A number given to a command as text that is not one, e.g. an empty `--var NAME=` substituted into a pipeline step, is reported as such when the arguments are read (`mcf-pc: argument range_pixel_spacing = '' is not a number`) instead of failing inside the command with `could not convert string to float`
+
+`temp-coh` (command and API) checks that the interferograms and the rslc have the same points or pixels and that the image pairs fit them, and names the likely cause (`intf` and `rslc` swapped); before, swapped inputs indexed outside the arrays and the GPU reported an illegal address
+
 `load-gamma-flatten-rslc` failed with a numba typing error since the commands run their tasks through the executor: the numba decorator had moved from the flattening loop to the task that reads the GAMMA files and writes the zarr
 
 The point cloud commands (`ras2pc`, `ras2pc-ras-chunk`, `pc2ras`, `pc-concat`, `pc-sort`, `pc-union`, `pc-intersect`, `pc-diff`, `pc-select-data`, `data-reduce`) run 4 threads by default instead of 1: their tasks are a few zarr chunk operations per channel, each a round trip to zarr's event loop of about 5 ms, and the threads overlap them. Campi Flegrei commands: `pc-union` 4 instead of 17 s, `pc-select-data` 3 instead of 11 s, `ras2pc` 4 instead of 15 s, `pc-concat` 5 instead of 13 s (wall time, the old numbers with a cold file cache); the same results. `threads_per_worker` still sets it
