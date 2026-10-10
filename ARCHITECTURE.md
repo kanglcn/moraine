@@ -104,11 +104,13 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | path | content |
 |---|---|
 | `tests/` | pytest; `conftest.py` has the sample data fixtures and the `gpu` / `slow` markers |
+| `tests/browser/` | the viewer's JavaScript in jsdom and in headless Chromium, run by hand (not pytest) |
 | `examples/` | verified pipelines of the whole processing chain (decision 0009) |
 | `docs/workflows/` | one guide per example pipeline |
 | `docs/decisions/` | design decision records |
 | `docs/contracts/` | promises on formats others depend on (JSON output, pipeline files, pyramids, data) |
 | `docs/development.md` | how to change moraine |
+| `docs/viewer.md` | how the viewer works (tiles, widget, 2D and 3D front end), what was learnt, its tests and open items |
 | `docs/roadmap.md` | planned features not started yet |
 | `nbs/Tutorials/` | tutorial notebooks (examples, not tests) |
 | `data/` | sample data (not in git) |

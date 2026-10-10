@@ -133,5 +133,7 @@ When the task is to change moraine itself rather than to process data:
 - `docs/decisions/README.md`: design decisions; do not change code against an accepted one, propose a
   new record and ask the user.
 - `docs/roadmap.md`: planned features not started yet.
+- `docs/viewer.md`: how the viewer (`moraine.cli.view`, 2D and 3D) works, its tests and open items; read it
+  before changing `tiles.py`, `viewer.py` or `viewer.js`.
 - `docs/contracts/README.md`: formats others depend on (`--json` output, pipeline files, pyramids, data
   conventions); changing them needs the contract, its tests and possibly a new version.
