@@ -22,6 +22,8 @@ STATS_BYTES = 64 * 2**20        # size of the sample for the default colour rang
 MEMORY_BYTES = 512 * 2**20      # zarr arrays that are not pyramids are read into memory up to this size
 SAMPLE_CELLS = 2**18            # cells of the level used to guess the colours of a `show` function
 BACKGROUND = (0xf4, 0xf4, 0xf4)  # of PNG images, where no layer has data
+N_COLOURS = 255          # colours of the palette of a layer; the remaining index of the 256 is transparent
+TRANSPARENT = 255        # palette index of the pixels without data (nan)
 
 # slider names of the named `show` options (the stack dimensions otherwise: i, j)
 SLIDERS = {'phase': ('image',), 'intf_0': ('image',), 'intf_seq': ('image',), 'intf_all': ('ref', 'sec'),
@@ -73,11 +75,12 @@ def _pc_post_proc(post_proc):
 
 
 def _lut(cmap):
-    """(256, 4) uint8 RGBA table of a list of colours or a matplotlib colour map name."""
+    """(N_COLOURS, 4) uint8 RGBA table of a list of colours or a matplotlib colour map name: the colours of the
+    palette of a layer (`_Layer.palette`), from the lowest to the highest value."""
     import matplotlib
     from matplotlib.colors import to_rgba_array
-    rgba = matplotlib.colormaps[cmap](np.linspace(0, 1, 256)) if isinstance(cmap, str) else to_rgba_array(cmap)
-    rgba = rgba[np.linspace(0, len(rgba) - 1, 256).round().astype(int)]
+    rgba = matplotlib.colormaps[cmap](np.linspace(0, 1, N_COLOURS)) if isinstance(cmap, str) else to_rgba_array(cmap)
+    rgba = rgba[np.linspace(0, len(rgba) - 1, N_COLOURS).round().astype(int)]
     return (rgba * 255).round().astype(np.uint8)
 
 
@@ -85,11 +88,15 @@ def _hex(lut):
     return ['#%02x%02x%02x' % tuple(c[:3]) for c in lut]
 
 
-def png(rgba):
-    """PNG bytes of an (h, w, 4) uint8 RGBA image."""
+def png(indices, palette):
+    """PNG bytes of an (h, w) uint8 image of palette `indices` with the (256, 4) uint8 RGBA `palette`; index
+    `TRANSPARENT` is transparent."""
     from PIL import Image
     buf = io.BytesIO()
-    Image.fromarray(np.ascontiguousarray(rgba)).save(buf, format='PNG', compress_level=1)   # speed over size
+    # an 8 bit palette image: a quarter of the bytes of RGBA to compress, and the browser decodes it natively
+    im = Image.fromarray(np.ascontiguousarray(indices))
+    im.putpalette(palette[:, :3].tobytes())
+    im.save(buf, format='PNG', compress_level=1, transparency=TRANSPARENT)   # speed over size
     return buf.getvalue()
 
 
@@ -108,15 +115,15 @@ def _disk(r):
     return dy[inside], dx[inside]
 
 
-def _stamp(rgba, row, col, colours, r):
-    """Draw disks of radius `r` pixels with `colours` (n, 4) at pixels (`row`, `col`) (n,) of `rgba`, in
-    order; transparent colours (nan values) are skipped."""
-    h, w = rgba.shape[:2]
+def _stamp(img, row, col, indices, r):
+    """Draw disks of radius `r` pixels with the palette `indices` (n,) at pixels (`row`, `col`) (n,) of the
+    (h, w) index image `img`, in order; transparent indices (nan values) are skipped."""
+    h, w = img.shape
     for dy, dx in zip(*_disk(r)):
         rr, cc = row + dy, col + dx
-        ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (colours[:, 3] > 0)
-        rgba[rr[ok], cc[ok]] = colours[ok]
-    return rgba
+        ok = (rr >= 0) & (rr < h) & (cc >= 0) & (cc < w) & (indices != TRANSPARENT)
+        img[rr[ok], cc[ok]] = indices[ok]
+    return img
 
 
 def _dates(dates):
@@ -596,19 +603,29 @@ class _Layer(_Shown):
         return out
 
     def render(self, geom, index=(), size=(TILE, TILE)):
-        """(height, width, 4) uint8 RGBA image `geom` of `size` (width, height)."""
-        return self.colorize(self.raster_values(geom, index, size))
+        """(height, width) uint8 palette indices (`indices`, `palette`) of image `geom` of `size` (width,
+        height)."""
+        return self.indices(self.raster_values(geom, index, size))
+
+    def indices(self, values):
+        """Palette indices (uint8, the shape of `values`) of `values` with the colours of the colour bar: 0 to
+        N_COLOURS - 1 from the lower to the upper colour limit, `TRANSPARENT` for nan."""
+        lo, hi = self.clim
+        values = np.asarray(values, dtype=np.float64)
+        nan = np.isnan(values)
+        t = (values - lo) / (hi - lo) if hi > lo else np.zeros_like(values)
+        i = np.clip(np.floor(np.where(nan, 0, t) * N_COLOURS), 0, N_COLOURS - 1).astype(np.uint8)
+        i[nan] = TRANSPARENT
+        return i
+
+    @property
+    def palette(self):
+        """(256, 4) uint8 RGBA colours of the palette indices: the colour map, then `TRANSPARENT`."""
+        return np.vstack([self.lut, np.zeros((1, 4), np.uint8)])
 
     def colorize(self, values):
         """RGBA (uint8, last axis 4) of `values` with the colours of the colour bar, transparent for nan."""
-        lo, hi = self.clim
-        values = np.asarray(values, dtype=np.float64)
-        t = (values - lo) / (hi - lo) if hi > lo else np.zeros_like(values)
-        nan = np.isnan(t)
-        i = np.clip(np.floor(np.where(nan, 0, t) * 256), 0, 255).astype(np.intp)
-        rgba = self.lut[i]
-        rgba[nan] = 0
-        return rgba
+        return self.palette[self.indices(values)]
 
     @property
     def colors(self):
@@ -784,12 +801,12 @@ class PointLayer(_Layer):
         return max(1.0, 0.4 * self.cell / s)
 
     def render(self, geom, index=(), size=(TILE, TILE)):
-        """(height, width, 4) uint8 RGBA image `geom` of `size` (width, height): the rasterized points, or the
-        points as disks when a cell of level 0 is larger than a pixel."""
+        """(height, width) uint8 palette indices of image `geom` of `size` (width, height): the rasterized
+        points, or the points as disks when a cell of level 0 is larger than a pixel."""
         s = min(abs(geom.sx), abs(geom.sy))
         if s >= self.cell:
-            return self.colorize(self.raster_values(geom, index, size))
-        rgba = np.zeros((size[1], size[0], 4), np.uint8)
+            return self.indices(self.raster_values(geom, index, size))
+        img = np.full((size[1], size[0]), TRANSPARENT, np.uint8)
         r = self.point_radius(s)
         # edges of the image, extended by the point radius
         ex = (geom.x0 - geom.sx / 2, geom.x0 + (size[0] - 0.5) * geom.sx)
@@ -797,12 +814,12 @@ class PointLayer(_Layer):
         pad = r * s
         idx = self.points_in((min(ex) - pad, min(ey) - pad, max(ex) + pad, max(ey) + pad))
         if len(idx) == 0:
-            return rgba
+            return img
         px, py = self._x[idx], self._y[idx]
         col = np.floor((px - ex[0]) / geom.sx).astype(np.int64)
         row = np.floor((py - ey[0]) / geom.sy).astype(np.int64)
         values = self.pc_post_proc(self._pc, idx, *self._slider_values(index))
-        return _stamp(rgba, row, col, self.colorize(values), r)
+        return _stamp(img, row, col, self.indices(values), r)
 
     def locate(self, x, y, s):
         """Nearest point to data coordinates (`x`, `y`) within a few screen pixels of `s` data units (at least
@@ -938,7 +955,7 @@ def render_png(panels, path, width=1000, index=None, extent=None):
         rgb = np.empty((size[1], size[0], 3))
         rgb[:] = np.array(BACKGROUND) / 255
         for layer in p:
-            rgba = layer.render(geom, values, size) / 255
+            rgba = layer.palette[layer.render(geom, values, size)] / 255
             alpha = rgba[..., 3:] * layer.opacity
             rgb = rgba[..., :3] * alpha + rgb * (1 - alpha)
         ax.imshow(rgb, extent=img_extent, interpolation='nearest', aspect='equal')

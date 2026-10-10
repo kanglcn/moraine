@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The tiles of `moraine.cli.view` are sent to the browser as 8 bit palette PNGs (255 colours and a transparent index) instead of RGBA PNGs: a 256 x 256 tile of an interferogram is 66 instead of 206 kB and is encoded in 1.5 instead of 8.9 ms (Campi Flegrei rslc pyramid, one of about 15 tiles on screen), so panning and changing the image are faster over a slow connection. The colours have 255 instead of 256 levels (a change of at most one level); `render` of a layer gives the palette indices (uint8) instead of RGBA, `colorize` is unchanged. nan values stay transparent when the colour limits are equal
+
 A number given to a command as text that is not one, e.g. an empty `--var NAME=` substituted into a pipeline step, is reported as such when the arguments are read (`mcf-pc: argument range_pixel_spacing = '' is not a number`) instead of failing inside the command with `could not convert string to float`
 
 `temp-coh` (command and API) checks that the interferograms and the rslc have the same points or pixels and that the image pairs fit them, and names the likely cause (`intf` and `rslc` swapped); before, swapped inputs indexed outside the arrays and the GPU reported an illegal address

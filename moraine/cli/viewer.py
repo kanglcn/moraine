@@ -168,7 +168,7 @@ class TileView(anywidget.AnyWidget):
             if kind == 'tile':
                 layer = self._panels[panel][int(content['layer'])]
                 geom = self.tile_geom(int(content['z']), int(content['x']), int(content['y']))
-                self.send({'type': 'tile', 'id': rid}, [png(layer.render(geom, index))])
+                self.send({'type': 'tile', 'id': rid}, [png(layer.render(geom, index), layer.palette)])
                 return
             x, y = self.to_data(float(content['x']), float(content['y']))
             s = self.pixel_size(int(content.get('z', 0)))
