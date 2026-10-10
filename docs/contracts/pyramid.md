@@ -32,7 +32,10 @@ by level 1 being half the size of level 0.
 ├── x.zarr, y.zarr   coordinates of the points, (n_points,)
 ├── pc.zarr       the point cloud data, (n_points[, n])
 ├── 0.zarr ...    the points rasterized on a grid of `ras_resolution`, level l with cell size ras_resolution * 2**l
-└── idx_0.zarr ...   per level, the index of the point shown in each cell, -1 for empty cells
+├── idx_0.zarr ...   per level, the index of the point shown in each cell, -1 for empty cells
+└── rtree.zarr    bounding box tree of the points (`HilbertRtree`): (n_nodes, 4) float64, [x0, y0, xm, ym] of
+                  each node, `page_size` (points per leaf) and `n_points` in its attributes; optional, readers
+                  build it from x.zarr / y.zarr when a pyramid has none
 ```
 
 - Rows of the grid are y, columns x, like the rasters.

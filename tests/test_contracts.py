@@ -216,9 +216,12 @@ def test_point_cloud_pyramid_layout(tmp_path, rng):
     assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid'] == {'version': PYRAMID_VERSION,
                                                                                 'kind': 'point cloud'}
     levels = pyramid_levels(pyr)
-    expected = {'bounds.toml', 'x.zarr', 'y.zarr', 'pc.zarr', *(f'{l}.zarr' for l in levels),
+    expected = {'bounds.toml', 'x.zarr', 'y.zarr', 'pc.zarr', 'rtree.zarr', *(f'{l}.zarr' for l in levels),
                 *(f'idx_{l}.zarr' for l in levels)}
     assert {p.name for p in pyr.iterdir()} == expected
+    tree = zarr.open(str(pyr / 'rtree.zarr'), mode='r')       # bounding box tree of the points
+    assert tree.ndim == 2 and tree.shape[1] == 4 and tree.dtype == np.float64
+    assert tree.attrs['n_points'] == n and tree.attrs['page_size'] >= 1
     pc = zarr.open(str(pyr / 'pc.zarr'), mode='r')[:]
     for level in levels:
         ras = zarr.open(str(pyr / f'{level}.zarr'), mode='r')[:]
