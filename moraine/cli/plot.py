@@ -41,26 +41,41 @@ def _pyramid_pool(n_workers, initializer, initargs):
 
 _PYRAMID_WORKER = {}
 
-def _ras_pyramid_init(ras, out_dir, maxlevel, step):
-    _PYRAMID_WORKER.update(ras_zarr=zarr.open(ras,mode='r'), step=step,
+def _ras_pyramid_init(ras, out_dir, maxlevel, step, rows):
+    _PYRAMID_WORKER.update(ras_zarr=zarr.open(ras,mode='r'), step=step, rows=rows,
                            ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
 
 def _ras_pyramid_channel(channel_idx):
+    """One channel of the raster, by bands of `rows` lines: the levels a band holds whole are written band by
+    band, the coarser levels from the coarsest of them once all bands are written."""
     w = _PYRAMID_WORKER
-    ras = parallel_read_zarr(w['ras_zarr'], (slice(None), slice(None), *[slice(i,i+1) for i in channel_idx]))
-    _ras_downsample_all_and_save(ras, w['ras_zarrs'], channel_idx)
-    return _part_stats(ras, w['step'])
+    src, zarrs, rows = w['ras_zarr'], w['ras_zarrs'], w['rows']
+    channel = tuple(slice(i, i + 1) for i in channel_idx)
+    ny = src.shape[0]
+    band_levels = min(len(zarrs) - 1, int(round(math.log2(rows))))     # rows is a power of 2: 2**level divides it
+    parts = []
+    for r0 in range(0, ny, rows):
+        band = parallel_read_zarr(src, (slice(r0, min(r0 + rows, ny)), slice(None), *channel))
+        parts.append(_part_stats(band, w['step']))
+        for level in range(band_levels + 1):
+            f = 2 ** level
+            part = band[::f, ::f]
+            parallel_write_zarr(part, zarrs[level], (slice(r0 // f, r0 // f + part.shape[0]), slice(None), *channel))
+    if band_levels < len(zarrs) - 1:
+        base = parallel_read_zarr(zarrs[band_levels], (slice(None), slice(None), *channel))
+        for level in range(band_levels + 1, len(zarrs)):
+            f = 2 ** (level - band_levels)
+            parallel_write_zarr(base[::f, ::f], zarrs[level], (slice(None), slice(None), *channel))
+    return _merge_parts(parts)
 
-def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
-    slices = [slice(None),slice(None)]
-    if len(channel_idx) != 0:
-        for idx in channel_idx:
-            slices.append(slice(idx,idx+1))
-    slices = tuple(slices)
-
-    for level in range(len(zarrs)):
-        ras_ = ras[::2**level,::2**level]
-        parallel_write_zarr(ras_,zarrs[level],slices)
+def _merge_parts(parts):
+    """One `_part_stats` of the parts (bands) of a channel."""
+    finite = [p for p in parts if p['n'] - p['nan'] - p['inf']]
+    return {'n': sum(p['n'] for p in parts), 'nan': sum(p['nan'] for p in parts), 'inf': sum(p['inf'] for p in parts),
+            'sum': sum(p['sum'] for p in parts), 'sum2': sum(p['sum2'] for p in parts),
+            'min': min(p['min'] for p in finite) if finite else np.nan,
+            'max': max(p['max'] for p in finite) if finite else np.nan,
+            'sample': np.concatenate([p['sample'] for p in parts]) if parts else np.empty(0)}
 
 def _sample_step(n_values):
     """Every `step`-th finite value of the data goes into the sample for the percentiles of the statistics."""
@@ -148,6 +163,7 @@ def ras_pyramid(
     ras:str,
     out_dir:str,
     chunks:tuple[int,int]=(256,256),
+    rows:int=1024,
     n_workers:int=None,
 ):
     """render raster data to pyramid of difference zoom levels.
@@ -160,10 +176,15 @@ def ras_pyramid(
         output directory to store rendered data
     chunks : tuple[int, int], default: (256, 256)
         output raster tile size
+    rows : int, default: 1024
+        lines of the raster a process reads at a time, a power of 2; a process needs about 1 GB plus 3 x rows x
+        width x itemsize bytes
     n_workers : int, optional
         processes rendering the channels at the same time, default: 8 or the number of cores if fewer; a process
-        holds one channel of the raster
+        renders one channel of the raster
     """
+    if rows < 1 or rows & (rows - 1):
+        raise ValueError(f'rows must be a power of 2, not {rows}')
     logger = logging.getLogger(__name__)
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)
@@ -193,7 +214,7 @@ def ras_pyramid(
     channel_idxs = list(np.ndindex(ras_zarr.shape[2:]))
     step = _sample_step(ras_zarr.size)
     logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
-    with _pyramid_pool(n_workers, _ras_pyramid_init, (ras, out_dir, maxlevel, step)) as pool:
+    with _pyramid_pool(n_workers, _ras_pyramid_init, (ras, out_dir, maxlevel, step, rows)) as pool:
         parts = list(pool.map(_ras_pyramid_channel, channel_idxs))
     # the marker with the statistics of the whole raster: written last, a pyramid is complete when it has it
     _write_stats(out_dir, downsampled_ras_zarrs[0], 'raster', parts, ras_zarr.shape[2:], ras_zarr.dtype)

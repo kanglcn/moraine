@@ -189,10 +189,11 @@ def test_pipeline_version(tmp_path):
 
 # ---------------------------------------------------------------- pyramids
 
-def test_raster_pyramid_layout(tmp_path, rng):
+@pytest.mark.parametrize('rows', [1024, 16])     # one band, or bands of 16 lines with levels beyond the band
+def test_raster_pyramid_layout(tmp_path, rng, rows):
     ras = rng.random((50, 37, 2)).astype(np.float32)
     _zarr(tmp_path / 'ras.zarr', ras, (20, 20, 1))
-    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), chunks=(16, 16))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), chunks=(16, 16), rows=rows)
     pyr = tmp_path / 'pyr'
     meta = zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']
     assert meta['version'] == PYRAMID_VERSION and meta['kind'] == 'raster'
@@ -210,6 +211,8 @@ def test_raster_pyramid_layout(tmp_path, rng):
         np.testing.assert_array_equal(z[:], ras[::2**level, ::2**level])
         assert z.chunks == (16, 16, 1)
     assert pyramid_levels(pyr) == list(range(maxlevel + 1))
+    with pytest.raises(ValueError, match='power of 2'):
+        mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr2'), rows=100)
 
 
 def test_point_cloud_pyramid_layout(tmp_path, rng):

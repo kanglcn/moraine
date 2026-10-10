@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`ras-pyramid` reads the raster in bands of `rows` lines (a power of 2, default 1024) instead of a whole channel per process, so that its memory is bounded for any raster size: a process needs about 1 GB plus 3 x rows x width x itemsize bytes (an 8000 x 8000 complex64 raster: 1.4 GB with the default, 2.9 GB for a whole channel before). The pyramid is the same bit for bit
+
 `ras-pyramid` and `pc-pyramid` compute the statistics of all the data while they build the pyramid and store them in it (the marker of `0.zarr`, and per image or channel in `stats.zarr`): `moraine info` and the colour range of `moraine.cli.view` are exact (nan fraction, minimum, maximum, mean and standard deviation of all the values, percentiles of a regular sample of 8 million values) and instant instead of being computed from a coarse level at every call (0.3 s for the Campi Flegrei rslc pyramid); `info` also names the images of a stack that are all nan or constant. The statistics of pyramids made before still come from a coarse level
 
 `pc-pyramid` saves the bounding box tree of the points (`rtree.zarr`) and the views read it: the first zoom to single points, or the first probe of a point, no longer builds the tree from all coordinates (0.2 s per million points, several seconds more when the numba cache is cold). Pyramids made before get the tree built as before
