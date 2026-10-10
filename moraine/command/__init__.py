@@ -410,8 +410,10 @@ def _add_command_parser(sub, cmd:Command):
             group.add_argument(*flags, dest=q.name, action=argparse.BooleanOptionalAction,
                                default=argparse.SUPPRESS, help=help_)
         elif q.kind == 'list':
+            # paths of arrays (the help names them or says input / output) or other strings, e.g. dates
+            paths = re.search(r'\bpaths?\b|^(input|output)\b', q.help or '', re.I)
             group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
-                               metavar='PATH', help=help_ + ' (one or more)')
+                               metavar='PATH' if paths else 'STR', help=help_ + ' (one or more)')
         elif q.kind == 'tuple':
             group.add_argument(*flags, dest=q.name, nargs='+', required=q.required, default=argparse.SUPPRESS,
                                metavar='INT', help=help_ + ' (e.g. ' + ' '.join(['1000'] * (q.n or 2)) + ')')
