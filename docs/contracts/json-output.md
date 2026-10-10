@@ -115,8 +115,10 @@ Objects describing a path (`moraine info`, outputs of commands and steps). `kind
 
 ### pyramid summary
 
-`kind` is `raster pyramid` or `point cloud pyramid` (see the pyramid contract). The statistics come from
-the finest level of at most 64 MiB (`stats_level`); point cloud pyramids skip empty cells. For complex data
+`kind` is `raster pyramid` or `point cloud pyramid` (see the pyramid contract). The statistics are those
+of all the data, computed when the pyramid was built (`stats_level` 0); for pyramids made without them they
+come from the finest level of at most 64 MiB (`stats_level` > 0), point cloud pyramids skipping empty cells.
+For complex data
 the value fields are named `amplitude_min`, `amplitude_max`, ... and describe the amplitude; for boolean
 data only `true_fraction` is given.
 
@@ -127,7 +129,7 @@ data only `true_fraction` is given.
 | `shape` | list of integers | shape of level 0 |
 | `dtype` | string | numpy dtype |
 | `levels` | integer | number of levels |
-| `stats_level` | integer | level used for the statistics |
+| `stats_level` | integer | level used for the statistics, 0 when they are of all the data |
 | `nan_fraction` | number | *optional*, fraction of nan values |
 | `min` | number | *optional*, minimum (finite values) |
 | `max` | number | *optional*, maximum |
@@ -144,7 +146,7 @@ data only `true_fraction` is given.
 | `amplitude_p50` | number | *optional* |
 | `amplitude_p99` | number | *optional* |
 | `true_fraction` | number | *optional*, fraction of true values, for boolean data |
-| `warnings` | list of strings | *optional*, anomalies: all values nan, infinite values, constant values |
+| `warnings` | list of strings | *optional*, anomalies: all values nan, infinite values, constant values; the images or channels of a stack that are all nan or constant |
 
 ### directory summary
 

@@ -79,9 +79,10 @@ Unknown argument names are errors (with a suggestion); tuples are written `[1000
 
 Never load large arrays to look at them. Use:
 
-- `moraine info PATH`: shape, dtype and chunks of an array (no data read). For a pyramid it adds
-  statistics from a coarse level (nan_fraction, min, max, mean, std, p01, p50, p99; amplitude for
-  complex data) and `warnings` for all-nan, infinite or constant values.
+- `moraine info PATH`: shape, dtype and chunks of an array (no data read). For a pyramid it adds the
+  statistics of the data computed when the pyramid was built (nan_fraction, min, max, mean, std, p01, p50,
+  p99; amplitude for complex data) and `warnings` for all-nan, infinite or constant values, also of single
+  images of a stack.
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
   `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
   Look at the PNG: fringes should be continuous, noise should be where coherence is low. Zoom in with

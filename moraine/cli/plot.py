@@ -26,6 +26,8 @@ from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
 _RTREE_PAGE = 512        # points per leaf of the bounding box tree of a point cloud pyramid
+_SAMPLE_VALUES = 2**23   # values of the regular sample for the percentiles of the statistics (64 MiB of float64)
+_STATS_COLUMNS = ('nan_fraction', 'min', 'max', 'mean', 'std', 'p01', 'p50', 'p99')   # per channel table
 
 def _pyramid_workers(n_workers):
     return min(8, os.cpu_count() or 1) if n_workers is None else n_workers
@@ -39,14 +41,15 @@ def _pyramid_pool(n_workers, initializer, initargs):
 
 _PYRAMID_WORKER = {}
 
-def _ras_pyramid_init(ras, out_dir, maxlevel):
-    _PYRAMID_WORKER.update(ras_zarr=zarr.open(ras,mode='r'),
+def _ras_pyramid_init(ras, out_dir, maxlevel, step):
+    _PYRAMID_WORKER.update(ras_zarr=zarr.open(ras,mode='r'), step=step,
                            ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
 
 def _ras_pyramid_channel(channel_idx):
     w = _PYRAMID_WORKER
     ras = parallel_read_zarr(w['ras_zarr'], (slice(None), slice(None), *[slice(i,i+1) for i in channel_idx]))
     _ras_downsample_all_and_save(ras, w['ras_zarrs'], channel_idx)
+    return _part_stats(ras, w['step'])
 
 def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
     slices = [slice(None),slice(None)]
@@ -58,6 +61,87 @@ def _ras_downsample_all_and_save(ras,zarrs,channel_idx):
     for level in range(len(zarrs)):
         ras_ = ras[::2**level,::2**level]
         parallel_write_zarr(ras_,zarrs[level],slices)
+
+def _sample_step(n_values):
+    """Every `step`-th finite value of the data goes into the sample for the percentiles of the statistics."""
+    return max(1, math.ceil(n_values / _SAMPLE_VALUES))
+
+
+def _part_stats(a, step):
+    """Exact sums and a regular sample of a part of the data (a channel or a band), pooled by `_pool_stats`: of
+    the amplitude for complex data, of 0 / 1 for booleans."""
+    a = np.asarray(a).ravel()
+    if a.dtype == bool:
+        v, nan = a.astype(np.float64), np.zeros(a.shape, bool)
+    elif np.iscomplexobj(a):
+        nan = np.isnan(a.real) | np.isnan(a.imag)
+        v = np.abs(a).astype(np.float64)
+    else:
+        v = a.astype(np.float64)
+        nan = np.isnan(v)
+    inf = np.isinf(v)
+    finite = v[~(nan | inf)]
+    return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'sum': float(finite.sum()),
+            'sum2': float(np.square(finite).sum()), 'min': float(finite.min()) if finite.size else np.nan,
+            'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step]}
+
+
+def _pool_stats(parts, dtype):
+    """Statistics of the data from the `_part_stats` of all its parts, like `_stats`: the exact nan fraction,
+    minimum, maximum, mean and standard deviation, the percentiles of the pooled sample, and warnings."""
+    n = sum(p['n'] for p in parts)
+    if n == 0:
+        return {'warnings': ['no values']}
+    nan, inf = sum(p['nan'] for p in parts), sum(p['inf'] for p in parts)
+    n_finite = n - nan - inf
+    out, warnings = {}, []
+    if n_finite:
+        mean = sum(p['sum'] for p in parts) / n_finite
+        std = math.sqrt(max(sum(p['sum2'] for p in parts) / n_finite - mean ** 2, 0.0))
+        lo = min(p['min'] for p in parts if p['n'] - p['nan'] - p['inf'])
+        hi = max(p['max'] for p in parts if p['n'] - p['nan'] - p['inf'])
+        pct = np.percentile(np.concatenate([p['sample'] for p in parts]), [1, 50, 99])
+    if np.dtype(dtype) == bool:
+        out['true_fraction'] = _round(mean)
+        if lo == hi:
+            warnings.append(f'all values are {bool(lo)}')
+        return {**out, 'warnings': warnings} if warnings else out
+    prefix = 'amplitude_' if np.iscomplexobj(np.empty(0, dtype)) else ''
+    out['nan_fraction'] = _round(nan / n)
+    if inf:
+        warnings.append(f'{inf} infinite values')
+    if not n_finite:
+        warnings.append('all values are nan')
+    else:
+        out.update({prefix + 'min': _round(lo), prefix + 'max': _round(hi), prefix + 'mean': _round(mean),
+                    prefix + 'std': _round(std), prefix + 'p01': _round(pct[0]), prefix + 'p50': _round(pct[1]),
+                    prefix + 'p99': _round(pct[2])})
+        if lo == hi:
+            warnings.append(f'all values are {_round(lo)}')
+    if warnings:
+        out['warnings'] = warnings
+    return out
+
+
+def _channel_row(p):
+    """Row of the per channel table (`_STATS_COLUMNS`) from the `_part_stats` of one channel."""
+    n_finite = p['n'] - p['nan'] - p['inf']
+    if not n_finite:
+        return [p['nan'] / p['n'] if p['n'] else np.nan] + [np.nan] * (len(_STATS_COLUMNS) - 1)
+    mean = p['sum'] / n_finite
+    pct = np.percentile(p['sample'], [1, 50, 99]) if p['sample'].size else [np.nan] * 3
+    return [p['nan'] / p['n'], p['min'], p['max'], mean, math.sqrt(max(p['sum2'] / n_finite - mean ** 2, 0.0)), *pct]
+
+
+def _write_stats(out_dir, z0, kind, parts, channel_shape, dtype):
+    """Write the marker of the pyramid with the statistics of all its data into `z0` (level 0) and the per
+    channel table stats.zarr; `parts` are the `_part_stats` of the channels in the order of `np.ndindex`."""
+    z0.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': kind, 'stats': _pool_stats(parts, dtype)}
+    table = np.array([_channel_row(p) for p in parts], dtype=np.float64).reshape(*channel_shape, len(_STATS_COLUMNS))
+    t = zarr.open(str(Path(out_dir) / 'stats.zarr'), mode='w', shape=table.shape, dtype=np.float64, chunks=table.shape)
+    t[...] = table
+    t.attrs['columns'] = list(_STATS_COLUMNS)
+
 
 @mc_logger
 def ras_pyramid(
@@ -105,12 +189,14 @@ def ras_pyramid(
             chunks=(*out_chunks,*channel_chunks),)
         logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
         downsampled_ras_zarrs.append(downsampled_ras_zarr)
-    downsampled_ras_zarrs[0].attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'raster'}
 
     channel_idxs = list(np.ndindex(ras_zarr.shape[2:]))
+    step = _sample_step(ras_zarr.size)
     logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
-    with _pyramid_pool(n_workers, _ras_pyramid_init, (ras, out_dir, maxlevel)) as pool:
-        list(pool.map(_ras_pyramid_channel, channel_idxs))
+    with _pyramid_pool(n_workers, _ras_pyramid_init, (ras, out_dir, maxlevel, step)) as pool:
+        parts = list(pool.map(_ras_pyramid_channel, channel_idxs))
+    # the marker with the statistics of the whole raster: written last, a pyramid is complete when it has it
+    _write_stats(out_dir, downsampled_ras_zarrs[0], 'raster', parts, ras_zarr.shape[2:], ras_zarr.dtype)
     logger.info('rendering finished.')
 
 def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
@@ -200,8 +286,8 @@ def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
                 xi[i,j] = idx_[0,1] + j*2
     return yi, xi
 
-def _pc_pyramid_init(pc, out_dir, maxlevel, coord, gix, yis, xis):
-    _PYRAMID_WORKER.update(pc_zarr=zarr.open(pc,mode='r'), coord=coord, gix=gix, yis=yis, xis=xis,
+def _pc_pyramid_init(pc, out_dir, maxlevel, coord, gix, yis, xis, step):
+    _PYRAMID_WORKER.update(pc_zarr=zarr.open(pc,mode='r'), coord=coord, gix=gix, yis=yis, xis=xis, step=step,
                            pc_out=zarr.open(Path(out_dir)/'pc.zarr',mode='r+'),
                            ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
 
@@ -209,6 +295,7 @@ def _pc_pyramid_channel(channel_idx):
     w = _PYRAMID_WORKER
     pc = parallel_read_zarr(w['pc_zarr'], (slice(None), *[slice(i,i+1) for i in channel_idx]))
     _pc_downsample_all_and_save(pc, w['coord'], w['gix'], w['yis'], w['xis'], w['pc_out'], w['ras_zarrs'], channel_idx)
+    return _part_stats(pc, w['step'])
 
 def _pc_downsample_all_and_save(pc,coord,gix,yis,xis,pc_zarr,ras_zarrs,channel_idx):
     pc_slices = [slice(None),]
@@ -339,12 +426,15 @@ def pc_pyramid(
             chunks=(*ras_chunks,*channel_chunks),)
         logger.zarr_info(out_dir/f'{level}.zarr',downsampled_ras_zarr)
         if level == 0:
-            downsampled_ras_zarr.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': 'point cloud'}
+            level0_zarr = downsampled_ras_zarr
 
     channel_idxs = list(np.ndindex(pc_zarr.shape[1:]))
+    step = _sample_step(pc_zarr.size)
     logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
-    with _pyramid_pool(n_workers, _pc_pyramid_init, (pc, out_dir, maxlevel, coord, gix, yis, xis)) as pool:
-        list(pool.map(_pc_pyramid_channel, channel_idxs))
+    with _pyramid_pool(n_workers, _pc_pyramid_init, (pc, out_dir, maxlevel, coord, gix, yis, xis, step)) as pool:
+        parts = list(pool.map(_pc_pyramid_channel, channel_idxs))
+    # the marker with the statistics of the points: written last, a pyramid is complete when it has it
+    _write_stats(out_dir, level0_zarr, 'point cloud', parts, pc_zarr.shape[1:], pc_zarr.dtype)
     logger.info('rendering finished.')
 
 class _LazyRtree:
@@ -513,7 +603,11 @@ def _stats(a):
 
 
 def _pyramid_stats(p, levels, max_bytes):
-    """Statistics from the finest pyramid level read within `max_bytes`: a regular decimation of the scene."""
+    """Statistics of a pyramid: those of all its data, computed when it was built (`stats_level` 0); for a pyramid
+    made without them, from the finest level read within `max_bytes`, a regular decimation of the scene."""
+    meta = zarr.open(str(p / '0.zarr'), mode='r').attrs.get('moraine_pyramid') or {}
+    if meta.get('stats'):
+        return {'stats_level': 0, **meta['stats']}
     level = levels[-1]
     for lv in levels:
         if zarr.open(str(p / f'{lv}.zarr'), mode='r').nbytes <= max_bytes:
@@ -524,6 +618,29 @@ def _pyramid_stats(p, levels, max_bytes):
     if idx_path.exists():   # point cloud pyramid: skip the cells without points (idx == -1)
         a = a[np.asarray(zarr.open(str(idx_path), mode='r')[...]) != -1]
     return {'stats_level': level, **_stats(a.ravel())}
+
+
+def _channel_warnings(p, limit=20):
+    """Warnings about single channels (images, pairs) of a pyramid, from its per channel table stats.zarr: all
+    values nan, constant values. [] for pyramids without the table and for data without channels."""
+    path = Path(p) / 'stats.zarr'
+    if not path.exists():
+        return []
+    t = zarr.open(str(path), mode='r')
+    table = np.asarray(t[...])
+    if table.ndim < 2:
+        return []
+    col = {name: k for k, name in enumerate(t.attrs['columns'])}
+    rows = table.reshape(-1, table.shape[-1])
+    names = [f'image {idx[0]}' if table.ndim == 2 else f'channel {idx}' for idx in np.ndindex(table.shape[:-1])]
+    out = []
+    for what, bad in [('all values nan', np.isnan(rows[:, col['min']])),
+                      ('constant values', rows[:, col['min']] == rows[:, col['max']])]:
+        which = [names[k] for k in np.flatnonzero(bad)]
+        if which:
+            more = f' and {len(which) - limit} more' if len(which) > limit else ''
+            out.append(f'{what}: {", ".join(which[:limit])}{more}')
+    return out
 
 
 def _phase_2d(data_zarr, xslice, yslice):

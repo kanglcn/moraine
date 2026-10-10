@@ -285,7 +285,15 @@ def test_pyramids(tmp_path, rng):
     s = summarize(str(tmp_path / 'ras_pyramid'))
     assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1
     assert s['stats_level'] == 0 and abs(s['amplitude_mean'] - np.abs(ras).mean()) < 1e-3 and 'warnings' not in s
+    assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000) == s         # the statistics of the pyramid
+    z0 = zarr.open(str(tmp_path / 'ras_pyramid' / '0.zarr'), mode='r+')               # a pyramid made without them
+    z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != 'stats'}
     assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000)['stats_level'] > 0     # coarser level
+    # the images of a stack that are all nan or constant are named
+    bad = ras.copy(); bad[..., 1] = np.nan; bad[..., 2] = 1 + 0j
+    _zarr(tmp_path / 'bad.zarr', bad, (100, 100, 1))
+    mc.ras_pyramid(str(tmp_path / 'bad.zarr'), str(tmp_path / 'bad_pyramid'))
+    assert summarize(str(tmp_path / 'bad_pyramid'))['warnings'] == ['all values nan: image 1', 'constant values: image 2']
     for kw in [{}, {'index': (2,)}, {'show': 'intf_seq', 'index': (1,)}, {'show': 'intf_all', 'index': (0, 2)}]:
         out = tmp_path / 'r.png'
         quicklook(str(tmp_path / 'ras_pyramid'), str(out), width=200, **kw)
