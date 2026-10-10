@@ -9,7 +9,8 @@ moraine run examples/04_refine.toml --workdir WORK
 
 ## Steps
 
-1. `pc-union` of the PS candidates (their rslc) and the refined DS (their phase history), with e/n;
+1. `pc-union` of the DS (their phase history) and the PS candidates (their rslc), with e/n; a point in both
+   sets keeps the DS phase history (the first input of `pc-union` wins);
    `ras2pc` adds lon/lat.
 2. `image-pairs` (sequential) and `n2ft`: Noise2Fringe Transformer filtering of the point cloud
    interferograms (chunks of 20 000 points with k nearest neighbour halos).
@@ -36,11 +37,11 @@ coherence `pc_temp_coh.zarr`, and the geometry the deformation products need: he
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 984 260 | about PS + DS minus overlap |
-| `pc_can_temp_coh_pyramid` | p50 0.67, p99 0.995 | 0..1 |
-| refined points (`pc_hix`) | 352 433 (36 % of the candidates) | |
+| merged candidates | 1 070 818 | about PS + DS minus overlap |
+| `pc_can_temp_coh_pyramid` | p50 0.81, p99 0.998 | 0..1 |
+| refined points (`pc_hix`) | 549 341 (51 % of the candidates; 85 % of the DS, 9 % of the PS candidates that are not DS) | |
 
-Run time: about 23 s with an A100 (n2ft 14 s). The GPU results of `n2f` and `n2ft` differ by rounding between
+Run time: about 24 s with an A100 (n2ft 17 s). The GPU results of `n2f` and `n2ft` differ by rounding between
 runs, so a few points (about 1 in 10 000) may be selected differently.
 
 ## Checks

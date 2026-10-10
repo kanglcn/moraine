@@ -10,13 +10,13 @@
 cuda = true                       # set to false without a GPU
 
 [[step]]
-name = "merge"                    # PS candidates (rslc) + DS (phase history), hilbert order
+name = "merge"                    # DS (phase history) + PS candidates (rslc), hilbert order; a point in both keeps the DS phase
 run = "pc-union"
-idx1 = "ps/ps_can_hix.zarr"
-idx2 = "ds/ds_hix.zarr"
+idx1 = "ds/ds_hix.zarr"
+idx2 = "ps/ps_can_hix.zarr"
 idx = "pc/pc_can_hix.zarr"
-pc1 = ["ps/ps_can_rslc.zarr", "ps/ps_can_e.zarr", "ps/ps_can_n.zarr"]
-pc2 = ["ds/ds_ph.zarr", "ds/ds_e.zarr", "ds/ds_n.zarr"]
+pc1 = ["ds/ds_ph.zarr", "ds/ds_e.zarr", "ds/ds_n.zarr"]
+pc2 = ["ps/ps_can_rslc.zarr", "ps/ps_can_e.zarr", "ps/ps_can_n.zarr"]
 pc = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr"]
 
 [[step]]

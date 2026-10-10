@@ -28,9 +28,9 @@ Output: `WORK/unw/pc_unw.zarr` (n_points, n_image_pairs) float32, unwrapped phas
 
 | result | sample value | sane range |
 |---|---|---|
-| `unw/pc_unw_pyramid` | p01 -8.3, p50 -0.1, p99 9.4, min -20.7, max 18.5 | a few multiples of 2 pi |
+| `unw/pc_unw_pyramid` | p01 -7.1, p50 0.0, p99 9.4, min -21.9, max 22.7 | a few multiples of 2 pi |
 
-Run time: 2.3 s for 352 530 points and 16 interferograms (CPU, 16 at the same time).
+Run time: 11 s for 549 341 points and 16 interferograms (CPU, 16 at the same time, on a shared node).
 
 Correctness check (in python): rewrapping the result must give the input phase,
 `np.angle(np.exp(1j*unw) * np.conj(intf))` near 0 (sample: max 1.1e-6 rad).
