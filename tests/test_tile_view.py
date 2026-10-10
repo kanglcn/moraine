@@ -104,6 +104,11 @@ def test_raster_colours_and_value(ras):
     assert tuple(rgba[0, 0, :3]) == (0x44, 0x01, 0x54) and rgba[0, 0, 3] == 255
     assert tuple(rgba[0, 1, :3]) == (0xfd, 0xe7, 0x25)       # last viridis colour
     assert rgba[0, 2, 3] == 0                                # nan is transparent
+    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan), also when the limits are equal
+    idx = layer.indices(np.array([[lo - 1, hi + 1, np.nan]]))
+    assert idx.dtype == np.uint8 and idx.tolist() == [[0, 254, 255]]
+    assert layer.palette.shape == (256, 4) and layer.palette[255, 3] == 0 and (layer.palette[:255, 3] == 255).all()
+    assert view(str(pyr), clim=(1, 1)).indices(np.array([3.0, np.nan])).tolist() == [0, 255]
     assert layer.value(7.2, 3.4, 1) == {'x': 7.0, 'y': 3.0, 'key': [3, 7], 'value': float(a[3, 7])}
     assert layer.value(499.6, 0, 1) is None and layer.value(-0.6, 0, 1) is None
     custom = view(str(pyr), cmap='magma', clim=(0, 50))
@@ -198,12 +203,13 @@ def test_point_cloud_raster_zoom(grid_pc):
 def test_point_cloud_points_zoom(grid_pc):
     pts, pyr = grid_pc
     layer = view(str(pyr))
-    # zoom 2: cells of 4 screen pixels, points as disks of radius 1.6 pixels at their coordinates
-    rgba = layer.render(grid_geom(2, 0, 0, layer.edge_origin))
-    assert rgba.shape == (256, 256, 4)
+    # zoom 2: cells of 4 screen pixels, points as disks of radius 1.6 pixels at their coordinates; a tile is the
+    # palette indices of its pixels
+    img = layer.render(grid_geom(2, 0, 0, layer.edge_origin))
+    assert img.shape == (256, 256) and img.dtype == np.uint8
     row, col = int((30 - 2.5) * 4), int((21 - 1.5) * 4)      # point (y, x) = (30, 21)
-    np.testing.assert_array_equal(rgba[row, col], layer.colorize(np.array([30021.0]))[0])
-    assert rgba[row, col + 4, 3] == 0                        # (30, 22): no point, 4 pixels from the others
+    assert img[row, col] == layer.indices(np.array([30021.0]))[0]
+    assert img[row, col + 4] == 255                          # (30, 22): no point, 4 pixels from the others
     k = pts.index((30, 21))
     assert layer.value(21.1, 29.9, 0.25) == {'point': k, 'key': k, 'x': 21.0, 'y': 30.0, 'value': 30021.0}
     assert layer.value(22, 30, 1 / 16) is None               # centre of an empty cell, zoomed in
@@ -249,10 +255,10 @@ def test_web_mercator(mercator_pc):
     assert np.isfinite(t[:30, :20]).mean() > 0.5 and np.isnan(t[31:, 21:]).all()
     assert layer._rtree is None
     # zoom 17: cells of 4 pixels, tile (4 TX, 4 TY) covers pixels 0 - 63 of the zoom 15 tile
-    rgba = layer.render(mercator_geom(17, 4 * TX, 4 * TY))
+    img = layer.render(mercator_geom(17, 4 * TX, 4 * TY))
     row, col = 4 * 30 + 2, 4 * 21 + 2                        # point (a, b) = (30, 21)
-    np.testing.assert_array_equal(rgba[row, col], layer.colorize(np.array([30021.0]))[0])
-    assert rgba[row, col + 4, 3] == 0
+    assert img[row, col] == layer.indices(np.array([30021.0]))[0]
+    assert img[row, col + 4] == 255
     x, y = west + 21.5 * res, top - 30.5 * res
     found = layer.value(x + 0.3 * res, y - 0.2 * res, mercator_pixel(17))
     assert found['point'] == ab.index((30, 21)) and found['value'] == 30021.0
@@ -419,9 +425,11 @@ def test_view_messages(grid_pc, monkeypatch):
     # tile of the second layer: map position = data - view origin
     v._on_msg(v, {'type': 'tile', 'id': 1, 'panel': 0, 'layer': 1, 'z': 0, 'x': 0, 'y': 0, 'index': {}}, [])
     content, buffers = sent.pop()
-    img = np.asarray(Image.open(io.BytesIO(buffers[0])))
-    assert content == {'type': 'tile', 'id': 1} and img.shape == (256, 256, 4)
-    np.testing.assert_array_equal(img, v.layers[0][1].render(grid_geom(0, 0, 0, (-0.5, -0.5))))
+    img = Image.open(io.BytesIO(buffers[0]))                 # a palette PNG, index 255 transparent
+    assert content == {'type': 'tile', 'id': 1} and img.mode == 'P' and img.size == (256, 256)
+    layer = v.layers[0][1]
+    np.testing.assert_array_equal(np.asarray(img.convert('RGBA')),
+                                  layer.palette[layer.render(grid_geom(0, 0, 0, (-0.5, -0.5)))])
     # values of all layers under the cursor
     k, k_ref = pts.index((30, 21)), pts.index((3, 3))
     v._on_msg(v, {'type': 'value', 'id': 2, 'x': 21.5, 'y': 30.4, 'z': 2}, [])

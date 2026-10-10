@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+The tiles of `moraine.cli.view` are sent to the browser as 8 bit palette PNGs (255 colours and a transparent index) instead of RGBA PNGs: a 256 x 256 tile of an interferogram is 66 instead of 206 kB and is encoded in 1.5 instead of 8.9 ms (Campi Flegrei rslc pyramid, one of about 15 tiles on screen), so panning and changing the image are faster over a slow connection. The colours have 255 instead of 256 levels (a change of at most one level); `render` of a layer gives the palette indices (uint8) instead of RGBA, `colorize` is unchanged. nan values stay transparent when the colour limits are equal
 Wrong arguments are reported with the argument, the expected shape and the actual one (`rslc must have 3 dimensions (nlines, width, nimages), got shape (4, 5)`, `give one path or a list of paths for all of ras, pc: ras is a list, pc is a path`, `idx must be sorted and unique`, ...) instead of a bare `AssertionError`; the checks run with `python -O` too, which drops asserts. The commands check their inputs before they create outputs. Spelling in messages and help texts fixed (`dimentation`, `hypothetic test`, `implented`, `Homogenious`)
 
 `bool2gix` wrote the grid index as a bool array (every index 1): it writes the integer index now; the command has a test
