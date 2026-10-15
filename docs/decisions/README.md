@@ -46,6 +46,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0036](0036-3d-views-over-terrain.md) | 3D views over the terrain with deck.gl and public elevation tiles | Accepted |
 | [0037](0037-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
 | [0038](0038-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
+| [0039](0039-zarr-one-file-per-chunk-no-sharding.md) | Zarr arrays are written one file per chunk, without sharding | Accepted |
 
 ## Writing a record
 

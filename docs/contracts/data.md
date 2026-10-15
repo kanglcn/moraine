@@ -26,6 +26,7 @@ Decision 0019.
   pixels reads one chunk of every image, without rechunking. Temporary zarrs between the steps of a
   command follow the same layout.
 - Commands expect this layout and report other chunks instead of rechunking them.
+- Arrays are written without zarr shards, one file per chunk (decision 0039).
 
 ## Point clouds
 
