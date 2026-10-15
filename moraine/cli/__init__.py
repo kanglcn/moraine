@@ -14,6 +14,7 @@ from .pl import *
 from .dl import *
 from .pqm import *
 from .pu import *
+from .ts import *
 from .plot import *
 from .tiles import *
 
