@@ -1,12 +1,12 @@
 """Deformation products of point clouds: spatial reference of time series (decision 0040)"""
 
-__all__ = ['reference']
+__all__ = ['pc_reference']
 
 import numpy as np
 from .utils_ import get_array_module
 
 
-def reference(
+def pc_reference(
     data,
     ref,
     method:str='median',

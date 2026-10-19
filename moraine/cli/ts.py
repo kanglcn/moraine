@@ -14,7 +14,7 @@ from .executor import Executor, Chunk
 
 def _reference_column(pc_part, out_part, ref, method):
     """subtract the reference value of one column of a point cloud, write it and return the reference value"""
-    out, value = mr.reference(pc_part.read(), ref, method)
+    out, value = mr.pc_reference(pc_part.read(), ref, method)
     out_part.write(out)
     return np.asarray(value).reshape(-1)
 

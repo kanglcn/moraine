@@ -60,7 +60,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of any network of interferograms | `emcf_pc` |
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
-| `moraine/api/ts.py` | deformation products of point clouds (decision 0040): spatial reference | `reference` |
+| `moraine/api/ts.py` | deformation products of point clouds (decision 0040): spatial reference | `pc_reference` |
 | `moraine/api/dl.py` | deep learning filters, model download and cached loading | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | `moraine/api/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
 | `moraine/api/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |

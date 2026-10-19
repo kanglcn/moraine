@@ -10,12 +10,12 @@ ts = motion + offset                                             # e.g. image ph
 ts[3, 2] += 2 * np.pi                                            # one stable point with an unwrapping error
 
 stable = np.zeros(n_points, dtype=bool); stable[:4] = True      # the reference area
-out, ref_value = mr.reference(ts, stable)                        # median of the reference points per image
+out, ref_value = mr.pc_reference(ts, stable)                     # median of the reference points per image
 print(ref_value)
 print(out.round(2))
-out_mean = mr.reference(ts, stable, method='mean')[0]            # the unwrapping error shifts the mean
+out_mean = mr.pc_reference(ts, stable, method='mean')[0]         # the unwrapping error shifts the mean
 print(out_mean[:, 2].round(2))
-out_point = mr.reference(ts, 0)[0]                               # one reference point
+out_point = mr.pc_reference(ts, 0)[0]                            # one reference point
 print(out_point[0])
 ```
 
