@@ -72,9 +72,9 @@ Steps, each its own change, in this order:
 
 ## Next stages of decision 0012
 
-Deformation products (stage 5), starting with the spatial reference (reference point or area) of the
-image phases of `unwrap-correct-closure-pc`: see `docs/decisions/0012-network-emcf-inversion.md`. Stage 4
-(time series inversion) is replaced by those image phases (decision 0022).
+Deformation products (stage 5): started, the steps and their order are decision 0040
+(`docs/decisions/0040-deformation-products.md`), beginning with the spatial reference of the image phases of
+`unwrap-correct-closure-pc`. Stage 4 (time series inversion) is replaced by those image phases (decision 0022).
 
 ## Visualization
 

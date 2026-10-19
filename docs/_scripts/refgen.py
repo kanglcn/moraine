@@ -72,7 +72,7 @@ T = {
 
 # moraine.api modules documented, in the order of the API index; a tuple lists the modules of a subpackage
 API_MODULES = ['calamp', 'pc', 'rtree', 'tnet', 'polygon', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm',
-               ('unwrap', ['delaunay_', 'mcf', 'emcf', 'closure', 'gamma']), 'utils_']
+               ('unwrap', ['delaunay_', 'mcf', 'emcf', 'closure', 'gamma']), 'ts', 'utils_']
 BUILTIN = ['list', 'info', 'quicklook', 'view', 'run', 'status']
 # the Campi Flegrei notebooks only: the manual shows one data set (decision 0038)
 TUTORIALS = ['CampiFlegrei/01_load', 'CampiFlegrei/02_ps', 'CampiFlegrei/03_ds', 'CampiFlegrei/04_refine',

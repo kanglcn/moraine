@@ -25,3 +25,6 @@ from .pqm import *
 
 # phase unwrapping
 from .unwrap import *
+
+# deformation products
+from .ts import *
