@@ -1,6 +1,6 @@
-"""Deformation products of point clouds: spatial reference of time series (decision 0040)"""
+"""Deformation products of point clouds: spatial reference, displacement (decision 0040)"""
 
-__all__ = ['pc_reference']
+__all__ = ['pc_reference', 'pc_disp']
 
 import numpy as np
 from .utils_ import get_array_module
@@ -72,3 +72,34 @@ def pc_reference(
         ref_value = xp.nanmean(values, axis=0)
     ref_value = xp.asarray(ref_value, dtype=data.dtype)
     return data - ref_value, ref_value
+
+
+def pc_disp(
+    phase,
+    wavelength:float,
+):
+    """Line of sight displacement in millimeters from unwrapped phase.
+
+    Parameters
+    ----------
+    phase : np.ndarray
+        unwrapped phase in radians, any shape, floating point, numpy or cupy; the phase of an image relative to a
+        reference image, growing when the range gets shorter, e.g. the image phases of `unwrap_correct_closure_pc`
+        relative to a reference area (`pc_reference`)
+    wavelength : float
+        radar wavelength in meters, between 0 and 1 (e.g. 0.0554658 for Sentinel-1)
+
+    Returns
+    -------
+    disp : np.ndarray
+        line of sight displacement in millimeters, same shape as `phase`, float32; positive towards the satellite
+        (a shorter range); nan where `phase` is nan
+    """
+    if not np.issubdtype(phase.dtype, np.floating):
+        raise ValueError(f'phase must be floating point (unwrapped phase in radians), got {phase.dtype}')
+    wavelength = float(wavelength)
+    if not 0 < wavelength < 1:
+        raise ValueError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
+    # a two way path: one cycle (2 pi) is half a wavelength of range change
+    mm_per_rad = np.float32(1000 * wavelength / (4 * np.pi))
+    return phase.astype(np.float32, copy=False) * mm_per_rad

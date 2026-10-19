@@ -52,6 +52,8 @@ Decision 0019.
 - Unwrapped phase: float32 radians, `(n_points, n_pairs)`.
 - Unwrapped phase of the images (phase time series): float32 radians, `(n_points, nimages)`, relative to a
   reference image whose column is 0; interferogram (a, b) is `ts[:, a] - ts[:, b]` (decision 0022).
+- Displacements (decision 0040): line of sight, float32 millimeters, positive towards the satellite (a shorter
+  range), same shape as the phase they come from; velocities in millimeters per year.
 
 ## Polygons
 

@@ -138,3 +138,79 @@ def test_pc_reference_argument_errors(tmp_path):
     complex_pc = _zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
     with pytest.raises(ValueError, match='floating point'):
         mc.pc_reference(complex_pc, str(tmp_path / 'o.zarr'), ref_point=1)
+
+
+S1_WAVELENGTH = 0.055465759531382094
+
+
+def test_pc_disp_api():
+    mm_per_rad = 1000 * S1_WAVELENGTH / (4 * np.pi)
+    phase = np.array([[0, np.pi, 2 * np.pi], [-1, 1, np.nan]], dtype=np.float32)
+    disp = mr.pc_disp(phase, S1_WAVELENGTH)
+    assert disp.shape == phase.shape and disp.dtype == np.float32
+    np.testing.assert_allclose(disp[0, 2], 1000 * S1_WAVELENGTH / 2, rtol=1e-6)     # one cycle is half a wavelength
+    np.testing.assert_allclose(disp[1, :2], [-mm_per_rad, mm_per_rad], rtol=1e-6)  # positive phase: towards the satellite
+    assert np.isnan(disp[1, 2])
+    disp64 = mr.pc_disp(phase.astype(np.float64), S1_WAVELENGTH)
+    assert disp64.dtype == np.float32
+    np.testing.assert_allclose(mr.pc_disp(phase[0], S1_WAVELENGTH), disp[0])
+
+
+@pytest.mark.parametrize('phase, wavelength, match', [
+    (np.ones(3, dtype=np.complex64), S1_WAVELENGTH, 'floating point'),
+    (np.ones(3, dtype=np.int32), S1_WAVELENGTH, 'floating point'),
+    (np.ones(3, dtype=np.float32), 0.0, 'between 0 and 1'),
+    (np.ones(3, dtype=np.float32), -0.05, 'between 0 and 1'),
+    (np.ones(3, dtype=np.float32), 5.55, 'between 0 and 1'),
+    (np.ones(3, dtype=np.float32), np.nan, 'between 0 and 1'),
+])
+def test_pc_disp_api_errors(phase, wavelength, match):
+    with pytest.raises(ValueError, match=match):
+        mr.pc_disp(phase, wavelength)
+
+
+@pytest.mark.gpu
+def test_pc_disp_api_gpu():
+    import cupy as cp
+    phase = _ts()[0]
+    disp = mr.pc_disp(cp.asarray(phase), S1_WAVELENGTH)
+    assert isinstance(disp, cp.ndarray) and disp.dtype == np.float32
+    np.testing.assert_allclose(cp.asnumpy(disp), mr.pc_disp(phase, S1_WAVELENGTH), rtol=1e-6)
+
+
+def test_pc_disp(tmp_path):
+    ts = _ts()[0].astype(np.float64)
+    ts[2, 3] = np.nan
+    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    mc.pc_disp(pc, str(tmp_path / 'disp.zarr'), wavelength=S1_WAVELENGTH, out_chunks=15)
+    disp = zarr.open(str(tmp_path / 'disp.zarr'), mode='r')
+    assert disp.shape == ts.shape and disp.dtype == np.float32 and disp.chunks == (15, 1)
+    np.testing.assert_allclose(disp[:], mr.pc_disp(ts, S1_WAVELENGTH), rtol=1e-6)
+    assert np.isnan(disp[2, 3])
+    mc.pc_disp(pc, str(tmp_path / 'disp_p.zarr'), wavelength=S1_WAVELENGTH, processes=True, n_workers=2)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'disp_p.zarr'), mode='r')[:], disp[:])
+
+
+def test_pc_disp_1d_and_command_line(tmp_path):
+    ts = _ts()[0]
+    pc1 = _zarr(tmp_path / 'col.zarr', ts[:, 3].copy(), (20,))
+    mc.pc_disp(pc1, str(tmp_path / 'd1.zarr'), wavelength=S1_WAVELENGTH)
+    d1 = zarr.open(str(tmp_path / 'd1.zarr'), mode='r')
+    assert d1.shape == (50,) and d1.chunks == (20,)
+    np.testing.assert_allclose(d1[:], mr.pc_disp(ts[:, 3], S1_WAVELENGTH), rtol=1e-6)
+    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    assert main(['pc-disp', '--pc', pc, '--out', str(tmp_path / 'd.zarr'), '--wavelength', str(S1_WAVELENGTH)]) == 0
+    np.testing.assert_allclose(zarr.open(str(tmp_path / 'd.zarr'), mode='r')[:], mr.pc_disp(ts, S1_WAVELENGTH), rtol=1e-6)
+
+
+def test_pc_disp_argument_errors(tmp_path):
+    ts = _ts()[0]
+    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    with pytest.raises(ValueError, match='between 0 and 1'):
+        mc.pc_disp(pc, str(tmp_path / 'o.zarr'), wavelength=5.55)
+    complex_pc = _zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
+    with pytest.raises(ValueError, match='floating point'):
+        mc.pc_disp(complex_pc, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)
+    cube = _zarr(tmp_path / 'cube.zarr', np.zeros((4, 3, 2), dtype=np.float32), (4, 3, 1))
+    with pytest.raises(ValueError, match='shape'):
+        mc.pc_disp(cube, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)

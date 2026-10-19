@@ -1,6 +1,6 @@
-"""Deformation products of point clouds (CLI): spatial reference of time series (decision 0040)"""
+"""Deformation products of point clouds (CLI): spatial reference, displacement (decision 0040)"""
 
-__all__ = ['pc_reference']
+__all__ = ['pc_reference', 'pc_disp']
 
 import logging
 
@@ -114,4 +114,61 @@ def pc_reference(
         z = zarr.open(ref_value, mode='w', shape=values.shape, dtype=values.dtype, chunks=values.shape)
         z[:] = values
         logger.zarr_info(ref_value, z)
+    logger.info('done.')
+
+
+@mc_logger
+def pc_disp(
+    pc:str,
+    out:str,
+    wavelength:float,
+    out_chunks:int=None,
+    processes=False,
+    n_workers=1,
+    threads_per_worker=4,
+):
+    """Line of sight displacement in millimeters from unwrapped phase of point clouds.
+
+    Parameters
+    ----------
+    pc : str
+        input: unwrapped phase in radians, shape (n_points,) or (n_points, n), floating point, chunks
+        (points_block, 1); the phase of every image relative to a reference image, growing when the range gets
+        shorter, e.g. `ts` of `unwrap-correct-closure-pc` or its output of `pc-reference`
+    out : str
+        output: line of sight displacement in millimeters, same shape as `pc`, float32, chunks (out_chunks, 1);
+        positive towards the satellite (a shorter range); nan where `pc` is nan
+    wavelength : float
+        radar wavelength in meters, between 0 and 1 (`radar_wavelength` of the metadata of `load-gamma-metadata`,
+        e.g. 0.0554658 for Sentinel-1)
+    out_chunks : int, optional
+        point chunk size of `out`, that of `pc` by default
+    processes : default: False
+        use processes for the workers instead of threads
+    n_workers : default: 1
+        number of workers
+    threads_per_worker : default: 4
+        tasks (images) a worker processes at the same time; a task holds two images of all points
+    """
+    logger = logging.getLogger(__name__)
+    wavelength = float(wavelength)
+    if not 0 < wavelength < 1:
+        raise ValueError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
+    pc_zarr = zarr.open(pc, mode='r'); logger.zarr_info(pc, pc_zarr)
+    if pc_zarr.ndim not in (1, 2):
+        raise ValueError(f'pc must have shape (n_points,) or (n_points, n), got shape {pc_zarr.shape}')
+    if not np.issubdtype(pc_zarr.dtype, np.floating):
+        raise ValueError(f'pc must be floating point (unwrapped phase in radians), got {pc_zarr.dtype}')
+    if out_chunks is None:
+        out_chunks = pc_zarr.chunks[0]
+    chunks = (out_chunks, 1) if pc_zarr.ndim == 2 else (out_chunks,)
+    out_zarr = zarr.open(out, mode='w', shape=pc_zarr.shape, dtype=np.float32, chunks=chunks)
+    logger.zarr_info(out, out_zarr)
+    logger.info(f'1 rad = {1000 * wavelength / (4 * np.pi):.4f} mm (wavelength {wavelength} m)')
+    # one task per image: the whole column in, the whole column out (its chunks read and written in parallel)
+    n_points = pc_zarr.shape[0]
+    columns = [(slice(0, n_points), slice(k, k + 1)) for k in range(pc_zarr.shape[1])] if pc_zarr.ndim == 2 else [None]
+    tasks = [([Chunk(pc, sl)], [Chunk(out, sl)]) for sl in columns]
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+        ex.map_chunks(mr.pc_disp, tasks, desc='images', wavelength=wavelength)
     logger.info('done.')

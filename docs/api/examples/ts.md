@@ -21,3 +21,12 @@ print(out_point[0])
 
 The median of the reference area removes the value common to all points in every image; one point with an
 unwrapping error in the area does not change it, while it shifts the mean of image 2.
+
+```python exec="true" source="above" result="text" session="ts"
+disp = mr.pc_disp(out, wavelength=0.0554658)                    # Sentinel-1: 1 rad = 4.41 mm
+print(disp.dtype)
+print(disp.round(2))
+```
+
+The referenced phases in millimeters along the line of sight: the moving points come towards the satellite by
+1.77 mm per image (0.4 rad); a whole cycle of unwrapping error is half a wavelength, 27.7 mm.
