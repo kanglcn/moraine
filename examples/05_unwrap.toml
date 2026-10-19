@@ -1,10 +1,12 @@
 # Phase unwrapping of the refined points (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/05_unwrap.ipynb).
-# Needs 04_refine.toml. Uses moraine's own minimum cost flow (no GAMMA needed); `gamma-mcf-pt` is the
-# GAMMA alternative.
+# Needs 04_refine.toml. Extended minimum cost flow (EMCF) on a network of image pairs that closes loops, then
+# the correction of unwrapping errors by phase closure, which gives the unwrapped phase of every image.
 #
 #   moraine run examples/05_unwrap.toml --workdir WORK
 #
-# Outputs in WORK/unw/: pc_unw (unwrapped sequential interferograms, shape (n_points, n_pairs)).
+# Outputs in WORK/unw/: pc_unw (unwrapped interferograms, shape (n_points, n_pairs)), pc_ts (unwrapped phase of
+# every image relative to the first one, shape (n_points, nimages)), pc_misclosure_fraction, pc_change_fraction,
+# pc_region (quality of the points).
 
 [vars]
 shape = "981,4160"                # (nlines, width) of raw/rslc.zarr
@@ -12,34 +14,58 @@ range_pixel_spacing = "2.329562"  # m, from the *.rslc.par of the data
 azimuth_pixel_spacing = "13.9516"
 
 [[step]]
-name = "gix"                      # mcf-pc needs the grid index of the points
+name = "gix"                      # the unwrapping needs the grid index of the points
 run = "pc-gix"
 hix = "pc/pc_hix.zarr"
 gix = "unw/pc_gix.zarr"
 shape = "${shape}"
 
 [[step]]
-name = "pairs_seq"
+name = "pairs"                    # every image with the next three: the network closes loops
 run = "image-pairs"
 rslc = "pc/pc_ph.zarr"
-bandwidth = 1
-out = "unw/pairs_seq.txt"
+bandwidth = 3
+out = "unw/pairs_hop3.txt"
 
 [[step]]
 name = "unwrap"
-run = "mcf-pc"
+run = "emcf-pc"
 gix = "unw/pc_gix.zarr"
 ph = "pc/pc_ph.zarr"
+image_pairs = "unw/pairs_hop3.txt"
 unw_ph = "unw/pc_unw.zarr"
-image_pairs = "unw/pairs_seq.txt"
 range_pixel_spacing = "${range_pixel_spacing}"
 azimuth_pixel_spacing = "${azimuth_pixel_spacing}"
 
 [[step]]
-name = "unw_pyramid"
+name = "closure"                  # whole cycle corrections where loops do not close; phase of every image
+run = "unwrap-correct-closure-pc"
+gix = "unw/pc_gix.zarr"
+ph = "pc/pc_ph.zarr"
+unw_ph = "unw/pc_unw.zarr"
+image_pairs = "unw/pairs_hop3.txt"
+ts = "unw/pc_ts.zarr"
+misclosure_fraction = "unw/pc_misclosure_fraction.zarr"
+change_fraction = "unw/pc_change_fraction.zarr"
+region = "unw/pc_region.zarr"
+range_pixel_spacing = "${range_pixel_spacing}"
+azimuth_pixel_spacing = "${azimuth_pixel_spacing}"
+
+[[step]]
+name = "ts_pyramid"
 run = "pc-pyramid"
-pc = "unw/pc_unw.zarr"
-out_dir = "unw/pc_unw_pyramid"
+pc = "unw/pc_ts.zarr"
+out_dir = "unw/pc_ts_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "change_fraction_pyramid"
+run = "pc-pyramid"
+pc = "unw/pc_change_fraction.zarr"
+out_dir = "unw/pc_change_fraction_pyramid"
 method = "mean"
 x = "pc/pc_e.zarr"
 y = "pc/pc_n.zarr"

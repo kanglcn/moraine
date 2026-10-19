@@ -76,7 +76,7 @@ API_MODULES = ['calamp', 'pc', 'rtree', 'tnet', 'polygon', 'ps', 'shp', 'co', 'p
 BUILTIN = ['list', 'info', 'quicklook', 'view', 'run', 'status']
 # the Campi Flegrei notebooks only: the manual shows one data set (decision 0038)
 TUTORIALS = ['CampiFlegrei/01_load', 'CampiFlegrei/02_ps', 'CampiFlegrei/03_ds', 'CampiFlegrei/04_refine',
-             'CampiFlegrei/05_unwrap']
+             'CampiFlegrei/05_unwrap', 'CampiFlegrei/06_products']
 
 
 def _module_summary(module) -> str:

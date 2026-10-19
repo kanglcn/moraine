@@ -123,6 +123,7 @@ plugins:
             03 DS processing: 03 DS 处理
             04 Merge and refine: 04 合并与精化
             05 Phase unwrapping: 05 相位解缠
+            06 Deformation products: 06 形变产品
             Pipeline files: Pipeline 文件
             Command line: 命令行
             Built-in commands: 内置命令
@@ -180,6 +181,7 @@ nav:
       - 03 DS processing: workflows/03_ds.md
       - 04 Merge and refine: workflows/04_refine.md
       - 05 Phase unwrapping: workflows/05_unwrap.md
+      - 06 Deformation products: workflows/06_products.md
       - Pipeline files: contracts/pipeline-file.md
   - Command line:
       - cli/index.md
@@ -224,6 +226,7 @@ nav:
       - 03 DS processing: tutorials/CampiFlegrei/03_ds.md
       - 04 Pixel refinement: tutorials/CampiFlegrei/04_refine.md
       - 05 Phase unwrapping: tutorials/CampiFlegrei/05_unwrap.md
+      - 06 Deformation products: tutorials/CampiFlegrei/06_products.md
   - Development:
       - Developing moraine: development.md
       - Architecture: dev/architecture.md

@@ -164,6 +164,7 @@ mydask.png
 !pyproject.toml
 !examples/*.toml
 scratch/
+nbs/Tutorials/**/*.geojson
 
 nbs/CLI/*.png
 moraine/dl_model/*.onnx

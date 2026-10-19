@@ -1,0 +1,48 @@
+# Deformation products of the refined points (decision 0040; tutorial: nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb).
+# Needs 04_refine.toml and 05_unwrap.toml. The unwrapped phase of every image relative to a reference area, then
+# the line of sight displacement in millimeters, positive towards the satellite.
+#
+#   moraine run examples/06_products.toml --workdir WORK
+#
+# Outputs in WORK/disp/: pc_ref_mask (reference points), pc_ts_ref (phase relative to them, radians), ref_value
+# (the reference value of every image), pc_disp (displacement, mm, shape (n_points, nimages)).
+
+[vars]
+# reference area: a stable, coherent area in one region of the closure correction (`unw/pc_region.zarr`),
+# here a box of longitude / latitude; a polygon drawn on a map works too (`polygon-mask`, see the guide)
+ref_area = "(lon > 14.225) & (lat > 40.82) & (lat < 40.89)"
+wavelength = "0.055465759531382094"   # m, `radar_wavelength` of raw/meta.toml
+
+[[step]]
+name = "ref_mask"
+run = "math"
+output = "disp/pc_ref_mask.zarr"
+operation = "${ref_area}"
+[step.kw]
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+
+[[step]]
+name = "reference"                # median of the reference points subtracted from every image
+run = "pc-reference"
+pc = "unw/pc_ts.zarr"
+ref_mask = "disp/pc_ref_mask.zarr"
+out = "disp/pc_ts_ref.zarr"
+ref_value = "disp/ref_value.zarr"
+
+[[step]]
+name = "disp"
+run = "pc-disp"
+pc = "disp/pc_ts_ref.zarr"
+out = "disp/pc_disp.zarr"
+wavelength = "${wavelength}"
+
+[[step]]
+name = "disp_pyramid"
+run = "pc-pyramid"
+pc = "disp/pc_disp.zarr"
+out_dir = "disp/pc_disp_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
