@@ -64,8 +64,9 @@ zarr 数组按块存放，worker 并行处理各块；块的布局决定内存�
 3. **DS**：统计同质像元（KS 检验）、DS 候选点、相干矩阵、带自适应正则化的 EMI 相位连接，按加权时间相干性和
    相干像对的连通性筛选 DS（[03](../workflows/03_ds.md)）。
 4. **合并与精化**：PS 和 DS 合在一起，用 Noise2Fringe Transformer 滤波，按时间相干性保留（[04](../workflows/04_refine.md)）。
-5. **解缠**：点的 Delaunay 网络上的最小费用流，逐幅干涉图（`mcf-pc`）或冗余网络整体（`emcf-pc`）解缠，
-   按相位闭合校正解缠误差（[05](../workflows/05_unwrap.md)）。
+5. **解缠**：点的 Delaunay 网络上的最小费用流，冗余像对网络整体（`emcf-pc`）或逐幅干涉图（`mcf-pc`）解缠，
+   按相位闭合校正解缠误差，得到每景的解缠相位（[05](../workflows/05_unwrap.md)）。
+6. **产品**：每景相位相对参考区，换算成视线向位移（毫米）（[06](../workflows/06_products.md)）；DEM 误差和速度随后加入（决策 0040）。
 
 ## Pipeline、续跑与 JSON
 

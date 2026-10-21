@@ -39,7 +39,7 @@ moraine 自带给编程 agent 看的说明（[`AGENTS.md`](dev/agents.md)），�
 
 <div class="mo-section" markdown>
 <p class="mo-kicker">处理链</p>
-## 五条 pipeline：从 GAMMA 结果到解缠相位
+## 六条 pipeline：从 GAMMA 结果到形变
 
 每次改动前都在 Campi Flegrei 数据集（Sentinel-1，92 景，981 x 4160 像元）上完整跑过；每条 pipeline 都有一份指南，
 写明参数、预期结果和检查方法。图来自那次运行。[工作流](workflows/index.md)
@@ -49,7 +49,8 @@ moraine 自带给编程 agent 看的说明（[`AGENTS.md`](dev/agents.md)），�
   <figure><img src="../assets/campi/02_temp_coh.webp" alt="Noise2Fringe 时间相干性" loading="lazy"><figcaption><b>02 PS</b> 幅度离差指数与 Noise2Fringe 时间相干性</figcaption></figure>
   <figure><img src="../assets/campi/03_ds_intf_seq_45.webp" alt="相位连接后的 DS 干涉图" loading="lazy"><figcaption><b>03 DS</b> SHP、相干矩阵、EMI 相位连接、DS 筛选</figcaption></figure>
   <figure><img src="../assets/campi/04_pc_intf_seq_45.webp" alt="精化点的干涉图" loading="lazy"><figcaption><b>04 精化</b> PS + DS，Noise2Fringe Transformer，时间相干性</figcaption></figure>
-  <figure><img src="../assets/campi/05_unw_45.webp" alt="解缠干涉图" loading="lazy"><figcaption><b>05 解缠</b> Delaunay 网络上的最小费用流</figcaption></figure>
+  <figure><img src="../assets/campi/05_ts_91.webp" alt="一景的解缠相位" loading="lazy"><figcaption><b>05 解缠</b> 像对网络上的 EMCF，相位闭合校正</figcaption></figure>
+  <figure><img src="../assets/campi/06_disp_91.webp" alt="视线向位移" loading="lazy"><figcaption><b>06 产品</b> 参考区，视线向位移（毫米）</figcaption></figure>
 </div>
 </div>
 

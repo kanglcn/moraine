@@ -34,7 +34,8 @@ request before running anything.
    | `examples/02_ps.toml` | `docs/workflows/02_ps.md` | PS candidates (amplitude dispersion + n2f temporal coherence) |
    | `examples/03_ds.toml` | `docs/workflows/03_ds.md` | SHP, DS candidates, phase linking, DS refinement |
    | `examples/04_refine.toml` | `docs/workflows/04_refine.md` | merge PS and DS, refine with n2ft |
-   | `examples/05_unwrap.toml` | `docs/workflows/05_unwrap.md` | minimum cost flow unwrapping |
+   | `examples/05_unwrap.toml` | `docs/workflows/05_unwrap.md` | EMCF unwrapping, phase closure correction, phase of every image |
+   | `examples/06_products.toml` | `docs/workflows/06_products.md` | reference area, line of sight displacement (mm) |
 
    They share one working directory and read each other's outputs, so run them in this order:
 

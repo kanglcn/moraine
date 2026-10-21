@@ -40,7 +40,7 @@ Flegrei data set (Sentinel-1, 92 dates); the whole of it is on the [Talk to an a
 
 <div class="mo-section" markdown>
 <p class="mo-kicker">The chain</p>
-## From GAMMA results to unwrapped phase in five pipelines
+## From GAMMA results to displacements in six pipelines
 
 Verified on the Campi Flegrei data set (Sentinel-1, 92 dates, 981 x 4160 pixels) before every change; each one has
 a guide with the parameters, the expected ranges and the checks. The figures are from that run. [Workflows](workflows/index.md)
@@ -50,7 +50,8 @@ a guide with the parameters, the expected ranges and the checks. The figures are
   <figure><img src="assets/campi/02_temp_coh.webp" alt="Noise2Fringe temporal coherence" loading="lazy"><figcaption><b>02 PS</b> amplitude dispersion and Noise2Fringe temporal coherence</figcaption></figure>
   <figure><img src="assets/campi/03_ds_intf_seq_45.webp" alt="phase linked DS interferogram" loading="lazy"><figcaption><b>03 DS</b> SHP, coherence matrices, EMI phase linking, DS selection</figcaption></figure>
   <figure><img src="assets/campi/04_pc_intf_seq_45.webp" alt="refined points interferogram" loading="lazy"><figcaption><b>04 refine</b> PS + DS, Noise2Fringe Transformer, temporal coherence</figcaption></figure>
-  <figure><img src="assets/campi/05_unw_45.webp" alt="unwrapped interferogram" loading="lazy"><figcaption><b>05 unwrap</b> minimum cost flow on a Delaunay network</figcaption></figure>
+  <figure><img src="assets/campi/05_ts_91.webp" alt="unwrapped phase of an image" loading="lazy"><figcaption><b>05 unwrap</b> EMCF on a network of image pairs, phase closure correction</figcaption></figure>
+  <figure><img src="assets/campi/06_disp_91.webp" alt="line of sight displacement" loading="lazy"><figcaption><b>06 products</b> reference area, line of sight displacement in millimeters</figcaption></figure>
 </div>
 </div>
 

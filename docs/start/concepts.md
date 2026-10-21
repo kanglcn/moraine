@@ -78,8 +78,11 @@ The example pipelines implement one common chain; every step is a command and ca
    coherent image pairs ([03](../workflows/03_ds.md)).
 4. **Merge and refine**: PS and DS together, filtered with the Noise2Fringe Transformer, kept by temporal
    coherence ([04](../workflows/04_refine.md)).
-5. **Unwrap**: minimum cost flow on a Delaunay network of the points, every interferogram alone (`mcf-pc`) or
-   a redundant network together (`emcf-pc`), unwrapping errors corrected by phase closure ([05](../workflows/05_unwrap.md)).
+5. **Unwrap**: minimum cost flow on a Delaunay network of the points, a redundant network of image pairs together
+   (`emcf-pc`) or every interferogram alone (`mcf-pc`), unwrapping errors corrected by phase closure, which gives the
+   unwrapped phase of every image ([05](../workflows/05_unwrap.md)).
+6. **Products**: the phase of every image relative to a reference area, line of sight displacement in millimeters
+   ([06](../workflows/06_products.md)); the DEM error and the velocity follow (decision 0040).
 
 ## Pipelines, resuming and JSON
 
