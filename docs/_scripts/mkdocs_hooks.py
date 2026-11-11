@@ -4,6 +4,7 @@ Before the files are collected, the generated reference pages of ``refgen.py`` a
 ignored by git), so that every plugin, the i18n plugin included, sees them as ordinary pages; their "edit" links
 point to the source they are generated from.
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -41,7 +42,11 @@ def _remove_stale_pages(docs, pages):
     if not old:
         return
     try:
-        out = subprocess.run(['git', 'check-ignore', '--', *old], cwd=docs, capture_output=True, text=True)
+        # without the GIT_* variables of a git hook (the pre-commit hook builds the manual), which would make docs/
+        # the top of the work tree; --no-index: the ignore rules alone, which keep the hand-written pages
+        env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+        out = subprocess.run(['git', 'check-ignore', '--no-index', '--', *old], cwd=docs, env=env, capture_output=True,
+                             text=True)
     except OSError:      # no git: nothing is removed
         return
     for path in out.stdout.splitlines():
