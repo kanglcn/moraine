@@ -61,11 +61,11 @@ moraine 自带给编程 agent 看的说明（[`AGENTS.md`](dev/agents.md)），�
 <div class="mo-grid" markdown>
 <div class="mo-card" markdown>
 ### PS 与 DS 筛选
-幅度离差指数、Kolmogorov-Smirnov 检验选出的统计同质像元（SHP）、DS 候选点及其相干矩阵。[ps](api/ps.md)、[shp](api/shp.md)、[co](api/co.md)
+幅度离差指数、Kolmogorov-Smirnov 检验选出的统计同质像元（SHP）、DS 候选点及其相干矩阵。[ps](api/ps.md)、[ds](api/ds.md)
 </div>
 <div class="mo-card" markdown>
 ### 相位连接
-EMI，对非正定的相干矩阵做自适应正则化；加权时间相干性和相干像对的连通性。[pl](api/pl.md)
+EMI，对非正定的相干矩阵做自适应正则化；加权时间相干性和相干像对的连通性。[ds](api/ds.md)
 </div>
 <div class="mo-card" markdown>
 ### 深度学习滤波

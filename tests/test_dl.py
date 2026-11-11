@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api.dl import (_pre_infer_n2f_numba, _after_infer_n2f_numba, _pre_infer_n2fs3d_numba,
-                        _load_model, _get_model, n2f, n2fs3d, n2ft)
+from moraine.api.dl.raster import _pre_infer_n2f_numba, _after_infer_n2f_numba, _pre_infer_n2fs3d_numba, n2f, n2fs3d
+from moraine.api.dl.model import _load_model, _get_model
+from moraine.api.dl.pc import n2ft
 
 torch = pytest.importorskip('torch')
 GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
@@ -47,7 +48,7 @@ def test_pre_after_infer_n2f(intf):
 @pytest.mark.gpu
 def test_pre_after_infer_gpu(intf, adi):
     import cupy as cp
-    from moraine.api.dl import _pre_infer_n2f_cp, _after_infer_n2f_cp, _pre_infer_n2fs3d_cp
+    from moraine.api.dl.raster import _pre_infer_n2f_cp, _after_infer_n2f_cp, _pre_infer_n2fs3d_cp
     x, mask = _pre_infer_n2f_numba(intf)
     x_cp, mask_cp = _pre_infer_n2f_cp(cp.asarray(intf))
     np.testing.assert_array_equal(mask, mask_cp.get())
@@ -73,7 +74,7 @@ def test_missing_model_file(tmp_path):
 def test_n2f_half_model(intf):
     """the GPU model of n2f: float16 weights in the channels last layout, float32 output with unit amplitude"""
     import cupy as cp
-    from moraine.api.dl import _infer_unet, _pre_infer_n2f_cp
+    from moraine.api.dl.raster import _infer_unet, _pre_infer_n2f_cp
     half = _get_model('n2f', device='cuda:0', half=True); full = _get_model('n2f', device='cuda:0')
     assert half is not full
     conv = next(m for m in half.modules() if isinstance(m, torch.nn.Conv2d))
@@ -108,7 +109,7 @@ def test_n2f(intf, gpu):
         assert out_cp.dtype == np.complex64
         finite = out_cp.get()[np.isfinite(out_cp.get())]
         np.testing.assert_allclose(np.abs(finite), 1, rtol=1e-4)  # unit amplitude: normalized in float32
-        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2f_np_in_gpu(x)), np.isnan(out))
+        np.testing.assert_array_equal(np.isnan(mr.api.dl.raster._n2f_np_in_gpu(x)), np.isnan(out))
         np.testing.assert_array_equal(x, x0)
 
 
@@ -127,7 +128,7 @@ def test_n2fs3d(adi, intf, gpu):
         np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
-        np.testing.assert_array_equal(np.isnan(mr.api.dl._n2fs3d_np_in_gpu(adi, x)), np.isnan(out))
+        np.testing.assert_array_equal(np.isnan(mr.api.dl.raster._n2fs3d_np_in_gpu(adi, x)), np.isnan(out))
         np.testing.assert_array_equal(x, x0)
 
 
@@ -140,7 +141,7 @@ def points(rslc, adi):
 
 
 def test_prefetched_keeps_order():
-    from moraine.api.dl import _prefetched
+    from moraine.api.dl.pc import _prefetched
     import time
     def prepare(i):
         time.sleep(0.01 * max(0, 5 - i))               # the first items take longest
@@ -151,7 +152,7 @@ def test_prefetched_keeps_order():
 
 
 def test_n2ft_compile_default():
-    from moraine.api.dl import _n2ft_compile_default
+    from moraine.api.dl.pc import _n2ft_compile_default
     assert not _n2ft_compile_default(590_667, 91)        # Campi Flegrei: compiling costs more than it saves
     assert _n2ft_compile_default(2_000_000, 91)
     assert not _n2ft_compile_default(0, 91)
@@ -161,7 +162,7 @@ def test_n2ft_compile_default():
 def test_n2ft_phasors(rng, gpu):
     """unit phasors of the interferograms on the device, (m, n, 2) float32, as real / |z| and imag / |z|"""
     import torch
-    from moraine.api.dl import _n2ft_phasors
+    from moraine.api.dl.pc import _n2ft_phasors
     intf = ((rng.standard_normal((50, 3, 2)) @ [1, 1j]) * rng.uniform(0.1, 3, (50, 3))).astype(np.complex64)
     x = _n2ft_phasors(intf, torch.device('cuda' if gpu else 'cpu')).cpu().numpy()
     assert x.shape == (3, 50, 2) and x.dtype == np.float32
@@ -172,7 +173,8 @@ def test_n2ft_phasors(rng, gpu):
 @pytest.mark.parametrize('gpu', GPU)
 def test_n2ft_batched_interferograms(points, gpu):
     """several interferograms of the same points per model call give the results of one call per interferogram"""
-    from moraine.api.dl import _n2ft_structure, _infer_n2ft_structure, _get_model
+    from moraine.api.dl.pc import _n2ft_structure, _infer_n2ft_structure
+    from moraine.api.dl.model import _get_model
     x, y, s = points
     stack = s[:, [0]] * s[:, 1:6].conj()
     model = _get_model('n2ft', None, 'cuda' if gpu else 'cpu')
@@ -199,7 +201,7 @@ def test_n2ft(points, gpu):
 
 
 def test_n2ft_batches():
-    from moraine.api.dl import _n2ft_batches
+    from moraine.api.dl.pc import _n2ft_batches
     assert _n2ft_batches(0, 8) == []
     assert _n2ft_batches(1, 8) == [(0, 1)]
     assert _n2ft_batches(3, 2) == [(0, 3)]
@@ -220,8 +222,9 @@ def test_n2ft_batches():
 def test_n2ft_fold_batch_norms(points, gpu):
     """the loaded n2ft model has its batch norms folded into multiply-adds and gives the output of the original model"""
     import torch
-    from moraine.api.dl import _n2ft_structure, _infer_n2ft_structure, _get_model, _model_files
-    from moraine.api.n2ft_torch_ import N2FT, PointTransformerBlock, ChannelAffine
+    from moraine.api.dl.pc import _n2ft_structure, _infer_n2ft_structure
+    from moraine.api.dl.model import _get_model, _model_files
+    from moraine.api.dl.n2ft_torch_ import N2FT, PointTransformerBlock, ChannelAffine
     x, y, s = points
     stack = s[:, [0]] * s[:, 1:4].conj()
     folded = _get_model('n2ft', None, 'cuda' if gpu else 'cpu')
@@ -239,7 +242,7 @@ def test_n2ft_fold_batch_norms(points, gpu):
 
 
 def test_n2ft_max_point_intfs():
-    from moraine.api.dl import _n2ft_max_point_intfs, _N2FT_MAX_POINT_INTFS, _N2FT_MEMORY_FRACTION, _N2FT_POINT_INTF_BYTES
+    from moraine.api.dl.pc import _n2ft_max_point_intfs, _N2FT_MAX_POINT_INTFS, _N2FT_MEMORY_FRACTION, _N2FT_POINT_INTF_BYTES
     assert _n2ft_max_point_intfs(torch.device('cpu')) == _N2FT_MAX_POINT_INTFS == 200_000
     if torch.cuda.is_available():
         total = torch.cuda.get_device_properties(0).total_memory
@@ -249,8 +252,8 @@ def test_n2ft_max_point_intfs():
 @pytest.mark.parametrize('name', ['n2f', 'n2fs3d'])
 def test_unet_fold_batch_norms(name):
     """the UNet with its batch norms folded into the convolutions gives the output of the original model"""
-    from moraine.api.unet_torch_ import UNet, fold_batch_norms
-    from moraine.api.dl import _model_files
+    from moraine.api.dl.unet_torch_ import UNet, fold_batch_norms
+    from moraine.api.dl.model import _model_files
     torch.manual_seed(0)
     original = UNet(2 if name == 'n2f' else 3, 2, depth=4, bilinear=True)
     original.load_state_dict(torch.load(importlib.resources.files('moraine')/'dl_model'/_model_files[name],

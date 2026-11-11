@@ -26,9 +26,7 @@ their whole time series (plus a halo where neighbours are needed). For data larg
 | [polygon](polygon.md) | polygon GeoJSON files, point in polygon | `read_polygons`, `polygons_contain` |
 | [slc](slc.md) | SLC amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
 | [ps](ps.md) | amplitude dispersion index for PS selection | `amp_disp` |
-| [shp](shp.md) | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| [co](co.md) | coherence matrices, regularization | `emperical_co_pc`, `uncompress_coh`, `nearestPD` |
-| [pl](pl.md) | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh`, `emperical_co_emi_temp_coh_pc` |
+| [ds](ds.md) | distributed scatterers: statistically homogeneous pixels (KS test), coherence matrices, regularization, phase linking (EMI), DS temporal coherence | `select_shp`, `emperical_co_pc`, `emi`, `ds_temp_coh`, `emperical_co_emi_temp_coh_pc` |
 | [dl](dl.md) | deep learning filters and model download | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | [pqm](pqm.md) | pixel quality: temporal coherence | `temp_coh` |
 | [unwrap](unwrap.md) | Delaunay triangulation, minimum cost flow, EMCF, phase closure correction, GAMMA `mcf_pt` | `delaunay`, `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc` |

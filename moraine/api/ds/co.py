@@ -5,15 +5,15 @@ __all__ = ['emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'un
 
 import math
 import numpy as np
-from .utils_.device import is_cuda_available, get_array_module
-from .utils_.jit import mcuda_jit
+from ..utils_.device import is_cuda_available, get_array_module
+from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 from typing import Union
-import moraine as mr
-from .utils_.jit import ngpjit, ngjit
-from .utils_.device import _single_thread_blas
+from ..utils_.jit import ngpjit, ngjit
+from ..utils_.device import _single_thread_blas
+from ..tnet import TempNet, nimage_from_npair
 from numba import prange
 
 def emperical_co(rslc:np.ndarray,
@@ -177,7 +177,7 @@ def emperical_co_pc(rslc:np.ndarray,
     n_pc = az_idx.shape[0]
 
     if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+        image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
@@ -220,8 +220,8 @@ def uncompress_coh(
     """
     xp = get_array_module(coh)
     if image_pairs is None:
-        nimages = mr.nimage_from_npair(coh.shape[-1])
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+        nimages = nimage_from_npair(coh.shape[-1])
+        image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     else:
         nimages = image_pairs[-1,-1]+1
     uncompressed_coh = xp.zeros((*coh.shape[:-1],nimages,nimages),dtype=coh.dtype)

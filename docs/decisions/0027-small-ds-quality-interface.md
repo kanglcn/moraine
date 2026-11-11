@@ -42,7 +42,7 @@ temporal coherence existed only in the fused command, not in the separate steps 
   phase history of the first point); `ph, t_coh = emperical_co_emi_temp_coh_pc(...)` (four outputs with
   `weighted=True`); pipeline files with `emi_quality`, `emi_quality_dir`, `oversampling` or `rho2` stop
   with an unknown argument error.
-- The EMI quality stays available to the tests (`moraine.api.pl._emi`). Without the regularization, a
+- The EMI quality stays available to the tests (`moraine.api.ds.pl._emi`). Without the regularization, a
   temporal coherence near 0 shows the points whose coherence matrix is not positive definite.
 - The effective number of looks depends a little on the raster chunk it is measured in (a few percent
   for chunks of a few hundred pixels); measuring |ρ|² costs about 0.2 s per raster chunk of 1000 x 1000

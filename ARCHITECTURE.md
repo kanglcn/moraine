@@ -54,10 +54,11 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/pc/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
 | `moraine/api/slc.py` | basic operations on SLC stacks: amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
 | `moraine/api/ps.py` | amplitude dispersion index for PS selection | `amp_disp` |
-| `moraine/api/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| `moraine/api/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
-| `moraine/api/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
-| `moraine/api/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
+| `moraine/api/ds/__init__.py` | distributed scatterers; re-exports the names of `shp.py`, `co.py` and `pl.py` | |
+| `moraine/api/ds/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
+| `moraine/api/ds/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
+| `moraine/api/ds/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
+| `moraine/api/ds/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
 | `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
 | `moraine/api/unwrap/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
@@ -66,9 +67,12 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
 | `moraine/api/ts.py` | deformation products of point clouds (decision 0040): spatial reference, displacement | `pc_reference`, `pc_disp` |
-| `moraine/api/dl.py` | deep learning filters, model download and cached loading | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
-| `moraine/api/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
-| `moraine/api/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
+| `moraine/api/dl/__init__.py` | deep learning filters; re-exports the names of `model.py`, `raster.py` and `pc.py` | |
+| `moraine/api/dl/model.py` | model download, cached loading | `download_dl_model` |
+| `moraine/api/dl/raster.py` | n2f / n2fs3d filtering of raster interferograms | `n2f`, `n2fs3d` |
+| `moraine/api/dl/pc.py` | n2ft filtering of point cloud interferograms | `n2ft` |
+| `moraine/api/dl/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
+| `moraine/api/dl/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
 ## CLI layer (moraine/cli/)

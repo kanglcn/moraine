@@ -9,17 +9,17 @@ import math
 import numpy as np
 from numba import types as _nbtypes
 from numba.extending import get_cython_function_address
-import moraine as mr
-from .utils_.device import is_cuda_available, get_array_module
-from .utils_.jit import mcuda_jit
+from ..utils_.device import is_cuda_available, get_array_module
+from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 import numba
 from numba import prange
-from .utils_.jit import ngpjit, ngjit
-from .utils_.device import _single_thread_blas
-from .co import _rslc_rho2, _n_looks
+from ..utils_.jit import ngpjit, ngjit
+from ..utils_.device import _single_thread_blas
+from ..tnet import TempNet, nimage_from_npair
+from .co import emperical_co_pc, uncompress_coh, uncompress_single_coh_numba, _rslc_rho2, _n_looks
 
 # Adaptive regularization of EMI (decision 0023): the coherence matrix coh of a point is replaced by
 # (1-beta)*coh + beta*I, i.e. the off-diagonal elements are scaled by 1-beta, with the smallest beta
@@ -77,7 +77,7 @@ if is_cuda_available():
             start = i*max_batch_size
             end = (i+1)*max_batch_size
             if end >= n_points: end = n_points
-            _coh = mr.uncompress_coh(coh[start:end],image_pairs)
+            _coh = uncompress_coh(coh[start:end],image_pairs)
             coh_mag = cp.abs(_coh)
             if regularize:
                 lam = cp.linalg.eigvalsh(coh_mag)
@@ -138,7 +138,7 @@ def _emi_numba(
     emi_quality = np.empty(n_points,dtype=np.float32)
     lwork, lrwork, liwork = _cheevr_workspace(n_images)
     for i in prange(n_points):
-        _coh = mr.uncompress_single_coh_numba(coh[i],n_images,image_pairs)
+        _coh = uncompress_single_coh_numba(coh[i],n_images,image_pairs)
         coh_mag = np.abs(_coh)
         if regularize:
             lam = np.linalg.eigvalsh(coh_mag)
@@ -173,8 +173,8 @@ def _emi_numba(
 def _emi(coh, ref=0, regularize=True):
     """`emi` that also returns the EMI quality (minimum eigenvalue, float32, (n_points,)), for tests."""
     xp = get_array_module(coh)
-    nimages = mr.nimage_from_npair(coh.shape[-1])
-    image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+    nimages = nimage_from_npair(coh.shape[-1])
+    image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     if xp is np:
         with _single_thread_blas():
             return _emi_numba(coh,nimages,image_pairs,ref,regularize)
@@ -474,7 +474,7 @@ def ds_temp_coh(coh:np.ndarray,
         if shared_bytes > _MAX_SHARED_BYTES:
             raise ValueError(f'block_size x nimages must be at most {_MAX_SHARED_BYTES*8} on a GPU, not {block_size*n_images}')
     if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(ph.shape[-1]).image_pairs
+        image_pairs = TempNet.from_bandwidth(ph.shape[-1]).image_pairs
     image_pairs = xp.asarray(image_pairs, dtype=np.int32)
     ref = xp.ascontiguousarray(image_pairs[:,0]); sec = xp.ascontiguousarray(image_pairs[:,1])
     inv_n = xp.ones((), dtype=np.float32) if n_looks is None else 1/xp.asarray(n_looks, dtype=np.float32)
@@ -554,7 +554,7 @@ def emperical_co_emi_temp_coh_pc(
     with (_single_thread_blas() if xp is np else contextlib.nullcontext()):
         for i in range(batch_bounds.shape[0]-1):
             start = batch_bounds[i]; stop = batch_bounds[i+1]
-            _coh = mr.emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
+            _coh = emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
             ph[start:stop] = emi(_coh,regularize=regularize)
             if weighted:
                 n_looks = _n_looks(pc_is_shp[start:stop],rho2)

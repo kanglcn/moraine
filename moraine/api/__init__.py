@@ -12,9 +12,7 @@ from .slc import *
 from .ps import *
 
 # DS
-from .shp import *
-from .co import *
-from .pl import *
+from .ds import *
 
 # DL
 from .dl import *

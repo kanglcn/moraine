@@ -24,7 +24,7 @@ about 18 TB/s), so the GPU kernel is about as fast as such a CPU, not 10 times f
 ## Decision
 
 - The regularized EMI (`regularize=True`, the default) of cupy arrays runs in a numba.cuda kernel
-  (`moraine/api/emi_cuda_.py`): one thread block of 128 threads per point; |coh|, its inverse and the EMI matrix as
+  (`moraine/api/ds/emi_cuda_.py`): one thread block of 128 threads per point; |coh|, its inverse and the EMI matrix as
   packed lower triangles in shared memory; Householder tridiagonalization, Sturm multisection for lambda_min and
   lambda_max of |coh| (beta by the same function as on the CPU, decision 0023) and lambda_1 of the EMI matrix, the
   sweep operator (four pivots at a time) for the inverse, inverse iteration and back transformation of the one

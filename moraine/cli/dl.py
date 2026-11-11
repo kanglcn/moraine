@@ -21,7 +21,9 @@ import moraine.cli as mc
 from ..api.utils_ import get_array_module
 from ..api.utils_.chunk import chunkwise_knn_mapping
 from .zarr_ import parallel_read_zarr, parallel_write_zarr, check_ndim
-from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
+from ..api.dl.model import _get_model, _cuda_device
+from ..api.dl.raster import _infer_unet, _nan_where_zero
+from ..api.dl.pc import _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default
 from .logging import mc_logger
 from .executor import Executor
 
@@ -71,7 +73,7 @@ if is_cuda_available():
         intf = cp.empty_like(ref)
         if intf.size > 0:
             _intf_cuda[(intf.size+127)//128, 128](ref, sec, intf)
-        return mr.api.dl._pre_infer_n2f_cp(intf)
+        return mr.api.dl.raster._pre_infer_n2f_cp(intf)
 
 def _n2f_tiles(shape, chunks, out_chunks, depths):
     """processing chunks (tiles) of a raster grouped by output chunk
@@ -140,10 +142,10 @@ def _cli_n2f_out_chunk(
             ref = _nan_where_zero(stack[:,:,ref_i]); sec = _nan_where_zero(stack[:,:,sec_i])
             if cuda:
                 x, mask = _cli_pre_infer_n2f_cp(ref, sec)
-                out[(*local_slices, k)] = mr.api.dl._after_infer_n2f_cp(_infer_unet(model, x), mask)[map_slices]
+                out[(*local_slices, k)] = mr.api.dl.raster._after_infer_n2f_cp(_infer_unet(model, x), mask)[map_slices]
             else:
                 x, mask = _cli_pre_infer_n2f_numba(ref, sec)
-                out[(*local_slices, k)] = mr.api.dl._after_infer_n2f_numba(_infer_unet(model, x), mask)[map_slices]
+                out[(*local_slices, k)] = mr.api.dl.raster._after_infer_n2f_numba(_infer_unet(model, x), mask)[map_slices]
     if cuda:
         out = out.get()
     parallel_write_zarr(out, zarr.open(intf,mode='r+'), (*out_slices, slice(None)))

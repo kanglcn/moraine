@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from moraine.api.shp import ks_test, select_shp, _ks_p_numba
+from moraine.api.ds.shp import ks_test, select_shp, _ks_p_numba
 
 
 @pytest.fixture

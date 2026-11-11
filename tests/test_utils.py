@@ -55,7 +55,7 @@ def test_mjit_keeps_numba_cache_dir():
 
 def test_emi_kernel_cached(rng):
     # LAPACK is called by symbol name, so the EMI kernel can be saved to the cache
-    from moraine.api.pl import _emi_numba
+    from moraine.api.ds.pl import _emi_numba
     x = rng.standard_normal((4, 30, 6)) + 1j * rng.standard_normal((4, 30, 6))
     c = np.conj(x).transpose(0, 2, 1) @ x
     d = 1 / np.sqrt(np.diagonal(c, axis1=1, axis2=2).real)

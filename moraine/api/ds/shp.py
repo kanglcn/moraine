@@ -4,15 +4,15 @@
 __all__ = ['ks_test', 'select_shp']
 
 import numpy as np
-from .utils_.device import is_cuda_available, get_array_module
-from .utils_.jit import mcuda_jit
+from ..utils_.device import is_cuda_available, get_array_module
+from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 import math
 import numba
 from numba import prange
-from .utils_.jit import ngpjit, ngjit
+from ..utils_.jit import ngpjit, ngjit
 
 @ngjit
 def _ks_p_numba(x):
