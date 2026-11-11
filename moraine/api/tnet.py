@@ -116,7 +116,7 @@ class TempNet(object):
     @classmethod
     def load(cls, zarr_path:str,
             ):
-        """classmethod to load the saved HilbertRtree.
+        """classmethod to load the saved TempNet.
 
         Parameters
         ----------

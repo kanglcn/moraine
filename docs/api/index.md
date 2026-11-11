@@ -17,7 +17,7 @@ if moraine.api.utils_.is_cuda_available():
 
 One call processes one unit: an image or image pair of the whole scene, or a block of pixels / points with
 their whole time series (plus a halo where neighbours are needed). For data larger than memory the
-[command line](../cli/index.md) maps these functions over zarr chunks with dask.
+[command line](../cli/index.md) maps these functions over zarr chunks with its executor.
 
 The foundations (`pc`, `tnet`, `polygon`, `slc`) serve every stage; the stages (`ps`, `ds`, `dl`, `pqm`, `unwrap`,
 `ts`) follow the processing chain.
@@ -33,6 +33,7 @@ The foundations (`pc`, `tnet`, `polygon`, `slc`) serve every stage; the stages (
 | [dl](dl.md) | deep learning filters and model download | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | [pqm](pqm.md) | pixel quality: temporal coherence | `temp_coh` |
 | [unwrap](unwrap.md) | Delaunay triangulation, minimum cost flow, EMCF, phase closure correction, GAMMA `mcf_pt` | `delaunay`, `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc` |
+| [ts](ts.md) | deformation products of point clouds: spatial reference, displacement | `pc_reference`, `pc_disp` |
 | [utils](utils.md) | numba decorators, GPU detection, numpy / cupy dispatch (`moraine.api.utils_`, not re-exported) | `is_cuda_available`, `get_array_module` |
 
 Each page shows the signature and the docstring of every public function (shapes, dtypes, units, defaults) and

@@ -15,7 +15,7 @@ if moraine.api.utils_.is_cuda_available():
 ```
 
 一次调用处理一个单元：整幅场景的一景影像或一个像对，或一块像元 / 点及其完整时间序列（需要邻域时再加一圈
-halo）。数据大于内存时，[命令行](../cli/index.md)用 dask 把这些函数映射到 zarr 的各块上。
+halo）。数据大于内存时，[命令行](../cli/index.md)用它的执行器把这些函数映射到 zarr 的各块上。
 
 基础部分（`pc`、`tnet`、`polygon`、`slc`）供各阶段使用；阶段（`ps`、`ds`、`dl`、`pqm`、`unwrap`、`ts`）按处理链排列。
 
@@ -30,6 +30,7 @@ halo）。数据大于内存时，[命令行](../cli/index.md)用 dask 把这些
 | [dl](dl.md) | 深度学习滤波与模型下载 | `n2f`、`n2fs3d`、`n2ft`、`download_dl_model` |
 | [pqm](pqm.md) | 像元质量：时间相干性 | `temp_coh` |
 | [unwrap](unwrap.md) | Delaunay 三角网、最小费用流、EMCF、相位闭合校正、GAMMA `mcf_pt` | `delaunay`、`mcf_pc`、`emcf_pc`、`unwrap_correct_closure_pc` |
+| [ts](ts.md) | 点云的形变产品：空间参考、位移 | `pc_reference`、`pc_disp` |
 | [utils](utils.md) | numba 装饰器、GPU 检测、numpy / cupy 分派（`moraine.api.utils_`，未重新导出） | `is_cuda_available`、`get_array_module` |
 
 每页列出每个公开函数的签名和 docstring（形状、类型、单位、默认值；英文），以及在合成数据上的小示例。示例在构建
