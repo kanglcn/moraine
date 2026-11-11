@@ -21,14 +21,13 @@ their whole time series (plus a halo where neighbours are needed). For data larg
 
 | module | topic | main names |
 |---|---|---|
-| [calamp](calamp.md) | SLC amplitude and amplitude calibration | `rslc2amp`, `calamp` |
-| [pc](pc.md) | point cloud indices (grid / hilbert), sorting, set operations, raster <-> point cloud | `pc_hix`, `pc_sort`, `pc_union`, `ras2pc`, `pc2ras` |
-| [rtree](rtree.md) | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
+| [pc](pc.md) | point clouds: indices (grid / hilbert), sorting, set operations, raster <-> point cloud, R-tree for bounding box queries | `pc_hix`, `pc_sort`, `pc_union`, `ras2pc`, `pc2ras`, `HilbertRtree` |
 | [tnet](tnet.md) | temporal network: image pairs | `TempNet` |
 | [polygon](polygon.md) | polygon GeoJSON files, point in polygon | `read_polygons`, `polygons_contain` |
+| [slc](slc.md) | SLC amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
 | [ps](ps.md) | amplitude dispersion index for PS selection | `amp_disp` |
 | [shp](shp.md) | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| [co](co.md) | interferograms, coherence matrices, regularization | `emperical_co_pc`, `uncompress_coh`, `nearestPD` |
+| [co](co.md) | coherence matrices, regularization | `emperical_co_pc`, `uncompress_coh`, `nearestPD` |
 | [pl](pl.md) | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh`, `emperical_co_emi_temp_coh_pc` |
 | [dl](dl.md) | deep learning filters and model download | `n2f`, `n2fs3d`, `n2ft`, `download_dl_model` |
 | [pqm](pqm.md) | pixel quality: temporal coherence | `temp_coh` |

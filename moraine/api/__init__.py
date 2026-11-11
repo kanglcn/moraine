@@ -2,12 +2,11 @@
 
 # infrastructure
 from .pc import *
-from .rtree import *
 from .tnet import *
 from .polygon import *
 
-# amplitude and calibration
-from .calamp import *
+# SLC basics
+from .slc import *
 
 # PS
 from .ps import *

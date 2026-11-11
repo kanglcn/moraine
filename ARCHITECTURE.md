@@ -47,12 +47,15 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
 | `moraine/api/tnet.py` | temporal network: image pairs | `TempNet` |
 | `moraine/api/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
-| `moraine/api/pc.py` | point cloud indices (grid / hilbert), sorting, set operations, raster <-> point cloud | `pc_hix`, `pc_union`, `ras2pc` |
-| `moraine/api/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
-| `moraine/api/calamp.py` | SLC amplitude and amplitude calibration | `rslc2amp`, `calamp` |
+| `moraine/api/pc/__init__.py` | point clouds; re-exports the names of the modules below | |
+| `moraine/api/pc/index.py` | grid and hilbert indices of point clouds, sorting | `pc_hix`, `pc_gix`, `pc_sort` |
+| `moraine/api/pc/sets.py` | set operations of point clouds | `pc_union`, `pc_intersect`, `pc_diff` |
+| `moraine/api/pc/raster.py` | raster <-> point cloud, points in the order of raster chunks | `ras2pc`, `pc2ras` |
+| `moraine/api/pc/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
+| `moraine/api/slc.py` | basic operations on SLC stacks: amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
 | `moraine/api/ps.py` | amplitude dispersion index for PS selection | `amp_disp` |
 | `moraine/api/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| `moraine/api/co.py` | interferograms, covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
+| `moraine/api/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |

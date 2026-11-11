@@ -19,8 +19,6 @@ print(mr.isPD(np.abs(C)))                                        # is the cohere
 bad = np.abs(C[0]).copy()
 bad[0, 1] = bad[1, 0] = 1.5                                      # not a valid coherence matrix any more
 print(mr.isPD(bad[None])[0], mr.isPD(mr.nearestPD(bad[None]))[0])
-intf = mr.intf(np.ascontiguousarray(rslc[..., 0]), np.ascontiguousarray(rslc[..., 1]))   # 1 x 1 look interferogram of two images
-print(intf.shape, intf.dtype)
 ```
 
 The compressed layout is the upper triangle in the order of `numpy.triu_indices(nimages, 1)` (data contract);

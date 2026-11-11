@@ -836,7 +836,7 @@ class PointLayer(_Layer):
                 from .plot import _LazyRtree
                 self._rtree = _LazyRtree(self._rtree_dir)
             else:
-                from ..api.rtree import HilbertRtree
+                from ..api.pc.rtree import HilbertRtree
                 self._rtree = HilbertRtree.build(self._x, self._y, page_size=512)
         return self._rtree.bbox_query(bounds, self._x, self._y)
 

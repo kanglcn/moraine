@@ -19,14 +19,13 @@ halo）。数据大于内存时，[命令行](../cli/index.md)用 dask 把这些
 
 | 模块 | 主题 | 主要名字 |
 |---|---|---|
-| [calamp](calamp.md) | SLC 幅度与幅度定标 | `rslc2amp`、`calamp` |
-| [pc](pc.md) | 点云索引（网格 / hilbert）、排序、集合运算、栅格与点云互转 | `pc_hix`、`pc_sort`、`pc_union`、`ras2pc`、`pc2ras` |
-| [rtree](rtree.md) | 点云的 hilbert R 树，包围盒查询 | `HilbertRtree` |
+| [pc](pc.md) | 点云：索引（网格 / hilbert）、排序、集合运算、栅格与点云互转、包围盒查询的 hilbert R 树 | `pc_hix`、`pc_sort`、`pc_union`、`ras2pc`、`pc2ras`、`HilbertRtree` |
 | [tnet](tnet.md) | 时间网络：像对 | `TempNet` |
 | [polygon](polygon.md) | 多边形 GeoJSON 文件，点在多边形内 | `read_polygons`、`polygons_contain` |
+| [slc](slc.md) | SLC 幅度、幅度定标、干涉图、多视 | `rslc2amp`、`calamp`、`intf` |
 | [ps](ps.md) | PS 筛选用的幅度离差指数 | `amp_disp` |
 | [shp](shp.md) | 统计同质像元（KS 检验） | `ks_test`、`select_shp` |
-| [co](co.md) | 干涉图、相干矩阵、正则化 | `emperical_co_pc`、`uncompress_coh`、`nearestPD` |
+| [co](co.md) | 相干矩阵、正则化 | `emperical_co_pc`、`uncompress_coh`、`nearestPD` |
 | [pl](pl.md) | 相位连接（EMI）与 DS 时间相干性 | `emi`、`ds_temp_coh`、`emperical_co_emi_temp_coh_pc` |
 | [dl](dl.md) | 深度学习滤波与模型下载 | `n2f`、`n2fs3d`、`n2ft`、`download_dl_model` |
 | [pqm](pqm.md) | 像元质量：时间相干性 | `temp_coh` |

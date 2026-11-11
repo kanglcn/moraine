@@ -20,9 +20,9 @@ from .utils_ import mk_clean_dir
 def _pc_by_ras_chunk(gix, chunks, shape, overlap):
     """The points in the order of the raster chunks: for every chunk its grid index relative to the chunk read with
     `overlap`, and the point bounds of every chunk. The chunks are numbered like `all_chunk_slices` (azimuth major)."""
-    chunk_idx, chunk_bounds = mr.api.pc._pc_split_by_chunk(gix, chunks, shape)[:2]
+    chunk_idx, chunk_bounds = mr.api.pc.raster._pc_split_by_chunk(gix, chunks, shape)[:2]
     sorted_gix = gix[chunk_idx]
-    ras_chunk_order_gix = mr.api.pc._gix_ras_chunk(sorted_gix, chunk_bounds, chunks, shape, overlap=overlap)
+    ras_chunk_order_gix = mr.api.pc.raster._gix_ras_chunk(sorted_gix, chunk_bounds, chunks, shape, overlap=overlap)
     return ras_chunk_order_gix, chunk_bounds
 
 

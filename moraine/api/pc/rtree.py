@@ -12,7 +12,7 @@ import numpy as np
 from numba import float64, int64
 from numba import prange
 import math
-from .utils_.jit import ngjit, ngpjit
+from ..utils_.jit import ngjit, ngpjit
 try:
     from numba.experimental import jitclass
 except ImportError:

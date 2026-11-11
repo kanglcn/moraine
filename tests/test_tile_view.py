@@ -253,7 +253,7 @@ def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
     """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
     coordinates; a pyramid made without the tree gets one built."""
     import shutil
-    from moraine.api.rtree import HilbertRtree
+    from moraine.api.pc.rtree import HilbertRtree
     pts, pyr = grid_pc
     layer = view(str(pyr))
     monkeypatch.setattr(HilbertRtree, 'build', lambda *a, **k: pytest.fail('the tree was built instead of read'))
