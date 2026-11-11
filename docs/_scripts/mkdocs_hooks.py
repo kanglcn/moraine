@@ -4,6 +4,8 @@ Before the files are collected, the generated reference pages of ``refgen.py`` a
 ignored by git), so that every plugin, the i18n plugin included, sees them as ordinary pages; their "edit" links
 point to the source they are generated from.
 """
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -20,7 +22,9 @@ def on_config(config):
     if autorefs is not None:
         autorefs.scan_toc = False
     docs = Path(config['docs_dir'])
-    for page, (text, edit) in refgen.all_pages().items():
+    pages = refgen.all_pages()
+    _remove_stale_pages(docs, pages)
+    for page, (text, edit) in pages.items():
         path = docs / page
         path.parent.mkdir(parents=True, exist_ok=True)
         if not path.exists() or path.read_text() != text:    # unchanged files are not rewritten (mkdocs serve)
@@ -28,6 +32,25 @@ def on_config(config):
         if edit:
             _EDIT[page] = edit
     return config
+
+
+def _remove_stale_pages(docs, pages):
+    """Remove the pages of an earlier build that are not generated any more (a module or a tutorial was removed or
+    renamed): like the generated pages they are ignored by git, and they would be built with their old content."""
+    dirs = {(docs / page).parent for page in pages}
+    old = [str(p) for d in dirs if d.is_dir() for p in d.glob('*.md') if p.relative_to(docs).as_posix() not in pages]
+    if not old:
+        return
+    try:
+        # without the GIT_* variables of a git hook (the pre-commit hook builds the manual), which would make docs/
+        # the top of the work tree; --no-index: the ignore rules alone, which keep the hand-written pages
+        env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+        out = subprocess.run(['git', 'check-ignore', '--no-index', '--', *old], cwd=docs, env=env, capture_output=True,
+                             text=True)
+    except OSError:      # no git: nothing is removed
+        return
+    for path in out.stdout.splitlines():
+        Path(path).unlink(missing_ok=True)
 
 
 def on_page_context(context, page, config, nav):

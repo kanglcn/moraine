@@ -1,17 +1,14 @@
-"""internal utilities for developing"""
+"""numba decorators with the compiled code cached by a hash of the sources (decision 0029)"""
 
-
-__all__ = ['mjit', 'ngjit', 'ngpjit', 'is_cuda_available', 'get_n_cpus_avail', 'get_mem_avail', 'get_array_module']
+__all__ = ['mjit', 'ngjit', 'ngpjit']
 
 import hashlib
 import os
 import shutil
-import sys
 import time
 from pathlib import Path
 
 import numba
-import numpy as np
 from numba import jit
 
 # Compiled numba functions are cached on disk (decision 0029). numba invalidates a cached function only when its own
@@ -22,7 +19,7 @@ _CACHE_KEEP_DAYS = 30
 
 def _source_hash(root=None):
     """hash of the python sources under `root` (the moraine package by default) and the numba version"""
-    root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
     h = hashlib.sha1(numba.__version__.encode())
     for p in sorted(root.rglob('*.py')):
         if '.ipynb_checkpoints' in p.parts:
@@ -84,52 +81,3 @@ def mcuda_jit(**options):
         finally:
             numba.config.CACHE_DIR = old
     return decorate
-
-def _default_cuda_home():
-    """In a conda environment that is not activated, point CUDA_HOME to the environment, so that numba-cuda finds
-    its CUDA libraries (libnvvm) as the CUDA target built into numba did; variables already set are kept."""
-    if any(os.environ.get(v) for v in ('CUDA_HOME', 'CUDA_PATH', 'CONDA_PREFIX')):
-        return
-    if (Path(sys.prefix)/'nvvm').is_dir():
-        os.environ['CUDA_HOME'] = sys.prefix
-
-_default_cuda_home()
-
-def is_cuda_available():
-    # an empty CUDA_VISIBLE_DEVICES or -1 hides all GPUs
-    devices = os.environ.get('CUDA_VISIBLE_DEVICES', '').strip()
-    return devices not in ('', '-1')
-
-def get_n_cpus_avail():
-    num_available_cpus = len(os.sched_getaffinity(0))
-    return num_available_cpus
-
-def get_mem_avail():
-    """Memory available to this process in bytes: the free memory of the machine, or less under a cgroup
-    limit (e.g. a SLURM job)."""
-    import psutil
-    avail = psutil.virtual_memory().available
-    for limit_file, usage_file in (('/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory.current'),     # cgroup v2
-                                   ('/sys/fs/cgroup/memory/memory.limit_in_bytes',
-                                    '/sys/fs/cgroup/memory/memory.usage_in_bytes')):                  # cgroup v1
-        try:
-            with open(limit_file) as f:
-                limit = f.read().strip()
-            with open(usage_file) as f:
-                usage = int(f.read().strip())
-        except (OSError, ValueError):
-            continue
-        if limit.isdigit() and int(limit) < avail + usage:
-            avail = min(avail, int(limit) - usage)
-        break
-    return max(int(avail), 0)
-
-def get_array_module(array):
-    if is_cuda_available():
-        try:
-            import cupy
-            return cupy.get_array_module(array)
-        except:
-            return np
-    else:
-        return np

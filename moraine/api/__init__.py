@@ -1,30 +1,23 @@
-"""API: algorithms on numpy / cupy arrays in memory"""
+"""API: algorithms on numpy / cupy arrays in memory
 
-# infrastructure
+Grouped by the stages of the processing chain and the foundations they share (decision 0041); the internal
+utilities are in moraine.api.utils_.
+"""
+
+from . import pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, ts
+
+# foundations: point clouds, image pairs, polygons, SLC basics
 from .pc import *
-from .rtree import *
 from .tnet import *
 from .polygon import *
+from .slc import *
 
-# amplitude and calibration
-from .calamp import *
-
-# PS
+# stages: PS, DS, deep learning filters, pixel quality, phase unwrapping, deformation products
 from .ps import *
-
-# DS
-from .shp import *
-from .co import *
-from .pl import *
-
-# DL
+from .ds import *
 from .dl import *
-
-# pixel quality control
 from .pqm import *
-
-# phase unwrapping
 from .unwrap import *
-
-# deformation products
 from .ts import *
+
+__all__ = [n for m in (pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, ts) for n in m.__all__]

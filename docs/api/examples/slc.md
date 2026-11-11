@@ -1,4 +1,4 @@
-```python exec="true" source="above" result="text" session="calamp"
+```python exec="true" source="above" result="text" session="slc"
 import numpy as np
 import moraine as mr
 
@@ -8,4 +8,6 @@ amp = mr.rslc2amp(rslc)                       # amplitude stack, float32
 print(amp.shape, amp.dtype, np.allclose(amp, np.abs(rslc)))
 cal = mr.calamp(np.ascontiguousarray(amp[..., 0]))   # calibrated amplitude of one image (a contiguous 2D array)
 print(cal.shape, cal.dtype)
+intf = mr.intf(np.ascontiguousarray(rslc[..., 0]), np.ascontiguousarray(rslc[..., 1]))   # 1 x 1 look interferogram of two images
+print(intf.shape, intf.dtype)
 ```

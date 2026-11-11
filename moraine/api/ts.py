@@ -3,7 +3,7 @@
 __all__ = ['pc_reference', 'pc_disp']
 
 import numpy as np
-from .utils_ import get_array_module
+from .utils_.device import get_array_module
 
 
 def pc_reference(

@@ -204,15 +204,12 @@ nav:
       - JSON output: contracts/json-output.md
   - Python API:
       - api/index.md
-      - calamp: api/calamp.md
       - pc: api/pc.md
-      - rtree: api/rtree.md
       - tnet: api/tnet.md
       - polygon: api/polygon.md
+      - slc: api/slc.md
       - ps: api/ps.md
-      - shp: api/shp.md
-      - co: api/co.md
-      - pl: api/pl.md
+      - ds: api/ds.md
       - dl: api/dl.md
       - pqm: api/pqm.md
       - unwrap: api/unwrap.md

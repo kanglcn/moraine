@@ -35,7 +35,7 @@ __all__ = ['delaunay_halfedges', 'delaunay']
 
 import numpy as np
 from numba import njit
-from ..utils_ import mjit
+from ..utils_.jit import mjit
 
 
 @mjit(nopython=True, inline='always')

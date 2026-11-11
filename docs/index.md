@@ -63,12 +63,12 @@ a guide with the parameters, the expected ranges and the checks. The figures are
 <div class="mo-card" markdown>
 ### PS and DS selection
 Amplitude dispersion, statistically homogeneous pixels by a Kolmogorov-Smirnov test, DS candidates and their
-coherence matrices. [ps](api/ps.md), [shp](api/shp.md), [co](api/co.md)
+coherence matrices. [ps](api/ps.md), [ds](api/ds.md)
 </div>
 <div class="mo-card" markdown>
 ### Phase linking
 EMI with an adaptive regularization for coherence matrices that are not positive definite, the weighted temporal
-coherence and the connectivity of the coherent image pairs. [pl](api/pl.md)
+coherence and the connectivity of the coherent image pairs. [ds](api/ds.md)
 </div>
 <div class="mo-card" markdown>
 ### Deep learning filters

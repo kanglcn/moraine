@@ -1,12 +1,13 @@
-"""SLC amplitude calibration"""
+"""Basic operations on co-registered SLC stacks: amplitude, amplitude calibration, interferograms, multilooking"""
 
-__all__ = ['rslc2amp', 'calamp']
+__all__ = ['rslc2amp', 'calamp', 'intf', 'multi_look']
 
 import numpy as np
 import math
 import numba
-from .utils_ import is_cuda_available, get_array_module
-from .utils_ import mjit
+from numba import prange
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mjit, ngpjit
 if is_cuda_available():
     import cupy as cp
 
@@ -85,3 +86,58 @@ def calamp(amp:np.ndarray,
         return _calamp_numba(amp)
     else:
         return _calamp_cp(amp)
+
+@ngpjit
+def intf(
+    rslc1,
+    rslc2,
+):
+    """1 by 1 look interferogram for both raster and point cloud.
+
+    Parameters
+    ----------
+    rslc1
+        reference rslc, arbitrary dims, e.g., 3D(raster stack), 2D(raster or point cloud stack) or 1D(point cloud)
+    rslc2
+        secondary rslc
+    """
+    shape = rslc1.shape
+
+    rslc1 = rslc1.reshape(-1)
+    rslc2 = rslc2.reshape(-1)
+    intf = np.empty(rslc1.shape,dtype=rslc1.dtype)
+    for i in prange(rslc1.shape[0]):
+        intf[i] = rslc1[i]*np.conj(rslc2[i])/(np.abs(rslc1[i])*np.abs(rslc2[i]))
+    intf = intf.reshape(shape)
+    return intf
+
+@ngpjit
+def multi_look(
+    rslc1,
+    rslc2,
+    looks=(1,1),
+):
+    """multi looked interferogram for raster data.
+
+    Parameters
+    ----------
+    rslc1
+        reference rslc
+    rslc2
+        secondary rslc
+    looks : default: (1, 1)
+        # range and azimuth looks
+    """
+    az_look, r_look = looks
+    out_ny = math.floor(rslc1.shape[0]/az_look)
+    out_nx = math.floor(rslc1.shape[1]/r_look)
+    out = np.empty((out_ny, out_nx),dtype=rslc1.dtype)
+    for i in prange(out_ny):
+        for j in range(out_nx):
+            az_start, az_stop = i*az_look, (i+1)*az_look
+            r_start, r_stop = j*r_look, (j+1)*r_look
+            rslc1_ = rslc1[az_start:az_stop, r_start:r_stop].flatten()
+            rslc2_ = rslc2[az_start:az_stop, r_start:r_stop].flatten()
+            dnmnt = math.sqrt(np.sum(rslc1_.real**2+rslc1_.imag**2)*np.sum(rslc2_.real**2+rslc2_.imag**2))
+            out[i,j] = np.sum(rslc1_*rslc2_.conj())/dnmnt
+    return out

@@ -8,7 +8,7 @@ import zarr
 import numpy as np
 import numexpr as ne
 
-from ..api.chunk_ import all_chunk_slices
+from ..api.utils_.chunk import all_chunk_slices
 from .logging import mc_logger
 from .executor import Executor, Chunk
 

@@ -6,7 +6,7 @@ __all__ = ['TempNet', 'nimage_from_npair']
 import math
 import numpy as np
 import zarr
-from .utils_ import ngjit
+from .utils_.jit import ngjit
 
 def _imagepair_from_bandwidth(nimages,bandwidth=None):
     if bandwidth is None: bandwidth = nimages
@@ -116,7 +116,7 @@ class TempNet(object):
     @classmethod
     def load(cls, zarr_path:str,
             ):
-        """classmethod to load the saved HilbertRtree.
+        """classmethod to load the saved TempNet.
 
         Parameters
         ----------

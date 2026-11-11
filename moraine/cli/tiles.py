@@ -745,7 +745,7 @@ class RasterLayer(_Layer):
 def _pc_levels_in_memory(x, y, pc, res):
     """Levels of a point cloud rasterized in memory like `pc_pyramid`: (level function, function of the index of
     the point in each cell of a level (-1: empty), max level, cell centre (x0, y0) of cell (0, 0), shape)."""
-    from ..api.coord_ import Coord
+    from ..api.utils_.coord import Coord
     from .plot import _next_level_idx_from_raster_of_integer
     yx = np.stack([y, x], axis=-1).astype(np.float64)
     x0, xm, y0, ym = float(x.min()), float(x.max()), float(y.min()), float(y.max())
@@ -836,7 +836,7 @@ class PointLayer(_Layer):
                 from .plot import _LazyRtree
                 self._rtree = _LazyRtree(self._rtree_dir)
             else:
-                from ..api.rtree import HilbertRtree
+                from ..api.pc.rtree import HilbertRtree
                 self._rtree = HilbertRtree.build(self._x, self._y, page_size=512)
         return self._rtree.bbox_query(bounds, self._x, self._y)
 

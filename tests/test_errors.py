@@ -7,7 +7,7 @@ import moraine as mr
 import moraine.cli as mc
 from moraine.cli.zarr_ import ZarrDir, check_ndim
 from moraine.cli.pc import _path_lists
-from moraine.api.chunk_ import fill_slice
+from moraine.api.utils_.chunk import fill_slice
 from moraine.api.tnet import _imagepair_from_bandwidth
 
 

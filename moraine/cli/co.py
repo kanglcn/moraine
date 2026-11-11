@@ -9,7 +9,7 @@ import zarr
 import numpy as np
 
 import moraine as mr
-from ..api.chunk_ import all_chunk_slices_with_overlap
+from ..api.utils_.chunk import all_chunk_slices_with_overlap
 from .logging import mc_logger
 from .zarr_ import parallel_read_zarr, check_ndim
 from .executor import Executor, Chunk, Device

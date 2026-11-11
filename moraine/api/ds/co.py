@@ -1,73 +1,20 @@
 """Covariance and coherence matrix estimation"""
 
-__all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc',
-           'isPD', 'nearestPD', 'regularize_spectral']
+__all__ = ['emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc', 'isPD',
+           'nearestPD', 'regularize_spectral']
 
 import math
 import numpy as np
-from .utils_ import is_cuda_available, get_array_module, mcuda_jit
+from ..utils_.device import is_cuda_available, get_array_module
+from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 from typing import Union
-import moraine as mr
-from .utils_ import ngpjit, ngjit
+from ..utils_.jit import ngpjit, ngjit
+from ..utils_.device import _single_thread_blas
+from ..tnet import TempNet, nimage_from_npair
 from numba import prange
-
-@ngpjit
-def multi_look(
-    rslc1,
-    rslc2,
-    looks=(1,1),
-):
-    """multi looked interferogram for raster data.
-
-    Parameters
-    ----------
-    rslc1
-        reference rslc
-    rslc2
-        secondary rslc
-    looks : default: (1, 1)
-        # range and azimuth looks
-    """
-    az_look, r_look = looks
-    out_ny = math.floor(rslc1.shape[0]/az_look)
-    out_nx = math.floor(rslc1.shape[1]/r_look)
-    out = np.empty((out_ny, out_nx),dtype=rslc1.dtype)
-    for i in prange(out_ny):
-        for j in range(out_nx):
-            az_start, az_stop = i*az_look, (i+1)*az_look
-            r_start, r_stop = j*r_look, (j+1)*r_look
-            rslc1_ = rslc1[az_start:az_stop, r_start:r_stop].flatten()
-            rslc2_ = rslc2[az_start:az_stop, r_start:r_stop].flatten()
-            dnmnt = math.sqrt(np.sum(rslc1_.real**2+rslc1_.imag**2)*np.sum(rslc2_.real**2+rslc2_.imag**2))
-            out[i,j] = np.sum(rslc1_*rslc2_.conj())/dnmnt
-    return out
-
-@ngpjit
-def intf(
-    rslc1,
-    rslc2,
-):
-    """1 by 1 look interferogram for both raster and point cloud.
-
-    Parameters
-    ----------
-    rslc1
-        reference rslc, arbitrary dims, e.g., 3D(raster stack), 2D(raster or point cloud stack) or 1D(point cloud)
-    rslc2
-        secondary rslc
-    """
-    shape = rslc1.shape
-
-    rslc1 = rslc1.reshape(-1)
-    rslc2 = rslc2.reshape(-1)
-    intf = np.empty(rslc1.shape,dtype=rslc1.dtype)
-    for i in prange(rslc1.shape[0]):
-        intf[i] = rslc1[i]*np.conj(rslc2[i])/(np.abs(rslc1[i])*np.abs(rslc2[i]))
-    intf = intf.reshape(shape)
-    return intf
 
 def emperical_co(rslc:np.ndarray,
                  is_shp:np.ndarray,
@@ -108,8 +55,9 @@ def emperical_co(rslc:np.ndarray,
     return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
 # Coherence of the SHP samples X (n_shp, nimages) of a point: X^H X normalized by its diagonal, with BLAS on the
-# CPU (one BLAS thread per numba thread, see moraine.api.pl._single_thread_blas) and batched matrix products on the
-# GPU; every image pair of the point reads the same samples, so all pairs come from one matrix product.
+# CPU (one BLAS thread per numba thread, see moraine.api.utils_.device._single_thread_blas) and batched matrix
+# products on the GPU; every image pair of the point reads the same samples, so all pairs come from one matrix
+# product.
 @ngpjit
 def _emperical_co_pc_numba(
     rslc,
@@ -229,11 +177,10 @@ def emperical_co_pc(rslc:np.ndarray,
     n_pc = az_idx.shape[0]
 
     if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+        image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
-        from .pl import _single_thread_blas
         with _single_thread_blas():
             coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     else:
@@ -273,8 +220,8 @@ def uncompress_coh(
     """
     xp = get_array_module(coh)
     if image_pairs is None:
-        nimages = mr.nimage_from_npair(coh.shape[-1])
-        image_pairs = mr.TempNet.from_bandwidth(nimages).image_pairs
+        nimages = nimage_from_npair(coh.shape[-1])
+        image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     else:
         nimages = image_pairs[-1,-1]+1
     uncompressed_coh = xp.zeros((*coh.shape[:-1],nimages,nimages),dtype=coh.dtype)

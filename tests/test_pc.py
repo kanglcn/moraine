@@ -3,8 +3,9 @@ import math
 import numpy as np
 import pytest
 
-from moraine.api.pc import (_unravel_gix, _check_idx_sorted, _pc_split_by_chunk, _gix_ras_chunk,
-                        pc_hix, pc_gix, pc_sort, pc2ras, pc_union, pc_intersect, pc_diff)
+from moraine.api.pc import pc_hix, pc_gix, pc_sort, pc2ras, pc_union, pc_intersect, pc_diff
+from moraine.api.pc.index import _unravel_gix, _check_idx_sorted
+from moraine.api.pc.raster import _pc_split_by_chunk, _gix_ras_chunk
 
 
 def _random_gix(rng, shape, n):

@@ -6,8 +6,9 @@ __all__ = ['amp_disp']
 import numpy as np
 import math
 import numba
-from .utils_ import is_cuda_available, get_array_module, mcuda_jit
-from .utils_ import mjit
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mcuda_jit
+from .utils_.jit import mjit
 if is_cuda_available():
     import cupy as cp
 

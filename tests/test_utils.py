@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from pathlib import Path
 
 import numba
@@ -5,8 +7,9 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api import utils_
-from moraine.api.utils_ import _source_hash, mjit, _default_cuda_home
+from moraine.api.utils_ import jit
+from moraine.api.utils_.jit import _source_hash, mjit
+from moraine.api.utils_.device import _default_cuda_home
 
 
 def test_source_hash(tmp_path):
@@ -21,6 +24,22 @@ def test_source_hash(tmp_path):
     assert _source_hash(tmp_path) != h
 
 
+def test_source_hash_of_the_whole_package():
+    """the cache directory changes with every source file of moraine, not only those of moraine.api (decision 0029)"""
+    assert _source_hash() == _source_hash(Path(mr.__file__).parent)
+
+
+def test_blas_controller_knows_scipy_blas():
+    """the BLAS threads are limited in every BLAS library loaded by moraine, also in scipy's, which numba calls"""
+    code = ('import threadpoolctl, moraine.api.utils_.device as d; '
+            'known = {l["filepath"] for l in d._blas_controller.info() if l["user_api"] == "blas"}; '
+            'loaded = {l["filepath"] for l in threadpoolctl.threadpool_info() if l["user_api"] == "blas"}; '
+            'print(sorted(loaded - known))')
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True,
+                         cwd=Path(__file__).resolve().parents[1])
+    assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
+
+
 def test_mjit_keeps_numba_cache_dir():
     before = numba.config.CACHE_DIR
 
@@ -30,20 +49,20 @@ def test_mjit_keeps_numba_cache_dir():
 
     assert f(1) == 2
     assert numba.config.CACHE_DIR == before
-    if utils_._CACHE_DIR is not None:
-        assert str(f._cache._cache_path).startswith(utils_._CACHE_DIR)
+    if jit._CACHE_DIR is not None:
+        assert str(f._cache._cache_path).startswith(jit._CACHE_DIR)
 
 
 def test_emi_kernel_cached(rng):
     # LAPACK is called by symbol name, so the EMI kernel can be saved to the cache
-    from moraine.api.pl import _emi_numba
+    from moraine.api.ds.pl import _emi_numba
     x = rng.standard_normal((4, 30, 6)) + 1j * rng.standard_normal((4, 30, 6))
     c = np.conj(x).transpose(0, 2, 1) @ x
     d = 1 / np.sqrt(np.diagonal(c, axis1=1, axis2=2).real)
     pairs = mr.TempNet.from_bandwidth(6).image_pairs
     coh = (c[:, pairs[:, 0], pairs[:, 1]].conj() * d[:, pairs[:, 0]] * d[:, pairs[:, 1]]).astype(np.complex64)
     assert mr.emi(coh).shape == (4, 6)
-    if utils_._CACHE_DIR is not None:
+    if jit._CACHE_DIR is not None:
         assert list(Path(_emi_numba._cache._cache_path).glob('pl._emi_numba-*.nbi'))
 
 
@@ -70,7 +89,7 @@ def test_cuda_kernels_cached():
     rslc = cp.asarray((np.random.default_rng(0).standard_normal((8, 8, 5, 2)) @ [1, 1j]).astype(np.complex64))
     mr.amp_disp(rslc)
     assert numba.config.CACHE_DIR == before
-    if utils_._CACHE_DIR is not None:
+    if jit._CACHE_DIR is not None:
         kernel = ps._amp_disp_cuda
-        assert str(kernel._cache._cache_path).startswith(utils_._CACHE_DIR)
+        assert str(kernel._cache._cache_path).startswith(jit._CACHE_DIR)
         assert list(Path(kernel._cache._cache_path).glob('ps._amp_disp_cuda-*.nbi'))

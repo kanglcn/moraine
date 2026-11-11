@@ -48,6 +48,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0038](0038-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
 | [0039](0039-zarr-one-file-per-chunk-no-sharding.md) | Zarr arrays are written one file per chunk, without sharding | Accepted |
 | [0040](0040-deformation-products.md) | Deformation products: displacement time series, DEM error and velocity | Accepted |
+| [0041](0041-api-grouped-by-stage.md) | The API is grouped by processing stage | Accepted |
 
 ## Writing a record
 

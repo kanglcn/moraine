@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc, _edge_pfa
+from moraine.api.ds.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc, _edge_pfa
 
 
 @pytest.fixture(scope='module')
@@ -404,7 +404,7 @@ def test_ds_temp_coh_weighted_gpu(intermittent, ds_coh):
 
 
 def test_fused_batch_size():
-    from moraine.api.pl import _fused_batch_size
+    from moraine.api.ds.pl import _fused_batch_size
     assert _fused_batch_size(92) == 2**30 // (8 * 4186)
     assert _fused_batch_size(17) == 2**30 // (8 * 136)
     assert _fused_batch_size(3, max_bytes=1) == 1

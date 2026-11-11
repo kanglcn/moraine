@@ -9,8 +9,8 @@ import numpy as np
 from numba import njit, prange
 
 from ..tnet import TempNet
-from ..utils_ import get_mem_avail, get_n_cpus_avail
-from ..utils_ import mjit
+from ..utils_.device import get_mem_avail, get_n_cpus_avail
+from ..utils_.jit import mjit
 from .closure import _l1_fit, _pair_forest
 from .mcf import _SPATIAL_COST_RANGE, _TWO_PI, _edge_length, _mcf_edges, _mcf_ssp
 
