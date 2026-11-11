@@ -1,5 +1,4 @@
-"""Point clouds: grid and hilbert indices, sorting, set operations, raster <-> point cloud, R-tree for bounding box
-queries"""
+"""Point clouds: indices, sorting, set operations, raster <-> point cloud, R-tree"""
 
 from . import index, sets, raster, rtree
 from .index import *

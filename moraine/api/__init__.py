@@ -1,5 +1,8 @@
-"""API: algorithms on numpy / cupy arrays in memory, grouped by the stages of the processing chain and the foundations
-they share (decision 0041); the internal utilities are in moraine.api.utils_"""
+"""API: algorithms on numpy / cupy arrays in memory
+
+Grouped by the stages of the processing chain and the foundations they share (decision 0041); the internal
+utilities are in moraine.api.utils_.
+"""
 
 from . import pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, ts
 

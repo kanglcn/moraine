@@ -1,5 +1,4 @@
-"""Deep learning filters of interferograms: Noise2Fringe (n2f, n2fs3d) of rasters, Noise2Fringe Transformer (n2ft)
-of point clouds; model download"""
+"""Deep learning filters of interferograms (n2f, n2fs3d, n2ft) and their models"""
 
 from . import model, raster, pc
 from .model import *

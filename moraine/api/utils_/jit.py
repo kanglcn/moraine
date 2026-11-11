@@ -1,5 +1,4 @@
-"""numba decorators of moraine: the compiled code is cached in a directory named after a hash of the sources
-(decision 0029)"""
+"""numba decorators with the compiled code cached by a hash of the sources (decision 0029)"""
 
 __all__ = ['mjit', 'ngjit', 'ngpjit']
 
