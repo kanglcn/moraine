@@ -1,7 +1,7 @@
 # Python API
 
-`import moraine as mr` 给出数组函数：作用于内存中 numpy 数组（CPU，numba）或 cupy 数组（GPU）的算法，按主题
-分在 `moraine.api` 的各模块里（决策 0015），并以 `mr.<name>` 重新导出。大多数函数两种数组都接受，返回同类数组。
+`import moraine as mr` 给出数组函数：作用于内存中 numpy 数组（CPU，numba）或 cupy 数组（GPU）的算法，按处理
+阶段分在 `moraine.api` 的各模块里（决策 0041），并以 `mr.<name>` 重新导出。大多数函数两种数组都接受，返回同类数组。
 
 ```python
 import numpy as np
@@ -16,6 +16,8 @@ if moraine.api.utils_.is_cuda_available():
 
 一次调用处理一个单元：整幅场景的一景影像或一个像对，或一块像元 / 点及其完整时间序列（需要邻域时再加一圈
 halo）。数据大于内存时，[命令行](../cli/index.md)用 dask 把这些函数映射到 zarr 的各块上。
+
+基础部分（`pc`、`tnet`、`polygon`、`slc`）供各阶段使用；阶段（`ps`、`ds`、`dl`、`pqm`、`unwrap`、`ts`）按处理链排列。
 
 | 模块 | 主题 | 主要名字 |
 |---|---|---|

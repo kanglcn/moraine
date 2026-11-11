@@ -14,10 +14,12 @@ moraine/cli/       zarr in -> zarr out, chunk by chunk          (CLI layer)
 moraine/api/       numpy / cupy arrays in memory              (API layer)
 ```
 
-- **API** (`moraine/api/`): algorithms on arrays in memory, one module per topic, a subpackage when a
-  topic has several modules (`moraine/api/unwrap/`); `import moraine` re-exports the public names as
-  `moraine.*` (decision 0015). Most functions accept numpy (CPU, numba) or cupy (GPU) arrays and return
-  the same kind (`moraine.api.utils_.get_array_module`).
+- **API** (`moraine/api/`): algorithms on arrays in memory, grouped by the stages of the processing chain
+  (`ps`, `ds`, `dl`, `pqm`, `unwrap`, `ts`) and the foundations they share (`pc`, `tnet`, `polygon`, `slc`), the
+  internal utilities in `moraine/api/utils_/` (decisions 0015, 0041). A module is one method or one data structure,
+  a topic of several modules is a subpackage. `import moraine` re-exports the public names as `moraine.*`. Most
+  functions accept numpy (CPU, numba) or cupy (GPU) arrays and return the same kind
+  (`moraine.api.utils_.get_array_module`).
 - **CLI** (`moraine/cli/`): the same operations on zarr datasets larger than memory, processed chunk by
   chunk by the workers of `moraine/cli/executor.py` (threads, processes or one process per GPU). Every function decorated with
   `@mc_logger` logs its arguments and is exposed as a command.
@@ -28,6 +30,10 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 
 - The API layer does not import `moraine.cli` or `moraine.command`.
 - The CLI layer does not import `moraine.command`.
+- Inside the API (decision 0041): `moraine/api/utils_/` imports no other part of the API; a foundation (`pc`,
+  `tnet`, `polygon`, `slc`) imports `utils_` and other foundations; a stage (`ps`, `ds`, `dl`, `pqm`, `unwrap`,
+  `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
+  never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
 - GPU packages (`cupy`, `numba.cuda`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
   `torch` only inside the functions that run a model (decision 0002).
@@ -38,27 +44,36 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 |---|---|---|
 | `moraine/__init__.py` | version; re-exports the public API as `moraine.*` | |
 | `moraine/__main__.py` | `python -m moraine` entry point | |
-| `moraine/api/__init__.py` | re-exports the public API of the modules below | |
+| `moraine/api/__init__.py` | re-exports the public names of the foundations and stages below (`__all__`) | |
+| *internal utilities* | | |
 | `moraine/api/utils_/__init__.py` | internal utilities, not re-exported as `moraine.*`; re-exports the names of `jit.py` and `device.py` as `moraine.api.utils_.*` | |
 | `moraine/api/utils_/jit.py` | numba decorators with the compiled code cached by source hash (decision 0029) | `mjit`, `ngjit`, `ngpjit`, `mcuda_jit` |
 | `moraine/api/utils_/device.py` | GPU detection, numpy / cupy dispatch, available cores and memory, one BLAS thread inside the numba parallel loops | `is_cuda_available`, `get_array_module`, `get_mem_avail` |
 | `moraine/api/utils_/chunk.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
 | `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
-| `moraine/api/tnet.py` | temporal network: image pairs | `TempNet` |
-| `moraine/api/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
+| *foundations* | | |
 | `moraine/api/pc/__init__.py` | point clouds; re-exports the names of the modules below | |
 | `moraine/api/pc/index.py` | grid and hilbert indices of point clouds, sorting | `pc_hix`, `pc_gix`, `pc_sort` |
 | `moraine/api/pc/sets.py` | set operations of point clouds | `pc_union`, `pc_intersect`, `pc_diff` |
 | `moraine/api/pc/raster.py` | raster <-> point cloud, points in the order of raster chunks | `ras2pc`, `pc2ras` |
 | `moraine/api/pc/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
+| `moraine/api/tnet.py` | temporal network: image pairs | `TempNet` |
+| `moraine/api/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
 | `moraine/api/slc.py` | basic operations on SLC stacks: amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
+| *stages* | | |
 | `moraine/api/ps.py` | amplitude dispersion index for PS selection | `amp_disp` |
 | `moraine/api/ds/__init__.py` | distributed scatterers; re-exports the names of `shp.py`, `co.py` and `pl.py` | |
 | `moraine/api/ds/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
 | `moraine/api/ds/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/ds/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/ds/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
+| `moraine/api/dl/__init__.py` | deep learning filters; re-exports the names of `model.py`, `raster.py` and `pc.py` | |
+| `moraine/api/dl/model.py` | model download, cached loading | `download_dl_model` |
+| `moraine/api/dl/raster.py` | n2f / n2fs3d filtering of raster interferograms | `n2f`, `n2fs3d` |
+| `moraine/api/dl/pc.py` | n2ft filtering of point cloud interferograms | `n2ft` |
+| `moraine/api/dl/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
+| `moraine/api/dl/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
 | `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
 | `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
 | `moraine/api/unwrap/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
@@ -67,12 +82,6 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
 | `moraine/api/ts.py` | deformation products of point clouds (decision 0040): spatial reference, displacement | `pc_reference`, `pc_disp` |
-| `moraine/api/dl/__init__.py` | deep learning filters; re-exports the names of `model.py`, `raster.py` and `pc.py` | |
-| `moraine/api/dl/model.py` | model download, cached loading | `download_dl_model` |
-| `moraine/api/dl/raster.py` | n2f / n2fs3d filtering of raster interferograms | `n2f`, `n2fs3d` |
-| `moraine/api/dl/pc.py` | n2ft filtering of point cloud interferograms | `n2ft` |
-| `moraine/api/dl/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
-| `moraine/api/dl/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
 ## CLI layer (moraine/cli/)

@@ -1,5 +1,7 @@
 """ARCHITECTURE.md lists every module, and the layer dependency rules hold."""
 import ast
+import importlib
+import inspect
 import re
 import subprocess
 import sys
@@ -68,3 +70,62 @@ def test_import_moraine_does_not_import_dask():
     code = 'import sys, moraine, moraine.cli, moraine.command; print("dask" in sys.modules)'
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
     assert out.stdout.strip().endswith('False'), out.stdout + out.stderr
+
+
+# ---------------------------------------------------------------- inside the API (decision 0041)
+
+API_FOUNDATIONS = {'pc', 'tnet', 'polygon', 'slc'}
+API_STAGES = {'ps', 'ds', 'dl', 'pqm', 'unwrap', 'ts'}
+
+
+def _api_part(name):
+    """the part of the API (the first name below moraine.api, e.g. 'ds') of a module path or a dotted module name;
+    None outside the API and for moraine/api/__init__.py"""
+    parts = name[:-3].split('/') if name.endswith('.py') else name.split('.')
+    if parts[:2] != ['moraine', 'api'] or len(parts) < 3 or parts[2] == '__init__':
+        return None
+    return parts[2]
+
+
+@pytest.mark.parametrize('module', [m for m in MODULES if _api_part(m)])
+def test_api_dependency_direction(module):
+    """utils_ <- foundations <- stages: a stage does not import another stage"""
+    src = _api_part(module)
+    assert src in {'utils_'} | API_FOUNDATIONS | API_STAGES, f'{module}: add {src} to API_FOUNDATIONS or API_STAGES'
+    allowed = {'utils_'} if src == 'utils_' else {src, 'utils_'} | API_FOUNDATIONS
+    for lineno, name in _imports(module):
+        dst = _api_part(name)
+        assert dst is None or dst in allowed, f'{module}:{lineno} ({src}) imports {name} ({dst})'
+
+
+@pytest.mark.parametrize('module', [m for m in MODULES if m.startswith('moraine/api/')])
+def test_api_imports_are_relative(module):
+    """the API modules import each other relatively, never through `import moraine`"""
+    for node in ast.walk(ast.parse((REPO / module).read_text())):
+        if isinstance(node, ast.Import):
+            names = [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0:
+            names = [node.module or '']
+        else:
+            continue
+        bad = [n for n in names if n == 'moraine' or n.startswith('moraine.')]
+        assert not bad, f'{module}:{node.lineno} imports {bad[0]}'
+
+
+def test_moraine_names_are_the_public_api():
+    """moraine.* holds the public functions and classes of the foundations and stages, and no modules"""
+    import moraine
+    parts = [importlib.import_module(f'moraine.api.{p}') for p in sorted(API_FOUNDATIONS | API_STAGES)]
+    names = [n for m in parts for n in m.__all__]
+    assert len(names) == len(set(names)), 'a name is exported by two parts of the API'
+    assert sorted(moraine.__all__) == sorted(names)
+    assert not [n for n in names if inspect.ismodule(getattr(moraine, n))]
+
+
+@pytest.mark.parametrize('package', sorted({m.split('/')[2] for m in MODULES
+                                            if m.startswith('moraine/api/') and m.count('/') == 3}))
+def test_submodules_are_not_hidden(package):
+    """a submodule is not named like a name its package exports (the name would hide the module)"""
+    pkg = importlib.import_module(f'moraine.api.{package}')
+    stems = {p.stem for p in (REPO / 'moraine' / 'api' / package).glob('*.py')}
+    assert not stems & set(pkg.__all__)

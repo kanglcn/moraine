@@ -1,7 +1,7 @@
 # Python API
 
 `import moraine as mr` gives the array functions: algorithms on numpy arrays (CPU, numba) or cupy arrays
-(GPU) in memory, grouped by topic in the modules of `moraine.api` (decision 0015) and re-exported as `mr.<name>`.
+(GPU) in memory, grouped by processing stage in the modules of `moraine.api` (decision 0041) and re-exported as `mr.<name>`.
 Most functions accept both kinds of array and return the same kind.
 
 ```python
@@ -18,6 +18,9 @@ if moraine.api.utils_.is_cuda_available():
 One call processes one unit: an image or image pair of the whole scene, or a block of pixels / points with
 their whole time series (plus a halo where neighbours are needed). For data larger than memory the
 [command line](../cli/index.md) maps these functions over zarr chunks with dask.
+
+The foundations (`pc`, `tnet`, `polygon`, `slc`) serve every stage; the stages (`ps`, `ds`, `dl`, `pqm`, `unwrap`,
+`ts`) follow the processing chain.
 
 | module | topic | main names |
 |---|---|---|
