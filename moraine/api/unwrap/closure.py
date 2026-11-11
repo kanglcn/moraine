@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 from numba import njit, prange
-from ..utils_ import mjit
+from ..utils_.jit import mjit
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 

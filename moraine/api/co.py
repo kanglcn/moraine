@@ -5,13 +5,15 @@ __all__ = ['multi_look', 'intf', 'emperical_co', 'emperical_co_pc', 'uncompress_
 
 import math
 import numpy as np
-from .utils_ import is_cuda_available, get_array_module, mcuda_jit
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 from typing import Union
 import moraine as mr
-from .utils_ import ngpjit, ngjit
+from .utils_.jit import ngpjit, ngjit
+from .utils_.device import _single_thread_blas
 from numba import prange
 
 @ngpjit
@@ -108,8 +110,9 @@ def emperical_co(rslc:np.ndarray,
     return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
 # Coherence of the SHP samples X (n_shp, nimages) of a point: X^H X normalized by its diagonal, with BLAS on the
-# CPU (one BLAS thread per numba thread, see moraine.api.pl._single_thread_blas) and batched matrix products on the
-# GPU; every image pair of the point reads the same samples, so all pairs come from one matrix product.
+# CPU (one BLAS thread per numba thread, see moraine.api.utils_.device._single_thread_blas) and batched matrix
+# products on the GPU; every image pair of the point reads the same samples, so all pairs come from one matrix
+# product.
 @ngpjit
 def _emperical_co_pc_numba(
     rslc,
@@ -233,7 +236,6 @@ def emperical_co_pc(rslc:np.ndarray,
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
-        from .pl import _single_thread_blas
         with _single_thread_blas():
             coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     else:

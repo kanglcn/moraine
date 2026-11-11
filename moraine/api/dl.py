@@ -16,9 +16,9 @@ import requests
 import math
 import random
 import moraine as mr
-from .utils_ import ngjit, ngpjit, mcuda_jit
-from .utils_ import is_cuda_available, get_array_module, get_n_cpus_avail
-from .chunk_ import chunkwise_slicing_mapping, chunkwise_knn_mapping
+from .utils_.jit import ngjit, ngpjit, mcuda_jit
+from .utils_.device import is_cuda_available, get_array_module, get_n_cpus_avail
+from .utils_.chunk import chunkwise_slicing_mapping, chunkwise_knn_mapping
 if is_cuda_available():
     import cupy as cp
 

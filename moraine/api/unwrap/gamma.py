@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..gamma_ import read_gamma_pdata, write_gamma_image, write_gamma_plist
+from ..utils_.gamma_io import read_gamma_pdata, write_gamma_image, write_gamma_plist
 
 def gamma_mcf_pt(
     pc_x:np.ndarray,

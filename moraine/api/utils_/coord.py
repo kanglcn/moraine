@@ -5,7 +5,7 @@ __all__ = ['Coord']
 import numba
 import numpy as np
 import math
-from .utils_ import ngjit,ngpjit
+from .jit import ngjit,ngpjit
 from numba import prange
 
 # test shows this automatical parallel can accelerate 3x, 

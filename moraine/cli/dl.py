@@ -19,7 +19,7 @@ if is_cuda_available():
 import moraine as mr
 import moraine.cli as mc
 from ..api.utils_ import get_array_module
-from ..api.chunk_ import chunkwise_knn_mapping
+from ..api.utils_.chunk import chunkwise_knn_mapping
 from .zarr_ import parallel_read_zarr, parallel_write_zarr, check_ndim
 from ..api.dl import _get_model, _cuda_device, _infer_unet, _n2ft_prepare, _infer_n2ft_prepared, _prefetched, _n2ft_compile_default, _nan_where_zero
 from .logging import mc_logger
@@ -57,7 +57,7 @@ def _cli_pre_infer_n2f_numba(
 
 if is_cuda_available():
     from numba import cuda
-    from ..api.utils_ import mcuda_jit
+    from ..api.utils_.jit import mcuda_jit
 
     @mcuda_jit()
     def _intf_cuda(ref, sec, out):

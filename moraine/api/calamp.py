@@ -5,8 +5,8 @@ __all__ = ['rslc2amp', 'calamp']
 import numpy as np
 import math
 import numba
-from .utils_ import is_cuda_available, get_array_module
-from .utils_ import mjit
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mjit
 if is_cuda_available():
     import cupy as cp
 

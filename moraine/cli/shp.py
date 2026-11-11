@@ -8,7 +8,7 @@ import zarr
 import numpy as np
 
 import moraine as mr
-from ..api.chunk_ import all_chunk_slices, chunkwise_slicing_mapping
+from ..api.utils_.chunk import all_chunk_slices, chunkwise_slicing_mapping
 from .logging import mc_logger
 from .zarr_ import check_ndim
 from .executor import Executor, Chunk

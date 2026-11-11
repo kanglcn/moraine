@@ -20,7 +20,7 @@ import toml
 from ..api.utils_ import ngpjit
 from ..api.rtree import HilbertRtree
 from .logging import mc_logger
-from ..api.coord_ import Coord
+from ..api.utils_.coord import Coord
 from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
 
 # layout version of the pyramids, see docs/contracts/pyramid.md

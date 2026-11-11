@@ -5,11 +5,12 @@ __all__ = ['temp_coh']
 import math
 import numpy as np
 import moraine as mr
-from .utils_ import is_cuda_available, get_array_module, mcuda_jit
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
 from numba import prange
-from .utils_ import ngpjit
+from .utils_.jit import ngpjit
 
 # @ngpjit
 # def _temp_coh_pc_numba(

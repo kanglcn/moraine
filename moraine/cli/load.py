@@ -22,7 +22,7 @@ import pandas as pd
 from scipy.constants import speed_of_light
 
 import moraine as mr
-from ..api.gamma_ import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
+from ..api.utils_.gamma_io import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
 from .logging import mc_logger
 from .executor import Executor, Chunk
 

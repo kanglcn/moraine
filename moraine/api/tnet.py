@@ -6,7 +6,7 @@ __all__ = ['TempNet', 'nimage_from_npair']
 import math
 import numpy as np
 import zarr
-from .utils_ import ngjit
+from .utils_.jit import ngjit
 
 def _imagepair_from_bandwidth(nimages,bandwidth=None):
     if bandwidth is None: bandwidth = nimages

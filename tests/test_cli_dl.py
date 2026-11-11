@@ -43,7 +43,7 @@ def test_cli_pre_infer_n2f_gpu(rslc):
 
 def test_n2f_tiles():
     from moraine.cli.dl import _n2f_tiles
-    from moraine.api.chunk_ import chunkwise_slicing_mapping
+    from moraine.api.utils_.chunk import chunkwise_slicing_mapping
     shape = (400, 500)
     # output chunks equal to the processing chunks: the tiles of the API's chunkwise processing
     tiles = _n2f_tiles(shape, (150, 200), (150, 200), (32, 16))

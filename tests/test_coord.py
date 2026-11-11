@@ -1,6 +1,6 @@
 import numpy as np
 
-from moraine.api.coord_ import Coord
+from moraine.api.utils_.coord import Coord
 
 
 def test_coords2gixs_and_rasterize():

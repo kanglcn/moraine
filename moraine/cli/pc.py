@@ -14,7 +14,7 @@ from typing import Callable
 
 from .logging import mc_logger
 import moraine as mr
-from ..api.chunk_ import all_chunk_slices
+from ..api.utils_.chunk import all_chunk_slices
 from .zarr_ import ZarrDir, _parallel_read_pc_dir, whole_trailing, _parallel_read_pc_dir_whole
 from .executor import Executor, Chunk
 from .utils_ import mk_clean_dir

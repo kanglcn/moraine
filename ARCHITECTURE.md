@@ -39,10 +39,12 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/__init__.py` | version; re-exports the public API as `moraine.*` | |
 | `moraine/__main__.py` | `python -m moraine` entry point | |
 | `moraine/api/__init__.py` | re-exports the public API of the modules below | |
-| `moraine/api/utils_.py` | numba decorators with the compiled code cached by source hash, GPU detection, numpy / cupy dispatch | `mjit`, `ngjit`, `is_cuda_available`, `get_array_module` |
-| `moraine/api/chunk_.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
-| `moraine/api/coord_.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
-| `moraine/api/gamma_.py` | read / write GAMMA binary files | `read_gamma_image` |
+| `moraine/api/utils_/__init__.py` | internal utilities, not re-exported as `moraine.*`; re-exports the names of `jit.py` and `device.py` as `moraine.api.utils_.*` | |
+| `moraine/api/utils_/jit.py` | numba decorators with the compiled code cached by source hash (decision 0029) | `mjit`, `ngjit`, `ngpjit`, `mcuda_jit` |
+| `moraine/api/utils_/device.py` | GPU detection, numpy / cupy dispatch, available cores and memory, one BLAS thread inside the numba parallel loops | `is_cuda_available`, `get_array_module`, `get_mem_avail` |
+| `moraine/api/utils_/chunk.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
+| `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
+| `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
 | `moraine/api/tnet.py` | temporal network: image pairs | `TempNet` |
 | `moraine/api/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
 | `moraine/api/pc.py` | point cloud indices (grid / hilbert), sorting, set operations, raster <-> point cloud | `pc_hix`, `pc_union`, `ras2pc` |

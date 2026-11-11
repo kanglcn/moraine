@@ -6,19 +6,19 @@ import contextlib
 import llvmlite.binding as _ll
 import functools
 import math
-import threading
 import numpy as np
 from numba import types as _nbtypes
 from numba.extending import get_cython_function_address
-from threadpoolctl import ThreadpoolController
 import moraine as mr
-from .utils_ import is_cuda_available, get_array_module, mcuda_jit
+from .utils_.device import is_cuda_available, get_array_module
+from .utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
 import numba
 from numba import prange
-from .utils_ import ngpjit, ngjit
+from .utils_.jit import ngpjit, ngjit
+from .utils_.device import _single_thread_blas
 from .co import _rslc_rho2, _n_looks
 
 # Adaptive regularization of EMI (decision 0023): the coherence matrix coh of a point is replaced by
@@ -95,28 +95,6 @@ if is_cuda_available():
             emi_quality[start:end] = min_eigval
         return ph, emi_quality
 
-# The CPU kernels call LAPACK inside numba parallel loops. A multithreaded BLAS (MKL, OpenBLAS) does not see
-# that it is called from many threads and starts its own threads in each call: with 128 cores 128 x 128
-# threads, about 2e4 times slower. Its threads are limited to 1 while a kernel runs; the limit is global, so
-# it is kept until the last of concurrent callers (e.g. the threads of the executor) has finished.
-_blas_lock = threading.Lock()
-_blas_users = 0
-_blas_limit = None
-
-class _single_thread_blas:
-    def __enter__(self):
-        global _blas_users, _blas_limit
-        with _blas_lock:
-            if _blas_users == 0:
-                _blas_limit = _blas_controller.limit(limits=1, user_api='blas')
-            _blas_users += 1
-    def __exit__(self, *exc):
-        global _blas_users, _blas_limit
-        with _blas_lock:
-            _blas_users -= 1
-            if _blas_users == 0:
-                _blas_limit.restore_original_limits(); _blas_limit = None
-
 # Only the smallest eigenpair of the EMI matrix is needed: LAPACK cheevr with RANGE='I', IL=IU=1
 # (tridiagonalization, then one eigenvector by MRRR and its back transformation) instead of all of them
 # (2.2 times faster for 60-92 images). It is the LAPACK numba's np.linalg calls, through scipy. A numba
@@ -125,8 +103,6 @@ class _single_thread_blas:
 # can be cached (decision 0029).
 _ll.add_symbol('moraine_cheevr', get_cython_function_address('scipy.linalg.cython_lapack', 'cheevr'))
 _cheevr = _nbtypes.ExternalFunction('moraine_cheevr', _nbtypes.void(*([_nbtypes.voidptr]*23)))
-# after loading scipy's LAPACK (pip wheels of numpy and scipy bring separate BLAS libraries; numba calls scipy's)
-_blas_controller = ThreadpoolController()
 
 @ngjit
 def _cheevr_call(a, n_images, w, z, work, lwork, rwork, lrwork, iwork, liwork, isuppz, m, info):

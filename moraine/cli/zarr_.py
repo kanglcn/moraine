@@ -9,7 +9,7 @@ import math
 from pathlib import Path
 import zarr
 import numpy as np
-from ..api.chunk_ import fill_slice as _fill_slice, all_chunk_slices
+from ..api.utils_.chunk import fill_slice as _fill_slice, all_chunk_slices
 
 
 def _one_chunk_slices_and_out_shape(data_zarr,slices):

@@ -5,11 +5,11 @@ __all__ = ['pc_hix', 'pc_gix', 'pc_sort', 'pc2ras', 'ras2pc', 'pc_union', 'pc_in
 import numpy as np
 from numba import prange
 import math
-from .utils_ import is_cuda_available, get_array_module
+from .utils_.device import is_cuda_available, get_array_module
 if is_cuda_available():
     import cupy as cp
-from .utils_ import ngjit, ngpjit
-from .coord_ import Coord
+from .utils_.jit import ngjit, ngpjit
+from .utils_.coord import Coord
 
 def _ras_dims(
     gix1:np.ndarray,

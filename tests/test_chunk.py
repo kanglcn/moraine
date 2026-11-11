@@ -1,6 +1,6 @@
 import numpy as np
 
-from moraine.api.chunk_ import (all_chunk_slices, all_chunk_slices_with_overlap,
+from moraine.api.utils_.chunk import (all_chunk_slices, all_chunk_slices_with_overlap,
                             chunkwise_slicing_mapping, chunkwise_knn_mapping)
 
 
