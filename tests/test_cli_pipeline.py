@@ -182,9 +182,13 @@ def test_emperical_co_emi_temp_coh_pc(pl, cuda):
     on CPU the results are identical.
     """
     d = pl
-    if cuda:
-        mc.emi(str(d / 'ds_can_coh.zarr'), str(d / 'ref_ph_True.zarr'), cuda=True)
-        mc.ds_temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ref_ph_True.zarr'), str(d / 'ref_t_coh_True.zarr'), cuda=True)
+    if cuda:   # the coherence of the reference from the GPU too
+        mc.emperical_co_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
+                           str(d / 'ref_coh_True'), chunks=CHUNKS, cuda=True)
+        mc.pc_concat(str(d / 'ref_coh_True'), str(d / 'ref_coh_True.zarr'), key=str(d / 'ds_can_key.zarr'),
+                     chunks=zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0])
+        mc.emi(str(d / 'ref_coh_True.zarr'), str(d / 'ref_ph_True.zarr'), cuda=True)
+        mc.ds_temp_coh(str(d / 'ref_coh_True.zarr'), str(d / 'ref_ph_True.zarr'), str(d / 'ref_t_coh_True.zarr'), cuda=True)
         refs = ('ref_ph_True', 'ref_t_coh_True')
     else:
         refs = ('ds_can_ph', 'ds_can_t_coh')
