@@ -1,18 +1,12 @@
-"""The CPU and GPU of the process: GPU detection, numpy / cupy dispatch, available cores and memory, BLAS threads"""
+"""The CPU and GPU of the process: GPU detection, numpy / cupy dispatch, available cores and memory"""
 
 __all__ = ['is_cuda_available', 'get_n_cpus_avail', 'get_mem_avail', 'get_array_module']
 
 import os
 import sys
-import threading
 from pathlib import Path
 
 import numpy as np
-# scipy's BLAS / LAPACK, which numba's linear algebra and the EMI kernel call, is loaded before the BLAS controller
-# below is made: the controller knows only the libraries loaded at that time (pip wheels of numpy and scipy bring
-# separate BLAS libraries)
-import scipy.linalg.cython_lapack  # noqa: F401
-from threadpoolctl import ThreadpoolController
 
 def _default_cuda_home():
     """In a conda environment that is not activated, point CUDA_HOME to the environment, so that numba-cuda finds
@@ -62,26 +56,3 @@ def get_array_module(array):
             return np
     else:
         return np
-
-# The CPU kernels call LAPACK inside numba parallel loops. A multithreaded BLAS (MKL, OpenBLAS) does not see
-# that it is called from many threads and starts its own threads in each call: with 128 cores 128 x 128
-# threads, about 2e4 times slower. Its threads are limited to 1 while a kernel runs; the limit is global, so
-# it is kept until the last of concurrent callers (e.g. the threads of the executor) has finished.
-_blas_controller = ThreadpoolController()
-_blas_lock = threading.Lock()
-_blas_users = 0
-_blas_limit = None
-
-class _single_thread_blas:
-    def __enter__(self):
-        global _blas_users, _blas_limit
-        with _blas_lock:
-            if _blas_users == 0:
-                _blas_limit = _blas_controller.limit(limits=1, user_api='blas')
-            _blas_users += 1
-    def __exit__(self, *exc):
-        global _blas_users, _blas_limit
-        with _blas_lock:
-            _blas_users -= 1
-            if _blas_users == 0:
-                _blas_limit.restore_original_limits(); _blas_limit = None

@@ -48,7 +48,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | *internal utilities* | | |
 | `moraine/api/utils_/__init__.py` | internal utilities, not re-exported as `moraine.*`; re-exports the names of `jit.py` and `device.py` as `moraine.api.utils_.*` | |
 | `moraine/api/utils_/jit.py` | numba decorators with the compiled code cached by source hash (decision 0029) | `mjit`, `ngjit`, `ngpjit`, `mcuda_jit` |
-| `moraine/api/utils_/device.py` | GPU detection, numpy / cupy dispatch, available cores and memory, one BLAS thread inside the numba parallel loops | `is_cuda_available`, `get_array_module`, `get_mem_avail` |
+| `moraine/api/utils_/device.py` | GPU detection, numpy / cupy dispatch, available cores and memory | `is_cuda_available`, `get_array_module`, `get_mem_avail` |
 | `moraine/api/utils_/chunk.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
 | `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
@@ -68,6 +68,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/ds/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/ds/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/ds/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
+| `moraine/api/ds/linalg_.py` | small dense linear algebra of the phase linking on the CPU without LAPACK: Householder tridiagonalization, Sturm multisection, inverse iteration, Gauss-Jordan inverse | |
 | `moraine/api/dl/__init__.py` | deep learning filters; re-exports the names of `model.py`, `raster.py` and `pc.py` | |
 | `moraine/api/dl/model.py` | model download, cached loading | `download_dl_model` |
 | `moraine/api/dl/raster.py` | n2f / n2fs3d filtering of raster interferograms | `n2f`, `n2fs3d` |

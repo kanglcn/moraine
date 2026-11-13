@@ -57,15 +57,15 @@ def emperical_co(rslc:np.ndarray,
     return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
 # Coherence of the SHP samples X (n_shp, nimages) of a point on the CPU: the upper triangle of X^H X normalized by its
-# diagonal. No BLAS inside the numba parallel loop: a threaded BLAS (MKL with its OpenMP runtime) called from numba's
-# TBB threads makes them threads of the OpenMP runtime too, which oversubscribes the cores and makes any later fork of
-# the process hang (the fork handlers of TBB and of OpenMP wait for each other). The product is a register blocked
-# micro kernel instead, as in BLAS: a block of 4 rows x 8 columns of X^H X stays in 8 vector registers over all the
-# samples, every sample is read once per block. LLVM does not keep such accumulators in registers when the block is
-# written in numba (it vectorizes over the samples, or not at all), so it is written in LLVM vector instructions.
-# Only the blocks of the upper triangle are computed (half the work of X^H X), and the coherence of the full network
-# of image pairs, the upper triangle in row order, is written row by row without looking up the pairs. On the GPU:
-# batched matrix products; every image pair of the point reads the same samples, so all pairs come from one product.
+# diagonal. No BLAS inside the numba parallel loop (decision 0043): a threaded BLAS (MKL with its OpenMP runtime) called
+# from numba's TBB threads makes them threads of the OpenMP runtime too, which oversubscribes the cores and makes any
+# later fork of the process hang (the fork handlers of TBB and of OpenMP wait for each other). The product is a register
+# blocked micro kernel instead, as in BLAS: a block of 4 rows x 8 columns of X^H X stays in 8 vector registers over all
+# the samples, every sample is read once per block. LLVM does not keep such accumulators in registers when the block is
+# written in numba (it vectorizes over the samples, or not at all), so it is written in LLVM vector instructions. Only
+# the blocks of the upper triangle are computed (half the work of X^H X), and the coherence of the full network of image
+# pairs, the upper triangle in row order, is written row by row without looking up the pairs. On the GPU: batched matrix
+# products; every image pair of the point reads the same samples, so all pairs come from one product.
 @intrinsic
 def _conj_xt_x_4x8(typingctx, xr, xi, cr, ci, n, m0, j0):
     """cr + i ci [m0:m0+4, j0:j0+8] = sum over k < n of conj(x[k, m0:m0+4]) x[k, j0:j0+8], x = xr + i xi; float32 C

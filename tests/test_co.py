@@ -93,7 +93,8 @@ if __name__ == "__main__":
 ''')
     import os, subprocess, sys
     env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(Path(__file__).resolve().parents[1]))
-    out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path, timeout=300)
+    out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path,
+                         timeout=300)
     assert out.returncode == 0 and '[1, 2, 3, 4]' in out.stdout, out.stderr[-3000:]
 
 
