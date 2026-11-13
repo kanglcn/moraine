@@ -1,7 +1,7 @@
 # 05 Phase unwrapping
 
 Pipeline: `examples/05_unwrap.toml`. Tutorial: `nbs/Tutorials/CLI/CampiFlegrei/05_unwrap.ipynb`.
-Needs `04_refine`.
+Needs `04_refine`. How EMCF and the phase closure correction work: [the principle of EMCF unwrapping](../theory/emcf.md).
 
 ```bash
 moraine run examples/05_unwrap.toml --workdir WORK

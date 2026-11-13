@@ -57,6 +57,9 @@ extra_css:
   - assets/css/extra.css
 extra_javascript:
   - assets/js/fringes.js
+  # formulas (decision 0042): the configuration first, then MathJax of a fixed version
+  - assets/js/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js
 
 extra:
   social:
@@ -74,6 +77,8 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+  - pymdownx.arithmatex:      # $...$ and $$...$$ formulas, typeset by MathJax (decision 0042)
+      generic: true
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
@@ -124,6 +129,8 @@ plugins:
             04 Merge and refine: 04 合并与精化
             05 Phase unwrapping: 05 相位解缠
             06 Deformation products: 06 形变产品
+            Theory: 原理
+            EMCF unwrapping: EMCF 解缠
             Pipeline files: Pipeline 文件
             Command line: 命令行
             Built-in commands: 内置命令
@@ -224,6 +231,8 @@ nav:
       - 04 Pixel refinement: tutorials/CampiFlegrei/04_refine.md
       - 05 Phase unwrapping: tutorials/CampiFlegrei/05_unwrap.md
       - 06 Deformation products: tutorials/CampiFlegrei/06_products.md
+  - Theory:
+      - EMCF unwrapping: theory/emcf.md
   - Development:
       - Developing moraine: development.md
       - Architecture: dev/architecture.md
