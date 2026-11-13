@@ -49,6 +49,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0039](0039-zarr-one-file-per-chunk-no-sharding.md) | Zarr arrays are written one file per chunk, without sharding | Accepted |
 | [0040](0040-deformation-products.md) | Deformation products: displacement time series, DEM error and velocity | Accepted |
 | [0041](0041-api-grouped-by-stage.md) | The API is grouped by processing stage | Accepted |
+| [0042](0042-formulas-in-the-manual-mathjax.md) | Formulas in the manual are LaTeX, typeset by MathJax | Accepted |
 
 ## Writing a record
 
