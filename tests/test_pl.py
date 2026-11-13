@@ -124,15 +124,16 @@ def test_emi_regularize_gpu(not_pd, ds_coh):
     for c in (not_pd[0], ds_coh):
         ph, quality = _emi(c, regularize=True)
         ph_gpu, quality_gpu = (a.get() for a in _emi(cp.asarray(c), regularize=True))
-        # CPU and GPU eigen decompositions round differently in float32
-        np.testing.assert_allclose(ph_gpu, ph, atol=1e-2)
+        # CPU and GPU eigen decompositions round differently in float32: where the two smallest eigenvalues of the
+        # EMI matrix are close (relative gap 1e-2 in ds_coh), each is within about 1e-2 of the float64 solution
+        np.testing.assert_allclose(ph_gpu, ph, atol=2e-2)
         np.testing.assert_allclose(quality_gpu, quality, rtol=1e-2, atol=1e-2)
     # well conditioned positive definite points are not changed by the regularization; the GPU solves the regularized
     # and the plain EMI with different algorithms (decision 0031), so compare with the plain EMI on the CPU
     pd = _well_conditioned_pd(ds_coh)
     ph, quality = _emi(ds_coh[pd], regularize=False)
     ph_reg, quality_reg = (a.get() for a in _emi(cp.asarray(ds_coh[pd]), regularize=True))
-    np.testing.assert_allclose(ph_reg, ph, atol=1e-2)
+    np.testing.assert_allclose(ph_reg, ph, atol=2e-2)     # as above: a well conditioned |coh| can have close eigenvalues
     np.testing.assert_allclose(quality_reg, quality, rtol=1e-2, atol=1e-2)
 
 

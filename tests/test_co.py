@@ -1,5 +1,6 @@
 import itertools
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -43,6 +44,57 @@ def test_emperical_co_pc_image_pairs(rng):
     all_pairs = np.stack(np.triu_indices(rslc.shape[2], 1), axis=-1)
     pos = [np.flatnonzero((all_pairs == p).all(-1))[0] for p in tnet.image_pairs]
     np.testing.assert_array_almost_equal(full[:, pos], sub)
+
+
+def test_emperical_co_pc_pairs_in_any_order(rng):
+    # pairs in any order and either way round: (j, m) is the conjugate of (m, j)
+    rslc, is_shp = synthetic_shp(rng, p_true=0.1)
+    _, idx, ds_is_shp = _ds_can(is_shp)
+    full = emperical_co_pc(rslc, idx, ds_is_shp)
+    all_pairs = np.stack(np.triu_indices(rslc.shape[2], 1), axis=-1)
+    order = rng.permutation(all_pairs.shape[0])[:40]
+    pairs = all_pairs[order].copy()
+    pairs[::2] = pairs[::2, ::-1]
+    sub = emperical_co_pc(rslc, idx, ds_is_shp, image_pairs=pairs)
+    expected = full[:, order]
+    expected[:, ::2] = expected[:, ::2].conj()
+    np.testing.assert_allclose(sub, expected, rtol=1e-6, atol=1e-7)
+
+
+def test_emperical_co_pc_without_shp(rng):
+    rslc, is_shp = synthetic_shp(rng, p_true=0.1)
+    _, idx, ds_is_shp = _ds_can(is_shp)
+    ds_is_shp = ds_is_shp.copy()
+    ds_is_shp[1] = False
+    coh = emperical_co_pc(rslc, idx, ds_is_shp)
+    assert np.isnan(coh[1]).all() and not np.isnan(coh[0]).any()
+
+
+def test_emperical_co_pc_cpu_leaves_the_process_forkable(tmp_path):
+    """After the coherence on the CPU, a fork of the process works. With BLAS inside numba's parallel functions (MKL
+    with its OpenMP runtime) a later fork hung in the fork handlers of TBB and OpenMP; with OpenBLAS it did not."""
+    script = tmp_path / 'fork.py'
+    script.write_text('''
+import multiprocessing
+import numpy as np
+import moraine as mr
+
+def one(x):
+    return x + 1
+
+if __name__ == "__main__":
+    rng = np.random.default_rng(0)
+    mr.rslc2amp(np.ones((64, 64, 2), np.complex64))
+    rslc = (rng.standard_normal((60, 80, 20)) + 1j*rng.standard_normal((60, 80, 20))).astype(np.complex64)
+    idx = np.stack(np.meshgrid(np.arange(5, 55), np.arange(5, 75), indexing="ij"), -1).reshape(-1, 2).astype(np.int32)
+    mr.emperical_co_pc(rslc, idx, np.ones((len(idx), 5, 5), bool))
+    with multiprocessing.get_context("fork").Pool(2) as pool:
+        print(pool.map(one, range(4)))
+''')
+    import os, subprocess, sys
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+    out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path, timeout=300)
+    assert out.returncode == 0 and '[1, 2, 3, 4]' in out.stdout, out.stderr[-3000:]
 
 
 @pytest.mark.gpu

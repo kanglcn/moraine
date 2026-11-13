@@ -12,9 +12,11 @@ if is_cuda_available():
     from numba import cuda
 from typing import Union
 from ..utils_.jit import ngpjit, ngjit
-from ..utils_.device import _single_thread_blas
 from ..tnet import TempNet, nimage_from_npair
-from numba import prange
+from numba import prange, types
+from numba.core import cgutils
+from numba.extending import intrinsic
+from llvmlite import ir
 
 def emperical_co(rslc:np.ndarray,
                  is_shp:np.ndarray,
@@ -54,10 +56,128 @@ def emperical_co(rslc:np.ndarray,
         coh[start:stop] = c*(d[:,:,None]*d[:,None,:])
     return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
-# Coherence of the SHP samples X (n_shp, nimages) of a point: X^H X normalized by its diagonal, with BLAS on the
-# CPU (one BLAS thread per numba thread, see moraine.api.utils_.device._single_thread_blas) and batched matrix
-# products on the GPU; every image pair of the point reads the same samples, so all pairs come from one matrix
-# product.
+# Coherence of the SHP samples X (n_shp, nimages) of a point on the CPU: the upper triangle of X^H X normalized by its
+# diagonal. No BLAS inside the numba parallel loop: a threaded BLAS (MKL with its OpenMP runtime) called from numba's
+# TBB threads makes them threads of the OpenMP runtime too, which oversubscribes the cores and makes any later fork of
+# the process hang (the fork handlers of TBB and of OpenMP wait for each other). The product is a register blocked
+# micro kernel instead, as in BLAS: a block of 4 rows x 8 columns of X^H X stays in 8 vector registers over all the
+# samples, every sample is read once per block. LLVM does not keep such accumulators in registers when the block is
+# written in numba (it vectorizes over the samples, or not at all), so it is written in LLVM vector instructions.
+# Only the blocks of the upper triangle are computed (half the work of X^H X), and the coherence of the full network
+# of image pairs, the upper triangle in row order, is written row by row without looking up the pairs. On the GPU:
+# batched matrix products; every image pair of the point reads the same samples, so all pairs come from one product.
+@intrinsic
+def _conj_xt_x_4x8(typingctx, xr, xi, cr, ci, n, m0, j0):
+    """cr + i ci [m0:m0+4, j0:j0+8] = sum over k < n of conj(x[k, m0:m0+4]) x[k, j0:j0+8], x = xr + i xi; float32 C
+    contiguous 2D arrays, x with the columns m0:m0+4 and j0:j0+8, c with the rows m0:m0+4 and columns j0:j0+8"""
+    sig = types.void(xr, xi, cr, ci, n, m0, j0)
+
+    def codegen(context, builder, signature, args):
+        f32 = ir.FloatType(); v8 = ir.VectorType(f32, 8); i64 = ir.IntType(64); i32 = ir.IntType(32)
+
+        def array(i):
+            a = context.make_array(signature.args[i])(context, builder, args[i])
+            return a.data, builder.extract_value(a.shape, 1)
+        xr_p, ncol = array(0); xi_p, _ = array(1); cr_p, ccol = array(2); ci_p, _ = array(3)
+        n_v, m0_v, j0_v = (context.cast(builder, args[i], signature.args[i], types.int64) for i in (4, 5, 6))
+        fma = cgutils.get_or_insert_function(builder.module, ir.FunctionType(v8, [v8, v8, v8]), 'llvm.fma.v8f32')
+        undef = ir.Constant(v8, ir.Undefined)
+        splat_mask = ir.Constant(ir.VectorType(i32, 8), [ir.Constant(i32, 0)]*8)
+        zero = ir.Constant(v8, [ir.Constant(f32, 0.0)]*8)
+        acc_r = [cgutils.alloca_once_value(builder, zero) for _ in range(4)]     # promoted to registers by LLVM
+        acc_i = [cgutils.alloca_once_value(builder, zero) for _ in range(4)]
+
+        def vector_at(ptr, offset):
+            return builder.bitcast(builder.gep(ptr, [offset]), v8.as_pointer())
+
+        def splat(x):
+            return builder.shuffle_vector(builder.insert_element(undef, x, ir.Constant(i32, 0)), undef, splat_mask)
+
+        with cgutils.for_range(builder, n_v) as loop:
+            row = builder.mul(loop.index, ncol)
+            br = builder.load(vector_at(xr_p, builder.add(row, j0_v)), align=4)
+            bi = builder.load(vector_at(xi_p, builder.add(row, j0_v)), align=4)
+            for r in range(4):
+                o = builder.add(row, builder.add(m0_v, ir.Constant(i64, r)))
+                ar = splat(builder.load(builder.gep(xr_p, [o])))
+                ai = splat(builder.load(builder.gep(xi_p, [o])))
+                # conj(a) b = (ar br + ai bi) + i (ar bi - ai br)
+                c = builder.call(fma, [ar, br, builder.load(acc_r[r])])
+                builder.store(builder.call(fma, [ai, bi, c]), acc_r[r])
+                c = builder.call(fma, [ar, bi, builder.load(acc_i[r])])
+                builder.store(builder.call(fma, [builder.fneg(ai), br, c]), acc_i[r])
+        for r in range(4):
+            o = builder.add(builder.mul(builder.add(m0_v, ir.Constant(i64, r)), ccol), j0_v)
+            builder.store(builder.load(acc_r[r]), vector_at(cr_p, o), align=4)
+            builder.store(builder.load(acc_i[r]), vector_at(ci_p, o), align=4)
+        return context.get_dummy_value()
+
+    return sig, codegen
+
+@ngjit
+def _shp_samples(rslc, az_idx_i, r_idx_i, shp_i, xr, xi):
+    """the samples of the SHPs of a point in the rows of xr, xi (real and imaginary parts; the columns from nimages
+    on are zero); returns their number"""
+    nlines, width, nimages = rslc.shape
+    az_win, r_win = shp_i.shape
+    az_half_win, r_half_win = az_win//2, r_win//2
+    ncol = xr.shape[1]
+    n = 0
+    for k in range(az_win):
+        a = az_idx_i - az_half_win + k
+        if a < 0 or a >= nlines:
+            continue
+        for l in range(r_win):
+            r = r_idx_i - r_half_win + l
+            if r >= 0 and r < width and shp_i[k, l]:
+                for m in range(nimages):
+                    v = rslc[a, r, m]
+                    xr[n, m] = v.real
+                    xi[n, m] = v.imag
+                for m in range(nimages, ncol):
+                    xr[n, m] = 0
+                    xi[n, m] = 0
+                n += 1
+    return n
+
+@ngjit
+def _is_triu(image_pairs, nimages):
+    """whether the image pairs are all pairs, in the order of the upper triangle by rows"""
+    if image_pairs.shape[0] != nimages*(nimages-1)//2:
+        return False
+    p = 0
+    for m in range(nimages):
+        for j in range(m+1, nimages):
+            if image_pairs[p, 0] != m or image_pairs[p, 1] != j:
+                return False
+            p += 1
+    return True
+
+@ngjit
+def _coh_triu(cr, ci, d, coh, i):
+    """coh[i] = conj(C) d_m d_j of the upper triangle of C = cr + i ci, rows m and columns j > m, in row order"""
+    nimages = d.shape[0]
+    p = 0
+    for m in range(nimages):
+        dm = d[m]
+        crm = cr[m]; cim = ci[m]
+        for jj in range(nimages-m-1):
+            j = m + 1 + jj
+            s = dm*d[j]
+            coh[i, p+jj] = complex(crm[j]*s, -cim[j]*s)
+        p += nimages - m - 1
+
+@ngjit
+def _coh_pairs(cr, ci, d, image_pairs, coh, i):
+    """coh[i, p] = conj(C[m, j]) d_m d_j of the image pairs (m, j) from the upper triangle of C = cr + i ci"""
+    for p in range(image_pairs.shape[0]):
+        m = image_pairs[p, 0]; j = image_pairs[p, 1]
+        s = d[m]*d[j]
+        if m <= j:
+            coh[i, p] = complex(cr[m, j]*s, -ci[m, j]*s)
+        else:
+            coh[i, p] = complex(cr[j, m]*s, ci[j, m]*s)
+
 @ngpjit
 def _emperical_co_pc_numba(
     rslc,
@@ -69,39 +189,33 @@ def _emperical_co_pc_numba(
     nlines, width, nimages = rslc.shape
     n_pc = az_idx.shape[0]
     az_win, r_win = pc_is_shp.shape[1:]
-    az_half_win, r_half_win = az_win//2, r_win//2
     npairs = image_pairs.shape[0]
-
-    coh = np.empty((n_pc, npairs),dtype=rslc.dtype)
-
-    for i in prange(n_pc):
-        n_shp = 0
-        for k in range(az_win):
-            for l in range(r_win):
-                az_idx_ = az_idx[i] - az_half_win + k
-                r_idx_ = r_idx[i] - r_half_win + l
-                if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
-                    n_shp += 1
-        if n_shp == 0:
-            for pair_i in range(npairs):
-                coh[i,pair_i] = np.nan
-            continue
-        x = np.empty((n_shp, nimages), dtype=rslc.dtype)
-        n_shp = 0
-        for k in range(az_win):
-            for l in range(r_win):
-                az_idx_ = az_idx[i] - az_half_win + k
-                r_idx_ = r_idx[i] - r_half_win + l
-                if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
-                    x[n_shp] = rslc[az_idx_, r_idx_]
-                    n_shp += 1
-        c = np.dot(np.conj(x).T, x)    # c[m, j] = sum conj(x_m) x_j
+    ncol = (nimages+7)//8*8     # columns of the samples and of C: whole vectors of 8
+    nrow = (nimages+3)//4*4     # rows of C: whole blocks of 4
+    triu = _is_triu(image_pairs, nimages)
+    coh = np.empty((n_pc, npairs), dtype=rslc.dtype)
+    chunk = 16                  # points of a task of the parallel loop, which allocates its buffers once
+    for c in prange((n_pc+chunk-1)//chunk):
+        xr = np.empty((az_win*r_win, ncol), dtype=np.float32)
+        xi = np.empty((az_win*r_win, ncol), dtype=np.float32)
+        cr = np.empty((nrow, ncol), dtype=np.float32)
+        ci = np.empty((nrow, ncol), dtype=np.float32)
         d = np.empty(nimages, dtype=np.float32)
-        for m in range(nimages):
-            d[m] = 1/math.sqrt(c[m,m].real)
-        for pair_i in range(npairs):
-            m, j = image_pairs[pair_i]
-            coh[i,pair_i] = np.conj(c[m,j])*(d[m]*d[j])
+        for i in range(c*chunk, min((c+1)*chunk, n_pc)):
+            n = _shp_samples(rslc, az_idx[i], r_idx[i], pc_is_shp[i], xr, xi)
+            if n == 0:
+                for p in range(npairs):
+                    coh[i, p] = np.nan
+                continue
+            for m0 in range(0, nimages, 4):
+                for j0 in range((m0//8)*8, ncol, 8):
+                    _conj_xt_x_4x8(xr, xi, cr, ci, n, m0, j0)
+            for m in range(nimages):
+                d[m] = 1/math.sqrt(cr[m, m])
+            if triu:
+                _coh_triu(cr, ci, d, coh, i)
+            else:
+                _coh_pairs(cr, ci, d, image_pairs, coh, i)
     return coh
 
 if is_cuda_available():
@@ -181,8 +295,7 @@ def emperical_co_pc(rslc:np.ndarray,
     image_pairs = image_pairs.astype(np.int32)
 
     if xp is np:
-        with _single_thread_blas():
-            coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
+        coh = _emperical_co_pc_numba(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     else:
         coh = _emperical_co_pc_cp(rslc,az_idx,r_idx,pc_is_shp,image_pairs)
     if not return_n_looks:
