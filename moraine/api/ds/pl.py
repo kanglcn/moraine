@@ -2,13 +2,9 @@
 
 __all__ = ['emi', 'ds_temp_coh', 'emperical_co_emi_temp_coh_pc']
 
-import contextlib
-import llvmlite.binding as _ll
 import functools
 import math
 import numpy as np
-from numba import types as _nbtypes
-from numba.extending import get_cython_function_address
 from ..utils_.device import is_cuda_available, get_array_module
 from ..utils_.jit import mcuda_jit
 if is_cuda_available():
@@ -17,9 +13,10 @@ if is_cuda_available():
 import numba
 from numba import prange
 from ..utils_.jit import ngpjit, ngjit
-from ..utils_.device import _single_thread_blas
 from ..tnet import TempNet, nimage_from_npair
-from .co import emperical_co_pc, uncompress_coh, uncompress_single_coh_numba, _rslc_rho2, _n_looks
+from .co import emperical_co_pc, uncompress_coh, _rslc_rho2, _n_looks
+from .linalg_ import (_inv_pivot, _tridiag_real, _tridiag_cplx, _gershgorin, _eig_index,
+                      _inverse_iteration, _eigenvector_cplx, LANES)
 
 # Adaptive regularization of EMI (decision 0023): the coherence matrix coh of a point is replaced by
 # (1-beta)*coh + beta*I, i.e. the off-diagonal elements are scaled by 1-beta, with the smallest beta
@@ -95,35 +92,43 @@ if is_cuda_available():
             emi_quality[start:end] = min_eigval
         return ph, emi_quality
 
-# Only the smallest eigenpair of the EMI matrix is needed: LAPACK cheevr with RANGE='I', IL=IU=1
-# (tridiagonalization, then one eigenvector by MRRR and its back transformation) instead of all of them
-# (2.2 times faster for 60-92 images). It is the LAPACK numba's np.linalg calls, through scipy. A numba
-# array in C order is the Fortran order of its transpose, the conjugate of a Hermitian matrix, so the
-# eigenvector comes out conjugated. It is called by symbol name, not through a ctypes pointer, so that the kernels
-# can be cached (decision 0029).
-_ll.add_symbol('moraine_cheevr', get_cython_function_address('scipy.linalg.cython_lapack', 'cheevr'))
-_cheevr = _nbtypes.ExternalFunction('moraine_cheevr', _nbtypes.void(*([_nbtypes.voidptr]*23)))
+# EMI on the CPU without LAPACK (decision 0043), the algorithm of the GPU kernel (decision 0031): 1. lambda_min and
+# lambda_max of |coh| by tridiagonalization and Sturm multisection give beta (decision 0023); 2. |coh_beta|^-1 by
+# Gauss-Jordan elimination with partial pivoting (|coh| is not positive definite without the regularization; with it
+# and beta = 0 the result is the same as without); 3. the smallest eigenpair of A = |coh_beta|^-1 o coh_beta: lambda_1
+# by multisection on the tridiagonal matrix, its eigenvector by inverse iteration and back transformation of that
+# vector only. The matrices are full, rows padded with zeros to whole blocks of 32 columns (moraine.api.ds.linalg_).
+@ngjit
+def _abs_coh(coh_i, n, image_pairs, s, M):
+    """M = |coh_beta| of a point: symmetric, diagonal 1, off-diagonal |coh| scaled by s; padding columns 0"""
+    for r in range(n):
+        Mr = M[r]
+        for c in range(M.shape[1]):
+            Mr[c] = 0
+        Mr[r] = 1
+    for q in range(image_pairs.shape[0]):
+        m = image_pairs[q, 0]; j = image_pairs[q, 1]
+        v = coh_i[q]
+        a = s*np.sqrt(v.real*v.real + v.imag*v.imag)
+        M[m, j] = a
+        M[j, m] = a
 
 @ngjit
-def _cheevr_call(a, n_images, w, z, work, lwork, rwork, lrwork, iwork, liwork, isuppz, m, info):
-    jobz = np.array([ord('V')], np.int8); rng = np.array([ord('I')], np.int8); uplo = np.array([ord('L')], np.int8)
-    n = np.array([n_images], np.int32); one = np.array([1], np.int32)
-    vl = np.zeros(1, np.float32); vu = np.zeros(1, np.float32)
-    abstol = np.array([np.finfo(np.float32).tiny], np.float32)    # highest accuracy with MRRR
-    lw = np.array([lwork], np.int32); lrw = np.array([lrwork], np.int32); liw = np.array([liwork], np.int32)
-    _cheevr(jobz.ctypes, rng.ctypes, uplo.ctypes, n.ctypes, a.ctypes, n.ctypes, vl.ctypes, vu.ctypes, one.ctypes,
-            one.ctypes, abstol.ctypes, m.ctypes, w.ctypes, z.ctypes, n.ctypes, isuppz.ctypes, work.ctypes, lw.ctypes,
-            rwork.ctypes, lrw.ctypes, iwork.ctypes, liw.ctypes, info.ctypes)
-
-@ngjit
-def _cheevr_workspace(n_images):
-    """Optimal (lwork, lrwork, liwork) of cheevr for n_images x n_images."""
-    a = np.zeros((n_images, n_images), np.complex64)
-    w = np.empty(n_images, np.float32); z = np.empty((1, n_images), np.complex64)
-    work = np.empty(1, np.complex64); rwork = np.empty(1, np.float32); iwork = np.empty(1, np.int32)
-    isuppz = np.empty(2, np.int32); m = np.zeros(1, np.int32); info = np.zeros(1, np.int32)
-    _cheevr_call(a, n_images, w, z, work, -1, rwork, -1, iwork, -1, isuppz, m, info)
-    return (max(int(work[0].real), 2*n_images), max(int(rwork[0]), 24*n_images), max(int(iwork[0]), 10*n_images))
+def _emi_matrix(coh_i, n, image_pairs, s, W, Ai):
+    """A = W o coh_beta from the inverse W of |coh_beta| (made symmetric): real part in W in place, imaginary part in
+    Ai; padding columns 0"""
+    for r in range(n):
+        Air = Ai[r]
+        for c in range(Ai.shape[1]):
+            Air[c] = 0
+    for q in range(image_pairs.shape[0]):
+        m = image_pairs[q, 0]; j = image_pairs[q, 1]
+        v = coh_i[q]
+        w = np.float32(0.5)*(W[m, j] + W[j, m])
+        W[m, j] = w*(s*v.real)
+        W[j, m] = W[m, j]
+        Ai[m, j] = w*(s*v.imag)
+        Ai[j, m] = -Ai[m, j]
 
 @ngpjit
 def _emi_numba(
@@ -134,40 +139,76 @@ def _emi_numba(
     regularize:bool=False,
 ):
     n_points = coh.shape[0]
-    ph = np.empty((n_points,n_images),dtype=coh.dtype)
+    n = n_images
+    ph = np.empty((n_points,n),dtype=coh.dtype)
     emi_quality = np.empty(n_points,dtype=np.float32)
-    lwork, lrwork, liwork = _cheevr_workspace(n_images)
-    for i in prange(n_points):
-        _coh = uncompress_single_coh_numba(coh[i],n_images,image_pairs)
-        coh_mag = np.abs(_coh)
-        if regularize:
-            lam = np.linalg.eigvalsh(coh_mag)
-            beta = _emi_reg_beta_numba(lam[0],lam[-1])
-            if beta > 0:
-                scale = np.float32(1-beta)
-                for j in range(n_images):
-                    for k in range(n_images):
-                        if j != k:
-                            _coh[j,k] = _coh[j,k]*scale
-                coh_mag = np.abs(_coh)
-        coh_mag_inv = np.linalg.inv(coh_mag)
-        # the inverse of the symmetric coh_mag is symmetric; the float32 LU inverse is not exactly, and the
-        # EMI quality amplifies the difference by the condition number (0.1 at 2e4)
-        coh_mag_inv = (coh_mag_inv+coh_mag_inv.T)*np.float32(0.5)
-        a = coh_mag_inv*_coh
-        w = np.empty(n_images, np.float32); z = np.empty((1, n_images), np.complex64)
-        work = np.empty(lwork, np.complex64); rwork = np.empty(lrwork, np.float32)
-        iwork = np.empty(liwork, np.int32); isuppz = np.empty(2, np.int32)
-        m = np.zeros(1, np.int32); info = np.zeros(1, np.int32)
-        _cheevr_call(a, n_images, w, z, work, lwork, rwork, lrwork, iwork, liwork, isuppz, m, info)
-        if info[0] != 0 or m[0] != 1:
-            ph[i] = np.nan; emi_quality[i] = np.nan
-            continue
-        min_eig = np.conj(z[0])
-        min_eig = min_eig*np.conj(min_eig[ref])
-        for j in range(ph.shape[-1]):
-            ph[i,j] = min_eig[j]/abs(min_eig[j])
-        emi_quality[i] = w[0]
+    npad = (n+31)//32*32                    # rows padded to whole blocks of 32 columns
+    chunk = 4                               # points of a task of the parallel loop, which allocates its buffers once
+    for c in prange((n_points+chunk-1)//chunk):
+        M = np.empty((n, npad), dtype=np.float32)
+        Ai = np.empty((n, npad), dtype=np.float32)
+        d = np.empty(n, dtype=np.float32); er = np.empty(n, dtype=np.float32); ei = np.empty(n, dtype=np.float32)
+        b2 = np.empty(n, dtype=np.float32)
+        vr = np.zeros(npad, dtype=np.float32); vi = np.zeros(npad, dtype=np.float32)
+        pr = np.zeros(npad, dtype=np.float32); pi = np.zeros(npad, dtype=np.float32)
+        y = np.empty(n, dtype=np.float32); dd = np.empty(n, dtype=np.float32); du = np.empty(n, dtype=np.float32)
+        du2 = np.empty(n, dtype=np.float32); dl = np.empty(n, dtype=np.float32)
+        zr = np.empty(n, dtype=np.float32); zi = np.empty(n, dtype=np.float32)
+        x = np.empty(LANES, dtype=np.float32); cnt = np.empty(LANES, dtype=np.float32)
+        ipiv = np.empty(n, dtype=np.int64)
+        coh_i = np.empty(coh.shape[1], dtype=coh.dtype)
+        for i in range(c*chunk, min((c+1)*chunk, n_points)):
+            # the coherence of the point read once (it is used three times; on a machine with several memory
+            # nodes the input may be in one of them)
+            finite = True
+            for q in range(coh_i.shape[0]):
+                v = coh[i,q]
+                coh_i[q] = v
+                if not (np.isfinite(v.real) and np.isfinite(v.imag)):
+                    finite = False
+            if not finite:
+                for k in range(n):
+                    ph[i,k] = np.nan
+                emi_quality[i] = np.nan
+                continue
+            if n == 1:
+                ph[i,0] = 1
+                emi_quality[i] = 1
+                continue
+            s = np.float32(1)
+            if regularize:
+                # 1. regularization factor 1 - beta from the extreme eigenvalues of |coh|
+                _abs_coh(coh_i, n, image_pairs, s, M)
+                _tridiag_real(M, n, d, er, vr, pr)
+                for k in range(n-1):
+                    b2[k] = er[k]*er[k]
+                lo, hi = _gershgorin(d, b2, n)
+                lam_min = _eig_index(d, b2, n, 0, lo, hi, x, cnt)
+                lam_max = _eig_index(d, b2, n, n-1, lo, hi, x, cnt)
+                s = np.float32(1-_emi_reg_beta_numba(lam_min, lam_max))
+                for k in range(npad):
+                    vr[k] = 0; pr[k] = 0
+            # 2. |coh_beta|^-1
+            _abs_coh(coh_i, n, image_pairs, s, M)
+            _inv_pivot(M, n, ipiv)
+            # 3. smallest eigenpair of A = |coh_beta|^-1 o coh_beta
+            _emi_matrix(coh_i, n, image_pairs, s, M, Ai)
+            _tridiag_cplx(M, Ai, n, d, er, ei, vr, vi, pr, pi)
+            for k in range(npad):
+                vr[k] = 0; vi[k] = 0; pr[k] = 0; pi[k] = 0
+            for k in range(n-1):
+                b2[k] = er[k]*er[k] + ei[k]*ei[k]
+            lo, hi = _gershgorin(d, b2, n)
+            lam1 = _eig_index(d, b2, n, 0, lo, hi, x, cnt)
+            _inverse_iteration(d, b2, n, lam1, lo, hi, y, dd, du, du2, dl)
+            _eigenvector_cplx(M, Ai, n, er, ei, b2, y, zr, zi)
+            rr = zr[ref]; ri = zi[ref]
+            for k in range(n):
+                a = zr[k]*rr + zi[k]*ri
+                b = zi[k]*rr - zr[k]*ri
+                mm = np.sqrt(a*a + b*b)
+                ph[i,k] = complex(a/mm, b/mm)
+            emi_quality[i] = lam1
     return ph, emi_quality
 
 def _emi(coh, ref=0, regularize=True):
@@ -176,8 +217,7 @@ def _emi(coh, ref=0, regularize=True):
     nimages = nimage_from_npair(coh.shape[-1])
     image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     if xp is np:
-        with _single_thread_blas():
-            return _emi_numba(coh,nimages,image_pairs,ref,regularize)
+        return _emi_numba(coh,nimages,image_pairs,ref,regularize)
     else:
         # decision 0031: own kernel for the regularized EMI; cupy without regularization (no pivoting in the kernel)
         # and for more images than its shared memory holds
@@ -550,18 +590,16 @@ def emperical_co_emi_temp_coh_pc(
     batch_bounds = np.arange(0,n_pc+batch_size,batch_size)
     # batches bound the memory of the coherence matrices; the GPU coherence estimation batches its samples itself
     if batch_bounds[-1]>n_pc: batch_bounds[-1]=n_pc
-    # one BLAS thread limit for all batches: setting it costs a few ms, about one batch of emi on the CPU
-    with (_single_thread_blas() if xp is np else contextlib.nullcontext()):
-        for i in range(batch_bounds.shape[0]-1):
-            start = batch_bounds[i]; stop = batch_bounds[i+1]
-            _coh = emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
-            ph[start:stop] = emi(_coh,regularize=regularize)
-            if weighted:
-                n_looks = _n_looks(pc_is_shp[start:stop],rho2)
-                (t_coh[start:stop],t_coh_w[start:stop],eff_n_pairs[start:stop],
-                 n_components[start:stop]) = ds_temp_coh(_coh,ph[start:stop],n_looks=n_looks,alpha=alpha)
-            else:
-                t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
+    for i in range(batch_bounds.shape[0]-1):
+        start = batch_bounds[i]; stop = batch_bounds[i+1]
+        _coh = emperical_co_pc(rslc,idx[start:stop],pc_is_shp[start:stop])
+        ph[start:stop] = emi(_coh,regularize=regularize)
+        if weighted:
+            n_looks = _n_looks(pc_is_shp[start:stop],rho2)
+            (t_coh[start:stop],t_coh_w[start:stop],eff_n_pairs[start:stop],
+             n_components[start:stop]) = ds_temp_coh(_coh,ph[start:stop],n_looks=n_looks,alpha=alpha)
+        else:
+            t_coh[start:stop] = ds_temp_coh(_coh,ph[start:stop])
     if weighted:
         return ph, t_coh, t_coh_w, eff_n_pairs, n_components
     return ph, t_coh

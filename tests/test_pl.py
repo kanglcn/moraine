@@ -118,21 +118,109 @@ def test_emi_regularize_numerically_singular(rng):
     np.testing.assert_allclose(quality, 1, atol=1e-2)
 
 
+def _random_coh(rng, n_points, n_looks, nimages):
+    """coherence matrices of random samples (n_points, nimages, nimages), complex128"""
+    x = rng.standard_normal((n_points, n_looks, nimages)) + 1j * rng.standard_normal((n_points, n_looks, nimages))
+    c = np.einsum('pkm,pkj->pmj', x, x.conj())
+    d = 1 / np.sqrt(np.einsum('pmm->pm', c).real)
+    return c * d[:, :, None] * d[:, None, :]
+
+
+@pytest.mark.parametrize('regularize', [True, False])
+@pytest.mark.parametrize('nimages, n_looks', [(2, 2), (3, 40), (10, 5), (33, 63), (33, 16), (65, 32)])
+def test_emi_cpu_float64(rng, nimages, n_looks, regularize):
+    """The CPU EMI (float32) is the EMI of the regularized matrix computed in float64, also for matrices that are not
+    positive definite (fewer looks than images), except where its two smallest eigenvalues nearly coincide."""
+    full = _random_coh(rng, 50, n_looks, nimages)
+    ph, quality = _emi(_compress(full).astype(np.complex64), regularize=regularize)
+    lam = np.linalg.eigvalsh(np.abs(full))
+    beta = mr.api.ds.pl._emi_reg_beta(lam[:, 0], lam[:, -1]) if regularize else np.zeros(50)
+    reg = full * (1 - beta)[:, None, None] + beta[:, None, None] * np.eye(nimages)
+    w, v = np.linalg.eigh(np.linalg.inv(np.abs(reg)) * reg)
+    z = v[:, :, 0] * v[:, :1, 0].conj()
+    z = z / np.abs(z)
+    separated = (w[:, 1] - w[:, 0]) / np.abs(w[:, 0]) > 1e-2
+    err = np.abs(ph - z).max(axis=1)
+    assert err[separated].max() < 5e-3 and np.median(err) < 1e-4
+    # without the regularization |coh| can be badly conditioned, which the float32 inverse amplifies
+    np.testing.assert_allclose(quality, w[:, 0], rtol=1e-3 if regularize else 1e-2)
+
+
+@pytest.mark.parametrize('regularize', [True, False])
+def test_emi_cpu_nan(rng, regularize):
+    """A point whose coherence has nan gets a nan phase history and quality; the other points are not affected."""
+    c = _compress(_random_coh(rng, 3, 40, 10)).astype(np.complex64)
+    ph0, _ = _emi(c, regularize=regularize)
+    c[1] = np.nan
+    c[2, 5] = np.nan
+    ph, quality = _emi(c, regularize=regularize)
+    assert np.isnan(ph[1:]).all() and np.isnan(quality[1:]).all()
+    np.testing.assert_array_equal(ph[0], ph0[0])
+
+
+def test_inv_pivot(rng):
+    """Gauss-Jordan inverse with partial pivoting of an indefinite matrix whose diagonal has a zero, rows padded."""
+    from moraine.api.ds.linalg_ import _inv_pivot
+    n = 13
+    a = rng.standard_normal((n, n)).astype(np.float32)
+    a = a + a.T
+    a[0, 0] = 0
+    m = np.zeros((n, 32), np.float32)
+    m[:, :n] = a
+    _inv_pivot(m, n, np.empty(n, np.int64))
+    np.testing.assert_allclose(m[:, :n] @ a, np.eye(n), atol=1e-4)
+    assert (m[:, n:] == 0).all()
+
+
+def test_ds_cpu_leaves_the_process_forkable(tmp_path):
+    """After the DS functions on the CPU (coherence, EMI, the fused function), a fork of the process works. With BLAS
+    / LAPACK inside numba's parallel functions (MKL with its OpenMP runtime) a later fork hung in the fork handlers of
+    TBB and OpenMP; with OpenBLAS it did not."""
+    script = tmp_path / 'fork.py'
+    script.write_text('''
+import multiprocessing
+import numpy as np
+import moraine as mr
+
+def one(x):
+    return x + 1
+
+if __name__ == "__main__":
+    rng = np.random.default_rng(0)
+    mr.rslc2amp(np.ones((64, 64, 2), np.complex64))
+    rslc = (rng.standard_normal((60, 80, 20)) + 1j*rng.standard_normal((60, 80, 20))).astype(np.complex64)
+    idx = np.stack(np.meshgrid(np.arange(5, 55), np.arange(5, 75), indexing="ij"), -1).reshape(-1, 2).astype(np.int32)
+    shp = np.ones((len(idx), 5, 5), bool)
+    mr.emi(mr.emperical_co_pc(rslc, idx, shp))
+    mr.emperical_co_emi_temp_coh_pc(rslc, idx, shp)
+    with multiprocessing.get_context("fork").Pool(2) as pool:
+        print(pool.map(one, range(4)))
+''')
+    import subprocess, sys
+    from pathlib import Path
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+    out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path,
+                         timeout=300)
+    assert out.returncode == 0 and '[1, 2, 3, 4]' in out.stdout, out.stderr[-3000:]
+
+
 @pytest.mark.gpu
 def test_emi_regularize_gpu(not_pd, ds_coh):
     import cupy as cp
     for c in (not_pd[0], ds_coh):
         ph, quality = _emi(c, regularize=True)
         ph_gpu, quality_gpu = (a.get() for a in _emi(cp.asarray(c), regularize=True))
-        # CPU and GPU eigen decompositions round differently in float32
-        np.testing.assert_allclose(ph_gpu, ph, atol=1e-2)
+        # CPU and GPU eigen decompositions round differently in float32: where the two smallest eigenvalues of the
+        # EMI matrix are close (relative gap 1e-2 in ds_coh), each is within about 1e-2 of the float64 solution
+        np.testing.assert_allclose(ph_gpu, ph, atol=2e-2)
         np.testing.assert_allclose(quality_gpu, quality, rtol=1e-2, atol=1e-2)
     # well conditioned positive definite points are not changed by the regularization; the GPU solves the regularized
     # and the plain EMI with different algorithms (decision 0031), so compare with the plain EMI on the CPU
     pd = _well_conditioned_pd(ds_coh)
     ph, quality = _emi(ds_coh[pd], regularize=False)
     ph_reg, quality_reg = (a.get() for a in _emi(cp.asarray(ds_coh[pd]), regularize=True))
-    np.testing.assert_allclose(ph_reg, ph, atol=1e-2)
+    # as above: a well conditioned |coh| can have close eigenvalues
+    np.testing.assert_allclose(ph_reg, ph, atol=2e-2)
     np.testing.assert_allclose(quality_reg, quality, rtol=1e-2, atol=1e-2)
 
 
@@ -439,22 +527,15 @@ def test_emperical_co_emi_temp_coh_pc_weighted(ds_can, ds_coh):
         np.testing.assert_array_equal(a, b)
 
 
-def _blas_threads():
-    from threadpoolctl import threadpool_info
-    return [p['num_threads'] for p in threadpool_info() if p['user_api'] == 'blas']
-
-
 @pytest.mark.skipif(not os.path.isdir('/proc/self/task'), reason='counts threads in /proc')
-def test_emi_cpu_single_thread_blas(not_pd):
-    """The CPU kernel limits the BLAS threads while it runs (a multithreaded BLAS called from every numba
-    thread starts threads in each call), also when called from several threads, and restores them."""
+def test_emi_cpu_does_not_oversubscribe(not_pd):
+    """The CPU kernel starts no threads of its own (a threaded BLAS called from every numba thread did), also when it
+    is called from several threads."""
     import threading
-    before = _blas_threads()
     coh = np.tile(not_pd[0], (20, 1))
     workers = [threading.Thread(target=_emi, args=(coh,)) for _ in range(3)]
     for w in workers:
         w.start()
     for w in workers:
         w.join()
-    assert _blas_threads() == before
     assert len(os.listdir('/proc/self/task')) < 4 * os.cpu_count() + 64
