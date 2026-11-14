@@ -26,8 +26,9 @@ moraine info ps/ras_adi.zarr ps/ras_adi_pyramid
     stats_level=0, nan_fraction=0.40655, min=0.0335447, max=4.39345, mean=0.537522, std=0.0957743, p01=0.255305, p50=0.541975, p99=0.786118
 ```
 
-普通数组只读元数据。金字塔的统计量来自某个粗层级（`nan_fraction`、`min`、`max`、`mean`、`std`、`p01`、`p50`、
-`p99`；复数数据给幅度，布尔数据给 `true_fraction`），`warnings` 指出异常：全是 nan、有无穷值或常数值。加 `--json`
+普通数组只读元数据。金字塔的统计量是全部数据的统计量，在建金字塔时算好（`nan_fraction`、`min`、`max`、`mean`、
+`std`、`p01`、`p50`、`p99`；复数数据给幅度，布尔数据给 `true_fraction`；`stats_level=0`；moraine 0.10.0 之前建的金字塔
+给出其最细的、不超过 64 MiB 的层级的统计量），`warnings` 指出异常：全是 nan、有无穷值或常数值。加 `--json`
 后同样的数字是一个 JSON 对象（[约定](../contracts/json-output.md)）。
 
 ## `moraine quicklook`：一张图

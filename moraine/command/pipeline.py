@@ -19,8 +19,14 @@ Example ``pipeline.toml``::
     run = "amp-disp"       # a command from `moraine list`
     rslc = "raw/rslc.zarr" # the other keys are the command arguments
     adi = "ps/adi.zarr"
-    [step.kw]              # optional: extra keyword arguments, e.g. the input arrays of `math`
-    memory_limit = "20GB"
+
+    [[step]]
+    name = "low_adi"
+    run = "math"
+    output = "ps/low_adi.zarr"
+    operation = "adi < 0.4"
+    [step.kw]              # extra keyword arguments: the input arrays of `math`
+    adi = "ps/adi.zarr"
 
 State, logs, output metadata and quicklooks of pyramids are written to ``<workdir>/.moraine/<file name>/``,
 so several pipeline files can share a working directory. A step is skipped when it

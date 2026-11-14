@@ -15,13 +15,14 @@ moraine amp-disp --rslc raw/rslc.zarr --adi ps/ras_adi.zarr --cuda
 - **参数**写成 `--name VALUE`；`--a-b` 等同于 `--a_b`。布尔值是 `--cuda` / `--no-cuda`。路径列表接受多个值
   （`--ras a.zarr b.zarr`）。元组给出它的整数（`--chunks 1000 1000`，也可以 `1000,1000`）。像对是 `image-pairs`
   生成的文件（两列整数）或字面量 `[[0,1],[1,2]]`。
-- **未知的参数名是错误**，并给出建议；什么都不会悄悄传进 `**kwargs`。额外的关键字参数（例如 dask 集群选项）要
-  显式给出：`--kw memory_limit=20GB`。
+- **未知的参数名是错误**，并给出建议；什么都不会悄悄传进 `**kwargs`。额外的关键字参数（`math` 的输入数组）要
+  显式给出：`--kw a=a.zarr --kw b=b.zarr`。
 - 每个参数的帮助都写明 **input** 或 **output**、数组的形状和类型、单位和默认值。路径相对于当前目录；输出会被覆盖。
 - 每条命令的**全局选项**：`--json`（stdout 上一个 JSON 对象，日志走 stderr，见[约定](../contracts/json-output.md)）、
   `--traceback`、`--log FILE`、`-q` / `--quiet`。
-- `--cuda` 在 `CUDA_VISIBLE_DEVICES` 列出的 GPU 上运行，每块一个 dask worker；`--n_workers`、`--threads_per_worker`
-  和 `--processes` 决定 CPU 集群的大小。
+- `--cuda` 在 `CUDA_VISIBLE_DEVICES` 列出的 GPU 上运行，每块 GPU 一个 worker 进程（`--n_workers` 可以少用几块）；
+  在 CPU 上，`--n_workers`、`--threads_per_worker` 和 `--processes` 决定同时运行多少个任务、用线程还是进程（默认值见
+  每条命令的帮助）。
 
 ## 内置命令
 

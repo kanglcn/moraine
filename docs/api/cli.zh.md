@@ -29,9 +29,9 @@ mc.view('ps/ras_adi_pyramid', label='amplitude dispersion index', clim=(0, 1))
       show_root_toc_entry: false
       heading_level: 3
 
-## zarr 与 dask 辅助函数
+## zarr 辅助函数与 worker
 
-`moraine.cli.dask_` 里是命令使用的并行 zarr 读写：`dask_from_zarr(path, chunks)` 和 `dask_from_zarr_overlap(...)`
-把 zarr 数组变成 dask 数组（后者带 halo），`dask_to_zarr(darr, path, chunks)` 写回，`parallel_read_zarr` /
-`parallel_write_zarr` 用线程读写整个数组，`ZarrDir` 遍历按块存放的 zarr 目录（`docs/contracts/data.md`）。并行读写
-的错误会被抛出。
+`moraine.cli.zarr_` 里是命令使用的 zarr 读写：`parallel_read_zarr(z, slices)` 和 `parallel_write_zarr(data, z, slices)`
+用线程按块读写 zarr 数组的一部分（读写的错误会被抛出），`ZarrDir` 把按块存放的 zarr 目录当作一个数组
+（`docs/contracts/data.md`）。`moraine.cli.executor` 运行一条命令的任务（决策 0033、0034）：`Executor` 启动 worker
+（CPU 上是本进程的线程，`cuda` 时每块 GPU 一个进程），`chunk_task` 读取任务的 `Chunk` 输入、调用 API 函数并写出结果。
