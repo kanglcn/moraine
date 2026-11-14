@@ -16,13 +16,14 @@ moraine amp-disp --rslc raw/rslc.zarr --adi ps/ras_adi.zarr --cuda
   of paths take several values (`--ras a.zarr b.zarr`). Tuples take their integers (`--chunks 1000 1000`, also
   `1000,1000`). Image pairs are a file made by `image-pairs` (two integer columns) or a literal `[[0,1],[1,2]]`.
 - **Unknown argument names are errors**, with a suggestion; nothing is passed silently into `**kwargs`. Extra
-  keyword arguments (e.g. dask cluster options) are explicit: `--kw memory_limit=20GB`.
+  keyword arguments (the input arrays of `math`) are explicit: `--kw a=a.zarr --kw b=b.zarr`.
 - Every argument's help names **input** or **output**, the shape and dtype of the array, the unit and the
   default. Paths are relative to the current directory; outputs are overwritten.
 - **Global options** of every command: `--json` (one JSON object on stdout, logs on stderr, see the
   [contract](../contracts/json-output.md)), `--traceback`, `--log FILE`, `-q` / `--quiet`.
-- `--cuda` runs on the GPUs listed in `CUDA_VISIBLE_DEVICES`, one dask worker each; `--n_workers`,
-  `--threads_per_worker` and `--processes` size the CPU cluster.
+- `--cuda` runs on the GPUs listed in `CUDA_VISIBLE_DEVICES`, one worker process per GPU (`--n_workers` for
+  fewer); on the CPU, `--n_workers`, `--threads_per_worker` and `--processes` set how many tasks run at the same
+  time and whether in threads or in processes (the defaults are in the help of each command).
 
 ## Built-in commands
 

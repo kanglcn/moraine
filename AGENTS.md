@@ -69,8 +69,14 @@ name = "adi"                  # unique step name
 run = "amp-disp"              # a command of `moraine list`
 rslc = "raw/rslc.zarr"        # the command arguments, relative to the working directory
 adi = "ps/ras_adi.zarr"
-[step.kw]                     # optional extra keyword arguments (e.g. the inputs of `math`)
-memory_limit = "20GB"
+
+[[step]]
+name = "low_adi"
+run = "math"
+output = "ps/ras_low_adi.zarr"
+operation = "adi < 0.4"
+[step.kw]                     # extra keyword arguments: the input arrays of `math`
+adi = "ps/ras_adi.zarr"
 ```
 
 Unknown argument names are errors (with a suggestion); tuples are written `[1000, 1000]` or

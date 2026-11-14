@@ -136,7 +136,7 @@ next to the code, and design choices into `docs/decisions/`.
 
 ### The manual
 
-The website (decision 0032) is built by `mkdocs build --strict` from `mkdocs.yml`: the markdown of `docs/`,
+The website (decision 0037) is built by `mkdocs build --strict` from `mkdocs.yml`: the markdown of `docs/`,
 the docstrings (mkdocstrings), the command registry and the examples (`docs/_scripts/refgen.py`, written into
 `docs/` by the hook `docs/_scripts/mkdocs_hooks.py` before every build; ignored by git) and the tutorial notebooks.
 The site is built in English and Chinese: a page `x.zh.md` next to `x.md` is its Chinese version, pages without one

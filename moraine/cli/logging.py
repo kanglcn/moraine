@@ -53,12 +53,17 @@ def mc_logger_(func):
 
 def get_logger(logfile:str=None,
               ):
-    """get logger for decorrelation cli application
+    """Show the log messages of moraine (INFO and above) on stdout as the command line does, and in `logfile` if given.
 
     Parameters
     ----------
     logfile : str, optional
-        logfile, optional. default: no logfile
+        path of a file that receives the messages too, default: none
+
+    Returns
+    -------
+    logging.Logger
+        the root logger
     """
 
     level = logging.INFO

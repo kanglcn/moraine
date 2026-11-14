@@ -35,7 +35,7 @@ out_dir = "ds/ras_shp_num_pyramid"
 method = "mean"
 
 [[step]]
-name = "ds_can"                   # DS candidates: at least 50 SHPs
+name = "ds_can"                   # DS candidates: at least 80 SHPs (of the 189 pixels of the window)
 run = "pc-logic-ras"
 ras = "ds/ras_shp_num.zarr"
 gix = "ds/ds_can_gix_ras_order.zarr"

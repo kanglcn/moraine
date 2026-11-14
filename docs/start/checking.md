@@ -27,10 +27,11 @@ moraine info ps/ras_adi.zarr ps/ras_adi_pyramid
     stats_level=0, nan_fraction=0.40655, min=0.0335447, max=4.39345, mean=0.537522, std=0.0957743, p01=0.255305, p50=0.541975, p99=0.786118
 ```
 
-For a plain array nothing is read but the metadata. For a pyramid the statistics come from a coarse level
-(`nan_fraction`, `min`, `max`, `mean`, `std`, `p01`, `p50`, `p99`; the amplitude for complex data, `true_fraction`
-for booleans) and `warnings` name anomalies: all values nan, infinite or constant values. With `--json` the same
-numbers are one JSON object ([contract](../contracts/json-output.md)).
+For a plain array nothing is read but the metadata. For a pyramid the statistics are those of all the data,
+computed when the pyramid was built (`nan_fraction`, `min`, `max`, `mean`, `std`, `p01`, `p50`, `p99`; the amplitude
+for complex data, `true_fraction` for booleans; `stats_level=0`; a pyramid made before moraine 0.10.0 gives those of
+its finest level of at most 64 MiB) and `warnings` name anomalies: all values nan, infinite or constant values.
+With `--json` the same numbers are one JSON object ([contract](../contracts/json-output.md)).
 
 ## `moraine quicklook`: a picture
 

@@ -31,10 +31,11 @@ PYRAMID ... -o view.ipynb` writes a notebook of such views.
       show_root_toc_entry: false
       heading_level: 3
 
-## zarr and dask helpers
+## zarr helpers and workers
 
-`moraine.cli.dask_` has the parallel zarr readers and writers the commands use: `dask_from_zarr(path, chunks)` and
-`dask_from_zarr_overlap(...)` make dask arrays of a zarr array (optionally with halos), `dask_to_zarr(darr, path,
-chunks)` writes one, `parallel_read_zarr` / `parallel_write_zarr` read and write whole arrays with threads, and
-`ZarrDir` iterates a directory of per chunk zarrs (`docs/contracts/data.md`). Errors of the parallel reads and
-writes are raised.
+`moraine.cli.zarr_` has the zarr readers and writers the commands use: `parallel_read_zarr(z, slices)` and
+`parallel_write_zarr(data, z, slices)` read and write a part of a zarr array chunk by chunk with threads (errors of
+the reads and writes are raised), and `ZarrDir` takes a directory of per chunk zarrs as one array
+(`docs/contracts/data.md`). `moraine.cli.executor` runs the tasks of a command (decisions 0033, 0034): `Executor`
+starts the workers (threads of the process on the CPU, one process per GPU with `cuda`) and `chunk_task` reads the
+`Chunk` inputs of a task, calls an API function and writes its outputs.
