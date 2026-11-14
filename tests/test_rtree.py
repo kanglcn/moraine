@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -49,6 +51,40 @@ def test_maybe_covered_ranges(big):
     for (a, b), covered in zip(ranges, is_covered):
         if covered:
             assert np.all((x[a:b] >= x0) & (x[a:b] <= xm) & (y[a:b] >= y0) & (y[a:b] <= ym))
+
+
+def test_random_boxes(big):
+    x, y, rtree = big
+    rng = np.random.default_rng(2)
+    for _ in range(100):
+        x0, y0 = rng.uniform(-0.1, 1, 2); x1, y1 = np.array([x0, y0]) + rng.uniform(0, 0.3, 2)
+        ranges, is_covered = rtree.maybe_covered_ranges([x0, y0, x1, y1])
+        # increasing, disjoint, adjacent ranges of the same kind merged, within the points
+        assert np.all(ranges[:, 0] < ranges[:, 1]) and np.all(ranges[1:, 0] >= ranges[:-1, 1])
+        assert not np.any((ranges[1:, 0] == ranges[:-1, 1]) & (is_covered[1:] == is_covered[:-1]))
+        assert ranges.size == 0 or ranges[-1, 1] <= len(x)
+        inside = (x > x0) & (x < x1) & (y > y0) & (y < y1)
+        for (a, b), covered in zip(ranges, is_covered):
+            if covered:
+                assert inside[a:b].all()
+        np.testing.assert_array_equal(rtree.bbox_query([x0, y0, x1, y1], x, y), np.where(inside)[0])
+
+
+def test_empty_query(big):
+    x, y, rtree = big
+    ranges, is_covered = rtree.maybe_covered_ranges([2, 2, 3, 3])
+    assert ranges.shape == (0, 2) and is_covered.shape == (0,)
+    assert rtree.bbox_query([2, 2, 3, 3], x, y).size == 0
+
+
+def test_pickle(big):
+    # pickling (e.g. to send the tree to a worker process) leaves both the tree and its copy usable
+    x, y, rtree = big
+    bounds = [0.2, 0.3, 0.25, 0.4]
+    expected = rtree.bbox_query(bounds, x, y)
+    copy = pickle.loads(pickle.dumps(rtree))
+    np.testing.assert_array_equal(rtree.bbox_query(bounds, x, y), expected)
+    np.testing.assert_array_equal(copy.bbox_query(bounds, x, y), expected)
 
 
 def test_save_load(big, tmp_path):

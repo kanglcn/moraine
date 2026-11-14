@@ -5,7 +5,7 @@ __all__ = ['unwrap_correct_closure_pc']
 import warnings
 
 import numpy as np
-from numba import njit, prange
+from numba import prange
 from ..utils_.jit import mjit
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components

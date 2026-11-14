@@ -193,35 +193,6 @@ def n2f(
 
     return out
 
-def _n2f_np_in_gpu(
-    intf:np.ndarray,
-    chunks:tuple=None,
-    depths:tuple=(0,0),
-    model:str=None,
-):
-    """compare with n2f, input and output are np.ndarray but use gpu for inference
-
-    Parameters
-    ----------
-    intf : np.ndarray
-        interferogram, 2d np.complex64 or cp.complex64
-    chunks : tuple, optional
-        chunksize, intf.shape by default
-    depths : tuple, default: (0, 0)
-        width of the boundary
-    model : str, optional
-        path to the model weights (.pth), use the model comes with this package by default
-    """
-    shape = intf.shape
-    if chunks is None: chunks = shape
-    in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
-    out = np.empty_like(intf)
-
-    model = _get_model('n2f', model, _cuda_device(), half=True)
-    for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        out[out_slice] = _infer_n2f_gpu(_nan_where_zero(cp.asarray(intf[in_slice])),model)[map_slice].get()
-    return out
-
 @ngpjit
 def _pre_infer_n2fs3d_numba(adi,intf):
     nlines, width = intf.shape
@@ -302,36 +273,4 @@ def n2fs3d(
         for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
             out[out_slice] = _infer_n2fs3d_gpu(adi[in_slice],_nan_where_zero(intf[in_slice]),model)[map_slice]
 
-    return out
-
-def _n2fs3d_np_in_gpu(
-    adi:np.ndarray,
-    intf:np.ndarray,
-    chunks:tuple=None,
-    depths:tuple=(0,0),
-    model:str=None,
-):
-    """compare with n2f, input and output are np.ndarray but use gpu for inference
-
-    Parameters
-    ----------
-    adi : np.ndarray
-        adi, 2d np.float32
-    intf : np.ndarray
-        interferogram, 2d np.complex64 or cp.complex64
-    chunks : tuple, optional
-        chunksize, intf.shape by default
-    depths : tuple, default: (0, 0)
-        width of the boundary
-    model : str, optional
-        path to the model weights (.pth), use the model comes with this package by default
-    """
-    shape = intf.shape
-    if chunks is None: chunks = shape
-    in_slices, out_slices, map_slices = chunkwise_slicing_mapping(shape,chunks,depths)
-    out = np.empty_like(intf)
-
-    model = _get_model('n2fs3d', model, _cuda_device())
-    for in_slice, out_slice, map_slice in zip(in_slices, out_slices, map_slices):
-        out[out_slice] = _infer_n2fs3d_gpu(cp.asarray(adi[in_slice]),_nan_where_zero(cp.asarray(intf[in_slice])),model)[map_slice].get()
     return out

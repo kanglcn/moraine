@@ -43,8 +43,6 @@ def emperical_co(rslc:np.ndarray,
         raise NotImplementedError("Currently only cuda version available.")
     nlines, width, nimages = rslc.shape
     az_win, r_win = is_shp.shape[-2:]
-    az_half_win = (az_win-1)//2
-    r_half_win = (r_win-1)//2
 
     cov = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
     coh = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
@@ -283,12 +281,8 @@ def emperical_co_pc(rslc:np.ndarray,
     """
     xp = get_array_module(rslc)
     nlines, width, nimages = rslc.shape
-    az_win, r_win = pc_is_shp.shape[-2:]
-    az_half_win = (az_win-1)//2
-    r_half_win = (r_win-1)//2
     idx = idx.astype(np.int32)
     az_idx = idx[:,0]; r_idx = idx[:,1]
-    n_pc = az_idx.shape[0]
 
     if image_pairs is None:
         image_pairs = TempNet.from_bandwidth(nimages).image_pairs

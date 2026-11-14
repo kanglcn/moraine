@@ -2,10 +2,9 @@
 
 __all__ = ['Coord']
 
-import numba
 import numpy as np
 import math
-from .jit import ngjit,ngpjit
+from .jit import ngpjit
 from numba import prange
 
 # test shows this automatical parallel can accelerate 3x, 
@@ -18,9 +17,6 @@ def _coords2gixs(coords, x0, dx, nx, out):
         if _out < 0: _out = 0 # numba do not support raise error within prange, we can not raise error now
         if _out > nx-1: _out=nx-1
         out[i] = _out
-    # np.round((coords - x0)/dx,out=out) # the test shows the automatical parallel is not fast enough
-    # out[out < 0] = 0
-    # out[out > nx - 1] = nx - 1
 
 class Coord(object):
     '''utils for digitize raster and point cloud data, in a pyramid.
@@ -41,41 +37,6 @@ class Coord(object):
         self.ny = ny
         self.ym = y0+(ny-1)*dy
         self.maxlevel = math.floor(math.log2(min(nx,ny)))
-        self.p = math.ceil(math.log2(max(nx,ny))) # order of the hillbert curve
-
-    def max_gix(self,level):
-        return math.ceil(self.nx/(2**level))-1, math.ceil(self.ny/(2**level))-1
-
-    def coord2gix(self,x,y,level):
-        # find the nearest xi and yi if x, y are not exactly on the grid
-        xi = round((x-self.x0)/self.dx/2**level)
-        yi = round((y-self.y0)/self.dy/2**level)
-        xi_max, yi_max = self.max_gix(level)
-        return sorted((0,xi,xi_max))[1], sorted((0,yi,yi_max))[1]
-
-    def gix2coord(self,xi,yi,level):
-        xi_max, yi_max = self.max_gix(level)
-        xi, yi = sorted((0,xi,xi_max))[1], sorted((0,yi,yi_max))[1]
-        return xi*2**level*self.dx+self.x0, yi*2**level*self.dy+self.y0
-
-    def hv_bbox2gix_bbox(self,coord_bbox,level):
-        # holoview bounding box is always in continous coordinates
-        # index always truncated to include more data
-        x0, y0, xm, ym = coord_bbox
-        xi0 = math.floor((x0-self.x0)/self.dx/2**level+0.5)
-        yi0 = math.floor((y0-self.y0)/self.dy/2**level+0.5)
-        xim = math.ceil((xm-self.x0)/self.dx/2**level-0.5)
-        yim = math.ceil((ym-self.y0)/self.dy/2**level-0.5)
-
-        xi_max, yi_max = self.max_gix(level)
-        return sorted((0,xi0,xi_max))[1], sorted((0,yi0,yi_max))[1], sorted((0,xim,xi_max))[1], sorted((0,yim,yi_max))[1]
-
-    def gix_bbox2hv_bbox(self,gix_bbox, level):
-        # the bounding box in holoviews is not at the pixel center but at the pixel corner
-        xi_max, yi_max = self.max_gix(level)
-        xi0, yi0, xim, yim = gix_bbox
-        xi0, yi0, xim, yim = sorted((0,xi0,xi_max))[1], sorted((0,yi0,yi_max))[1], sorted((0,xim,xi_max))[1], sorted((0,yim,yi_max))[1]
-        return (xi0-0.5)*2**level*self.dx+self.x0, (yi0-0.5)*2**level*self.dy+self.y0, (xim+0.5)*2**level*self.dx+self.x0, (yim+0.5)*2**level*self.dy+self.y0
 
     def coords2gixs(
         self,
