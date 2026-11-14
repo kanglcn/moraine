@@ -9,14 +9,9 @@ __all__ = ['HilbertRtree']
 # Further specialized for 2D point cloud data and optimized for zarr.
 
 import numpy as np
-from numba import float64, int64
 from numba import prange
 import math
 from ..utils_.jit import ngjit, ngpjit
-try:
-    from numba.experimental import jitclass
-except ImportError:
-    from numba import jitclass
 import zarr
 
 @ngjit
@@ -140,18 +135,6 @@ def _build_hillbert_rtree(x, y, page_size):
     return bounds_tree
 
 @ngjit
-def _merge_ranges(ranges,is_covered):
-    merged_ranges = [ranges[0]]
-    merged_is_covered = [is_covered[0]]
-    for _range, _is_covered in zip(ranges[1:],is_covered[1:]):
-        if (merged_ranges[-1][1] == _range[0]) and (merged_is_covered[-1] == _is_covered):
-            merged_ranges[-1] = (merged_ranges[-1][0], _range[1])
-        else:
-            merged_ranges.append(_range)
-            merged_is_covered.append(_is_covered)
-    return merged_ranges, merged_is_covered
-
-@ngjit
 def _expand_ranges(ranges):
     length = np.sum(ranges[:,1]-ranges[:,0])
     idx = np.zeros(length,dtype=np.int64)
@@ -164,107 +147,60 @@ def _expand_ranges(ranges):
         idx_start += size
     return idx
 
-_numbartree_spec = [
-    ('_bounds_tree', float64[:, :]),
-    ('_n_points', int64),
-    ('_page_size', int64),
-]
-# @jitclass(_numbartree_spec)
-class _NumbaRtree:
-    def __init__(self, bounds_tree, n_points, page_size):
-        self._bounds_tree = bounds_tree
-        self._n_points = n_points
-        self._page_size = page_size
+@ngjit
+def _node_range(n_nodes, page_size, node):
+    """[start, stop) of the point indices under a node: from its leftmost to its rightmost leaf; stop may exceed the
+    number of points (the last leaf is not full)"""
+    leaf_start = (n_nodes + 1) // 2 - 1
+    first = node
+    while _left_child(first) < n_nodes:
+        first = _left_child(first)
+    last = node
+    while _right_child(last) < n_nodes:
+        last = _right_child(last)
+    return (first - leaf_start) * page_size, (last - leaf_start + 1) * page_size
 
-    def _leaf_start(self):
-        """
-        Returns
-            Index of the first leaf node in bounds_tree
-        """
-        return (self._bounds_tree.shape[0] + 1) // 2 - 1
+@ngjit
+def _maybe_covered_ranges(bounds_tree, n_points, page_size, query_bounds):
+    """ranges [start, stop) of the points of the nodes that intersect the query box, in increasing order, adjacent
+    ranges of the same kind merged, and whether all their points are in the box (True) or only some may be (False)"""
+    n_nodes = bounds_tree.shape[0]
+    ranges = np.empty((64, 2), dtype=np.int64)
+    is_covered = np.empty(64, dtype=np.bool_)
+    n = 0
+    nodes = [0]   # depth first, the left child first: the ranges come in increasing order
+    while len(nodes) > 0:
+        node = nodes.pop()
+        node_bounds = bounds_tree[node]
+        if np.all(np.isnan(node_bounds)) or _is_outside(query_bounds, node_bounds):   # no points, or outside the box
+            continue
+        start, stop = _node_range(n_nodes, page_size, node)
+        covered = _is_inside(query_bounds, node_bounds)
+        if not covered and stop - start > page_size:
+            # interior node partly in the box: look at its children
+            nodes.append(_right_child(node))
+            nodes.append(_left_child(node))
+            continue
+        if n > 0 and ranges[n-1, 1] == start and is_covered[n-1] == covered:
+            ranges[n-1, 1] = stop
+            continue
+        if n == ranges.shape[0]:
+            ranges = np.concatenate((ranges, np.empty_like(ranges)))
+            is_covered = np.concatenate((is_covered, np.empty_like(is_covered)))
+        ranges[n, 0] = start
+        ranges[n, 1] = stop
+        is_covered[n] = covered
+        n += 1
+    if n > 0 and ranges[n-1, 1] > n_points:
+        ranges[n-1, 1] = n_points
+    return ranges[:n].copy(), is_covered[:n].copy()
 
-    def _start_index(self, node):
-        """
-        Args
-            node: Index into _bounds_tree representing a binary tree node
-        Returns
-            The first index into keys represented by node
-        """
-        leaf_start = self._leaf_start()
-        while True:
-            child = _left_child(node)
-            if child >= self._bounds_tree.shape[0]:
-                page = node - leaf_start
-                return page * self._page_size
-            else:
-                node = child
-
-    def _stop_index(self, node):
-        """
-        Args
-            node: Index into _bounds_tree representing a binary tree node
-        Returns
-            One past the last index into keys represented by node
-        """
-        leaf_start = self._leaf_start()
-        while True:
-            child = _right_child(node)
-            if child >= self._bounds_tree.shape[0]:
-                page = node - leaf_start + 1
-                return page * self._page_size
-            else:
-                node = child
-
-    def _maybe_covered_ranges(self, query_bounds):
-        if len(query_bounds) % 2 != 0:
-            raise ValueError(
-                'query_bounds must an array with an even number of elements'
-            )
-        nodes = [0]
-        maybe_covered_ranges = []
-        is_covered = []
-        # Find ranges of indices that overlap with query bounds
-        while nodes:
-            next_node = nodes.pop()
-            node_bounds = self._bounds_tree[next_node, :]
-            if np.all(np.isnan(node_bounds)): # remove empty bounds
-                continue
-
-            # Check if node's bounds are fully outside query bounds
-            outside = _is_outside(query_bounds, node_bounds)
-            if outside:
-                continue
-
-            # Check if node's bounds are fully inside query bounds
-            inside = _is_inside(query_bounds, node_bounds)
-
-            if inside:
-                # Node's bounds are fully inside query bounds
-                start = self._start_index(next_node)
-                stop = self._stop_index(next_node)
-                maybe_covered_ranges.append((start, stop))
-                is_covered.append(True)
-            else:
-                # print(f'not inside or outsize: {node_bounds}')
-                start = self._start_index(next_node)
-                stop = self._stop_index(next_node)
-                # print(self._page_size)
-                if stop - start <= self._page_size:
-                    # note that the stop may exceed the true length of the array
-                    maybe_covered_ranges.append((start, stop))
-                    is_covered.append(False)
-                else:
-                    # Partial overlap of interior bounding box, recurse to children
-                    nodes.extend([_right_child(next_node), _left_child(next_node)])
-
-        if len(maybe_covered_ranges) == 0:
-            return np.zeros((0,2),dtype=np.int_), np.array([],dtype=np.bool_)
-
-        # to ensure end do not exceed the true length
-        if maybe_covered_ranges[-1][1] > self._n_points:
-            maybe_covered_ranges[-1] = (maybe_covered_ranges[-1][0], self._n_points)
-        maybe_covered_ranges, is_covered = _merge_ranges(maybe_covered_ranges, is_covered)
-        return np.array(maybe_covered_ranges), np.array(is_covered)
+def _query_bounds(bounds):
+    """query box as a tuple of 4 floats"""
+    bounds = tuple(float(b) for b in bounds)
+    if len(bounds) != 4:
+        raise ValueError(f'bounds must be [x0, y0, xm, ym], got {len(bounds)} values')
+    return bounds
 
 @ngjit
 def _merged_idx(ranges, is_covered, maybe_covered_is_inside):
@@ -317,8 +253,6 @@ class HilbertRtree:
         self._bounds_tree = bounds_tree
         self._n_points = n_points
         self._page_size = page_size
-        self._numba_rtree = _NumbaRtree(
-                self._bounds_tree,self._n_points, self._page_size)
 
     @classmethod
     def build(cls, x:np.ndarray,
@@ -369,13 +303,6 @@ class HilbertRtree:
         bounds_tree_zarr = zarr.open(zarr_path,mode='r')
         return cls(bounds_tree_zarr[:], bounds_tree_zarr.attrs['n_points'], bounds_tree_zarr.attrs['page_size'])
 
-    def __getstate__(self):
-        # Remove _NumbaRtree instance during serialization since jitclass instances
-        # don't support it.
-        state = self.__dict__
-        state['_numba_rtree'] = None
-        return state
-
     @property
     def bounds_tree(self):
         return self._bounds_tree
@@ -395,8 +322,7 @@ class HilbertRtree:
             - array of ranges that may be covered by the query bounding box, shape[n_range, 2]. Every row [start, stop] is the range of query data
             - Bool array indicating if fully convered, shape[n_range,]. True: fully covered (every point in this range are in the box). False: some of points may be in the box.
         """
-        bounds = tuple(float(b) for b in bounds)
-        return self._numba_rtree._maybe_covered_ranges(bounds)
+        return _maybe_covered_ranges(self._bounds_tree, self._n_points, self._page_size, _query_bounds(bounds))
 
     def bbox_query(self, bounds:tuple|list,
                    x:np.ndarray|zarr.Array,
@@ -413,10 +339,8 @@ class HilbertRtree:
         y : np.ndarray | zarr.Array
             y coordinate
         """
-        bounds = tuple(float(b) for b in bounds)
-        ranges, is_covered = self._numba_rtree._maybe_covered_ranges(bounds)
-        # if len(ranges) == 0:
-        #     return np.array([],dtype=np.int64)
+        bounds = _query_bounds(bounds)
+        ranges, is_covered = _maybe_covered_ranges(self._bounds_tree, self._n_points, self._page_size, bounds)
         maybe_covered_ranges = ranges[~is_covered]
         maybe_covered_index = _expand_ranges(maybe_covered_ranges)
         maybe_covered_x = x[maybe_covered_index]
