@@ -10,7 +10,6 @@ if is_cuda_available():
     import cupy as cp
     from numba import cuda
 import math
-import numba
 from numba import prange
 from ..utils_.jit import ngpjit, ngjit
 

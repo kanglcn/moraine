@@ -97,7 +97,7 @@ def pc_union(idx1:np.ndarray,
     if idx1.ndim != idx2.ndim:
         raise ValueError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
     xp = get_array_module(idx1)
-    n1 = idx1.shape[0]; n2 = idx2.shape[0]
+    n1 = idx1.shape[0]
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)
         idx1_1d = _ravel_gix(idx1,dims=dims) # automatically the returned 1d index is in int64
@@ -131,15 +131,12 @@ def pc_union(idx1:np.ndarray,
         idx_1d = idx_1d[mask]
 
         _mask = mask[inv_iidx] # the mask in the original cat order
-        mask1 = _mask[:n1]
         mask2 = _mask[n1:]
 
         imask = xp.cumsum(mask) - 1
         inv_iidx = xp.empty(mask.shape, dtype=np.int64)
         inv_iidx[iidx] = imask # inverse the mapping
         inv_iidx = inv_iidx[_mask]
-
-        inv_iidx1, inv_iidx2, ninv_iidx2 = inv_iidx[:n1], inv_iidx[n1:], *xp.where(mask2)
 
         if idx1.ndim == 2:
             idx = _unravel_gix(idx_1d,dims)

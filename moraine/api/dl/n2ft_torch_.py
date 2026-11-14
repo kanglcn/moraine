@@ -105,7 +105,6 @@ class PointTransformerLayer(nn.Module):
 
         w = self.softmax(w) 
 
-        s = self.share_planes
         x = ((x_v + p_r).view(
             batch_size, num_points, nsample, self.share_planes, self.out_planes//self.share_planes)
              * w.unsqueeze(3)).sum(2).view(batch_size, num_points, self.out_planes)

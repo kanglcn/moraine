@@ -85,7 +85,6 @@ def _gix_ras_chunk(
     '''split gix into raster chunks'''
     nlines, width = shape
     az_chunk, r_chunk = chunks
-    n_az_chunk = math.ceil(nlines/az_chunk)
     n_r_chunk = math.ceil(width/r_chunk)
 
     ras_chunk_order_gix = np.empty_like(sorted_gix)

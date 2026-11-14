@@ -12,33 +12,6 @@ from numba import prange
 from .utils_.jit import ngpjit
 from .tnet import TempNet
 
-# @ngpjit
-# def _temp_coh_pc_numba(
-#     intf:np.ndarray,# complex interferograms/coherence metrix, dtype np.complex64
-#     rslc:np.ndarray, # complex rslc/phase history, dtype np.complex64
-#     image_pairs:np.ndarray, # image pairs
-# ):
-#     nimages = rslc.shape[-1]
-#     n_points = rslc.shape[0]
-#     n_image_pairs = image_pairs.shape[0]
-#     temp_coh = np.empty(n_points,dtype=np.float32)
-#     for i in prange(n_points):
-#         rslc_ = rslc[i]
-#         intf_ = intf[i]
-#         for j in range(nimages):
-#             rslc_[j] = rslc_[j]/abs(rslc_[j])
-#         for j in range(n_image_pairs):
-#             intf_[j] = intf_[j]/abs(intf_[j])
-#         _t_coh = np.float32(0.0)
-#         for j in range(n_image_pairs):
-#             n, k = image_pairs[j,0],image_pairs[j,1]
-#             rslc_intf_ = np.conjugate(rslc_[n])*rslc_[k]
-#             diff_ph = intf_[j]*rslc_intf_
-#             _t_coh += diff_ph.real
-#         _t_coh = _t_coh/n_image_pairs
-#         temp_coh[i] = _t_coh
-#     return temp_coh
-
 @ngpjit
 def _temp_coh_pc_numba(
     intf:np.ndarray,

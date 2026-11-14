@@ -3,7 +3,6 @@
 __all__ = ['mcf_pc']
 
 import numpy as np
-from numba import njit
 from ..utils_.jit import mjit
 
 from .delaunay_ import delaunay_halfedges

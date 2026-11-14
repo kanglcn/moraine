@@ -6,7 +6,7 @@ import warnings
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from numba import njit, prange
+from numba import prange
 
 from ..tnet import TempNet
 from ..utils_.device import get_mem_avail, get_n_cpus_avail

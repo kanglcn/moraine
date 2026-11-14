@@ -12,9 +12,6 @@ def read_gamma_image(imag:str,
                      y0:int=0,
                      ny:int=None,
                     ):
-    # zero value in the image is transformed to 
-    # gpu:bool=False, # return a cupy array if true 
-    # !! nvidia gpu do not support big endian data, so no way to directly read it
     """read gamma image into numpy array.
 
     Parameters
@@ -51,17 +48,6 @@ def read_gamma_image(imag:str,
     if y0+ny > nlines:
         raise ValueError(f'y0 + ny = {y0+ny} is beyond the {nlines} lines of the file')
     offset = y0*width*n_byte
-    count = ny*width*n_byte
-    # if gpu:
-    #     import cupy as cp
-    #     import kvikio
-    #     import kvikio.zarr
-    #     with kvikio.CuFile(imag,'rb') as cufile:
-    #         gpu_dt = dt.replace('>','=')
-    #         data = cp.empty((ny,width),dtype=dt)
-    #         cufile.read(data,size=count,file_offset=offset)
-    #     return data
-    # else:
     with open(imag,'rb') as datf:
         data = np.fromfile(datf,dtype=dt,offset=offset,count=ny*width)
     if dt != '>i4':

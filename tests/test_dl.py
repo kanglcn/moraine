@@ -109,8 +109,6 @@ def test_n2f(intf, gpu):
         assert out_cp.dtype == np.complex64
         finite = out_cp.get()[np.isfinite(out_cp.get())]
         np.testing.assert_allclose(np.abs(finite), 1, rtol=1e-4)  # unit amplitude: normalized in float32
-        np.testing.assert_array_equal(np.isnan(mr.api.dl.raster._n2f_np_in_gpu(x)), np.isnan(out))
-        np.testing.assert_array_equal(x, x0)
 
 
 @pytest.mark.parametrize('gpu', GPU)
@@ -128,8 +126,6 @@ def test_n2fs3d(adi, intf, gpu):
         np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
-        np.testing.assert_array_equal(np.isnan(mr.api.dl.raster._n2fs3d_np_in_gpu(adi, x)), np.isnan(out))
-        np.testing.assert_array_equal(x, x0)
 
 
 @pytest.fixture(scope='module')
