@@ -60,6 +60,7 @@ Pipeline file format (full description in `docs/contracts/pipeline-file.md`):
 ```toml
 [vars]                        # ${name} is replaced in any value; --var name=value overrides
 gamma = "/path/to/gamma"
+wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }   # a top-level key of a TOML file
 
 [defaults]                    # applied to the steps whose command has these arguments
 cuda = true
@@ -80,7 +81,9 @@ adi = "ps/ras_adi.zarr"
 ```
 
 Unknown argument names are errors (with a suggestion); tuples are written `[1000, 1000]` or
-`"1000,1000"`; image pairs are a file made by the `image-pairs` command.
+`"1000,1000"`; image pairs are a file made by the `image-pairs` command. A value that is exactly `"${name}"`
+keeps the type of the variable (a list from `meta.toml` stays a list); values of `raw/meta.toml` are read from
+it rather than copied into `[vars]`.
 
 ## Checking results
 

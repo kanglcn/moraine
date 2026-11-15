@@ -199,6 +199,10 @@ class Command:
         if p.kind == 'tuple':
             return _int_tuple(p, value)
         if p.kind == 'bool':
+            if isinstance(value, str):      # text from `--var` or a pipeline variable: bool('false') would be True
+                if value.strip().lower() not in ('true', 'false'):
+                    raise UsageError(f'{self.name}: argument {name} = {value!r} is not a boolean (true or false)')
+                return value.strip().lower() == 'true'
             return bool(value)
         value = literal(value)
         if isinstance(value, str) and (p.type_doc or '').split(',')[0].strip() in ('float', 'int'):

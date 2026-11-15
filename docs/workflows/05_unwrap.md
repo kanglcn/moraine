@@ -7,9 +7,9 @@ Needs `04_refine`. How EMCF and the phase closure correction work: [the principl
 moraine run examples/05_unwrap.toml --workdir WORK
 ```
 
-Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr` and the pixel spacings to the ones of the
-data (`range_pixel_spacing`, `azimuth_pixel_spacing` in meters, from a `*.rslc.par`); the defaults are the ones of
-the sample data set (981 x 4160, 2.329562 m and 13.9516 m). The pixel spacings convert the grid index to meters.
+Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr`; the default is the one of the sample data set
+(981 x 4160). The pixel spacings (`range_pixel_spacing`, `azimuth_pixel_spacing` in meters, 2.329562 m and 13.9516 m
+for the sample data) are read from `raw/meta.toml` of `01_load`; they convert the grid index to meters.
 
 ## Steps
 

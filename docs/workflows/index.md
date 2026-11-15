@@ -5,16 +5,16 @@ end on the sample data set before it changes, and the numbers and figures in its
 sample data set is Campi Flegrei: Sentinel-1 descending track 22, 92 dates from 2019-01-02 to 2021-12-29, 981 x
 4160 pixels at full resolution, the uplifting caldera west of Naples (`data/CampiFlegrei/README.md` in the
 repository says how the GAMMA results were made). The `[vars]` defaults of the files are its values; for other
-data give yours with `--var`. The files share one working directory and read each other's outputs, so run them in
-order:
+data give yours with `--var`. Values that `01_load` writes to `raw/meta.toml` (pixel spacings, radar wavelength)
+are read from it. The files share one working directory and read each other's outputs, so run them in order:
 
 ```bash
 moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=YYYYMMDD --var geo=YYYYMMDD
 moraine run examples/02_ps.toml --workdir WORK --var shape=NLINES,WIDTH
 moraine run examples/03_ds.toml --workdir WORK --var shape=NLINES,WIDTH
 moraine run examples/04_refine.toml --workdir WORK
-moraine run examples/05_unwrap.toml --workdir WORK --var shape=NLINES,WIDTH --var range_pixel_spacing=... --var azimuth_pixel_spacing=...
-moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...) & (lat > ...)" --var wavelength=...
+moraine run examples/05_unwrap.toml --workdir WORK --var shape=NLINES,WIDTH
+moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...) & (lat > ...)"
 ```
 
 | pipeline | guide | what it does | outputs |

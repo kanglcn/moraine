@@ -10,6 +10,8 @@ Example ``pipeline.toml``::
 
     [vars]                 # ${name} in any value is replaced; `moraine run --var gamma=/data/gamma` overrides
     gamma = "/path/to/gamma"
+    dates = { file = "raw/meta.toml", key = "dates" }   # a top-level key of a TOML file in the working directory;
+                           # a value that is exactly "${dates}" keeps the type of the variable (here a list)
 
     [defaults]             # applied to every step whose command has these arguments
     cuda = true
@@ -36,6 +38,7 @@ finished before with the same arguments and all its outputs still exist.
 __all__ = ['load_pipeline', 'run_pipeline', 'pipeline_status']
 
 import contextlib
+import difflib
 import hashlib
 import json
 import logging
@@ -52,27 +55,128 @@ from . import UsageError, get_command, bind_args, execute, _print_summary, _stri
 _RESERVED = {'name', 'run', 'quicklook', 'kw'}
 # version of the pipeline file format, see docs/contracts/pipeline-file.md
 PIPELINE_VERSION = 1
+_VAR = re.compile(r'\$\{(\w+)\}')
+_FILE_VAR = {'file', 'key'}       # [vars] NAME = { file = "PATH", key = "KEY" }: a top-level key of a TOML file
 
 
-def _substitute(value, variables, where):
-    """Replace ${name} in strings (also inside lists and tables)."""
+class _Pending(Exception):
+    """A variable read from a file that does not exist yet: the steps using it wait for the file."""
+
+
+def _substitute(value, variables, where, used):
+    """Replace ${name} in strings (also inside lists and tables) and add the names to `used`.
+
+    A string that is exactly ${name} becomes the value of the variable with its type (a list stays a list); inside a
+    longer string ${name} is replaced by the text of the value. Raises _Pending for a variable whose file does not
+    exist yet.
+    """
     if isinstance(value, str):
-        def sub(m):
-            if m.group(1) not in variables:
+        names = _VAR.findall(value)
+        for n in names:
+            if n not in variables:
                 known = ', '.join(sorted(variables)) or 'none'
-                raise UsageError(f'{where}: unknown variable ${{{m.group(1)}}}; defined: {known} '
+                raise UsageError(f'{where}: unknown variable ${{{n}}}; defined: {known} '
                                  '(add it to [vars] or pass --var NAME=VALUE)')
-            return str(variables[m.group(1)])
-        return re.sub(r'\$\{(\w+)\}', sub, value)
+        used.update(names)
+        for n in names:
+            if isinstance(variables[n], _Pending):
+                raise _Pending(str(variables[n]))
+        whole = _VAR.fullmatch(value)
+        if whole:
+            return variables[whole.group(1)]
+
+        def text(m):
+            v = variables[m.group(1)]
+            if isinstance(v, (list, dict)):
+                kind = 'list' if isinstance(v, list) else 'table'
+                raise UsageError(f'{where}: variable ${{{m.group(1)}}} is a {kind} and can only be a whole value, '
+                                 f'e.g. "${{{m.group(1)}}}"')
+            return str(v)
+        return _VAR.sub(text, value)
     if isinstance(value, list):
-        return [_substitute(v, variables, where) for v in value]
+        return [_substitute(v, variables, where, used) for v in value]
     if isinstance(value, dict):
-        return {k: _substitute(v, variables, where) for k, v in value.items()}
+        return {k: _substitute(v, variables, where, used) for k, v in value.items()}
     return value
 
 
+def _var_specs(cfg_vars:dict, overrides:dict, path)->dict:
+    """The [vars] of a pipeline file with the --var overrides; a table is a variable read from a file."""
+    for name, v in cfg_vars.items():
+        if isinstance(v, dict) and (set(v) != _FILE_VAR or not all(isinstance(x, str) for x in v.values())):
+            raise UsageError(f'{path}: [vars] {name} = {v}: a variable read from a file is written '
+                             '{ file = "PATH", key = "KEY" }, the top-level key KEY of the TOML file PATH')
+    return {**cfg_vars, **(overrides or {})}
+
+
+def _read_vars(specs:dict, workdir, path)->dict:
+    """Values of the variables; one whose file does not exist yet is a _Pending."""
+    values, files = {}, {}
+    for name, v in specs.items():
+        if not isinstance(v, dict):
+            values[name] = v
+            continue
+        f = Path(workdir) / v['file']
+        if not f.exists():
+            values[name] = _Pending(f'variable {name}: {v["file"]} does not exist yet')
+            continue
+        if f not in files:
+            try:
+                files[f] = tomllib.loads(f.read_text())
+            except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
+                raise UsageError(f'{path}: [vars] {name}: {v["file"]} is not a readable TOML file: {e}')
+        if v['key'] not in files[f]:
+            keys = list(files[f])
+            close = difflib.get_close_matches(v['key'], keys, n=1)
+            hint = f' Did you mean {close[0]!r}?' if close else ''
+            raise UsageError(f'{path}: [vars] {name}: no key {v["key"]!r} in {v["file"]}.{hint} '
+                             f'Keys: {", ".join(keys) or "none"}')
+        values[name] = files[f][v['key']]
+    return values
+
+
+def _step(raw:dict, pipe:dict, variables:dict)->dict:
+    """A step from its table in the pipeline file: the variables substituted, the arguments checked, its hash.
+
+    A step using a variable whose file does not exist yet gets None for the values with it (the names of the
+    arguments are checked all the same) and the reason in 'pending'; it has to run.
+    """
+    path, name = pipe['file'], raw['name']
+    cmd = get_command(raw['run'])
+    used, pending = set(), []
+
+    def sub(value, where):
+        try:
+            return _substitute(value, variables, where, used)
+        except _Pending as e:
+            pending.append(str(e))
+            return None
+
+    where = f'{path}: step {name!r}'
+    values = {k: sub(v, f'{path}: [defaults]') for k, v in pipe['defaults'].items()
+              if any(p.name == k for p in cmd.params)}
+    values.update({k: sub(v, where) for k, v in raw.items() if k not in _RESERVED})
+    kw = raw.get('kw') or {}
+    if not isinstance(kw, dict):
+        raise UsageError(f'{where}: kw must be a table ([step.kw]), got {kw!r}')
+    kw = {k: sub(v, where) for k, v in kw.items()}
+    quicklook = sub(raw['quicklook'], where) if 'quicklook' in raw else pipe['meta'].get('quicklook', True)
+    try:
+        kwargs = bind_args(cmd, values, kw)
+    except UsageError as e:
+        raise UsageError(f'{where}: {e}')
+    if kw:
+        values = {**values, 'kw': kw}   # part of the step hash
+    return {'name': name, 'command': cmd, 'values': values, 'kwargs': kwargs, 'quicklook': quicklook,
+            'hash': hashlib.sha1(json.dumps([cmd.name, values], sort_keys=True, default=str).encode()).hexdigest()[:12],
+            'pending': pending[0] if pending else None,
+            # files of the variables used: read again before the step runs, an earlier step may make or change them
+            'var_files': sorted({pipe['vars'][n]['file'] for n in used if isinstance(pipe['vars'][n], dict)}),
+            'raw': raw}
+
+
 def load_pipeline(path:str, workdir:str=None, variables:dict=None)->dict:
-    """Read and check a pipeline file. Returns {'file', 'name', 'workdir', 'steps': [...]}.
+    """Read and check a pipeline file. Returns {'file', 'name', 'workdir', 'steps': [...], ...}.
 
     `workdir` overrides [pipeline] workdir and `variables` override [vars].
     """
@@ -94,9 +198,14 @@ def load_pipeline(path:str, workdir:str=None, variables:dict=None)->dict:
     if not isinstance(version, int) or version < 1 or version > PIPELINE_VERSION:
         raise UsageError(f'{path}: pipeline format version {version!r} is not supported by this moraine '
                          f'(supported: 1..{PIPELINE_VERSION}); update moraine')
-    variables = {**cfg.get('vars', {}), **(variables or {})}
     workdir = Path(workdir).resolve() if workdir else (path.parent / meta.get('workdir', '.')).resolve()
-    defaults = _substitute(cfg.get('defaults', {}), variables, f'{path}: [defaults]')
+    pipe = {'file': str(path), 'name': path.stem, 'workdir': workdir, 'meta': meta,
+            'vars': _var_specs(cfg.get('vars', {}), variables, path), 'defaults': cfg.get('defaults', {})}
+    values = _read_vars(pipe['vars'], workdir, path)
+    try:
+        _substitute(pipe['defaults'], values, f'{path}: [defaults]', set())   # unknown variables, also if unused
+    except _Pending:
+        pass
     steps, names = [], set()
     for i, raw in enumerate(cfg.get('step', []), 1):
         name = raw.get('name')
@@ -107,23 +216,11 @@ def load_pipeline(path:str, workdir:str=None, variables:dict=None)->dict:
         names.add(name)
         if 'run' not in raw:
             raise UsageError(f'{path}: step {name!r} has no `run = "<command>"`')
-        cmd = get_command(raw['run'])
-        raw = {k: (v if k in ('name', 'run') else _substitute(v, variables, f'{path}: step {name!r}'))
-               for k, v in raw.items()}
-        values = {k: v for k, v in defaults.items() if any(p.name == k for p in cmd.params)}
-        values.update({k: v for k, v in raw.items() if k not in _RESERVED})
-        try:
-            kwargs = bind_args(cmd, values, raw.get('kw'))
-        except UsageError as e:
-            raise UsageError(f'{path}: step {name!r}: {e}')
-        if raw.get('kw'):
-            values = {**values, 'kw': raw['kw']}   # part of the step hash
-        steps.append({'name': name, 'command': cmd, 'values': values, 'kwargs': kwargs,
-                      'quicklook': raw.get('quicklook', meta.get('quicklook', True)),
-                      'hash': hashlib.sha1(json.dumps([cmd.name, values], sort_keys=True, default=str).encode()).hexdigest()[:12]})
+        steps.append(_step(raw, pipe, values))
     if not steps:
         raise UsageError(f'{path}: no [[step]] defined')
-    return {'file': str(path), 'name': path.stem, 'workdir': workdir, 'steps': steps}
+    pipe['steps'] = steps
+    return pipe
 
 
 def _home(pipe):
@@ -147,6 +244,8 @@ def _save_state(pipe, state):
 def _why_rerun(step, rec, workdir):
     """Reason why `step` has to run, or None when its previous run is still valid."""
     from . import _mtime
+    if step['pending']:
+        return step['pending']
     if rec is None:
         return 'not run yet'
     if rec.get('status') != 'done':
@@ -183,7 +282,8 @@ def _plan(pipe, state, only=None, from_step=None, force=False):
         if from_step and s['name'] == from_step:
             rerun = True
         why = _why_rerun(s, rec, pipe['workdir'])
-        upstream = [i for i in (rec or {}).get('inputs', {}) if i in will_change]
+        # the file of a variable is read by the steps using it
+        upstream = [i for i in [*(rec or {}).get('inputs', {}), *s['var_files']] if i in will_change]
         if only and s['name'] not in only:
             action = 'skip (not selected)'
         elif force or rerun:
@@ -243,8 +343,14 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
     logdir.mkdir(parents=True, exist_ok=True)
     root = logging.getLogger()
     for s, action in plan:
+        problem = None
+        if s['var_files'] and action != 'skip (not selected)':
+            try:      # the files of its variables are read again: an earlier step may have made or changed them
+                s = _step(s['raw'], pipe, _read_vars(pipe['vars'], workdir, pipe['file']))
+            except UsageError as e:
+                problem = str(e)
         if action == 'skip (done)':
-            why = _why_rerun(s, state.get(s['name']), workdir)   # an upstream step may have rewritten an input
+            why = problem or _why_rerun(s, state.get(s['name']), workdir)   # an upstream step may have rewritten an input
             if why:
                 action = f'run ({why})'
         if not action.startswith('run'):
@@ -261,6 +367,8 @@ def run_pipeline(path:str, only:list=None, from_step:str=None, force:bool=False,
         rec = {'command': s['command'].name, 'hash': s['hash'], 'args': s['values'],
                'started': time.strftime('%Y-%m-%d %H:%M:%S'), 'log': str(log.relative_to(workdir))}
         try:
+            if problem or s['pending']:
+                raise UsageError(problem or s['pending'])
             with _in_dir(workdir):
                 out = execute(s['command'], s['kwargs'])
                 rec.update(status='done', seconds=out['seconds'], outputs=out['outputs'], inputs=out['inputs'],

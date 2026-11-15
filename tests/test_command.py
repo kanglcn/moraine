@@ -1,13 +1,15 @@
 """The `moraine` command line and pipeline runner, on small synthetic data (no GPU / sample data needed)."""
 import json
+import re
+from pathlib import Path
 
 import numpy as np
 import pytest
 import zarr
 
 from moraine.command import (main, commands, get_command, bind_args, parse_docstring, literal, image_pairs,
-                             UsageError)
-from moraine.command.pipeline import run_pipeline, pipeline_status
+                             UsageError, Command, Param)
+from moraine.command.pipeline import load_pipeline, run_pipeline, pipeline_status
 from moraine.command.summary import summarize, quicklook
 
 
@@ -89,6 +91,21 @@ def test_bind_args():
         bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})
     math = get_command('math')          # **data: the inputs of the expression are extra keyword arguments
     assert bind_args(math, {'output': 'o.zarr', 'operation': 'a*2'}, kw={'a': 'a.zarr'})['a'] == 'a.zarr'
+
+
+def test_bool_arguments_from_text(tmp_path):
+    # text from `--var` or a pipeline variable: 'false' gave True (bool of a non-empty string)
+    cmd = get_command('amp-disp')
+    assert [cmd.convert('cuda', v) for v in ('false', 'False', ' TRUE ', 'true', False, 1)] == \
+        [False, False, True, True, False, True]
+    with pytest.raises(UsageError, match="cuda = 'no' is not a boolean"):
+        cmd.convert('cuda', 'no')
+    (tmp_path / 'p.toml').write_text('[vars]\ngpu = false\n\n[[step]]\nname = "adi"\nrun = "amp-disp"\n'
+                                     'rslc = "r.zarr"\nadi = "a.zarr"\ncuda = "${gpu}"\n')
+
+    def cuda(**variables):
+        return load_pipeline(str(tmp_path / 'p.toml'), variables=variables)['steps'][0]['kwargs']['cuda']
+    assert cuda() is False and cuda(gpu='false') is False and cuda(gpu='true') is True
 
 
 # ---------------------------------------------------------------- summary / quicklook
@@ -370,6 +387,94 @@ operation = "ras>${thr}"
     (tmp_path / 'q.toml').write_text('[[step]]\nname="a"\nrun="amp-disp"\nrslc="${gamma}/r"\nadi="a"\n')
     with pytest.raises(UsageError, match=r'unknown variable \$\{gamma\}'):
         run_pipeline(str(tmp_path / 'q.toml'), dry_run=True, echo=lambda *a: None)
+
+
+PAIRS = '''
+[vars]
+n = { file = "meta.toml", key = "n" }
+pairs = { file = "meta.toml", key = "pairs" }
+bw = { file = "meta.toml", key = "bw" }
+
+[defaults]
+bandwidth = "${bw}"
+
+[[step]]
+name = "pairs"
+run = "image-pairs"
+nimages = "${n}"
+out = "pairs_${n}.txt"
+
+[[step]]
+name = "t_coh"
+run = "temp-coh"
+intf = "intf.zarr"
+rslc = "rslc.zarr"
+image_pairs = "${pairs}"
+'''
+
+
+def test_pipeline_variables_from_a_toml_file(tmp_path):
+    meta, p, quiet = tmp_path / 'meta.toml', str(tmp_path / 'p.toml'), dict(echo=lambda *a: None)
+    meta.write_text('n = 4\npairs = [[0, 1], [1, 2], [2, 3]]\nbw = 1\nname = "x"\n')
+    (tmp_path / 'p.toml').write_text(PAIRS)
+    pairs, t_coh = load_pipeline(p)['steps']
+    # a whole value keeps the type of the variable (also in [defaults]), inside a longer string it is text
+    assert pairs['values'] == {'bandwidth': 1, 'nimages': 4, 'out': 'pairs_4.txt'}
+    np.testing.assert_array_equal(t_coh['kwargs']['image_pairs'], [[0, 1], [1, 2], [2, 3]])
+    assert run_pipeline(p, only=['pairs'], **quiet)['ok']
+    np.testing.assert_array_equal(image_pairs(str(tmp_path / 'pairs_4.txt')), [[0, 1], [1, 2], [2, 3]])
+    # the hash holds the values read: another key of the file changes nothing, a value reruns the step
+    meta.write_text('n = 4\npairs = [[0, 1], [1, 2], [2, 3]]\nbw = 1\nname = "y"\n')
+    assert run_pipeline(p, only=['pairs'], dry_run=True, **quiet)['plan'][0]['action'] == 'skip (done)'
+    meta.write_text('n = 4\npairs = [[0, 1], [1, 2], [2, 3]]\nbw = 2\nname = "y"\n')
+    assert run_pipeline(p, only=['pairs'], dry_run=True, **quiet)['plan'][0]['action'] == 'run (arguments changed)'
+    # --var overrides it (text), and the file is not read then
+    meta.unlink()
+    pairs = load_pipeline(p, variables={'n': '3', 'pairs': '[[0, 1]]', 'bw': '2'})['steps'][0]
+    assert pairs['kwargs'] == {'bandwidth': 2, 'nimages': 3, 'out': 'pairs_3.txt'} and pairs['var_files'] == []
+    # errors
+    meta.write_text('n = 4\npairs = [[0, 1]]\nbw = 1\n')
+    (tmp_path / 'bad.toml').write_text('n = \n')
+    for old, new, match in [('key = "n"', 'key = "nn"', "no key 'nn' in meta.toml. Did you mean 'n'? Keys: n, pairs, bw"),
+                            ('key = "n"', 'key = "n", default = 1', 'is written { file = "PATH", key = "KEY" }'),
+                            ('key = "n"', 'key = 1', 'is written { file = "PATH", key = "KEY" }'),
+                            ('file = "meta.toml", key = "n"', 'file = "bad.toml", key = "n"',
+                             'bad.toml is not a readable TOML file'),
+                            ('"pairs_${n}.txt"', '"pairs_${pairs}.txt"', 'is a list and can only be a whole value')]:
+        (tmp_path / 'q.toml').write_text(PAIRS.replace(old, new, 1))
+        with pytest.raises(UsageError, match=re.escape(match)):
+            load_pipeline(str(tmp_path / 'q.toml'))
+
+
+def test_pipeline_variable_from_a_file_made_later(tmp_path, monkeypatch):
+    # the file of a variable may be made by an earlier step of the pipeline (or by another pipeline)
+    def write_meta(out:str, n:int):
+        Path(out).write_text(f'n = {n}\npairs = [[0, 1]]\nbw = 1\n')
+    monkeypatch.setitem(commands(), 'write-meta', Command(
+        'write-meta', write_meta, 'test', 'Write a TOML file.',
+        [Param('out', 'str', True, None, 'str', 'output'), Param('n', 'value', True, None, 'int', 'a number')]))
+    text = PAIRS.replace('[[step]]', '[[step]]\nname = "meta"\nrun = "write-meta"\nout = "meta.toml"\nn = NUMBER\n\n[[step]]', 1)
+    p, quiet = tmp_path / 'p.toml', dict(echo=lambda *a: None)
+    p.write_text(text.replace('NUMBER', '3'))
+    plan = run_pipeline(str(p), dry_run=True, **quiet)['plan']       # the names of the arguments are checked
+    assert [a['action'] for a in plan] == ['run (not run yet)', 'run (variable bw: meta.toml does not exist yet)',
+                                           'run (variable pairs: meta.toml does not exist yet)']
+    assert pipeline_status(str(p))['steps'][1]['status'] == 'pending'
+    assert run_pipeline(str(p), only=['meta', 'pairs'], **quiet)['ok']
+    assert (tmp_path / 'pairs_3.txt').exists()
+    # a step rewriting the file reruns the steps using it, with the new values
+    p.write_text(text.replace('NUMBER', '5'))
+    plan = run_pipeline(str(p), only=['meta', 'pairs'], dry_run=True, **quiet)['plan']
+    assert [a['action'] for a in plan[:2]] == ['run (arguments changed)', 'run (input will change: meta.toml)']
+    assert run_pipeline(str(p), only=['meta', 'pairs'], **quiet)['ok']
+    assert len(image_pairs(str(tmp_path / 'pairs_5.txt'))) == 4
+    # still missing when the step runs: the step fails, and the next run resumes there once the file exists
+    (tmp_path / 'meta.toml').unlink()
+    res = run_pipeline(str(p), only=['pairs'], **quiet)
+    assert not res['ok'] and res['steps'][0]['error'] == 'UsageError: variable bw: meta.toml does not exist yet'
+    write_meta(str(tmp_path / 'meta.toml'), 6)
+    res = run_pipeline(str(p), only=['pairs'], **quiet)
+    assert res['ok'] and res['steps'][0]['args']['nimages'] == 6
 
 
 def test_image_pairs_command(tmp_path, capsys):

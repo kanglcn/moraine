@@ -10,8 +10,9 @@
 
 [vars]
 shape = "981,4160"                # (nlines, width) of raw/rslc.zarr
-range_pixel_spacing = "2.329562"  # m, from the *.rslc.par of the data
-azimuth_pixel_spacing = "13.9516"
+# pixel spacings in m, read from the metadata of 01_load.toml
+range_pixel_spacing = { file = "raw/meta.toml", key = "range_pixel_spacing" }
+azimuth_pixel_spacing = { file = "raw/meta.toml", key = "azimuth_pixel_spacing" }
 
 [[step]]
 name = "gix"                      # the unwrapping needs the grid index of the points
