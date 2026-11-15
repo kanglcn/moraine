@@ -2,7 +2,7 @@
 
 
 __all__ = ['load_gamma_flatten_rslc', 'load_gamma_lat_lon_hgt', 'load_gamma_look_vector', 'load_gamma_range',
-           'load_gamma_metadata']
+           'load_gamma_metadata', 'load_gamma_bperp']
 
 import glob
 from pathlib import Path
@@ -23,6 +23,8 @@ from scipy.constants import speed_of_light
 
 import moraine as mr
 from ..api.utils_.gamma_io import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
+from ..api.utils_.chunk import all_chunk_slices
+from ..api.utils_.orbit import bperp as _bperp
 from .logging import mc_logger
 from .executor import Executor, Chunk
 
@@ -463,3 +465,106 @@ def load_gamma_metadata(rslc_dir:str,
     logger.info('All meta data: \n'+a)
     logger.info('writing data in toml file.')
     logger.info('Done.')
+
+def _read_gamma_orbit(par):
+    """times (s of the day), positions (m) and velocities (m/s) of the orbit state vectors of a GAMMA par file, shapes
+    (n,), (n, 3), (n, 3)"""
+    n = t0 = dt = None
+    pos, vel = {}, {}
+    with open(par) as f:
+        for line in f:
+            key, _, value = line.partition(':')
+            key, value = key.strip(), value.split()
+            if key == 'number_of_state_vectors':
+                n = int(value[0])
+            elif key == 'time_of_first_state_vector':
+                t0 = float(value[0])
+            elif key == 'state_vector_interval':
+                dt = float(value[0])
+            elif key.startswith('state_vector_position_'):
+                pos[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
+            elif key.startswith('state_vector_velocity_'):
+                vel[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
+    complete = n is not None and sorted(pos) == list(range(1, n+1)) and sorted(vel) == list(range(1, n+1))
+    if not complete or t0 is None or dt is None:
+        raise ValueError(f'{par}: incomplete orbit state vectors')
+    return (t0 + dt*np.arange(n), np.array([pos[k] for k in range(1, n+1)]),
+            np.array([vel[k] for k in range(1, n+1)]))
+
+@mc_logger
+def load_gamma_bperp(rslc_dir:str,
+                     reference:str,
+                     lat_zarr:str,
+                     lon_zarr:str,
+                     hgt_zarr:str,
+                     bperp_zarr:str,
+                     chunks:tuple[int,int]=None,
+                     processes=None,
+                     n_workers=None,
+                     threads_per_worker=None,
+                    ):
+    """Perpendicular baseline of every image relative to the reference image at every pixel, from the orbits.
+
+    Parameters
+    ----------
+    rslc_dir : str
+        input: GAMMA rslc directory with '????????.rslc' and '????????.rslc.par' files; the images are in date order,
+        as in `load-gamma-flatten-rslc`
+    reference : str
+        reference date of the co-registration, e.g. '20200707'; its perpendicular baseline is 0
+    lat_zarr : str
+        input: latitude of the pixels (WGS84), degrees, shape (nlines, width), float64 (`load-gamma-lat-lon-hgt`)
+    lon_zarr : str
+        input: longitude of the pixels (WGS84), degrees, shape (nlines, width), float64 (`load-gamma-lat-lon-hgt`)
+    hgt_zarr : str
+        input: height of the pixels above the WGS84 ellipsoid, meters, shape (nlines, width), float32
+        (`load-gamma-lat-lon-hgt`)
+    bperp_zarr : str
+        output: perpendicular baseline, meters, shape (nlines, width, nimages), float32, chunks (`chunks`, 1): the
+        component of the position of the satellite of each image relative to that of the reference image, each when
+        it sees the pixel, perpendicular to the line of sight of the reference and to its flight direction, positive
+        upwards; 0 for the reference image; nan where the latitude, longitude or height is nan
+    chunks : tuple[int, int], optional
+        data processing chunk size, same as `lat_zarr` by default
+    processes : optional
+        use processes (True) or threads (False) for the workers. Default: False
+    n_workers : optional
+        number of workers. Default: 1
+    threads_per_worker : optional
+        tasks a worker runs at the same time. Default: 1
+    """
+    logger = logging.getLogger(__name__)
+    rslcs = _fetch_slc_par_date(rslc_dir)
+    dates = rslcs['date'].to_list()
+    if reference not in dates:
+        raise ValueError(f'reference {reference} is not a date of {rslc_dir}')
+    ref = dates.index(reference)
+    orbits = [_read_gamma_orbit(par) for par in rslcs['par']]
+    n_sv = {date: len(t) for date, (t, _, _) in zip(dates, orbits)}
+    if len(set(n_sv.values())) != 1:
+        raise ValueError(f'the images have different numbers of orbit state vectors: {n_sv}')
+    orbit_time, orbit_pos, orbit_vel = (np.stack(a) for a in zip(*orbits))
+    nimages = len(dates)
+    logger.info(f'number of images: {nimages}, reference: {reference}, state vectors per image: {orbit_time.shape[1]}')
+
+    width, nlines = _rdc_width_nlines(rslcs['par'][ref])
+    lat = zarr.open(lat_zarr, mode='r')
+    for name, path in (('lat_zarr', lat_zarr), ('lon_zarr', lon_zarr), ('hgt_zarr', hgt_zarr)):
+        shape = zarr.open(path, mode='r').shape
+        if shape != (nlines, width):
+            raise ValueError(f'{name} {path} has the shape {shape}, the images ({nlines}, {width})')
+    if chunks is None: chunks = lat.chunks
+    chunks = tuple(chunks)
+    out = zarr.open(bperp_zarr, mode='w', shape=(nlines, width, nimages), dtype=np.float32, chunks=(*chunks, 1))
+    logger.zarr_info(bperp_zarr, out)
+    # one task per (azimuth, range) chunk: the coordinates of its pixels in, their perpendicular baselines out
+    tasks = [([Chunk(lon_zarr, sl), Chunk(lat_zarr, sl), Chunk(hgt_zarr, sl)],
+              [Chunk(bperp_zarr, (*sl, slice(0, nimages)))]) for sl in all_chunk_slices((nlines, width), chunks)]
+    logger.info(f'perpendicular baseline of {len(tasks)} chunks of {chunks}')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+        ex.map_chunks(_bperp, tasks, desc='perpendicular baseline', orbit_time=orbit_time, orbit_pos=orbit_pos,
+                      orbit_vel=orbit_vel, ref=ref)
+    c = (nlines//2, width//2)
+    centre = out[c[0], c[1]]
+    logger.info(f'perpendicular baseline at the scene centre {c} (m): ' + ', '.join(f'{b:.2f}' for b in centre))
+    logger.info('done.')

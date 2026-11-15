@@ -51,6 +51,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0041](0041-api-grouped-by-stage.md) | The API is grouped by processing stage | Accepted |
 | [0042](0042-formulas-in-the-manual-mathjax.md) | Formulas in the manual are LaTeX, typeset by MathJax | Accepted |
 | [0043](0043-no-threaded-library-in-numba-parallel-kernels.md) | Numba parallel kernels call no threaded library (BLAS, LAPACK) | Accepted |
+| [0044](0044-perpendicular-baselines-per-pixel-from-the-orbits.md) | Perpendicular baselines per pixel from the orbits | Accepted |
 
 ## Writing a record
 
