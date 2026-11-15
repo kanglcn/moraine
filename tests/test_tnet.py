@@ -27,6 +27,32 @@ def test_image_pairs_idx():
     np.testing.assert_array_equal(tnet.image_pairs_idx(ref=[1, 2], sec=[2, 3]), [1, 2])
 
 
+def test_image_pairs_idx_out_of_range():
+    """A pair with an image index outside 0 .. n_images - 1 is not in the network, in every input form; such pairs
+    gave the row of the pair of their code ref * n_images + sec, e.g. (0, 5) that of (1, 2) with 3 images."""
+    tnet = TempNet([[0, 1], [0, 2], [1, 2]])
+    outside = [(0, 5), (1, -1), (-1, 4)]                # the codes of (1, 2), (0, 2), (0, 1)
+    for ref, sec in outside:
+        assert tnet.image_pairs_idx(ref=ref, sec=sec) == -1
+    pairs = np.array(outside + [(1, 2), (0, 1)])
+    expected = [-1, -1, -1, 2, 0]
+    np.testing.assert_array_equal(tnet.image_pairs_idx(image_pairs=pairs), expected)
+    np.testing.assert_array_equal(tnet.image_pairs_idx(ref=pairs[:, 0], sec=pairs[:, 1]), expected)
+    np.testing.assert_array_equal(tnet.image_pairs_idx(ref=pairs[:, 0].tolist(), sec=pairs[:, 1].tolist()), expected)
+    big = np.array([[1431655766, 0]], np.int32)         # its int32 code 1431655766 * 3 overflows to 2, that of (0, 2)
+    np.testing.assert_array_equal(tnet.image_pairs_idx(image_pairs=big), [-1])
+
+
+def test_image_pairs_idx_repeated_pairs():
+    """A pair asked for more than once gives its row, or -1, every time: in the network of 92 images each paired with
+    the next three, the first of two queries of (0, 50), not in the network, gave row 3, the next pair (1, 2)."""
+    tnet = TempNet.from_bandwidth(92, 3)
+    pairs = np.array([(0, 50), (0, 50), (0, 2), (0, 2)])
+    np.testing.assert_array_equal(tnet.image_pairs_idx(image_pairs=pairs), [-1, -1, 1, 1])
+    np.testing.assert_array_equal(tnet.image_pairs_idx(ref=pairs[:, 0].tolist(), sec=pairs[:, 1].tolist()),
+                                  [-1, -1, 1, 1])
+
+
 def test_connected_networks_are_valid():
     """A network is valid when its pairs link all the images, whatever pairs it has: a reference image need not
     have a pair with the next image, and the last pair need not hold the last image."""

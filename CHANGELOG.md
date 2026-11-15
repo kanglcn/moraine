@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+`TempNet.image_pairs_idx` gives -1 for a pair with an image index outside 0 .. n_images - 1, as for any pair not in the network. It gave the row of the pair whose code `ref * n_images + sec` was the same: with the pairs `[[0, 1], [0, 2], [1, 2]]` that of (1, 2) for (0, 5) and that of (0, 2) for (1, -1). So the coherence views of `moraine.cli.view` (`show='coh'`, `'coh_abs'`) drew the coherence of another pair at slider values beyond the last image given to `png(index=...)` or `moraine quicklook --index`, e.g. that of (1, 2) at (0, 6) with 4 images; they draw nan there now
+
+`TempNet.image_pairs_idx` gives -1 for every query of a pair not in the network that is asked for more than once. In networks such as every image with the next three of 92 images, all such queries but the last gave the row of the next pair of the network, e.g. row 3, the pair (1, 2), for (0, 50), or after the last pair the number of pairs, which is no row; pairs asked for once and pairs of the network were right
+
 `moraine quicklook` and `moraine view` no longer accept `--post_proc`, the name of `--show` for one day in
 2026-09 that was never released; use `--show`.
 
