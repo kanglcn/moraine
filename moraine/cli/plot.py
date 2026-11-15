@@ -476,26 +476,6 @@ def pc_pyramid(
     _write_stats(out_dir, level0_zarr, 'point cloud', method, parts, pc_zarr.shape[1:], pc_zarr.dtype)
     logger.info('rendering finished.')
 
-class _LazyRtree:
-    '''HilbertRtree of the pyramid points, read from the pyramid (`rtree.zarr`) when the points are first
-    queried; built from the coordinates for pyramids made without it.
-
-    The points are only drawn when zoomed in to the finest level, so an overview (or a quicklook) of a large
-    point cloud does not touch it.'''
-    def __init__(self, pyramid_dir):
-        self.pyramid_dir = Path(pyramid_dir)
-        self._rtree = None
-
-    def bbox_query(self, bounds, x, y):
-        if self._rtree is None:
-            if (self.pyramid_dir/'rtree.zarr').exists():
-                self._rtree = HilbertRtree.load(str(self.pyramid_dir/'rtree.zarr'))
-            else:
-                x_ = zarr.open(self.pyramid_dir/'x.zarr',mode='r')[:]
-                y_ = zarr.open(self.pyramid_dir/'y.zarr',mode='r')[:]
-                self._rtree = HilbertRtree.build(x_,y_,page_size=_RTREE_PAGE)
-        return self._rtree.bbox_query(bounds, x, y)
-
 # ---------------------------------------------------------------- pyramid reading and plotting rules
 # used by `moraine info` / `quicklook` / `view` (moraine/command/summary.py) and the tile viewer
 

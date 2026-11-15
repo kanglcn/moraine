@@ -14,7 +14,8 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from .plot import pyramid_levels, _pyramid_stats, _stats, _cyclic_cmap
+from ..api.pc.rtree import HilbertRtree
+from .plot import pyramid_levels, _pyramid_stats, _stats, _cyclic_cmap, _RTREE_PAGE
 
 TILE = 256               # tile edge in screen pixels
 PROBE = 4                # the value under the cursor is of the nearest point within this many screen pixels
@@ -845,13 +846,12 @@ class PointLayer(_Layer):
 
     def points_in(self, bounds):
         """Indices of the points within `bounds` (x0, y0, xm, ym) in data coordinates."""
-        if self._rtree is None:     # built on the first query: overviews do not read the coordinates
-            if self._rtree_dir is not None:
-                from .plot import _LazyRtree
-                self._rtree = _LazyRtree(self._rtree_dir)
-            else:
-                from ..api.pc.rtree import HilbertRtree
-                self._rtree = HilbertRtree.build(self._x, self._y, page_size=512)
+        if self._rtree is None:     # on the first query: overviews do not read the coordinates
+            saved = None if self._rtree_dir is None else self._rtree_dir / 'rtree.zarr'
+            if saved is not None and saved.exists():
+                self._rtree = HilbertRtree.load(str(saved))
+            else:                   # points in memory, or a pyramid made without the tree
+                self._rtree = HilbertRtree.build(self._x[:], self._y[:], page_size=_RTREE_PAGE)
         return self._rtree.bbox_query(bounds, self._x, self._y)
 
     def point_radius(self, s):
