@@ -1,7 +1,6 @@
 """Covariance and coherence matrix estimation"""
 
-__all__ = ['emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh', 'ad_intf_pc', 'isPD',
-           'nearestPD', 'regularize_spectral']
+__all__ = ['emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'uncompress_coh']
 
 import math
 import numpy as np
@@ -10,7 +9,6 @@ from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     import cupy as cp
     from numba import cuda
-from typing import Union
 from ..utils_.jit import ngpjit, ngjit
 from ..tnet import TempNet, nimage_from_npair
 from numba import prange, types
@@ -338,180 +336,6 @@ def uncompress_coh(
     uncompressed_coh[...,np.arange(nimages),np.arange(nimages)] = 1
     return uncompressed_coh
 
-@ngpjit
-def _ad_intf_pc_numba(
-    ref_rslc,
-    sec_rslc,
-    az_idx,
-    r_idx,
-    pc_is_shp,
-):
-    nlines, width = ref_rslc.shape
-    n_pc = az_idx.shape[0]
-    az_win, r_win = pc_is_shp.shape[1:]
-    az_half_win, r_half_win = az_win//2, r_win//2
-
-    inf = np.empty(n_pc,dtype=ref_rslc.dtype)
-
-    for i in prange(n_pc):
-        _co_nume = 0.0 + 0.0j
-        _ref_amp2 = 0.0
-        _sec_amp2 = 0.0
-        for k in range(az_win):
-            for l in range(r_win):
-                az_idx_ = az_idx[i] - az_half_win + k
-                r_idx_ = r_idx[i] - r_half_win + l
-                if (az_idx_ >= 0) and (az_idx_ < nlines) and (r_idx_ >= 0) and (r_idx_ < width) and pc_is_shp[i,k,l]:
-                    _ref_rslc = ref_rslc[az_idx_, r_idx_]
-                    _sec_rslc = sec_rslc[az_idx_, r_idx_]
-                    _ref_amp2 += _ref_rslc.real**2 + _ref_rslc.imag**2
-                    _sec_amp2 += _sec_rslc.real**2 + _sec_rslc.imag**2
-                    _co_nume += _ref_rslc*np.conj(_sec_rslc)
-        _inf = _co_nume/math.sqrt(_ref_amp2*_sec_amp2)
-        inf[i] = _inf
-    return inf
-
-if is_cuda_available():
-    @mcuda_jit()
-    def _ad_intf_pc_cuda(ref_rslc, sec_rslc, az_idx, r_idx, pc_is_shp, intf):
-        # one thread per point: sum over its SHPs of ref conj(sec), normalized by the powers
-        i = cuda.grid(1)
-        if i >= intf.shape[0]:
-            return
-        nlines, width = ref_rslc.shape
-        az_win, r_win = pc_is_shp.shape[1], pc_is_shp.shape[2]
-        nr = np.float32(0.0); ni = np.float32(0.0); pr = np.float32(0.0); ps = np.float32(0.0)
-        for k in range(az_win):
-            for l in range(r_win):
-                a = az_idx[i]-az_win//2+k; r = r_idx[i]-r_win//2+l
-                if a >= 0 and a < nlines and r >= 0 and r < width and pc_is_shp[i,k,l]:
-                    x = ref_rslc[a,r]; y = sec_rslc[a,r]
-                    nr += x.real*y.real+x.imag*y.imag
-                    ni += x.imag*y.real-x.real*y.imag
-                    pr += x.real*x.real+x.imag*x.imag
-                    ps += y.real*y.real+y.imag*y.imag
-        d = math.sqrt(pr*ps)
-        intf[i] = complex(nr/d, ni/d)
-
-def ad_intf_pc(
-    ref_rslc:np.ndarray,
-    sec_rslc:np.ndarray,
-    idx:np.ndarray,
-    pc_is_shp:np.ndarray,
-    block_size:int=128,
-)-> np.ndarray:
-    """Adaptive multilooking interferogram generation for point cloud data.
-
-    Parameters
-    ----------
-    ref_rslc : np.ndarray
-        reference rslc, dtype: `np.complex64`
-    sec_rslc : np.ndarray
-        secondary rslc, dtype: `np.complex64`
-    idx : np.ndarray
-        index of point target (azimuth_index, range_index), dtype: `np.int32`, shape: (n_pc, 2)
-    pc_is_shp : np.ndarray
-        shp bool, dtype: `bool`
-    block_size : int, default: 128
-        the CUDA block size, it only affects the calculation speed
-
-    Returns
-    -------
-    np.ndarray
-        `coh`, dtype:`np.complex64`, shape(n_pc, n_image_pair)
-    """
-    xp = get_array_module(ref_rslc)
-    if xp is np:
-        return _ad_intf_pc_numba(ref_rslc, sec_rslc, idx[:,0], idx[:,1], pc_is_shp)
-    else:
-        n_pc = idx.shape[0]
-        intf = cp.empty(n_pc,dtype=ref_rslc.dtype)
-        if n_pc > 0:
-            idx = cp.asarray(idx, dtype=cp.int32)
-            _ad_intf_pc_cuda[(n_pc+block_size-1)//block_size, block_size](
-                ref_rslc, sec_rslc, idx[:,0], idx[:,1], pc_is_shp, intf)
-        return intf
-
-def isPD(co:np.ndarray,
-         )-> np.ndarray:
-    """Parameters
-    ----------
-    co : np.ndarray
-        absolute value of complex coherence/covariance stack
-
-    Returns
-    -------
-    np.ndarray
-        bool array indicating wheather coherence/covariance is positive define
-    """
-    xp = get_array_module(co)
-    if xp is np:
-        # numpy's cholesky raises on a non positive definite matrix instead of returning nan like cupy
-        return (np.linalg.eigvalsh(co) > 0).all(axis=-1)
-    L = xp.linalg.cholesky(co)
-    is_PD = xp.isfinite(L).all(axis=(-2,-1))
-    return is_PD
-
-'''
-    The method is presented in [1]. John D'Errico implemented it in MATLAB [2] under BSD
-    Licence and [3] implemented it with Python/Numpy based on [2] also under BSD Licence.
-    This is a cupy implentation with stack of matrix supported.
-
-    [1] N.J. Higham, "Computing a nearest symmetric positive semidefinite
-    matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
-
-    [2] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
-
-    [3] https://gist.github.com/fasiha/fdb5cec2054e6f1c6ae35476045a0bbd
-'''
-def nearestPD(co:np.ndarray,
-             )-> np.ndarray:
-    """Find the nearest positive-definite matrix to input matrix.
-
-    Parameters
-    ----------
-    co : np.ndarray
-        stack of matrix with shape [...,N,N]
-
-    Returns
-    -------
-    np.ndarray
-        nearest positive definite matrix of input, shape [...,N,N]
-    """
-    xp = get_array_module(co)
-    B = (co + xp.swapaxes(co,-1,-2))/2
-    s, V = xp.linalg.svd(co)[1:]
-    I = xp.eye(co.shape[-1],dtype=co.dtype)
-    S = s[...,None]*I
-    del s
-
-    H = xp.matmul(xp.swapaxes(V,-1,-2), xp.matmul(S, V))
-    del S, V
-    A2 = (B + H) / 2
-    del B, H
-    A3 = (A2 + xp.swapaxes(A2,-1,-2))/2
-    del A2
-
-    if isPD(A3).all():
-        return A3
-
-    co_norm = xp.linalg.norm(co,axis=(-2,-1))
-    spacing = xp.nextafter(co_norm,co_norm+1.0)-co_norm
-
-    k = 0
-    while True:
-        is_pd = isPD(A3)
-        is_pd_all = is_pd.all()
-        if is_pd_all or k>=100:
-            break
-        k+=1
-        mineig = xp.amin(xp.linalg.eigvalsh(A3),axis=-1)
-        if not xp.isfinite(mineig).all():
-            raise RuntimeError('non-finite eigenvalues while regularizing the coherence matrices')
-        A3 += (~is_pd[...,None,None] * I) * (-mineig * k**2 + spacing)[...,None,None]
-    #print(k)
-    return A3
-
 # Speckle correlation (decision 0025). The SLC is first divided by the square root of its local mean power
 # (_SLC_CORRELATION_TEXTURE_WIN pixels square) so that bright extended structures (buildings), whose
 # neighbouring pixels are much more correlated than speckle, do not dominate. |rho|^2 at lag (da, dr) is
@@ -761,27 +585,3 @@ def _shp_n_looks(pc_is_shp:np.ndarray,
         n_blocks = (n_points*32+block_size-1)//block_size
         _shp_n_looks_cuda[n_blocks, block_size](pc_is_shp, rho2, np.int32(max_az), np.int32(max_r), n_looks)
     return n_looks
-
-def regularize_spectral(coh:np.ndarray,
-                        beta:Union[float, np.ndarray],
-                        )-> np.ndarray:
-    """Spectral regularizer for coherence matrix.
-
-    Parameters
-    ----------
-    coh : np.ndarray
-        stack of matrix with shape [...,N,N]
-    beta : Union[float, np.ndarray]
-        the regularization parameter, a float number or cupy ndarray with shape [...]
-
-    Returns
-    -------
-    np.ndarray
-        regularized matrix, shape [...,N,N]
-    """
-    xp = get_array_module(coh)
-    I = xp.eye(coh.shape[-1],dtype=coh.dtype)
-    beta = xp.asarray(beta)[...,None,None]
-
-    regularized_coh = (1-beta)*coh + beta* I
-    return regularized_coh

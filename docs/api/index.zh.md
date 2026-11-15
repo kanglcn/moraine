@@ -26,7 +26,7 @@ halo）。数据大于内存时，[命令行](../cli/index.md)用它的执行器
 | [polygon](polygon.md) | 多边形 GeoJSON 文件，点在多边形内 | `read_polygons`、`polygons_contain` |
 | [slc](slc.md) | SLC 幅度、幅度定标、干涉图、多视 | `rslc2amp`、`calamp`、`intf` |
 | [ps](ps.md) | PS 筛选用的幅度离差指数 | `amp_disp` |
-| [ds](ds.md) | 分布式散射体：统计同质像元（KS 检验）、相干矩阵、正则化、相位连接（EMI）、DS 时间相干性 | `select_shp`、`emperical_co_pc`、`emi`、`ds_temp_coh`、`emperical_co_emi_temp_coh_pc` |
+| [ds](ds.md) | 分布式散射体：统计同质像元（KS 检验）、相干矩阵、相位连接（EMI）、DS 时间相干性 | `select_shp`、`emperical_co_pc`、`emi`、`ds_temp_coh`、`emperical_co_emi_temp_coh_pc` |
 | [dl](dl.md) | 深度学习滤波与模型下载 | `n2f`、`n2fs3d`、`n2ft`、`download_dl_model` |
 | [pqm](pqm.md) | 像元质量：时间相干性 | `temp_coh` |
 | [unwrap](unwrap.md) | Delaunay 三角网、最小费用流、EMCF、相位闭合校正、GAMMA `mcf_pt` | `delaunay`、`mcf_pc`、`emcf_pc`、`unwrap_correct_closure_pc` |

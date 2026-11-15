@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import moraine as mr
-from moraine.api.ds.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
+from moraine.api.ds.co import emperical_co, emperical_co_pc, uncompress_coh
 from moraine.api.ds.co import _slc_correlation, _rslc_rho2, _shp_n_looks, _normalize_local_power
 from conftest import synthetic_shp
 
@@ -120,50 +120,6 @@ def test_uncompress_coh(rng):
     for n, (i, j) in enumerate(tnet.image_pairs):
         assert full[i, j] == coh[n]
         assert full[j, i] == np.conj(coh[n])
-
-
-@pytest.mark.parametrize('gpu', [False, pytest.param(True, marks=pytest.mark.gpu)])
-def test_ad_intf_pc(rng, gpu):
-    rslc, is_shp = synthetic_shp(rng, p_true=0.1)
-    _, idx, ds_is_shp = _ds_can(is_shp)
-    if gpu:
-        import cupy as cp
-        rslc, idx, ds_is_shp = cp.asarray(rslc), cp.asarray(idx), cp.asarray(ds_is_shp)
-    coh = emperical_co_pc(rslc, idx, ds_is_shp)
-    ifg = ad_intf_pc(rslc[:, :, 0], rslc[:, :, 1], idx, ds_is_shp)
-    if gpu:
-        coh, ifg = coh.get(), ifg.get()
-    np.testing.assert_allclose(coh[:, 0], ifg, rtol=1e-6, atol=1e-6)  # float32 sums in another order
-
-
-@pytest.mark.gpu
-def test_isPD_and_regularize_spectral(rslc):
-    import cupy as cp
-    s = cp.asarray(rslc[600:605, 600:610])
-    p = mr.ks_test(cp.sort(cp.abs(s) ** 2, axis=-1), az_half_win=1, r_half_win=2)
-    _, coh = emperical_co(s, p >= 0.05)
-    assert isPD(coh).shape == coh.shape[:-2]
-    r1 = regularize_spectral(coh, 0.1)
-    r2 = regularize_spectral(coh, cp.ones(coh.shape[:-2]) / 10)
-    cp.testing.assert_array_almost_equal(r1, r2)
-
-
-def test_nearestPD(rng):
-    from moraine.api.ds.co import nearestPD
-    a = rng.standard_normal((4, 6, 6))
-    a = (a + np.swapaxes(a, -1, -2)) / 2          # symmetric, mostly indefinite
-    assert not isPD(a).all()
-    pd = nearestPD(a)
-    assert isPD(pd).all()
-
-
-@pytest.mark.gpu
-def test_isPD_cpu_gpu_agree(rng):
-    import cupy as cp
-    a = rng.standard_normal((50, 6, 6))
-    a = (a + np.swapaxes(a, -1, -2)) / 2
-    a[:25] += 6 * np.eye(6)                       # half of them positive definite
-    np.testing.assert_array_equal(isPD(a), isPD(cp.asarray(a)).get())
 
 
 def _correlated_speckle(rng, shape=(600, 800)):
