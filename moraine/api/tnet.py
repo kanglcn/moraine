@@ -6,7 +6,8 @@ __all__ = ['TempNet', 'nimage_from_npair']
 import math
 import numpy as np
 import zarr
-from .utils_.jit import ngjit
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 def _imagepair_from_bandwidth(nimages,bandwidth=None):
     if bandwidth is None: bandwidth = nimages
@@ -16,51 +17,54 @@ def _imagepair_from_bandwidth(nimages,bandwidth=None):
     idx = np.where((sec-ref)<=bandwidth)
     return np.stack((ref[idx], sec[idx]),axis=-1).astype(np.int32)
 
-@ngjit
-def _are_edges_sorted(edges):
-    num_edges = edges.shape[0]
-    for i in range(num_edges - 1):
-        if edges[i, 0] > edges[i + 1, 0] or (edges[i, 0] == edges[i + 1, 0] and edges[i, 1] > edges[i + 1, 1]):
-            return False
-    return True
-
-@ngjit
-def _are_edges_directed(edges):
-    '''directed = reference index smaller than secondary index'''
-    num_edges = edges.shape[0]
-    for i in range(num_edges):
-        if edges[i, 0] >= edges[i, 1]:
-            return False
-    return True
-
-@ngjit
-def _are_edges_connected(edges):
-    num_edges = edges.shape[0]
-
-    current_ref = -1
-    for i in range(num_edges):
-        if edges[i,0] == current_ref:
-            continue
-        else:
-            if edges[i,0] != edges[i,1]-1:
-                return False
-            current_ref = edges[i,0]
-    return True
+def _check_image_pairs(image_pairs):
+    """ValueError unless the image pairs (n_pairs, 2) are a network as `TempNet` needs it."""
+    if image_pairs.ndim != 2 or image_pairs.shape[1] != 2:
+        raise ValueError(f'image pairs must have shape (n_pairs, 2), got {image_pairs.shape}')
+    if len(image_pairs) == 0:
+        raise ValueError('no image pairs')
+    if image_pairs.min() < 0:
+        raise ValueError(f'image indices must be 0 or larger, got {image_pairs.min()}')
+    ref, sec = image_pairs[:, 0].astype(np.int64), image_pairs[:, 1].astype(np.int64)
+    bad = np.flatnonzero(ref >= sec)
+    if len(bad):
+        k = bad[0]
+        raise ValueError(f'the reference index must be smaller than the secondary index: pair {k} is '
+                         f'({ref[k]}, {sec[k]})')
+    n_images = int(sec.max()) + 1
+    bad = np.flatnonzero(np.diff(ref * n_images + sec) <= 0) + 1
+    if len(bad):
+        k = bad[0]
+        raise ValueError(f'image pairs must be sorted by reference and then secondary index, without duplicates: '
+                         f'pair {k} ({ref[k]}, {sec[k]}) follows ({ref[k - 1]}, {sec[k - 1]})')
+    graph = coo_matrix((np.ones(len(ref), np.int8), (ref, sec)), shape=(n_images, n_images))
+    _, component = connected_components(graph, directed=False)
+    apart = np.flatnonzero(component != component[0])
+    if len(apart):
+        listed = ', '.join(str(i) for i in apart[:10]) + (', ...' if len(apart) > 10 else '')
+        raise ValueError(f'the image pairs do not link all the images 0 to {n_images - 1}: {len(apart)} images are not '
+                         f'linked to image 0: {listed}')
 
 class TempNet(object):
+    """Temporal network: the image pairs (interferograms) of a stack of images.
+
+    Parameters
+    ----------
+    image_pairs : np.ndarray
+        (n_pairs, 2) int: the reference and secondary image index of each pair, of the images 0 to n_images - 1,
+        n_images being the largest index + 1
+    check_if_valid : bool, default: True
+        raise a ValueError unless the image pairs are sorted by reference and then secondary index without
+        duplicates, every reference index is smaller than its secondary index, and the pairs link all the images
+        (every image to every other one through a chain of pairs)
+    """
     def __init__(self,image_pairs,check_if_valid=True):
+        image_pairs = np.asarray(image_pairs)
         if check_if_valid:
-            are_edges_sorted = _are_edges_sorted(image_pairs)
-            if not are_edges_sorted:
-                raise ValueError('input image pairs are not sorted.')
-            are_edges_directed = _are_edges_directed(image_pairs)
-            if not are_edges_directed:
-                raise ValueError('input image pairs are not directed (reference index larger than or equal to secondary index).')
-            are_edges_connected = _are_edges_connected(image_pairs)
-            if not are_edges_connected:
-                raise ValueError('input image pairs are not connected.')
+            _check_image_pairs(image_pairs)
         self._image_pairs = image_pairs.astype(np.int32)
-        self._n_images = self._image_pairs[-1,-1]+1
+        # the largest index: the last pair need not hold it, e.g. [[0, 1], [0, 3], [1, 2]]
+        self._n_images = int(self._image_pairs.max()) + 1 if len(self._image_pairs) else 0
         self._image_pairs_1d = self._image_pairs[:,0]*self._n_images+self._image_pairs[:,1]
 
     @classmethod
