@@ -27,7 +27,7 @@ sys.exit(1 if bad else 0)
 PYEOF
 fi
 
-# 3. lint the staged python files: errors that break at run time (rules in pyproject.toml)
+# 3. lint the staged python files (rules in pyproject.toml)
 pys=()
 for f in "${staged[@]}"; do [[ $f == *.py ]] && pys+=("$f"); done
 if (( ${#pys[@]} )); then
