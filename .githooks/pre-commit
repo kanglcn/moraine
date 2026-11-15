@@ -27,7 +27,7 @@ sys.exit(1 if bad else 0)
 PYEOF
 fi
 
-# 3. lint the staged python files: errors that break at run time (rules in pyproject.toml)
+# 3. lint the staged python files (rules in pyproject.toml)
 pys=()
 for f in "${staged[@]}"; do [[ $f == *.py ]] && pys+=("$f"); done
 if (( ${#pys[@]} )); then
@@ -38,9 +38,10 @@ if (( ${#pys[@]} )); then
     fi
 fi
 
-# 4. fast consistency tests: module map, docs, decision records, contracts (seconds)
+# 4. fast consistency tests: module map, docs, decision records, contracts (seconds); not the manual build, a slow
+#    test (pytest -m slow) that the CI runs too
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
-"$PY" -m pytest -q -p no:cacheprovider tests/test_architecture.py tests/test_docs.py \
+"$PY" -m pytest -q -p no:cacheprovider -m "not slow" tests/test_architecture.py tests/test_docs.py \
     tests/test_decisions.py tests/test_contracts.py >"$log" 2>&1 \
     || { tail -30 "$log" >&2; fail "consistency tests failed"; }
