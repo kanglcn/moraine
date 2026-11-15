@@ -40,7 +40,8 @@ pipeline. The parallel layer should be small enough for an AI agent to reason ab
   sample data for 23 commands, and on Campi Flegrei for the pipelines 02 to 05).
 - The backend can be replaced by a small implementation of moraine's own without touching the commands (a
   separate record); the worker arguments of the commands (`n_workers`, `threads_per_worker`, `processes`,
-  `rmm_pool_size`, `**dask_cluster_arg`) keep their meaning.
+  `rmm_pool_size`, `**dask_cluster_arg`) keep their meaning. (`rmm_pool_size` and `**dask_cluster_arg` were
+  removed by decision 0034.)
 - `math` writes the dtype of its expression (before: always float64). `temp-coh` accepts an integer chunk size for
   point clouds (it failed before).
 

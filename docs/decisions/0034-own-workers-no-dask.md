@@ -57,5 +57,6 @@ optimization, spilling, several machines.
 - Do not add dask, distributed or dask-cuda back, also not as optional dependencies; nor rmm or another memory
   pool plugged into cupy and torch: it measured the same and only reserves memory.
 - Do not start processes in a command outside the executor (except the subprocesses of GAMMA and the per
-  process pools that existed before: `transform`, the pyramids).
+  process pools that existed before: the pyramids, decision 0046; `transform` runs in the executor since
+  2026-11-14).
 - Do not share large arrays with the tasks through their arguments; `put` or zarr.
