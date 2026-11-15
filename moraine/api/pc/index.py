@@ -16,13 +16,9 @@ def _unravel_gix(gix_1d,dims):
     xp = get_array_module(gix_1d)
     return xp.stack(xp.unravel_index(gix_1d,dims),axis=-1).astype(xp.int32)
 
-def _check_idx_sorted(idx,shape=None):
+def _check_idx_sorted(idx):
     xp = get_array_module(idx)
-    if idx.ndim == 2:
-        idx_1d = _ravel_gix(idx,dims=shape)
-    else:
-        idx_1d = idx
-    if not (xp.diff(idx_1d)>0).all():
+    if not (xp.diff(idx)>0).all():
         raise ValueError('idx must be sorted and unique')
 
 # Some functions adapted from spatialpandas at https://github.com/holoviz/spatialpandas under BSD-2-Clause license,
