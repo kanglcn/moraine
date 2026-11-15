@@ -18,7 +18,6 @@ import time
 import numpy as np
 import numba
 from ..api.utils_ import mjit
-import pandas as pd
 from scipy.constants import speed_of_light
 
 import moraine as mr
@@ -71,6 +70,12 @@ def _fetch_slc_par_date(rslc_dir,
     ----------
     rslc_dir
         str / Path
+
+    Returns
+    -------
+    tuple
+        the dates (str, the names of the rslc files without '.rslc'), the rslc files and their par files (Path), three
+        lists sorted by file name
     """
     rslc_dir = Path(rslc_dir)
     rslcs = []
@@ -85,8 +90,7 @@ def _fetch_slc_par_date(rslc_dir,
         rslcs.append(rslc)
         rslc_pars.append(rslc_par)
         dates.append(date)
-    rslcs_df = pd.DataFrame({'date':dates,'rslc':rslcs,'par':rslc_pars})
-    return rslcs_df
+    return dates, rslcs, rslc_pars
 
 def _flatten_rslc_task(rslc, sim_orb, width, out, k):
     """read one gamma rslc and its simulated orbital phase, flatten it and write image `k` of the zarr `out`"""
@@ -143,12 +147,9 @@ def load_gamma_flatten_rslc(
     """
     logger = logging.getLogger(__name__)
     rslc_path = rslc
-    rslcs = _fetch_slc_par_date(rslc_dir)
-    with pd.option_context('display.max_colwidth', 0):
-        logger.info('rslc found: \n'+str(rslcs))
-    rslc_pars = rslcs['par'].to_list()
-    dates = rslcs['date'].to_list()
-    rslcs = rslcs['rslc'].to_list()
+    dates, rslcs, rslc_pars = _fetch_slc_par_date(rslc_dir)
+    logger.info('rslc found:\n' + '\n'.join(f'{k:4d}  {date}  {rslc_}  {par}'
+                                            for k, (date, rslc_, par) in enumerate(zip(dates, rslcs, rslc_pars))))
 
     reference_idx = dates.index(reference)
     ref_rslc = rslcs[reference_idx]
@@ -453,9 +454,7 @@ def load_gamma_metadata(rslc_dir:str,
         logger.info('run command: ' + command)
         os.system(command)
         logger.info('gamma command finished.')
-        dat = pd.read_csv(bperp, sep=r'\s+', header=None)
-        base=dat[3].to_numpy()
-        base=base.astype(np.float32)
+        base = np.loadtxt(bperp, usecols=3, ndmin=1).astype(np.float32)   # column 4: B_perp (m)
 
     meta['perpendicular_baseline'] = base
 
@@ -534,12 +533,11 @@ def load_gamma_bperp(rslc_dir:str,
         tasks a worker runs at the same time. Default: 1
     """
     logger = logging.getLogger(__name__)
-    rslcs = _fetch_slc_par_date(rslc_dir)
-    dates = rslcs['date'].to_list()
+    dates, _, pars = _fetch_slc_par_date(rslc_dir)
     if reference not in dates:
         raise ValueError(f'reference {reference} is not a date of {rslc_dir}')
     ref = dates.index(reference)
-    orbits = [_read_gamma_orbit(par) for par in rslcs['par']]
+    orbits = [_read_gamma_orbit(par) for par in pars]
     n_sv = {date: len(t) for date, (t, _, _) in zip(dates, orbits)}
     if len(set(n_sv.values())) != 1:
         raise ValueError(f'the images have different numbers of orbit state vectors: {n_sv}')
@@ -547,7 +545,7 @@ def load_gamma_bperp(rslc_dir:str,
     nimages = len(dates)
     logger.info(f'number of images: {nimages}, reference: {reference}, state vectors per image: {orbit_time.shape[1]}')
 
-    width, nlines = _rdc_width_nlines(rslcs['par'][ref])
+    width, nlines = _rdc_width_nlines(pars[ref])
     lat = zarr.open(lat_zarr, mode='r')
     for name, path in (('lat_zarr', lat_zarr), ('lon_zarr', lon_zarr), ('hgt_zarr', hgt_zarr)):
         shape = zarr.open(path, mode='r').shape

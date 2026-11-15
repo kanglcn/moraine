@@ -7,7 +7,7 @@ Needs `04_refine` and `05_unwrap`. The steps and conventions are decision 0040.
 moraine run examples/06_products.toml --workdir WORK
 ```
 
-Set `[vars] ref_area` to a reference area of the data (a numexpr expression of `lon` and `lat`, the longitude and
+Set `[vars] ref_area` to a reference area of the data (an expression of `lon` and `lat` in the syntax of `math`, the longitude and
 latitude of the points) and `wavelength` to the radar wavelength in meters (`radar_wavelength` of
 `raw/meta.toml`); the defaults are the ones of the sample data set (a box east of the caldera, Sentinel-1
 0.0554658 m).

@@ -53,6 +53,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
 | `moraine/api/utils_/orbit.py` | perpendicular baselines at points on the ground from the orbit state vectors, independent of the SAR processor | `bperp` |
+| `moraine/api/utils_/expr.py` | elementwise expressions of named arrays, the `operation` of `math`, `pc-logic-ras`, `pc-logic-pc` (decision 0045) | `evaluate` |
 | *foundations* | | |
 | `moraine/api/pc/__init__.py` | point clouds; re-exports the names of the modules below | |
 | `moraine/api/pc/index.py` | grid and hilbert indices of point clouds, sorting | `pc_hix`, `pc_gix`, `pc_sort` |
@@ -98,7 +99,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs; the perpendicular baselines from the orbits of the par files) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |
-| `moraine/cli/math.py` | elementwise numexpr expressions on zarr arrays | `math` |
+| `moraine/cli/math.py` | elementwise expressions of zarr arrays | `math` |
 | `moraine/cli/polygon.py` | masks of rasters / point clouds from polygon files | `polygon-mask` |
 | `moraine/cli/pc.py` | point cloud operations on zarr | `ras2pc`, `pc-union`, `pc-sort`, ... |
 | `moraine/cli/ps.py` | amplitude dispersion index | `amp-disp` |
