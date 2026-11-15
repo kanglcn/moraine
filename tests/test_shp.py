@@ -75,10 +75,6 @@ def test_select_shp_same_distribution(rng):
         assert s[:, ah, rh].all()                # the centre pixel itself
 
 
-GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
-
-
-@pytest.mark.parametrize('gpu', GPU)
 def test_ks_test_reference(rng, gpu):
     # the KS statistic and its p value pair by pair, nan where a pixel is nan or outside the image
     n_az, n_r, n, ah, rh = 7, 9, 12, 2, 3

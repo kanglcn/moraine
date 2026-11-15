@@ -5,6 +5,7 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.command import main
+from conftest import write_zarr
 
 
 def _ts(n_points=50, nimages=7, seed=0):
@@ -85,16 +86,10 @@ def test_pc_reference_api_gpu():
     np.testing.assert_allclose(cp.asnumpy(mr.pc_reference(cp.asarray(ts), 5)[0]), mr.pc_reference(ts, 5)[0], atol=1e-6)
 
 
-def _zarr(path, a, chunks):
-    z = zarr.open(str(path), mode='w', shape=a.shape, dtype=a.dtype, chunks=chunks)
-    z[:] = a
-    return str(path)
-
-
 def test_pc_reference(tmp_path):
     ts, offset, stable = _ts(n_points=50, nimages=7)
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
-    mask = _zarr(tmp_path / 'mask.zarr', stable, (20,))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    mask = write_zarr(tmp_path / 'mask.zarr', stable, (20,))
     mc.pc_reference(pc, str(tmp_path / 'out.zarr'), ref_mask=mask, ref_value=str(tmp_path / 'ref.zarr'), out_chunks=10)
     out = zarr.open(str(tmp_path / 'out.zarr'), mode='r')
     assert out.shape == ts.shape and out.dtype == ts.dtype and out.chunks == (10, 1)
@@ -108,34 +103,34 @@ def test_pc_reference(tmp_path):
 
 def test_pc_reference_point_1d_and_command_line(tmp_path):
     ts = _ts()[0]
-    pc1 = _zarr(tmp_path / 'col.zarr', ts[:, 3].copy(), (20,))
+    pc1 = write_zarr(tmp_path / 'col.zarr', ts[:, 3].copy(), (20,))
     mc.pc_reference(pc1, str(tmp_path / 'out1.zarr'), ref_point=7, ref_value=str(tmp_path / 'ref1.zarr'))
     out1 = zarr.open(str(tmp_path / 'out1.zarr'), mode='r')
     assert out1.shape == (50,) and out1.chunks == (20,)
     np.testing.assert_allclose(out1[:], ts[:, 3] - ts[7, 3], atol=1e-6)
     assert zarr.open(str(tmp_path / 'ref1.zarr'), mode='r').shape == (1,)
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
     assert main(['pc-reference', '--pc', pc, '--out', str(tmp_path / 'out.zarr'), '--ref-point', '7']) == 0
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'out.zarr'), mode='r')[:], ts - ts[7], atol=1e-6)
 
 
 def test_pc_reference_argument_errors(tmp_path):
     ts, offset, stable = _ts()
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
-    mask = _zarr(tmp_path / 'mask.zarr', stable, (20,))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    mask = write_zarr(tmp_path / 'mask.zarr', stable, (20,))
     with pytest.raises(ValueError, match='exactly one'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'))
     with pytest.raises(ValueError, match='exactly one'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=mask, ref_point=1)
     with pytest.raises(ValueError, match='not one of the 50 points'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_point=50)
-    short = _zarr(tmp_path / 'short.zarr', stable[:40], (20,))
+    short = write_zarr(tmp_path / 'short.zarr', stable[:40], (20,))
     with pytest.raises(ValueError, match=r'bool of shape \(50,\)'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=short)
-    empty = _zarr(tmp_path / 'empty.zarr', np.zeros(50, dtype=bool), (20,))
+    empty = write_zarr(tmp_path / 'empty.zarr', np.zeros(50, dtype=bool), (20,))
     with pytest.raises(ValueError, match='no reference point'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=empty)
-    complex_pc = _zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
+    complex_pc = write_zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
     with pytest.raises(ValueError, match='floating point'):
         mc.pc_reference(complex_pc, str(tmp_path / 'o.zarr'), ref_point=1)
 
@@ -181,7 +176,7 @@ def test_pc_disp_api_gpu():
 def test_pc_disp(tmp_path):
     ts = _ts()[0].astype(np.float64)
     ts[2, 3] = np.nan
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
     mc.pc_disp(pc, str(tmp_path / 'disp.zarr'), wavelength=S1_WAVELENGTH, out_chunks=15)
     disp = zarr.open(str(tmp_path / 'disp.zarr'), mode='r')
     assert disp.shape == ts.shape and disp.dtype == np.float32 and disp.chunks == (15, 1)
@@ -193,24 +188,24 @@ def test_pc_disp(tmp_path):
 
 def test_pc_disp_1d_and_command_line(tmp_path):
     ts = _ts()[0]
-    pc1 = _zarr(tmp_path / 'col.zarr', ts[:, 3].copy(), (20,))
+    pc1 = write_zarr(tmp_path / 'col.zarr', ts[:, 3].copy(), (20,))
     mc.pc_disp(pc1, str(tmp_path / 'd1.zarr'), wavelength=S1_WAVELENGTH)
     d1 = zarr.open(str(tmp_path / 'd1.zarr'), mode='r')
     assert d1.shape == (50,) and d1.chunks == (20,)
     np.testing.assert_allclose(d1[:], mr.pc_disp(ts[:, 3], S1_WAVELENGTH), rtol=1e-6)
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
     assert main(['pc-disp', '--pc', pc, '--out', str(tmp_path / 'd.zarr'), '--wavelength', str(S1_WAVELENGTH)]) == 0
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'd.zarr'), mode='r')[:], mr.pc_disp(ts, S1_WAVELENGTH), rtol=1e-6)
 
 
 def test_pc_disp_argument_errors(tmp_path):
     ts = _ts()[0]
-    pc = _zarr(tmp_path / 'ts.zarr', ts, (20, 1))
+    pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
     with pytest.raises(ValueError, match='between 0 and 1'):
         mc.pc_disp(pc, str(tmp_path / 'o.zarr'), wavelength=5.55)
-    complex_pc = _zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
+    complex_pc = write_zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
     with pytest.raises(ValueError, match='floating point'):
         mc.pc_disp(complex_pc, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)
-    cube = _zarr(tmp_path / 'cube.zarr', np.zeros((4, 3, 2), dtype=np.float32), (4, 3, 1))
+    cube = write_zarr(tmp_path / 'cube.zarr', np.zeros((4, 3, 2), dtype=np.float32), (4, 3, 1))
     with pytest.raises(ValueError, match='shape'):
         mc.pc_disp(cube, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)

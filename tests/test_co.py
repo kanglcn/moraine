@@ -1,6 +1,5 @@
 import itertools
 import math
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -8,7 +7,7 @@ import pytest
 import moraine as mr
 from moraine.api.ds.co import emperical_co, emperical_co_pc, ad_intf_pc, uncompress_coh, isPD, regularize_spectral
 from moraine.api.ds.co import _slc_correlation, _rslc_rho2, _shp_n_looks, _normalize_local_power
-from conftest import synthetic_shp
+from conftest import REPO, synthetic_shp
 
 
 def _ds_can(is_shp, min_shp=3):
@@ -92,7 +91,7 @@ if __name__ == "__main__":
         print(pool.map(one, range(4)))
 ''')
     import os, subprocess, sys
-    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(REPO))
     out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path,
                          timeout=300)
     assert out.returncode == 0 and '[1, 2, 3, 4]' in out.stdout, out.stderr[-3000:]
@@ -122,7 +121,6 @@ def test_uncompress_coh(rng):
         assert full[j, i] == np.conj(coh[n])
 
 
-@pytest.mark.parametrize('gpu', [False, pytest.param(True, marks=pytest.mark.gpu)])
 def test_ad_intf_pc(rng, gpu):
     rslc, is_shp = synthetic_shp(rng, p_true=0.1)
     _, idx, ds_is_shp = _ds_can(is_shp)
@@ -315,10 +313,6 @@ def test_emperical_co_pc_n_looks_gpu(rng):
         np.testing.assert_allclose(n_looks_gpu.get(), n_looks, rtol=1e-5)
 
 
-GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
-
-
-@pytest.mark.parametrize('gpu', GPU)
 def test_emperical_co_pc_reference(rng, gpu):
     # coherence of the SHP samples in float64; nan pixels that are not SHPs of a point must not count
     rslc, is_shp = synthetic_shp(rng, shape=(6, 9), nimages=7, half_az_win=1, half_r_win=2)

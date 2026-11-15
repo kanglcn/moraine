@@ -9,30 +9,24 @@ import zarr
 
 import moraine as mr
 import moraine.cli as mc
+from conftest import write_zarr, read_zarr as r
 
 pytestmark = pytest.mark.slow
-GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
 CHUNKS = (200, 200)
-
-
-def r(p):
-    return zarr.open(str(p), mode='r')[:]
 
 
 @pytest.fixture(scope='module')
 def work(rslc, tmp_path_factory):
     d = tmp_path_factory.mktemp('cli')
     crop = rslc[:400, :400]
-    z = zarr.open(str(d / 'rslc.zarr'), mode='w', shape=crop.shape, dtype=crop.dtype, chunks=(*CHUNKS, 1))
-    z[:] = crop
+    write_zarr(d / 'rslc.zarr', crop, (*CHUNKS, 1))
     return d, crop
 
 
-@pytest.mark.parametrize('cuda', GPU)
-def test_amp_disp(work, cuda):
+def test_amp_disp(work, gpu):
     d, crop = work
-    mc.amp_disp(str(d / 'rslc.zarr'), str(d / f'adi_{cuda}.zarr'), cuda=cuda)
-    np.testing.assert_array_almost_equal(r(d / f'adi_{cuda}.zarr'), mr.amp_disp(crop))
+    mc.amp_disp(str(d / 'rslc.zarr'), str(d / f'adi_{gpu}.zarr'), cuda=gpu)
+    np.testing.assert_array_almost_equal(r(d / f'adi_{gpu}.zarr'), mr.amp_disp(crop))
 
 
 @pytest.fixture(scope='module')
@@ -174,15 +168,14 @@ def test_weighted_temp_coh(pl):
         mc.ds_temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), t_coh_w=str(d / 'x.zarr'))
 
 
-@pytest.mark.parametrize('cuda', GPU)
-def test_emperical_co_emi_temp_coh_pc(pl, cuda):
+def test_emperical_co_emi_temp_coh_pc(pl, gpu):
     """The fused chunkwise version equals emperical_co_pc -> emi -> ds_temp_coh on the same device.
 
     CPU and GPU eigen decompositions differ in float32, so each device is compared with itself;
     on CPU the results are identical.
     """
     d = pl
-    if cuda:   # the coherence of the reference from the GPU too
+    if gpu:   # the coherence of the reference from the GPU too
         mc.emperical_co_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
                            str(d / 'ref_coh_True'), chunks=CHUNKS, cuda=True)
         mc.pc_concat(str(d / 'ref_coh_True'), str(d / 'ref_coh_True.zarr'), key=str(d / 'ds_can_key.zarr'),
@@ -192,29 +185,28 @@ def test_emperical_co_emi_temp_coh_pc(pl, cuda):
         refs = ('ref_ph_True', 'ref_t_coh_True')
     else:
         refs = ('ds_can_ph', 'ds_can_t_coh')
-    names = [f'{n}_{cuda}' for n in ('ph', 't_coh')]
+    names = [f'{n}_{gpu}' for n in ('ph', 't_coh')]
     mc.emperical_co_emi_temp_coh_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
-                                    *[str(d / n) for n in names], chunks=CHUNKS, cuda=cuda)
+                                    *[str(d / n) for n in names], chunks=CHUNKS, cuda=gpu)
     chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
     mc.pc_concat([str(d / n) for n in names], [str(d / f'{n}.zarr') for n in names],
                  key=str(d / 'ds_can_key.zarr'), chunks=chunks)
     for n, ref in zip(names, refs):
         a, b = r(d / f'{n}.zarr'), r(d / f'{ref}.zarr')
-        if cuda:  # batched GPU eigen solvers round differently for different batch sizes
+        if gpu:  # batched GPU eigen solvers round differently for different batch sizes
             assert np.median(np.abs(a - b) / np.maximum(np.abs(b), 1e-6)) < 1e-5
             np.testing.assert_allclose(a, b, rtol=1e-2, atol=1e-2)
         else:
             np.testing.assert_array_equal(a, b)
 
 
-@pytest.mark.parametrize('cuda', GPU)
-def test_temp_coh(pl, cuda):
+def test_temp_coh(pl, gpu):
     d = pl
-    mc.temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), str(d / f'pqm_t_coh_{cuda}.zarr'), cuda=cuda)
-    np.testing.assert_array_almost_equal(r(d / f'pqm_t_coh_{cuda}.zarr'),
+    mc.temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), str(d / f'pqm_t_coh_{gpu}.zarr'), cuda=gpu)
+    np.testing.assert_array_almost_equal(r(d / f'pqm_t_coh_{gpu}.zarr'),
                                          mr.temp_coh(r(d / 'ds_can_coh.zarr'), r(d / 'ds_can_ph.zarr')))
     with pytest.raises(ValueError, match='swapped'):      # intf and rslc swapped: reported before any task runs
-        mc.temp_coh(str(d / 'ds_can_ph.zarr'), str(d / 'ds_can_coh.zarr'), str(d / 'pqm_swapped.zarr'), cuda=cuda)
+        mc.temp_coh(str(d / 'ds_can_ph.zarr'), str(d / 'ds_can_coh.zarr'), str(d / 'pqm_swapped.zarr'), cuda=gpu)
 
 
 def test_mcf_pc(pl):
@@ -223,8 +215,7 @@ def test_mcf_pc(pl):
     keep = r(d / 'ds_can_t_coh.zarr') > 0.7
     key = mr.pc_sort(mr.pc_hix(gix[keep], shape=(400, 400)))
     for name, data in [('ds_gix.zarr', gix[keep][key]), ('ds_ph.zarr', ph[keep][key])]:
-        z = zarr.open(str(d / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(data.shape[0], 1))
-        z[:] = data
+        write_zarr(d / name, data, (data.shape[0], 1))
     pairs = mr.TempNet.from_bandwidth(17, bandwidth=1).image_pairs[:3]
     mc.mcf_pc(str(d / 'ds_gix.zarr'), str(d / 'ds_ph.zarr'), str(d / 'ds_unw.zarr'), pairs, range_pixel_spacing=1.0,
               azimuth_pixel_spacing=1.0)
@@ -242,8 +233,7 @@ def test_pyramids_and_views(work, shp):
     gix = r(d / 'ds_can_gix.zarr')
     for name, data in [('x.zarr', gix[:, 1].astype(np.float64)), ('y.zarr', gix[:, 0].astype(np.float64)),
                        ('pc.zarr', r(d / 'adi.zarr')[gix[:, 0], gix[:, 1]])]:
-        z = zarr.open(str(d / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=data.shape)
-        z[:] = data
+        write_zarr(d / name, data)
     mc.pc_pyramid(str(d / 'pc.zarr'), str(d / 'pc_pyramid'), x=str(d / 'x.zarr'), y=str(d / 'y.zarr'), ras_resolution=20)
     # views of real data: adi with the DS candidates on it, next to the interferograms
     v = mc.view(str(d / 'adi_pyramid'), cmap='gray') * mc.view(str(d / 'pc_pyramid')) + \

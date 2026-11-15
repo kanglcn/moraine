@@ -8,11 +8,7 @@ import zarr
 
 import moraine.cli as mc
 from moraine.command.summary import pyramid_levels
-
-
-def _zarr(path, a, chunks=None):
-    z = zarr.open(str(path), mode='w', shape=a.shape, dtype=a.dtype, chunks=chunks or a.shape)
-    z[...] = a
+from conftest import write_zarr, random_gix
 
 
 def test_pyramids_do_not_fork_the_calling_process(tmp_path, monkeypatch):
@@ -22,11 +18,11 @@ def test_pyramids_do_not_fork_the_calling_process(tmp_path, monkeypatch):
     files, removed at the end."""
     rng = np.random.default_rng(0)
     ras = rng.random((64, 48, 3), dtype=np.float32)
-    _zarr(tmp_path / 'ras.zarr', ras, chunks=(16, 16, 1))
+    write_zarr(tmp_path / 'ras.zarr', ras, chunks=(16, 16, 1))
     n = 300
-    g = np.stack(np.unravel_index(np.sort(rng.choice(40 * 30, n, replace=False)), (40, 30)), -1)
-    _zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); _zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
-    _zarr(tmp_path / 'pc.zarr', rng.random((n, 3), dtype=np.float32), chunks=(n, 1))
+    g = random_gix(rng, (40, 30), n)
+    write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+    write_zarr(tmp_path / 'pc.zarr', rng.random((n, 3), dtype=np.float32), chunks=(n, 1))
     tmp = tmp_path / 'tmp'; tmp.mkdir()
     monkeypatch.setattr(tempfile, 'tempdir', str(tmp))
     stop = threading.Event()

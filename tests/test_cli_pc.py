@@ -4,32 +4,19 @@ import zarr
 
 import moraine as mr
 import moraine.cli as mc
+from conftest import write_zarr, read_zarr as r, random_gix
 
 
 @pytest.fixture
 def w(tmp_path):
     """w(name, array, chunks) writes a zarr array in tmp_path and returns its path; w(name) only returns the path."""
     def _w(name, data=None, chunks=None):
-        p = str(tmp_path / name)
-        if data is not None:
-            z = zarr.open(p, mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks)
-            z[:] = data
-        return p
+        return str(tmp_path / name) if data is None else write_zarr(tmp_path / name, data, chunks)
     return _w
-
-
-def r(p):
-    return zarr.open(p, mode='r')[:]
 
 
 def _cplx(rng, *shape):
     return (rng.random(shape) + 1j * rng.random(shape)).astype(np.complex64)
-
-
-def _gix(rng, n, shape=(100, 100), sort=True):
-    g = rng.choice(shape[0] * shape[1], size=n, replace=False).astype(np.int32)
-    if sort: g.sort()
-    return np.stack(np.unravel_index(g, shape), axis=-1).astype(np.int32)
 
 
 def _hix(rng, n, sort=True):
@@ -40,7 +27,7 @@ def _hix(rng, n, sort=True):
 
 def test_ras2pc(w, rng):
     ras1 = rng.random((100, 100)).astype(np.float32); ras2 = _cplx(rng, 100, 100, 3)
-    gix = _gix(rng, 1000)
+    gix = random_gix(rng, (100, 100), 1000)
     w('gix.zarr', gix, (200, 1)); w('ras1.zarr', ras1, (20, 100)); w('ras2.zarr', ras2, (20, 100, 1))
     mc.ras2pc(w('gix.zarr'), w('ras1.zarr'), w('pc1.zarr'))
     np.testing.assert_array_equal(r(w('pc1.zarr')), ras1[gix[:, 0], gix[:, 1]])
@@ -59,7 +46,7 @@ def test_pc_concat(w, rng):
 def test_ras2pc_ras_chunk(w, rng):
     shape, chunks = (100, 100), (20, 20)
     ras1 = rng.random(shape).astype(np.float32); ras2 = _cplx(rng, *shape, 3)
-    gix = _gix(rng, 1000, shape)
+    gix = random_gix(rng, shape, 1000)
     w('gix.zarr', gix, (200, 1)); w('ras1.zarr', ras1, chunks); w('ras2.zarr', ras2, (*chunks, 1))
     mc.ras2pc_ras_chunk(w('gix.zarr'), w('ras1.zarr'), w('pc1'), key=w('key.zarr'))
     mc.pc_concat(w('pc1'), w('pc1.zarr'), key=w('key.zarr'), chunks=200)
@@ -88,7 +75,7 @@ def test_ras2pc_ras_chunk(w, rng):
 
 def test_pc2ras(w, rng):
     pc1 = rng.random(1000).astype(np.float32); pc2 = _cplx(rng, 1000, 3)
-    gix = _gix(rng, 1000)
+    gix = random_gix(rng, (100, 100), 1000)
     ras1 = np.full((100, 100), np.nan, np.float32); ras2 = np.full((100, 100, 3), np.nan, np.complex64)
     ras1[gix[:, 0], gix[:, 1]] = pc1; ras2[gix[:, 0], gix[:, 1]] = pc2
     w('gix.zarr', gix, (200, 1)); w('pc1.zarr', pc1, (200,)); w('pc2.zarr', pc2, (200, 1))
@@ -100,7 +87,7 @@ def test_pc2ras(w, rng):
 
 
 def test_pc_hix_gix(w, rng):
-    gix = _gix(rng, 1000)
+    gix = random_gix(rng, (100, 100), 1000)
     w('gix.zarr', gix, (100, 1))
     mc.pc_hix(w('gix.zarr'), w('hix.zarr'), shape=(100, 100))
     np.testing.assert_array_equal(r(w('hix.zarr')), mr.pc_hix(gix, (100, 100)))
@@ -110,7 +97,7 @@ def test_pc_hix_gix(w, rng):
 
 def test_pc_sort(w, rng):
     pc_in = rng.random(1000).astype(np.float32)
-    gix_in = _gix(rng, 1000, sort=False)
+    gix_in = random_gix(rng, (100, 100), 1000, sort=False)
     ind = np.lexsort((gix_in[:, 1], gix_in[:, 0]))
     w('pc_in.zarr', pc_in, (100,)); w('gix_in.zarr', gix_in, (100, 1))
     mc.pc_sort(w('gix_in.zarr'), w('gix.zarr'), w('pc_in.zarr'), w('pc.zarr'), shape=(100, 100))
@@ -128,7 +115,7 @@ def test_pc_sort(w, rng):
 def test_pc_union(w, rng, kind):
     pc1 = _cplx(rng, 1000, 3); pc2 = _cplx(rng, 800, 3)
     if kind == 'gix':
-        i1, i2, c = _gix(rng, 1000), _gix(rng, 800), (200, 1)
+        i1, i2, c = random_gix(rng, (100, 100), 1000), random_gix(rng, (100, 100), 800), (200, 1)
     else:
         i1, i2, c = _hix(rng, 1000), _hix(rng, 800), (200,)
     idx, inv1, inv2, iidx2 = mr.pc_union(i1, i2)
@@ -144,7 +131,7 @@ def test_pc_union(w, rng, kind):
 def test_pc_intersect(w, rng, kind):
     pc1 = _cplx(rng, 1000, 3); pc2 = _cplx(rng, 800, 3)
     if kind == 'gix':
-        i1, i2, c = _gix(rng, 1000), _gix(rng, 800), (200, 1)
+        i1, i2, c = random_gix(rng, (100, 100), 1000), random_gix(rng, (100, 100), 800), (200, 1)
     else:
         i1, i2, c = _hix(rng, 1000), _hix(rng, 800), (200,)
     idx, _, iidx2 = mr.pc_intersect(i1, i2)
@@ -159,7 +146,7 @@ def test_pc_intersect(w, rng, kind):
 def test_pc_diff(w, rng, kind):
     pc1 = _cplx(rng, 1000, 3)
     if kind == 'gix':
-        i1, i2, c = _gix(rng, 1000), _gix(rng, 800), (200, 1)
+        i1, i2, c = random_gix(rng, (100, 100), 1000), random_gix(rng, (100, 100), 800), (200, 1)
     else:
         i1, i2, c = _hix(rng, 1000), _hix(rng, 800), (200,)
     idx, iidx1 = mr.pc_diff(i1, i2)
@@ -180,7 +167,7 @@ def test_pc_logic_ras(w, rng):
 def test_pc_logic_pc(w, rng):
     pc_in = rng.random(1000).astype(np.float32)
     keep = (pc_in >= 0.1) & (pc_in <= 0.5)
-    gix_in = _gix(rng, 1000); hix_in = _hix(rng, 1000)
+    gix_in = random_gix(rng, (100, 100), 1000); hix_in = _hix(rng, 1000)
     w('pc_in.zarr', pc_in, (100,)); w('gix_in.zarr', gix_in, (100, 1)); w('hix_in.zarr', hix_in, (100,))
     mc.pc_logic_pc(w('gix_in.zarr'), w('pc_in.zarr'), w('gix.zarr'), '(pc_in>=0.1)&(pc_in<=0.5)')
     np.testing.assert_array_equal(r(w('gix.zarr')), gix_in[keep])
@@ -191,7 +178,7 @@ def test_pc_logic_pc(w, rng):
 def test_pc_select_data(w, rng):
     pc_in = rng.random((1000, 4)).astype(np.float32)
     iidx = np.sort(rng.choice(1000, size=500, replace=False))
-    gix_in = _gix(rng, 1000); hix_in = _hix(rng, 1000)
+    gix_in = random_gix(rng, (100, 100), 1000); hix_in = _hix(rng, 1000)
     w('pc_in.zarr', pc_in, (100, 1)); w('gix_in.zarr', gix_in, (100, 1)); w('gix.zarr', gix_in[iidx], (100, 1))
     mc.pc_select_data(w('gix_in.zarr'), w('gix.zarr'), w('pc_in.zarr'), w('pc.zarr'))
     np.testing.assert_array_equal(r(w('pc.zarr')), pc_in[iidx])
@@ -212,7 +199,7 @@ def test_data_reduce(w, rng):
 def test_bool2gix(tmp_path):
     rng = np.random.default_rng(0)
     is_pc = rng.random((30, 40)) < 0.2
-    zarr.open(str(tmp_path / 'is_pc.zarr'), mode='w', shape=is_pc.shape, dtype=bool, chunks=(10, 40))[:] = is_pc
+    write_zarr(tmp_path / 'is_pc.zarr', is_pc, (10, 40))
     mc.bool2gix(str(tmp_path / 'is_pc.zarr'), str(tmp_path / 'gix.zarr'), chunks=50)
     gix = zarr.open(str(tmp_path / 'gix.zarr'), mode='r')
     assert gix.chunks == (50, 1)  # one column per chunk, as every point cloud array

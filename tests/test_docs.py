@@ -4,14 +4,13 @@ import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
 from moraine.command import commands
 from moraine.command.pipeline import load_pipeline
+from conftest import REPO
 
-REPO = Path(__file__).resolve().parents[1]
 # every handwritten markdown file of the manual (docs/) and the agent / contributor files
 DOCS = [REPO / 'AGENTS.md', REPO / 'README.md', REPO / 'ARCHITECTURE.md',
         *sorted(p for p in (REPO / 'docs').rglob('*.md') if 'overrides' not in p.parts

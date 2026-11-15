@@ -5,14 +5,13 @@ import pytest
 import zarr
 
 from moraine.cli.zarr_ import parallel_read_zarr, parallel_write_zarr, ZarrDir, _parallel_read_pc_dir
+from conftest import write_zarr
 
 
 def _stack(tmp_path, rng, shape=(130, 170, 4), chunks=(50, 170, 1)):
     data = rng.random(shape).astype(np.float32)
     data = (data + 1j * data).astype(np.complex64)
-    z = zarr.open(str(tmp_path / 'data.zarr'), mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks)
-    z[:] = data
-    return data, z
+    return data, zarr.open(write_zarr(tmp_path / 'data.zarr', data, chunks), mode='r')
 
 
 def test_parallel_read_zarr(tmp_path, rng):
@@ -31,8 +30,7 @@ def test_parallel_write_zarr(tmp_path, rng):
 def test_pc_zarr_dir(tmp_path, rng):
     d1 = rng.random((32, 10)).astype(np.float32); d2 = rng.random((64, 10)).astype(np.float32)
     for name, d in [('1.zarr', d1), ('2.zarr', d2)]:
-        z = zarr.open(str(tmp_path / 'pc' / name), mode='w', shape=d.shape, dtype=d.dtype, chunks=(d.shape[0], 1))
-        z[:] = d
+        write_zarr(tmp_path / 'pc' / name, d, (d.shape[0], 1))
     both = np.concatenate((d1, d2), axis=0)
     np.testing.assert_array_equal(_parallel_read_pc_dir(ZarrDir.from_dir(str(tmp_path / 'pc')), 2), both[:, 2])
 
@@ -66,8 +64,7 @@ def test_parallel_write_zarr_raises(tmp_path, rng):
 def test_parallel_read_pc_dir_raises(tmp_path, rng):
     for name in ('1.zarr', '2.zarr'):
         d = rng.random((32, 10)).astype(np.float32)
-        z = zarr.open(str(tmp_path / 'pc' / name), mode='w', shape=d.shape, dtype=d.dtype, chunks=(d.shape[0], 1))
-        z[:] = d
+        write_zarr(tmp_path / 'pc' / name, d, (d.shape[0], 1))
     _corrupt_chunks(tmp_path / 'pc' / '2.zarr')
     with pytest.raises(Exception) as direct:
         zarr.open(str(tmp_path / 'pc' / '2.zarr'), mode='r')[:, 2]

@@ -5,6 +5,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.pc.rtree import HilbertRtree, _is_outside, _is_inside, _is_inside_bf, _expand_ranges
+from conftest import random_gix
 
 
 def test_box_helpers():
@@ -17,8 +18,7 @@ def test_box_helpers():
 
 
 def _points(rng, n, size):
-    g = np.sort(rng.choice(size * size, size=n, replace=False))
-    gix = np.stack(np.unravel_index(g, (size, size)), axis=-1).astype(np.int32)
+    gix = random_gix(rng, (size, size), n)
     key = mr.pc_sort(mr.pc_hix(gix, shape=(size, size)))
     return gix[:, 1][key] / size, gix[:, 0][key] / size
 

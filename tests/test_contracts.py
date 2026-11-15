@@ -1,7 +1,5 @@
 """The code keeps the promises of docs/contracts/: JSON output, pipeline files, pyramids and data conventions."""
-import json
 import re
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -12,8 +10,9 @@ from moraine.command import main, JSON_VERSION, UsageError
 from moraine.command.pipeline import load_pipeline, PIPELINE_VERSION
 from moraine.command.summary import pyramid_levels, summarize
 from moraine.cli.plot import PYRAMID_VERSION
+from conftest import REPO, write_zarr, json_out, random_gix
 
-CONTRACTS = Path(__file__).resolve().parents[1] / 'docs' / 'contracts'
+CONTRACTS = REPO / 'docs' / 'contracts'
 
 
 def _tables(doc):
@@ -47,15 +46,6 @@ def _summary(s):
     _check(s, s['kind'].replace('raster ', '').replace('point cloud ', '') + ' summary')
 
 
-def _zarr(path, data, chunks=None):
-    z = zarr.open(str(path), mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks or data.shape)
-    z[:] = data
-
-
-def _json_out(capsys):
-    return json.loads(capsys.readouterr().out)
-
-
 def test_versions_in_the_index():
     index = (CONTRACTS / 'README.md').read_text()
     for name, version in [('JSON output', JSON_VERSION), ('Pipeline files', PIPELINE_VERSION),
@@ -66,35 +56,35 @@ def test_versions_in_the_index():
 # ---------------------------------------------------------------- JSON output
 
 def test_json_processing_command_list_info_error(tmp_path, capsys, rng):
-    _zarr(tmp_path / 'ras.zarr', rng.random((30, 40)).astype(np.float32), (10, 40))
+    write_zarr(tmp_path / 'ras.zarr', rng.random((30, 40)).astype(np.float32), (10, 40))
     assert main(['pc-logic-ras', '--ras', str(tmp_path / 'ras.zarr'), '--gix', str(tmp_path / 'gix.zarr'),
                  '--operation', 'ras>0.5', '--json', '-q']) == 0
-    out = _json_out(capsys)
+    out = json_out(capsys)
     assert out['version'] == JSON_VERSION and out['ok'] is True
     _check(out, 'Every output', 'processing command')
     for s in out['summaries']:
         _summary(s)
 
     assert main(['list', '--json']) == 0
-    out = _json_out(capsys)
+    out = json_out(capsys)
     _check(out, 'Every output', 'list')
     assert set(out['commands'][0]) == {'name', 'module', 'summary'}
 
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
-    (tmp_path / 'dir').mkdir(); _zarr(tmp_path / 'dir' / '0.zarr', np.zeros(3))
+    (tmp_path / 'dir').mkdir(); write_zarr(tmp_path / 'dir' / '0.zarr', np.zeros(3))
     zarr.open_group(str(tmp_path / 'grp.zarr'), mode='w')
     (tmp_path / 'f.txt').write_text('x')
     capsys.readouterr()
     paths = ['ras.zarr', 'pyr', 'dir', 'grp.zarr', 'f.txt']
     assert main(['info', *(str(tmp_path / p) for p in paths), '--json']) == 0
-    out = _json_out(capsys)
+    out = json_out(capsys)
     _check(out, 'Every output', 'info')
     assert [s['kind'] for s in out['summaries']] == ['array', 'raster pyramid', 'directory', 'group', 'file']
     for s in out['summaries']:
         _summary(s)
 
     assert main(['info', str(tmp_path / 'missing.zarr'), '--json']) == 1
-    out = _json_out(capsys)
+    out = json_out(capsys)
     assert out['ok'] is False
     _check(out, 'Every output', 'error')
 
@@ -105,19 +95,19 @@ def test_json_processing_command_list_info_error(tmp_path, capsys, rng):
     np.arange(2400).reshape(60, 40) % 2 == 0,
 ], ids=['nan', 'complex', 'bool'])
 def test_json_pyramid_summaries(tmp_path, data):
-    _zarr(tmp_path / 'a.zarr', data, (20, 20))
+    write_zarr(tmp_path / 'a.zarr', data, (20, 20))
     mc.ras_pyramid(str(tmp_path / 'a.zarr'), str(tmp_path / 'pyr'))
     _summary(summarize(str(tmp_path / 'pyr')))
 
 
 def test_json_quicklook(tmp_path, capsys, rng):
-    _zarr(tmp_path / 'ras.zarr', rng.random((64, 48)).astype(np.float32))
+    write_zarr(tmp_path / 'ras.zarr', rng.random((64, 48)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
     capsys.readouterr()
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--json']) == 0
-    _check(_json_out(capsys), 'Every output', 'quicklook')
+    _check(json_out(capsys), 'Every output', 'quicklook')
     assert main(['view', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'v.ipynb'), '--json']) == 0
-    _check(_json_out(capsys), 'Every output', 'view')
+    _check(json_out(capsys), 'Every output', 'view')
 
 
 PIPELINE = '''
@@ -137,11 +127,11 @@ out_dir = "pyr"
 
 
 def test_json_run_and_status(tmp_path, capsys, rng):
-    _zarr(tmp_path / 'ras.zarr', rng.random((30, 40)).astype(np.float32), (10, 40))
+    write_zarr(tmp_path / 'ras.zarr', rng.random((30, 40)).astype(np.float32), (10, 40))
     path = tmp_path / 'p.toml'
     path.write_text(PIPELINE.format(operation='ras>0.5'))
     assert main(['run', str(path), '--json']) == 0
-    out = _json_out(capsys)
+    out = json_out(capsys)
     _check(out, 'Every output', 'run')
     assert set(out['plan'][0]) == {'name', 'command', 'action'}
     for step in out['steps']:
@@ -151,13 +141,13 @@ def test_json_run_and_status(tmp_path, capsys, rng):
     assert out['steps'][1]['quicklooks']
 
     assert main(['status', str(path), '--json']) == 0
-    out = _json_out(capsys)
+    out = json_out(capsys)
     _check(out, 'Every output', 'status')
     assert {'name', 'command', 'status'} <= set(out['steps'][0])
 
     path.write_text(PIPELINE.format(operation='nonsense>'))
     assert main(['run', str(path), '--json']) == 1
-    out = _json_out(capsys)
+    out = json_out(capsys)
     assert out['ok'] is False and 'error' not in out
     _check(out, 'Every output', 'run')
     assert out['steps'][-1]['status'] == 'failed'
@@ -204,7 +194,7 @@ def test_pipeline_variables_from_files(tmp_path):
 @pytest.mark.parametrize('rows', [1024, 16])     # one band, or bands of 16 lines with levels beyond the band
 def test_raster_pyramid_layout(tmp_path, rng, rows):
     ras = rng.random((50, 37, 2)).astype(np.float32)
-    _zarr(tmp_path / 'ras.zarr', ras, (20, 20, 1))
+    write_zarr(tmp_path / 'ras.zarr', ras, (20, 20, 1))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), chunks=(16, 16), rows=rows)
     pyr = tmp_path / 'pyr'
     meta = zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']
@@ -229,9 +219,9 @@ def test_raster_pyramid_layout(tmp_path, rng, rows):
 
 def test_point_cloud_pyramid_layout(tmp_path, rng):
     n = 200
-    g = np.stack(np.unravel_index(np.sort(rng.choice(40 * 30, n, replace=False)), (40, 30)), -1)
-    _zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); _zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
-    _zarr(tmp_path / 'pc.zarr', rng.random(n).astype(np.float32))
+    g = random_gix(rng, (40, 30), n)
+    write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+    write_zarr(tmp_path / 'pc.zarr', rng.random(n).astype(np.float32))
     mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'),
                   y=str(tmp_path / 'y.zarr'), ras_resolution=1)
     pyr = tmp_path / 'pyr'
@@ -270,7 +260,7 @@ def test_raster_pyramid_mean(tmp_path, rng):
     """method mean: every level is the mean of the blocks of the data over the finite pixels, in bands too."""
     ras = rng.random((50, 37)).astype(np.float32)
     ras[5:20, 3:9] = np.nan; ras[:2] = np.nan
-    _zarr(tmp_path / 'ras.zarr', ras, (20, 20))
+    write_zarr(tmp_path / 'ras.zarr', ras, (20, 20))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), method='mean', rows=16)
     pyr = tmp_path / 'pyr'
     assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']['method'] == 'mean'
@@ -281,14 +271,14 @@ def test_raster_pyramid_mean(tmp_path, rng):
         np.testing.assert_allclose(z[:], _block_means(ras.astype(np.float64), 2 ** level), rtol=1e-6, atol=1e-7)
     # complex data: complex means; integers: float32 levels
     c = np.exp(1j * rng.uniform(-np.pi, np.pi, (20, 24, 2))).astype(np.complex64)
-    _zarr(tmp_path / 'c.zarr', c, (20, 24, 1))
+    write_zarr(tmp_path / 'c.zarr', c, (20, 24, 1))
     mc.ras_pyramid(str(tmp_path / 'c.zarr'), str(tmp_path / 'cpyr'), method='mean')
     z = zarr.open(str(tmp_path / 'cpyr' / '2.zarr'), mode='r')
     assert z.dtype == np.complex64
     for k in range(2):
         np.testing.assert_allclose(z[..., k], _block_means(c[..., k].astype(np.complex128), 4), rtol=1e-5, atol=1e-6)
     n = (rng.random((20, 24)) * 10).astype(np.int32)
-    _zarr(tmp_path / 'n.zarr', n)
+    write_zarr(tmp_path / 'n.zarr', n)
     mc.ras_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'npyr'), method='mean')
     assert zarr.open(str(tmp_path / 'npyr' / '0.zarr'), mode='r').dtype == np.int32
     z = zarr.open(str(tmp_path / 'npyr' / '1.zarr'), mode='r')
@@ -304,8 +294,8 @@ def test_point_cloud_pyramid_mean(tmp_path, rng):
     where a cell has no point (first too)."""
     pts = np.array([(y, x) for y in range(12) for x in range(10) if (x + y) % 3 == 0])
     val = rng.random(len(pts)).astype(np.float32)
-    _zarr(tmp_path / 'x.zarr', pts[:, 1].astype(float)); _zarr(tmp_path / 'y.zarr', pts[:, 0].astype(float))
-    _zarr(tmp_path / 'v.zarr', val)
+    write_zarr(tmp_path / 'x.zarr', pts[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', pts[:, 0].astype(float))
+    write_zarr(tmp_path / 'v.zarr', val)
     mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
                   ras_resolution=1, method='mean')
     pyr = tmp_path / 'pyr'
@@ -318,7 +308,7 @@ def test_point_cloud_pyramid_mean(tmp_path, rng):
         idx = zarr.open(str(pyr / f'idx_{level}.zarr'), mode='r')[:]            # still the first point of the block
         assert ((idx >= 0) == np.isfinite(_block_means(grid, 2 ** level))).all()
     counts = (rng.random(len(pts)) * 5 + 1).astype(np.int16)
-    _zarr(tmp_path / 'n.zarr', counts)
+    write_zarr(tmp_path / 'n.zarr', counts)
     for method in ('first', 'mean'):
         mc.pc_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / f'n_{method}'), x=str(tmp_path / 'x.zarr'),
                       y=str(tmp_path / 'y.zarr'), ras_resolution=1, method=method)
@@ -336,8 +326,8 @@ def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
     # one point in three cells of a 60 x 40 grid, including the last line and column
     yi, xi = np.nonzero((np.arange(60)[:, None] + np.arange(40)[None, :]) % 3 == 0)
     x, y = x0 + xi * res, y0 + yi * res
-    _zarr(tmp_path / 'x.zarr', x); _zarr(tmp_path / 'y.zarr', y)
-    _zarr(tmp_path / 'pc.zarr', np.arange(len(x), dtype=np.float32))
+    write_zarr(tmp_path / 'x.zarr', x); write_zarr(tmp_path / 'y.zarr', y)
+    write_zarr(tmp_path / 'pc.zarr', np.arange(len(x), dtype=np.float32))
     mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'),
                   y=str(tmp_path / 'y.zarr'), ras_resolution=res)
     import toml
@@ -352,7 +342,7 @@ def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
 
 
 def test_newer_pyramid_is_rejected(tmp_path, rng):
-    _zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
+    write_zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
     zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r+').attrs['moraine_pyramid'] = {
         'version': PYRAMID_VERSION + 1, 'kind': 'raster'}
