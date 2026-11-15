@@ -6,7 +6,6 @@ __all__ = ['load_gamma_flatten_rslc', 'load_gamma_lat_lon_hgt', 'load_gamma_look
 
 from pathlib import Path
 import tempfile
-import re
 import os
 import logging
 import math
@@ -26,42 +25,43 @@ from ..api.utils_.orbit import bperp as _bperp
 from .logging import mc_logger
 from .executor import Executor, Chunk
 
-def _rdc_width_nlines(image_par):
-    """get slc width and number of lines.
+def _read_gamma_par(par):
+    """Keys and values of a GAMMA parameter file (image, DEM, ...).
+
+    Parameters
+    ----------
+    par : str
+        GAMMA parameter file, lines 'key: values [units]'
+
+    Returns
+    -------
+    dict
+        key (str, the text before the colon of a line) -> the words after the colon (list of str); of a key given
+        more than once, its last line
     """
-    with open(image_par) as f:
+    values = {}
+    with open(par) as f:
         for line in f:
-            if re.search('range_samples',line):
-                rdc_width = int(line.split()[1])
-            if re.search('azimuth_lines',line):
-                rdc_nlines = int(line.split()[1])
-    return rdc_width, rdc_nlines
+            key, colon, value = line.partition(':')
+            if colon:
+                values[key.strip()] = value.split()
+    return values
+
+def _rdc_width_nlines(image_par):
+    """width and number of lines of an image (GAMMA image par file)"""
+    par = _read_gamma_par(image_par)
+    return int(par['range_samples'][0]), int(par['azimuth_lines'][0])
 
 def _geo_width_nlines(dem_par):
-    """get dem width and number of lines.
-    """
-    with open(dem_par) as f:
-        for line in f:
-            if re.search('width',line):
-                geo_width = int(line.split()[1])
-            if re.search('nlines',line):
-                geo_nlines = int(line.split()[1])
-    return geo_width, geo_nlines
+    """width and number of lines of a DEM (GAMMA DEM par file)"""
+    par = _read_gamma_par(dem_par)
+    return int(par['width'][0]), int(par['nlines'][0])
 
 def _cor_pos_dem(dem_par):
-    """get corner lat and lon and post lat and lon
-    """
-    with open(dem_par) as f:
-        for line in f:
-            if re.search('corner_lat',line):
-                cor_lat = float(line.split()[1])
-            if re.search('corner_lon',line):
-                cor_lon = float(line.split()[1])
-            if re.search('post_lat',line):
-                pos_lat = float(line.split()[1])
-            if re.search('post_lon',line):
-                pos_lon = float(line.split()[1])
-    return cor_lat, cor_lon, pos_lat, pos_lon
+    """latitude and longitude of the corner and the spacings in latitude and longitude of a DEM (GAMMA DEM par file),
+    degrees"""
+    par = _read_gamma_par(dem_par)
+    return tuple(float(par[key][0]) for key in ('corner_lat', 'corner_lon', 'post_lat', 'post_lon'))
 
 def _fetch_slc_par_date(rslc_dir,
                        ):
@@ -359,12 +359,8 @@ def load_gamma_range(rslc_par:str,
     logger = logging.getLogger(__name__)
     rdc_width, rdc_nlines = _rdc_width_nlines(rslc_par)
     logger.info(f'image shape: ({rdc_nlines},{rdc_width})')
-    with open(rslc_par) as f:
-        for line in f:
-            if re.search('near_range_slc',line):
-                rho0 = float(line.split()[1])
-            if re.search('range_pixel_spacing',line):
-                d_rho = float(line.split()[1])
+    par = _read_gamma_par(rslc_par)
+    rho0, d_rho = float(par['near_range_slc'][0]), float(par['range_pixel_spacing'][0])
 
     logger.info('Calculating slant range distance.')
     rho1d = np.arange(rdc_width)*d_rho+rho0
@@ -376,17 +372,12 @@ def load_gamma_range(rslc_par:str,
 
 def _read_gamma_center_time(par):
     """UTC time of the centre line of a GAMMA SLC par file, aware datetime to the microsecond"""
-    day = center = None
-    with open(par) as f:
-        for line in f:
-            key, _, value = line.partition(':')
-            key, value = key.strip(), value.split()
-            if key == 'date':           # year month day; Sentinel-1 adds the start time of the original product
-                day = datetime.datetime(*(int(v) for v in value[:3]), tzinfo=datetime.timezone.utc)
-            elif key == 'center_time':  # s of that day, read exactly (no float rounding)
-                center = Decimal(value[0])
-    if day is None or center is None:
+    values = _read_gamma_par(par)
+    if 'date' not in values or 'center_time' not in values:
         raise ValueError(f'{par}: no date or center_time')
+    # date: year month day; Sentinel-1 adds the start time of the original product
+    day = datetime.datetime(*(int(v) for v in values['date'][:3]), tzinfo=datetime.timezone.utc)
+    center = Decimal(values['center_time'][0])   # s of that day, read exactly (no float rounding)
     return day + datetime.timedelta(microseconds=round(center*1000000))
 
 @mc_logger
@@ -424,22 +415,10 @@ def load_gamma_metadata(rslc_dir:str,
     meta['times'] = times
 
     logger.info('fetching slc related metadata.')
-    with open(rslc_dir/(reference+'.rslc.par')) as f:
-        for line in f:
-            if re.search('radar_frequency',line):
-                radar_f = float(line.split()[1])
-                rdr_wavelen = speed_of_light/radar_f
-                logger.info('Fetching randar wavelength')
-            if re.search('range_pixel_spacing',line):
-                dr = float(line.split()[1])
-                logger.info('Fetching range pixel spacing')
-            if re.search('azimuth_pixel_spacing',line):
-                daz = float(line.split()[1])
-                logger.info('fetching azimuth pixel spacing')
-
-    meta['radar_wavelength'] = rdr_wavelen
-    meta['range_pixel_spacing'] = dr
-    meta['azimuth_pixel_spacing'] = daz
+    par = _read_gamma_par(rslc_dir/(reference+'.rslc.par'))
+    meta['radar_wavelength'] = speed_of_light/float(par['radar_frequency'][0])
+    meta['range_pixel_spacing'] = float(par['range_pixel_spacing'][0])
+    meta['azimuth_pixel_spacing'] = float(par['azimuth_pixel_spacing'][0])
 
     logger.info('fetching dem related metadata')
     geo_width, geo_nlines = _geo_width_nlines(dem_par)
@@ -485,24 +464,18 @@ def load_gamma_metadata(rslc_dir:str,
 def _read_gamma_orbit(par):
     """times (s of the day), positions (m) and velocities (m/s) of the orbit state vectors of a GAMMA par file, shapes
     (n,), (n, 3), (n, 3)"""
-    n = t0 = dt = None
+    values = _read_gamma_par(par)
     pos, vel = {}, {}
-    with open(par) as f:
-        for line in f:
-            key, _, value = line.partition(':')
-            key, value = key.strip(), value.split()
-            if key == 'number_of_state_vectors':
-                n = int(value[0])
-            elif key == 'time_of_first_state_vector':
-                t0 = float(value[0])
-            elif key == 'state_vector_interval':
-                dt = float(value[0])
-            elif key.startswith('state_vector_position_'):
-                pos[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
-            elif key.startswith('state_vector_velocity_'):
-                vel[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
-    complete = n is not None and sorted(pos) == list(range(1, n+1)) and sorted(vel) == list(range(1, n+1))
-    if not complete or t0 is None or dt is None:
+    for key, value in values.items():
+        if key.startswith('state_vector_position_'):
+            pos[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
+        elif key.startswith('state_vector_velocity_'):
+            vel[int(key.rsplit('_', 1)[1])] = [float(v) for v in value[:3]]
+    keys = ('number_of_state_vectors', 'time_of_first_state_vector', 'state_vector_interval')
+    if any(key not in values for key in keys):
+        raise ValueError(f'{par}: incomplete orbit state vectors')
+    n, t0, dt = int(values[keys[0]][0]), float(values[keys[1]][0]), float(values[keys[2]][0])
+    if sorted(pos) != list(range(1, n+1)) or sorted(vel) != list(range(1, n+1)):
         raise ValueError(f'{par}: incomplete orbit state vectors')
     return (t0 + dt*np.arange(n), np.array([pos[k] for k in range(1, n+1)]),
             np.array([vel[k] for k in range(1, n+1)]))

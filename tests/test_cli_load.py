@@ -59,6 +59,23 @@ def test_read_gamma_center_time(tmp_path):
         _read_gamma_center_time(par)
 
 
+def test_read_gamma_par(tmp_path):
+    """A key is the whole text before the colon of a line: other keys containing it and values naming it do not
+    count."""
+    from moraine.cli.load import _read_gamma_par, _rdc_width_nlines, _geo_width_nlines
+    image = tmp_path / 'image.par'
+    image.write_text('Gamma Interferometric SAR Processor (ISP) - Image Parameter File\n\ntitle:  range_samples: 5\n'
+                     'range_samples:   1834\nazimuth_lines:   2500\noffset_estimation_range_samples:   32\n'
+                     'map_azimuth_lines:   0\n')
+    assert _read_gamma_par(image) == {'title': ['range_samples:', '5'], 'range_samples': ['1834'],
+                                      'azimuth_lines': ['2500'], 'offset_estimation_range_samples': ['32'],
+                                      'map_azimuth_lines': ['0']}
+    assert _rdc_width_nlines(image) == (1834, 2500)
+    dem = tmp_path / 'dem_par'
+    dem.write_text('Gamma DIFF&GEO DEM/MAP parameter file\ntitle: width\nwidth:   5741\nnlines:   3223\nmap_width:   12\n')
+    assert _geo_width_nlines(dem) == (5741, 3223)
+
+
 def test_load_gamma_lat_lon_hgt(gamma, tmp_path):
     g = gamma / 'geocoding'
     out = [str(tmp_path / f) for f in ('lat.zarr', 'lon.zarr', 'hgt.zarr')]
