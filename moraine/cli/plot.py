@@ -144,8 +144,8 @@ def _part_stats(a, step):
 
 
 def _pool_stats(parts, dtype):
-    """Statistics of the data from the `_part_stats` of all its parts, like `_stats`: the exact nan fraction,
-    minimum, maximum, mean and standard deviation, the percentiles of the pooled sample, and warnings."""
+    """Statistics of the data from the `_part_stats` of all its parts: the exact nan fraction, minimum, maximum,
+    mean and standard deviation, the percentiles of the pooled sample, and warnings."""
     n = sum(p['n'] for p in parts)
     if n == 0:
         return {'warnings': ['no values']}
@@ -541,39 +541,8 @@ def _round(x):
 
 
 def _stats(a):
-    """Statistics and warnings of a sample of values (1D array)."""
-    out, warnings = {}, []
-    if a.size == 0:
-        return {'warnings': ['no values']}
-    if a.dtype == bool:
-        out['true_fraction'] = _round(a.mean())
-        if a.all() or not a.any():
-            warnings.append(f'all values are {bool(a[0])}')
-        return {**out, 'warnings': warnings} if warnings else out
-    prefix = ''
-    if np.iscomplexobj(a):
-        nan = np.isnan(a.real) | np.isnan(a.imag)
-        a, prefix = np.abs(a), 'amplitude_'
-    else:
-        a = a.astype(np.float64)
-        nan = np.isnan(a)
-    out['nan_fraction'] = _round(nan.mean())
-    inf = np.isinf(a)
-    v = a[~nan & ~inf]
-    if inf.any():
-        warnings.append(f'{int(inf.sum())} infinite values in the sample')
-    if v.size == 0:
-        warnings.append('all values are nan')
-    else:
-        p = np.percentile(v, [1, 50, 99])
-        out.update({prefix + 'min': _round(v.min()), prefix + 'max': _round(v.max()), prefix + 'mean': _round(v.mean()),
-                    prefix + 'std': _round(v.std()), prefix + 'p01': _round(p[0]), prefix + 'p50': _round(p[1]),
-                    prefix + 'p99': _round(p[2])})
-        if v.min() == v.max():
-            warnings.append(f'all values are {_round(v.min())}')
-    if warnings:
-        out['warnings'] = warnings
-    return out
+    """Statistics and warnings of the values of an array, as `_pool_stats` of the array as one part."""
+    return _pool_stats([_part_stats(a, 1)], a.dtype)
 
 
 def _pyramid_stats(p, levels, max_bytes):
