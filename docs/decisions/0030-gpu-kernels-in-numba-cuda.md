@@ -23,8 +23,8 @@ pixel pre and post processing of `n2f`) take 0.1-1 ms more per call.
 - GPU kernels are numba.cuda kernels; array operations and linear algebra stay with cupy (e.g. the batched
   matrix products of the coherence). The maintainer prefers one way of writing GPU code to the launch
   overhead of tiny kernels.
-- `numba-cuda` is a GPU dependency, installed with conda like cupy, dask-cuda and rmm (README); without it the
-  built-in CUDA target of numba is used.
+- `numba-cuda` is a GPU dependency, installed with conda like cupy, dask-cuda and rmm (README; dask-cuda and rmm
+  were removed by decision 0034); without it the built-in CUDA target of numba is used.
 
 ## Consequences
 

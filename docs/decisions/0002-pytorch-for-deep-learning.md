@@ -26,8 +26,9 @@ All deep learning models run with PyTorch. Models are `state_dict` `.pth` files 
 github.com/kanglcn/n2f, n2ft.pth from github.com/kanglcn/n2ft) downloaded by
 `moraine.download_dl_model()`, loaded once and cached by `moraine.api.dl.model._load_model`. PyTorch is an optional
 dependency (`pip install moraine[dl]`) imported only when a model is used. cupy arrays are passed to
-torch with DLPack; CLI GPU workers allocate torch memory from the rmm pool. n2ft uses a fixed farthest
-point sampling start (`start_idx=0`) so results are reproducible.
+torch with DLPack; CLI GPU workers allocate torch memory from the rmm pool (removed by decision 0034: cupy
+and torch use their own memory pools). n2ft uses a fixed farthest point sampling start (`start_idx=0`) so
+results are reproducible.
 
 ## Consequences
 
