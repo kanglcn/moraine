@@ -14,6 +14,7 @@ from numba import njit
 import moraine as mr
 from moraine.api.unwrap.mcf import mcf_pc, _mcf_network, _mcf_residues, _mcf_ssp, _mcf_integrate
 from moraine.api.unwrap.gamma import gamma_mcf_pt
+from conftest import write_zarr, need_gamma
 
 
 def wrap(unw):
@@ -188,13 +189,11 @@ def test_mcf_pc_not_worse_than_gamma(ds_ph):
     assert r['total'] <= int((np.abs(k) * r['cost']).sum())
 
 
-needs_gamma = pytest.mark.skipif(__import__('shutil').which('mcf_pt') is None, reason='GAMMA mcf_pt not found')
-
-
 @pytest.fixture(scope='module')
 def ramp_ph(ds_ph):
     """Sample interferogram plus a ramp of about 3 cycles, and a point that is not in the same cycle as
     the first point: with it as reference, the result differs from the default reference."""
+    need_gamma('mcf_pt')
     gix, ph = ds_ph
     ph = (ph * np.exp(1j * 0.05 * gix[:, 1])).astype(np.complex64)
     unw0 = gamma_mcf_pt(gix[:, 1], gix[:, 0], ph)
@@ -202,7 +201,6 @@ def ramp_ph(ds_ph):
     return gix, ph, k
 
 
-@needs_gamma
 def test_gamma_mcf_pt_weights_and_reference(ramp_ph):
     gix, ph, k = ramp_ph
     x, y = gix[:, 1], gix[:, 0]
@@ -213,15 +211,13 @@ def test_gamma_mcf_pt_weights_and_reference(ramp_ph):
     assert abs(unw[k] - np.angle(ph[k])) < 1e-5      # the reference point keeps its wrapped phase
 
 
-@needs_gamma
 def test_cli_gamma_mcf_pt_reference(ramp_ph, tmp_path):
     import zarr
     import moraine.cli as mc
     gix, ph, k = ramp_ph
     for name, data in [('x.zarr', gix[:, 1].astype(np.float64)), ('y.zarr', gix[:, 0].astype(np.float64)),
                        ('ph.zarr', np.stack((np.ones_like(ph), ph), -1).astype(np.complex64))]:
-        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=data.shape)
-        z[:] = data
+        write_zarr(tmp_path / name, data)
     mc.gamma_mcf_pt(str(tmp_path / 'x.zarr'), str(tmp_path / 'y.zarr'), str(tmp_path / 'ph.zarr'),
                     str(tmp_path / 'unw.zarr'), np.array([[1, 0]]), ref_point=k)
     unw = zarr.open(str(tmp_path / 'unw.zarr'), mode='r')[:, 0]
@@ -589,13 +585,6 @@ def test_closure_without_loops_and_errors():
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, min_region_points=0)
 
 
-def _write_zarr(path, data, chunks):
-    import zarr
-    z = zarr.open(str(path), mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks)
-    z[:] = data
-    return str(path)
-
-
 @pytest.mark.parametrize('chunk', [97, 2000])
 def test_cli_emcf_pc(tmp_path, chunk):
     """The command equals the API (coordinates in meters from the pixel spacings), with blocks of the temporal
@@ -609,9 +598,9 @@ def test_cli_emcf_pc(tmp_path, chunk):
     gix = np.stack((y / 10, x / 10), -1).astype(np.int32)
     weight = np.random.default_rng(0).uniform(0, 1, len(x)).astype(np.float32)
     pairs = hop3(len(t))
-    paths = dict(gix=_write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
-                 ph=_write_zarr(tmp_path / 'ph.zarr', ph, (chunk, 1)),
-                 weight=_write_zarr(tmp_path / 'w.zarr', weight, (chunk,)))
+    paths = dict(gix=write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
+                 ph=write_zarr(tmp_path / 'ph.zarr', ph, (chunk, 1)),
+                 weight=write_zarr(tmp_path / 'w.zarr', weight, (chunk,)))
     for tc, sc in (('constant', 'length'), ('length', 'length+weight')):
         out = str(tmp_path / f'unw_{tc}.zarr')
         mc.emcf_pc(paths['gix'], paths['ph'], pairs, out, range_pixel_spacing=4.0, azimuth_pixel_spacing=3.0,
@@ -627,13 +616,13 @@ def test_cli_emcf_pc(tmp_path, chunk):
 def test_cli_emcf_pc_errors(tmp_path):
     import moraine.cli as mc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=300)
-    gix = _write_zarr(tmp_path / 'gix.zarr', np.stack((y / 10, x / 10), -1).astype(np.int32), (100, 2))
+    gix = write_zarr(tmp_path / 'gix.zarr', np.stack((y / 10, x / 10), -1).astype(np.int32), (100, 2))
     pairs = hop3(len(t))
     args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
-    by_point = _write_zarr(tmp_path / 'ph_rows.zarr', ph, (100, len(t)))
+    by_point = write_zarr(tmp_path / 'ph_rows.zarr', ph, (100, len(t)))
     with pytest.raises(ValueError, match='one image per chunk'):
         mc.emcf_pc(gix, by_point, pairs, str(tmp_path / 'u.zarr'), **args)
-    ph_path = _write_zarr(tmp_path / 'ph.zarr', ph, (100, 1))
+    ph_path = write_zarr(tmp_path / 'ph.zarr', ph, (100, 1))
     with pytest.raises(ValueError, match='acquisition times'):
         mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), temporal_cost='length', **args)
     with pytest.raises(ValueError, match='dates'):
@@ -650,9 +639,9 @@ def _islands_files(tmp_path, chunk):
     intf = d['ph'][:, pairs[:, 0]] * d['ph'][:, pairs[:, 1]].conj()
     unw = np.stack([mcf_pc(d['x'], d['y'], intf[:, k]) for k in range(len(pairs))], -1).astype(np.float32)
     gix = np.stack((d['y'], d['x']), -1).astype(np.int32)
-    paths = dict(gix=_write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
-                 ph=_write_zarr(tmp_path / 'ph.zarr', d['ph'], (chunk, 1)),
-                 unw=_write_zarr(tmp_path / 'unw.zarr', unw, (chunk, 1)))
+    paths = dict(gix=write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
+                 ph=write_zarr(tmp_path / 'ph.zarr', d['ph'], (chunk, 1)),
+                 unw=write_zarr(tmp_path / 'unw.zarr', unw, (chunk, 1)))
     return d, pairs, unw, paths
 
 
@@ -684,10 +673,10 @@ def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
     d, pairs, unw, paths = _islands_files(tmp_path, 500)
     args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
     out = str(tmp_path / 'ts.zarr')
-    rows = _write_zarr(tmp_path / 'unw_rows.zarr', unw, (500, unw.shape[1]))
+    rows = write_zarr(tmp_path / 'unw_rows.zarr', unw, (500, unw.shape[1]))
     with pytest.raises(ValueError, match='one image'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], rows, pairs, out, **args)
-    shifted = _write_zarr(tmp_path / 'unw_shifted.zarr', unw + 1.0, (500, 1))
+    shifted = write_zarr(tmp_path / 'unw_shifted.zarr', unw + 1.0, (500, 1))
     with pytest.raises(ValueError, match='rewrap'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], shifted, pairs, out, **args)
     assert (tmp_path / 'ts.zarr.tmp').exists()                            # kept when the command fails
@@ -696,12 +685,12 @@ def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
     with pytest.raises(ValueError, match='ref'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs, out, ref=-1, **args)
     two = np.r_[hop3(6), hop3(6) + 6]
-    two_unw = _write_zarr(tmp_path / 'unw_two.zarr', unw[:, :len(two)].copy(), (500, 1))
+    two_unw = write_zarr(tmp_path / 'unw_two.zarr', unw[:, :len(two)].copy(), (500, 1))
     with pytest.raises(ValueError, match='connect all images'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], two_unw, two, out, **args)
     seq = np.c_[np.arange(11), np.arange(1, 12)]
     seq_unw = (d['true'][:, seq[:, 0]] - d['true'][:, seq[:, 1]]).astype(np.float32)
-    seq_path = _write_zarr(tmp_path / 'unw_seq.zarr', seq_unw, (500, 1))
+    seq_path = write_zarr(tmp_path / 'unw_seq.zarr', seq_unw, (500, 1))
     with pytest.warns(UserWarning, match='no loop'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], seq_path, seq, out, **args)
     np.testing.assert_allclose(zarr.open(out, mode='r')[:], d['true'] - d['true'][:, [0]], atol=1e-4)
@@ -714,8 +703,8 @@ def test_cli_mcf_pc(tmp_path, chunk):
     import moraine.cli as mc
     x, y, t, b, true, ph = emcf_synthetic(noise=0.8, n=1500)
     gix = np.stack((y / 10, x / 10), -1).astype(np.int32)
-    paths = dict(gix=_write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
-                 ph=_write_zarr(tmp_path / 'ph.zarr', ph, (chunk, 1)))
+    paths = dict(gix=write_zarr(tmp_path / 'gix.zarr', gix, (chunk, 2)),
+                 ph=write_zarr(tmp_path / 'ph.zarr', ph, (chunk, 1)))
     pairs = hop3(len(t))[:7]
     for sc in ('constant', 'length'):
         out = str(tmp_path / f'unw_{sc}.zarr')
@@ -726,7 +715,7 @@ def test_cli_mcf_pc(tmp_path, chunk):
         for k, (a, b_) in enumerate(pairs):
             ref = mcf_pc(gix[:, 1] * 4.0, gix[:, 0] * 3.0, ph[:, a] * ph[:, b_].conj(), spatial_cost=sc)
             np.testing.assert_array_equal(z[:, k], ref.astype(np.float32))
-    rows = _write_zarr(tmp_path / 'ph_rows.zarr', ph, (chunk, len(t)))
+    rows = write_zarr(tmp_path / 'ph_rows.zarr', ph, (chunk, len(t)))
     with pytest.raises(ValueError, match='one image per chunk'):
         mc.mcf_pc(paths['gix'], rows, str(tmp_path / 'u.zarr'), pairs, range_pixel_spacing=1.0,
                   azimuth_pixel_spacing=1.0)

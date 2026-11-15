@@ -9,21 +9,16 @@ import zarr
 import moraine.cli as mc
 from moraine.cli import view, TileView
 from moraine.cli.tiles import grid_geom, mercator_geom, mercator_pixel, WORLD, Overlay, Layout
+from conftest import write_zarr
 
 RAS = (-0.5, -0.5)       # view origin of rasters: pixel i centred at coordinate i
-
-
-def _zarr(path, a, chunks=None):
-    z = zarr.open(str(path), mode='w', shape=a.shape, dtype=a.dtype, chunks=chunks or a.shape)
-    z[...] = a
-    return z
 
 
 @pytest.fixture
 def ras(tmp_path):
     """300 x 500 raster with value = 1000 * line + column, and its pyramid."""
     a = (1000 * np.arange(300)[:, None] + np.arange(500)[None, :]).astype(np.float32)
-    _zarr(tmp_path / 'ras.zarr', a, (100, 100))
+    write_zarr(tmp_path / 'ras.zarr', a, (100, 100))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'ras_pyr'))
     return a, tmp_path / 'ras_pyr'
 
@@ -32,7 +27,7 @@ def ras(tmp_path):
 def stack(tmp_path, rng):
     """60 x 40 x 4 complex stack of unit phasors and its pyramid."""
     s = np.exp(1j * rng.uniform(-np.pi, np.pi, (60, 40, 4))).astype(np.complex64)
-    _zarr(tmp_path / 'stack.zarr', s, (30, 40, 1))
+    write_zarr(tmp_path / 'stack.zarr', s, (30, 40, 1))
     mc.ras_pyramid(str(tmp_path / 'stack.zarr'), str(tmp_path / 'stack_pyr'))
     return s, tmp_path / 'stack_pyr'
 
@@ -42,9 +37,9 @@ def grid_pc(tmp_path):
     """Points on the radar grid (lines 3 - 62, columns 2 - 41, one cell in three) with value
     1000 * line + column, and their pyramid."""
     pts = np.array([(y, x) for y in range(3, 63) for x in range(2, 42) if (x + y) % 3 == 0], dtype=float)
-    _zarr(tmp_path / 'gy.zarr', pts[:, 0])
-    _zarr(tmp_path / 'gx.zarr', pts[:, 1])
-    _zarr(tmp_path / 'val.zarr', (1000 * pts[:, 0] + pts[:, 1]).astype(np.float32))
+    write_zarr(tmp_path / 'gy.zarr', pts[:, 0])
+    write_zarr(tmp_path / 'gx.zarr', pts[:, 1])
+    write_zarr(tmp_path / 'val.zarr', (1000 * pts[:, 0] + pts[:, 1]).astype(np.float32))
     mc.pc_pyramid(str(tmp_path / 'val.zarr'), str(tmp_path / 'pc_pyr'), x=str(tmp_path / 'gx.zarr'),
                   y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
     return [tuple(int(c) for c in p) for p in pts], tmp_path / 'pc_pyr'
@@ -60,9 +55,9 @@ def mercator_pc(tmp_path):
     res = mercator_pixel(15)
     west, top = -WORLD / 2 + TX * 256 * res, WORLD / 2 - TY * 256 * res
     ab = np.array([(a, b) for a in range(60) for b in range(40) if (a + b) % 3 == 0])
-    _zarr(tmp_path / 'mx.zarr', west + (ab[:, 1] + 0.5) * res)
-    _zarr(tmp_path / 'my.zarr', top - (ab[:, 0] + 0.5) * res)
-    _zarr(tmp_path / 'val.zarr', (1000 * ab[:, 0] + ab[:, 1]).astype(np.float32))
+    write_zarr(tmp_path / 'mx.zarr', west + (ab[:, 1] + 0.5) * res)
+    write_zarr(tmp_path / 'my.zarr', top - (ab[:, 0] + 0.5) * res)
+    write_zarr(tmp_path / 'val.zarr', (1000 * ab[:, 0] + ab[:, 1]).astype(np.float32))
     mc.pc_pyramid(str(tmp_path / 'val.zarr'), str(tmp_path / 'merc_pyr'), x=str(tmp_path / 'mx.zarr'),
                   y=str(tmp_path / 'my.zarr'), ras_resolution=res)
     return [tuple(int(c) for c in q) for q in ab], res, west, top, tmp_path / 'merc_pyr'
@@ -301,7 +296,7 @@ def test_rejects(tmp_path, ras):
     a, pyr = ras
     with pytest.raises(FileNotFoundError):
         view(str(tmp_path / 'missing.zarr'))
-    _zarr(tmp_path / 'line.zarr', np.arange(10.0))
+    write_zarr(tmp_path / 'line.zarr', np.arange(10.0))
     with pytest.raises(ValueError, match='x.*and.*y'):
         view(str(tmp_path / 'line.zarr'))
     with pytest.raises(ValueError, match='resolution'):
@@ -320,8 +315,8 @@ def _coh_pc(tmp_path, pairs):
     k = np.arange(len(pairs))[None, :]
     pt = np.arange(12)[:, None]
     coh = ((k + 1) / 10 * np.exp(1j * 0.1 * (pt + 1) * (k + 1))).astype(np.complex64)
-    _zarr(tmp_path / 'gy.zarr', gy.astype(float)); _zarr(tmp_path / 'gx.zarr', gx.astype(float))
-    _zarr(tmp_path / 'coh.zarr', coh, (12, 1))
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', coh, (12, 1))
     mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'coh_pyr'), x=str(tmp_path / 'gx.zarr'),
                   y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
     return coh, tmp_path / 'coh_pyr'
@@ -393,7 +388,7 @@ def test_raster_time_series(tmp_path, stack, rng):
     assert layer.series(-1, 3, 1) is None
     # another time series, e.g. unwrapped phase, with nan; an array works as well as a zarr path
     ts = rng.random((60, 40, 7)).astype(np.float32); ts[3, 7, 2] = np.nan
-    _zarr(tmp_path / 'ts.zarr', ts)
+    write_zarr(tmp_path / 'ts.zarr', ts)
     for series in (str(tmp_path / 'ts.zarr'), ts):
         t = view(str(pyr), series=series).series(7, 3, 1, ref=[0, 0])
         assert t['values'][2] is None

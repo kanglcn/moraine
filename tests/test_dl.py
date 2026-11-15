@@ -7,14 +7,9 @@ import moraine as mr
 from moraine.api.dl.raster import _pre_infer_n2f_numba, _after_infer_n2f_numba, _pre_infer_n2fs3d_numba, n2f, n2fs3d
 from moraine.api.dl.model import _load_model, _get_model
 from moraine.api.dl.pc import n2ft
+from conftest import need_models, phase_diff
 
 torch = pytest.importorskip('torch')
-GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
-
-
-def _phase_diff(a, b):
-    ok = np.isfinite(a) & np.isfinite(b)
-    return np.abs(np.angle(a[ok] * b[ok].conj()))
 
 
 @pytest.fixture(scope='module')
@@ -29,11 +24,7 @@ def adi(rslc):
 
 @pytest.fixture(autouse=True)
 def _need_model(request):
-    name = {'test_n2fs3d': 'n2fs3d', 'test_n2ft': 'n2ft'}.get(request.node.originalname, 'n2f')
-    try:
-        _get_model(name)
-    except FileNotFoundError:
-        pytest.skip(f'{name} model not downloaded, run moraine.download_dl_model()')
+    need_models({'test_n2fs3d': 'n2fs3d', 'test_n2ft': 'n2ft'}.get(request.node.originalname, 'n2f'))
 
 
 def test_pre_after_infer_n2f(intf):
@@ -84,11 +75,10 @@ def test_n2f_half_model(intf):
     assert isinstance(out, cp.ndarray) and out.dtype == np.float32 and out.shape == x.shape
     np.testing.assert_allclose(cp.hypot(out[0, 0], out[0, 1]).get(), 1, rtol=1e-5)
     ref = _infer_unet(full, x)
-    d = _phase_diff((out[0, 0] + 1j * out[0, 1]).get(), (ref[0, 0] + 1j * ref[0, 1]).get())
+    d = phase_diff((out[0, 0] + 1j * out[0, 1]).get(), (ref[0, 0] + 1j * ref[0, 1]).get())
     assert np.median(d) < 2e-3 and np.percentile(d, 99) < 5e-2  # float16 against the TF32 model: p99 about 3e-3 rad
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2f(intf, gpu):
     x = intf.copy(); x[0, 0] = 0  # GAMMA writes 0 where there are no data
     x0 = x.copy()
@@ -105,13 +95,12 @@ def test_n2f(intf, gpu):
         np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
         # NaN pixels are filled with random phase, compare medians; the GPU runs the network in float16: ~1e-3 rad
-        assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
+        assert np.median(phase_diff(out, out_cp.get())) < 1e-2
         assert out_cp.dtype == np.complex64
         finite = out_cp.get()[np.isfinite(out_cp.get())]
         np.testing.assert_allclose(np.abs(finite), 1, rtol=1e-4)  # unit amplitude: normalized in float32
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2fs3d(adi, intf, gpu):
     x = intf.copy(); x[0, 0] = 0  # GAMMA writes 0 where there are no data
     x0 = x.copy()
@@ -125,7 +114,7 @@ def test_n2fs3d(adi, intf, gpu):
         out_cp = n2fs3d(cp.asarray(adi), x_cp)
         np.testing.assert_array_equal(x_cp.get(), x0)
         np.testing.assert_array_equal(np.isnan(out_cp.get()), np.isnan(out))
-        assert np.median(_phase_diff(out, out_cp.get())) < 1e-2
+        assert np.median(phase_diff(out, out_cp.get())) < 1e-2
 
 
 @pytest.fixture(scope='module')
@@ -154,7 +143,6 @@ def test_n2ft_compile_default():
     assert not _n2ft_compile_default(0, 91)
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2ft_phasors(rng, gpu):
     """unit phasors of the interferograms on the device, (m, n, 2) float32, as real / |z| and imag / |z|"""
     import torch
@@ -166,7 +154,6 @@ def test_n2ft_phasors(rng, gpu):
     np.testing.assert_allclose(x, expected, atol=1e-6)
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2ft_batched_interferograms(points, gpu):
     """several interferograms of the same points per model call give the results of one call per interferogram"""
     from moraine.api.dl.pc import _n2ft_structure, _infer_n2ft_structure
@@ -177,11 +164,10 @@ def test_n2ft_batched_interferograms(points, gpu):
     structure = _n2ft_structure(x, y, next(model.parameters()).device)
     one = _infer_n2ft_structure(structure, stack, model, max_point_intfs=1)          # one interferogram per call
     batched = _infer_n2ft_structure(structure, stack, model)                        # all five at once
-    assert np.median(_phase_diff(batched, one)) < 1e-5
+    assert np.median(phase_diff(batched, one)) < 1e-5
     np.testing.assert_allclose(batched, one, atol=1e-3)
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2ft(points, gpu):
     x, y, s = points
     ifg = s[:, 0] * s[:, 1].conj()
@@ -193,7 +179,7 @@ def test_n2ft(points, gpu):
     out_stack = n2ft(x, y, stack, chunks=x.shape[0] // 3, cuda=gpu)
     assert out_stack.shape == stack.shape
     if gpu:
-        assert np.median(_phase_diff(out, n2ft(x, y, ifg))) < 1e-3
+        assert np.median(phase_diff(out, n2ft(x, y, ifg))) < 1e-3
 
 
 def test_n2ft_batches():
@@ -214,7 +200,6 @@ def test_n2ft_batches():
                 assert min(sizes) >= 2
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_n2ft_fold_batch_norms(points, gpu):
     """the loaded n2ft model has its batch norms folded into multiply-adds and gives the output of the original model"""
     import torch

@@ -8,12 +8,7 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.command import main
-
-
-def _zarr(path, a, chunks=None):
-    z = zarr.open(str(path), mode='w', shape=a.shape, dtype=a.dtype, chunks=chunks or a.shape)
-    z[...] = a
-    return z
+from conftest import write_zarr, json_out
 
 
 SQUARE = [[2, 2], [6, 2], [6, 5], [2, 5]]                      # range 2 - 6, azimuth 2 - 5
@@ -63,7 +58,7 @@ def test_polygon_mask_raster_keep_inside_outside(tmp_path):
 def test_polygon_mask_points(tmp_path):
     mr.write_polygons(tmp_path / 'grid.geojson', [SQUARE], 'radar_grid')
     gix = np.array([[3, 3], [3, 8], [4, 5], [0, 0], [6, 4]], dtype=np.int32)    # (azimuth, range)
-    _zarr(tmp_path / 'gix.zarr', gix, (2, 2))
+    write_zarr(tmp_path / 'gix.zarr', gix, (2, 2))
     mc.polygon_mask(str(tmp_path / 'grid.geojson'), str(tmp_path / 'm.zarr'), gix=str(tmp_path / 'gix.zarr'))
     m = zarr.open(str(tmp_path / 'm.zarr'), mode='r')
     assert m.shape == (5,) and m.chunks == (2,)
@@ -71,7 +66,7 @@ def test_polygon_mask_points(tmp_path):
     # longitude / latitude polygons with the longitude / latitude of the points (a raster works the same)
     mr.write_polygons(tmp_path / 'geo.geojson', [[[-148, 61], [-147, 61], [-147, 62], [-148, 62]]])
     lon, lat = np.array([-147.5, -146.5, -147.9]), np.array([61.5, 61.5, 61.1])
-    _zarr(tmp_path / 'lon.zarr', lon); _zarr(tmp_path / 'lat.zarr', lat)
+    write_zarr(tmp_path / 'lon.zarr', lon); write_zarr(tmp_path / 'lat.zarr', lat)
     mc.polygon_mask(str(tmp_path / 'geo.geojson'), str(tmp_path / 'g.zarr'), x=str(tmp_path / 'lon.zarr'),
                     y=str(tmp_path / 'lat.zarr'), keep='outside')
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'g.zarr'), mode='r')[:], [False, True, False])
@@ -86,6 +81,6 @@ def test_polygon_mask_command(tmp_path, capsys):
     mr.write_polygons(tmp_path / 'p.geojson', [SQUARE], 'radar_grid')
     assert main(['polygon-mask', '--polygons', str(tmp_path / 'p.geojson'), '--mask', str(tmp_path / 'm.zarr'),
                  '--shape', '8', '16', '--keep', 'outside', '--json', '-q']) == 0
-    out = json.loads(capsys.readouterr().out)
+    out = json_out(capsys)
     assert out['ok'] and str(tmp_path / 'm.zarr') in out['outputs']
     assert not zarr.open(str(tmp_path / 'm.zarr'), mode='r')[3, 4]

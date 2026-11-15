@@ -1,10 +1,11 @@
 """The design decision records in docs/decisions follow the format of docs/decisions/README.md."""
 import re
-from pathlib import Path
 
 import pytest
 
-DIR = Path(__file__).resolve().parents[1] / 'docs' / 'decisions'
+from conftest import REPO
+
+DIR = REPO / 'docs' / 'decisions'
 RECORDS = sorted(p for p in DIR.glob('[0-9][0-9][0-9][0-9]-*.md'))
 SECTIONS = ['Status', 'Date', 'Context', 'Decision', 'Consequences', 'Do not']
 

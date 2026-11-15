@@ -1,13 +1,16 @@
-"""Shared fixtures.
+"""Shared fixtures and helpers (tests import the helpers: ``from conftest import write_zarr``).
 
-Tests marked ``gpu`` run only when cupy and a CUDA device are available.
+Tests marked ``gpu`` run only when cupy and a CUDA device are available; a test that takes the ``gpu`` fixture runs
+on the CPU (``gpu`` False) and on the GPU (True, marked ``gpu``).
 Tests that read the sample data set are skipped when it is missing. The data
 root defaults to ``<repo>/data`` and can be set with ``MORAINE_TEST_DATA``;
 it should contain ``rslc.zarr`` (nlines, width, nimages) and the GAMMA
 output directory ``gamma/``. ``gamma/sim_orb/`` (simulated orbital phases, made by GAMMA's
 ``phase_sim_orb``) is optional; without it the GAMMA loading test takes ~15 min instead of seconds.
 """
+import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -49,6 +52,23 @@ def data_path(*parts) -> Path:
     return p
 
 
+def need_gamma(*programs):
+    """Skip the test if one of the GAMMA programs is not on PATH."""
+    for program in programs:
+        if shutil.which(program) is None:
+            pytest.skip(f'GAMMA command {program} not found')
+
+
+def need_models(*names):
+    """Skip the test if one of the trained models (n2f, n2fs3d, n2ft) is not downloaded."""
+    from moraine.api.dl.model import _get_model
+    for name in names:
+        try:
+            _get_model(name)
+        except FileNotFoundError:
+            pytest.skip(f'{name} model not downloaded, run moraine.download_dl_model()')
+
+
 @pytest.fixture(scope='session')
 def rslc():
     """The sample rslc stack, shape (2500, 1834, 17), complex64."""
@@ -58,6 +78,45 @@ def rslc():
 @pytest.fixture
 def rng():
     return np.random.default_rng(0)
+
+
+@pytest.fixture(params=[False, pytest.param(True, marks=pytest.mark.gpu)])
+def gpu(request):
+    """Where the test runs: False on the CPU, True on the GPU."""
+    return request.param
+
+
+def write_zarr(path, data, chunks=None) -> str:
+    """Write the array `data` to a new zarr array at `path`, in chunks of shape `chunks` (default: one chunk);
+    return the path as a string."""
+    z = zarr.open(str(path), mode='w', shape=data.shape, dtype=data.dtype, chunks=chunks or data.shape)
+    z[...] = data
+    return str(path)
+
+
+def read_zarr(path) -> np.ndarray:
+    """The whole zarr array at `path`."""
+    return zarr.open(str(path), mode='r')[:]
+
+
+def json_out(capsys) -> dict:
+    """The JSON object printed (`--json`) since the last read of `capsys`."""
+    return json.loads(capsys.readouterr().out)
+
+
+def random_gix(rng, shape, n, sort=True) -> np.ndarray:
+    """`n` different random grid indices (azimuth, range) of a raster of `shape`, (n, 2) int32, sorted in raster
+    order unless `sort` is False."""
+    g = rng.choice(shape[0] * shape[1], size=n, replace=False)
+    if sort:
+        g.sort()
+    return np.stack(np.unravel_index(g, shape), axis=-1).astype(np.int32)
+
+
+def phase_diff(a, b) -> np.ndarray:
+    """Absolute phase differences (rad) of the complex arrays `a` and `b` where both are finite, 1D."""
+    ok = np.isfinite(a) & np.isfinite(b)
+    return np.abs(np.angle(a[ok] * b[ok].conj()))
 
 
 def synthetic_shp(rng, shape=(5, 10), nimages=17, half_az_win=1, half_r_win=2, p_true=0.7):

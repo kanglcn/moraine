@@ -5,6 +5,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.ds.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc, _edge_pfa
+from conftest import REPO
 
 
 @pytest.fixture(scope='module')
@@ -197,8 +198,7 @@ if __name__ == "__main__":
         print(pool.map(one, range(4)))
 ''')
     import subprocess, sys
-    from pathlib import Path
-    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(Path(__file__).resolve().parents[1]))
+    env = dict(os.environ, CUDA_VISIBLE_DEVICES='', PYTHONPATH=str(REPO))
     out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, env=env, cwd=tmp_path,
                          timeout=300)
     assert out.returncode == 0 and '[1, 2, 3, 4]' in out.stdout, out.stderr[-3000:]

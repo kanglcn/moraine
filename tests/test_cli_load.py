@@ -1,7 +1,6 @@
 """Loading GAMMA results. Needs the GAMMA software on PATH and the sample GAMMA output."""
 import datetime
 import os
-import shutil
 import tomllib
 
 import numpy as np
@@ -10,16 +9,14 @@ import toml
 import zarr
 
 import moraine.cli as mc
-from conftest import data_path
+from conftest import data_path, need_gamma, write_zarr
 
 NLINES, WIDTH, NIMAGES, REF = 2500, 1834, 17, '20220620'
 
 
 @pytest.fixture(scope='module')
 def gamma():
-    for cmd in ('base_calc', 'geocode', 'phase_sim_orb', 'create_offset'):
-        if shutil.which(cmd) is None:
-            pytest.skip(f'GAMMA command {cmd} not found')
+    need_gamma('base_calc', 'geocode', 'phase_sim_orb', 'create_offset')
     return data_path('gamma')
 
 
@@ -148,9 +145,7 @@ def _synthetic_gamma(tmp_path, n_sv=(15, 15, 15)):
     hgt = np.random.default_rng(0).uniform(0, 1500, (_NL, _W)).astype(np.float32)
     rasters = []
     for name, x in (('lat', lat), ('lon', lon), ('hgt', hgt)):
-        z = zarr.open(str(tmp_path / f'{name}.zarr'), mode='w', shape=x.shape, dtype=x.dtype, chunks=(8, 16))
-        z[:] = x
-        rasters.append(str(tmp_path / f'{name}.zarr'))
+        rasters.append(write_zarr(tmp_path / f'{name}.zarr', x, (8, 16)))
     return rslc_dir, rasters, orbits
 
 

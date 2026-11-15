@@ -5,22 +5,14 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.cli.dl import _cli_pre_infer_n2f_numba
+from conftest import need_models, phase_diff, write_zarr
 
 pytest.importorskip('torch')
-GPU = [False, pytest.param(True, marks=pytest.mark.gpu)]
 
 
 @pytest.fixture(autouse=True)
 def _need_models():
-    try:
-        mr.api.dl.model._get_model('n2f'); mr.api.dl.model._get_model('n2ft')
-    except FileNotFoundError:
-        pytest.skip('models not downloaded, run moraine.download_dl_model()')
-
-
-def _phase_diff(a, b):
-    ok = np.isfinite(a) & np.isfinite(b)
-    return np.abs(np.angle(a[ok] * b[ok].conj()))
+    need_models('n2f', 'n2ft')
 
 
 def test_cli_pre_infer_n2f(rslc):
@@ -70,14 +62,12 @@ def test_n2f_tiles():
     assert sum(len(t) for t in tiles.values()) == 4*4  # azimuth 0,150,200,300; range 0,150,300,450
 
 
-@pytest.mark.parametrize('gpu', GPU)
 def test_cli_n2f_out_chunk(rslc, tmp_path, gpu):
     """one output chunk with all image pairs gives the API result of every pair; 0 in the rslc gives NaN"""
     from moraine.cli.dl import _cli_n2f_out_chunk, _n2f_tiles
     crop = rslc[:400, :400, :4].copy()
     crop[0, 0, 0] = 0  # GAMMA writes 0 where there are no data
-    z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='w', shape=crop.shape, dtype=crop.dtype, chunks=(200, 200, 1))
-    z[:] = crop
+    write_zarr(tmp_path / 'rslc.zarr', crop, (200, 200, 1))
     pairs = np.array([[0, 1], [2, 3]])
     out_zarr = zarr.open(str(tmp_path / 'intf.zarr'), mode='w', shape=(400, 400, 2), dtype=crop.dtype, chunks=(400, 400, 1))
     tiles = _n2f_tiles((400, 400), (200, 200), (400, 400), (32, 32))
@@ -89,30 +79,28 @@ def test_cli_n2f_out_chunk(rslc, tmp_path, gpu):
     for k, (a, b) in enumerate(pairs):
         api = mr.n2f((crop[:, :, a] * crop[:, :, b].conj()).astype(np.complex64), chunks=(200, 200), depths=(32, 32))
         np.testing.assert_array_equal(np.isnan(out[:, :, k]), np.isnan(api))
-        assert np.median(_phase_diff(out[:, :, k], api)) < 1e-2
+        assert np.median(phase_diff(out[:, :, k], api)) < 1e-2
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize('cuda', GPU)
-def test_cli_n2f(rslc, tmp_path, cuda):
+def test_cli_n2f(rslc, tmp_path, gpu):
     crop = rslc[:400, :400, :4]
-    z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='w', shape=crop.shape, dtype=crop.dtype, chunks=(200, 200, 1))
-    z[:] = crop
+    write_zarr(tmp_path / 'rslc.zarr', crop, (200, 200, 1))
     pairs = np.array([[0, 1], [2, 3]])
-    mc.n2f(str(tmp_path / 'rslc.zarr'), str(tmp_path / 'intf.zarr'), pairs, chunks=(200, 200), depths=(32, 32), cuda=cuda)
+    mc.n2f(str(tmp_path / 'rslc.zarr'), str(tmp_path / 'intf.zarr'), pairs, chunks=(200, 200), depths=(32, 32), cuda=gpu)
     out = zarr.open(str(tmp_path / 'intf.zarr'), mode='r')[:]
     assert out.shape == (400, 400, 2)
     api = mr.n2f((crop[:, :, 2] * crop[:, :, 3].conj()).astype(np.complex64), chunks=(200, 200), depths=(32, 32))
     # NaN pixels get random phase, so compare the typical pixel
-    assert np.median(_phase_diff(out[:, :, 1], api)) < 1e-2
+    assert np.median(phase_diff(out[:, :, 1], api)) < 1e-2
     # several processing chunks per output chunk: the tiles of the API's chunkwise processing
     mc.n2f(str(tmp_path / 'rslc.zarr'), str(tmp_path / 'intf2.zarr'), pairs, chunks=(150, 150), out_chunks=(300, 300),
-           depths=(16, 16), cuda=cuda)
+           depths=(16, 16), cuda=gpu)
     out2 = zarr.open(str(tmp_path / 'intf2.zarr'), mode='r')
     assert out2.chunks == (300, 300, 1)
     api2 = mr.n2f((crop[:, :, 2] * crop[:, :, 3].conj()).astype(np.complex64), chunks=(150, 150), depths=(16, 16))
     np.testing.assert_array_equal(np.isnan(out2[:, :, 1]), np.isnan(api2))
-    assert np.median(_phase_diff(out2[:, :, 1], api2)) < 1e-2
+    assert np.median(phase_diff(out2[:, :, 1], api2)) < 1e-2
 
 
 @pytest.fixture(scope='module')
@@ -123,8 +111,7 @@ def ps(rslc, tmp_path_factory):
     data = {'x.zarr': gix[:, 1].astype(np.float64), 'y.zarr': gix[:, 0].astype(np.float64),
             'rslc.zarr': crop[gix[:, 0], gix[:, 1]]}
     for name, a in data.items():
-        z = zarr.open(str(d / name), mode='w', shape=a.shape, dtype=a.dtype, chunks=(a.shape[0], 1) if a.ndim == 2 else (a.shape[0],))
-        z[:] = a
+        write_zarr(d / name, a, (a.shape[0], 1) if a.ndim == 2 else (a.shape[0],))
     return d, data
 
 
@@ -136,20 +123,19 @@ def test_n2ft_block_bounds():
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize('cuda', GPU)
-def test_cli_n2ft(ps, cuda):
+def test_cli_n2ft(ps, gpu):
     d, data = ps
     x, y, s = data['x.zarr'], data['y.zarr'], data['rslc.zarr']
     chunks = x.shape[0] // 4 + 1  # four processing chunks in two output chunks, the same chunks as the API
     pairs = np.array([[0, 1], [2, 3]])
-    mc.n2ft(str(d / 'x.zarr'), str(d / 'y.zarr'), str(d / 'rslc.zarr'), str(d / f'intf_{cuda}.zarr'),
-            pairs, chunks=chunks, out_chunks=2 * chunks, cuda=cuda)
-    out = zarr.open(str(d / f'intf_{cuda}.zarr'), mode='r')
+    mc.n2ft(str(d / 'x.zarr'), str(d / 'y.zarr'), str(d / 'rslc.zarr'), str(d / f'intf_{gpu}.zarr'),
+            pairs, chunks=chunks, out_chunks=2 * chunks, cuda=gpu)
+    out = zarr.open(str(d / f'intf_{gpu}.zarr'), mode='r')
     assert out.chunks == (2 * chunks, 1)
     for k, (a, b) in enumerate(pairs):
-        api = mr.n2ft(x, y, mr.intf(np.ascontiguousarray(s[:, a]), np.ascontiguousarray(s[:, b])), chunks=chunks, cuda=cuda)
-        if cuda:
-            assert np.median(_phase_diff(out[:, k], api)) < 1e-4
+        api = mr.n2ft(x, y, mr.intf(np.ascontiguousarray(s[:, a]), np.ascontiguousarray(s[:, b])), chunks=chunks, cuda=gpu)
+        if gpu:
+            assert np.median(phase_diff(out[:, k], api)) < 1e-4
         else:  # torch in a single thread worker against the threads of this process: rounding only (up to 2e-5)
             np.testing.assert_allclose(out[:, k], api, atol=1e-4)
 
@@ -169,4 +155,4 @@ def test_cli_n2ft_compile(ps, monkeypatch):
     out = zarr.open(out_path, mode='r')
     for k, (a, b) in enumerate(pairs):
         api = mr.n2ft(x, y, mr.intf(np.ascontiguousarray(s[:, a]), np.ascontiguousarray(s[:, b])), chunks=chunks, cuda=True)
-        assert np.median(_phase_diff(out[:, k], api)) < 1e-4
+        assert np.median(phase_diff(out[:, k], api)) < 1e-4

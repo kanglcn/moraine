@@ -8,6 +8,7 @@ import zarr
 
 import moraine as mr
 from moraine.cli.executor import Chunk, Device, Executor, chunk_task, check_aligned
+from conftest import write_zarr
 
 
 def _square(a):
@@ -24,8 +25,7 @@ def _fail(a):
 
 def _stack(path, rng, shape=(64, 48), chunks=(16, 48)):
     data = rng.random(shape).astype(np.float32)
-    z = zarr.open(str(path), mode='w', shape=shape, dtype=data.dtype, chunks=chunks)
-    z[:] = data
+    write_zarr(path, data, chunks)
     return data
 
 
@@ -104,8 +104,7 @@ def test_write_must_cover_whole_chunks(tmp_path, rng):
 @pytest.mark.gpu
 def test_chunk_task_gpu(tmp_path, rng):
     rslc = (rng.random((40, 30, 3)) + 1j * rng.random((40, 30, 3))).astype(np.complex64)
-    z = zarr.open(str(tmp_path / 'rslc.zarr'), mode='w', shape=rslc.shape, dtype=rslc.dtype, chunks=(20, 30, 1))
-    z[:] = rslc
+    write_zarr(tmp_path / 'rslc.zarr', rslc, (20, 30, 1))
     zarr.open(str(tmp_path / 'adi.zarr'), mode='w', shape=rslc.shape[:2], dtype=np.float32, chunks=(20, 30))
     tasks = [([Chunk(str(tmp_path / 'rslc.zarr'), (slice(s, s + 20), slice(0, 30), slice(0, 3)))],
               [Chunk(str(tmp_path / 'adi.zarr'), (slice(s, s + 20), slice(0, 30)))]) for s in (0, 20)]
