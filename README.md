@@ -1,315 +1,201 @@
-# Moraine
+<p align="center">
+  <a href="https://kanglcn.github.io/moraine/">
+    <img src="https://raw.githubusercontent.com/kanglcn/moraine/main/docs/assets/logo.svg" alt="moraine logo" width="112">
+  </a>
+</p>
 
-> Modern Radar Interferometry Environment; A simple, stupid InSAR
-> postprocessing tool in big data era
+<h1 align="center">moraine</h1>
 
-This package provide functions for InSAR post-processing which refers as
-processing after SAR images co-registration and geocoding. The functions
-include PS/DS identification, coherence matrix estimation, phase linking
-etc.
+<p align="center">
+  <b>Modern Radar Interferometry Environment</b><br>
+  InSAR post-processing for the big data era: persistent and distributed scatterers, phase linking, deep learning
+  filters and phase unwrapping, on GPUs, on arrays you can read, with a command line that AI agents speak.
+</p>
 
-<div>
+<p align="center">
+  <a href="https://github.com/kanglcn/moraine/actions/workflows/test.yaml"><img src="https://github.com/kanglcn/moraine/actions/workflows/test.yaml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://kanglcn.github.io/moraine/"><img src="https://github.com/kanglcn/moraine/actions/workflows/docs.yaml/badge.svg?branch=main" alt="Manual"></a>
+  <a href="https://pypi.org/project/moraine/"><img src="https://img.shields.io/pypi/v/moraine" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/moraine/"><img src="https://img.shields.io/pypi/pyversions/moraine" alt="Python versions"></a>
+  <a href="https://github.com/kanglcn/moraine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+</p>
 
-> **Warning**
->
-> Due to the heavy dependence on CuPy and CUDA, this package only works
-> on device with Nivida GPU.
+<p align="center">
+  <a href="https://kanglcn.github.io/moraine/"><b>Manual</b></a> · <a href="https://kanglcn.github.io/moraine/zh/"><b>中文手册</b></a> ·
+  <a href="https://kanglcn.github.io/moraine/start/install/">Install</a> · <a href="https://kanglcn.github.io/moraine/workflows/">Workflows</a> ·
+  <a href="https://kanglcn.github.io/moraine/tutorials/">Tutorials</a> · <a href="https://kanglcn.github.io/moraine/api/">Python API</a> ·
+  <a href="https://kanglcn.github.io/moraine/dev/changelog/">Changelog</a>
+</p>
 
-</div>
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/kanglcn/moraine/main/docs/assets/campi/04_pc_intf_0_91.webp" alt="Interferogram 2019-01-02 / 2021-12-29 of the refined points of Campi Flegrei"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/kanglcn/moraine/main/docs/assets/campi/06_disp_91.webp" alt="Line of sight displacement of Campi Flegrei on 2021-12-29"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Interferogram 2019-01-02 / 2021-12-29 of the refined PS and DS:<br>about ten fringes of the caldera uplift, centred on Pozzuoli</sub></td>
+    <td align="center"><sub>Line of sight displacement (mm), 2019-01-02 to 2021-12-29:<br>the uplift of Pozzuoli, towards the satellite</sub></td>
+  </tr>
+</table>
 
-<div>
+<p align="center"><sub>Campi Flegrei (Italy), Sentinel-1 descending track 22, 92 dates from 2019 to 2021: quicklooks of the
+<a href="https://kanglcn.github.io/moraine/workflows/">verified example pipelines</a>.</sub></p>
 
-> **Warning**
->
-> This package is under intensive development. API is subjected to
-> change without any noticement.
+moraine takes co-registered SAR images (GAMMA results) to deformation time series: it selects persistent and
+distributed scatterers, links their phases, filters them with deep learning, unwraps them and computes line of sight
+displacements. It is a collection of functions rather than a fixed workflow, made for data larger than memory and for
+GPUs, with a command line that people, scripts and AI agents can drive. It is under active development (alpha): the
+API can change between versions, as the [changelog](https://kanglcn.github.io/moraine/dev/changelog/) records.
 
-</div>
+## ✨ Highlights
 
-## Principle[^1]
+- 📡 **PS and DS**: amplitude dispersion, statistically homogeneous pixels by a Kolmogorov-Smirnov test, coherence
+  matrices, and EMI phase linking with an adaptive regularization of the matrices that are not positive definite.
+- 🧠 **Deep learning filters**: Noise2Fringe (`n2f`) for raster interferograms and the Noise2Fringe Transformer
+  (`n2ft`) for point clouds, trained models run with PyTorch.
+- 🌀 **Phase unwrapping**: minimum cost flow on a Delaunay network of the points, EMCF on any network of image pairs,
+  unwrapping errors corrected by phase closure; moraine's own code, no GAMMA needed.
+- ⚡ **CPU and GPU**: numba kernels on the CPU cores, numba.cuda kernels on one or several GPUs; most API functions take
+  numpy or cupy arrays and return the same kind.
+- 📦 **Larger than memory**: zarr on disk, processed chunk by chunk by moraine's own workers; designed for tens of
+  millions of points and stacks of hundreds of images.
+- 🔁 **Pipelines that resume**: a processing chain is a TOML file; a rerun skips the steps whose arguments and inputs
+  did not change and reruns everything downstream of a change.
+- 📖 **Self-documenting commands**: every `moraine.cli` function is a `moraine` command whose help (shapes, dtypes,
+  units, defaults) is generated from its docstring; `--json` prints one JSON object for scripts and agents.
+- 🔍 **Checks without plotting code**: statistics and anomaly warnings of a result (`moraine info`), PNG quicklooks
+  (`moraine quicklook`) and notebooks of interactive maps (`moraine view`) with time series, polygons and 3D views
+  over the terrain.
+- 🤖 **Agent ready**: [AGENTS.md](https://github.com/kanglcn/moraine/blob/main/AGENTS.md) tells coding agents how to
+  run and check the processing; you describe the data, the agent runs the verified pipelines and reports.
 
-### Simplicity
+<details>
+<summary><b>🧭 Design principles</b></summary>
 
-There is no perfect workflow that always generate satisfactory InSAR
-result, mostly due to decorrelation, strong atmospheric artifact and
-high deformation gradient. Different methods implemented in different
-packages need to be tried which is frustrating especially when the
-packages are over-encapsulated and no detailed documentations are
-provided. Furthermore, it brings more dirty work when users need to save
-intermediate data from one software and prepared them in a designated
-format and structure required by another software.
+Adapted from the principles of [Arch Linux](https://wiki.archlinux.org/title/Arch_Linux).
 
-Moraine defines simplicity as *without complex data structure and
-over-encapsulation*. Most data in Moraine is just the basic
-multi-dimentional array, i.e., [NumPy](https://numpy.org/) array or
-[CuPy](https://cupy.dev/) array in memory, or
-[Zarr](https://zarr.readthedocs.io/en/stable/) on disk. Instead of
-providing a standard workflow as
-[StamPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/) and
-[MintPy](https://mintpy.readthedocs.io/en/latest/), Moraine is designed
-as a collection of functions that implement specific InSAR processing
-techniques and data manipulation infrastructure.
+- **Simplicity**: no complex data structures, no over-encapsulation. Data are numpy or cupy arrays in memory and zarr
+  arrays on disk; every result is an array that any tool can open. Instead of a standard workflow like
+  [StaMPS](https://homepages.see.leeds.ac.uk/~earahoo/stamps/) or [MintPy](https://mintpy.readthedocs.io/en/latest/),
+  moraine is a collection of functions, each implementing one InSAR technique, and the data infrastructure around them.
+- **Modernity**: state-of-the-art techniques (PS / DS selection, phase linking, deep learning filters) and the
+  performance the big data era needs: numba on the CPU cores, numba.cuda on GPUs, data larger than memory.
+- **Pragmatism**: no workflow always gives a satisfactory result; decorrelation, atmosphere and strong deformation
+  gradients defeat every fixed chain somewhere. moraine provides the building blocks and the user designs the workflow
+  case by case.
+- **User centrality**: moraine serves the needs of those who contribute to it rather than trying to appeal to as many
+  users as possible. It is made for the proficient InSAR user, or anyone with a do-it-yourself attitude, who is willing
+  to read the documentation and solve their own problems.
 
-### Modernity
+</details>
 
-Moraine strives to implement state-of-art InSAR techniques, including
-advanced PS/DS identification, phase linking and deep-learning-based
-methods.
+## 🛠️ The processing chain
 
-Moraine also emphasizes performance, especially in this big data era.
-Most Moraine functions are implemented with well-optimized GPU code or
-OpenMP code. The commands process zarr data chunk by chunk with
-moraine's own workers, in threads or in one process per GPU, so the
-data can be larger than memory and several GPUs work on it at once.
+Six example pipelines take GAMMA results to displacements. Each is run end to end on the sample data set and has a
+guide with the parameters to tune, the expected results and the checks.
 
-### Pragmatism
+| | pipeline | what it does | main commands |
+|---|---|---|---|
+| 01 | [Load](https://kanglcn.github.io/moraine/workflows/01_load/) | GAMMA results to zarr: rslc stack, coordinates, look vectors, baselines, metadata | `load-gamma-*`, `transform` |
+| 02 | [PS](https://kanglcn.github.io/moraine/workflows/02_ps/) | amplitude dispersion and Noise2Fringe temporal coherence | `amp-disp`, `n2f`, `temp-coh` |
+| 03 | [DS](https://kanglcn.github.io/moraine/workflows/03_ds/) | statistically homogeneous pixels, coherence matrices, EMI phase linking, DS selection | `shp-test`, `emperical-co-emi-temp-coh-pc` |
+| 04 | [Refine](https://kanglcn.github.io/moraine/workflows/04_refine/) | PS and DS merged, Noise2Fringe Transformer, temporal coherence | `pc-union`, `n2ft`, `temp-coh` |
+| 05 | [Unwrap](https://kanglcn.github.io/moraine/workflows/05_unwrap/) | EMCF on a network of image pairs, phase closure correction | `emcf-pc`, `unwrap-correct-closure-pc` |
+| 06 | [Products](https://kanglcn.github.io/moraine/workflows/06_products/) | reference area, line of sight displacement in millimetres | `pc-reference`, `pc-disp` |
 
-Moraine is a pragmatic library rather than an ideological workflow. The
-large number of functions in MOraine offer free and open source
-implementation for many InSAR techniques. Ultimately, workflow designs
-are made on a case-by-case basis by the user. We provide the necessary
-infrastructure and your role is to be innovative!
+## 🚀 Quick start
 
-### User centrality
-
-Whereas many InSAR packages attempt to be more user-friendly, Moraine
-has always been, and shall always remain user-centric. This package is
-intended to fill the needs of those contributing to it, rather than
-trying to appeal to as many users as possible. It is targeted at the
-proficient InSAR user, or anyone with a do-it-yourself attitude who is
-willing to read the documentation, and solve their own problems.
-
-All users are encouraged to participate and contribute to this package.
-Reporting bugs and requesting new features by raising a Github
-[issue](https://github.com/kanglcn/moraine/issues) is highly valued and
-bugs fixing, documentation improving and features implementation by make
-a Github [pull request](https://github.com/kanglcn/moraine/pulls) are
-very appreciated. Users can also freely ask questions, provide technical
-assistance to others or just exchange opinions in the
-[discussions](https://github.com/kanglcn/moraine/discussions).
-
-## Install
-
-Because of GPU driver and CUDA Version Compatibility, there is no simple
-solution for CUDA related packages installation. Users need to
-successfully install
-[cupy](https://docs.cupy.dev/en/stable/install.html#installation) and
-numba-cuda first.
-
-Here is some tips for installing them. Generally, the cuda driver is
-alrealy installed and maintained by the system administrator. Users only
-need to determine the right cudatoolkit version. Frist run
-
-``` bash
-nvidia-smi
+```bash
+pip install moraine                  # or: conda install -c conda-forge moraine
+pip install 'moraine[dl]'            # PyTorch, for the deep learning filters
+python -c "import moraine; moraine.download_dl_model()"     # the trained models, once
 ```
 
-It will prints something like:
+Everything runs on the CPU; for GPUs add cupy and numba-cuda for your CUDA version with conda, as the
+[install guide](https://kanglcn.github.io/moraine/start/install/) explains. The example pipelines are in the
+repository:
 
-    ...
-    +-----------------------------------------------------------------------------+
-    | NVIDIA-SMI 525.105.17   Driver Version: 525.105.17   CUDA Version: 12.0     |
-    |-------------------------------+----------------------+----------------------+
-    ...
-
-The `CUDA Version` is the maxminum cudatoolkit version that supported by
-the current CUDA driver. Here we use version 11.8 as an example. Then
-you can install the needed cudatoolkit, cupy and numba-cuda by:
-
-``` bash
-conda install -c "nvidia/label/cuda-11.8.0" cuda-toolkit
-conda install -c conda-forge cupy numba-cuda cuda-version=11.8
+```bash
+git clone https://github.com/kanglcn/moraine.git && cd moraine
+moraine run examples/01_load.toml --workdir WORK \
+    --var gamma=/path/to/gamma --var reference=YYYYMMDD --var geo=YYYYMMDD
+moraine run examples/02_ps.toml --workdir WORK --var shape=NLINES,WIDTH    # then 03 to 06, in order
+moraine status examples/02_ps.toml --workdir WORK      # the state; run a file again to resume it
+moraine info WORK/ps/ras_adi_pyramid                   # statistics of a result, without loading it
+moraine quicklook WORK/ps/ras_adi_pyramid -o adi.png   # a picture of the whole scene
+moraine view WORK/ps/ras_adi_pyramid -o view.ipynb     # interactive maps in Jupyter or VS Code
 ```
 
-The numba-cuda package is NVIDIA's package of the numba CUDA target that moraine's GPU kernels use; without it the
-deprecated CUDA target built into numba is used, which starts every kernel about 4 times slower. numba-cuda finds
-the CUDA libraries through `CONDA_PREFIX` (an activated environment) or `CUDA_HOME`; if none is set, moraine sets
-`CUDA_HOME` to the conda environment of the python that runs it.
+Examples 02 to 04 run on a GPU (`cuda = true`): to run them on the CPU or to change a parameter, copy the file and edit
+the copy. The [workflow guides](https://kanglcn.github.io/moraine/workflows/) give the variables of every file, and the
+[tutorials](https://kanglcn.github.io/moraine/tutorials/) run the same chain from Python.
 
-Then
+<details>
+<summary><b>🐍 The same from Python</b></summary>
 
-With conda:
+```python
+import moraine as mr          # arrays in memory: numpy on the CPU, cupy on the GPU
+import moraine.cli as mc      # zarr in, zarr out, chunk by chunk
 
-``` bash
-conda install -c conda-forge moraine
+ph = mr.emi(coh)                                               # phase linking of a block of points
+mc.emi('ds/ds_can_coh.zarr', 'ds/ds_can_ph.zarr', cuda=True)   # the same for a whole data set, on the GPUs
+mc.view('pc/pc_ph_pyramid', show='intf_seq')                   # an interactive map in a notebook
 ```
 
-Or with pip:
+`help(mr.emi)`, `help(mc.emi)` and `moraine emi --help` describe the same function.
 
-``` bash
-pip install moraine
-```
+</details>
 
-The deep learning filters (`n2f`, `n2fs3d`, `n2ft`) additionally need
-[PyTorch](https://pytorch.org/get-started/locally/) and the trained
-models:
+<details>
+<summary><b>🤖 Or ask a coding agent</b></summary>
 
-``` bash
-pip install 'moraine[dl]'   # or install torch following the PyTorch guide for your CUDA version
-python -c "import moraine; moraine.download_dl_model()"
-```
+> process the GAMMA data in `/data/site_a` (reference 20220620) up to unwrapping in `/work/site_a`
 
-In development mode:
+A coding agent working in the repository (Claude Code, Codex, Cursor, ...) reads
+[AGENTS.md](https://github.com/kanglcn/moraine/blob/main/AGENTS.md) and the workflow guides, runs the verified
+pipelines, compares the results with the expected ranges, looks at the quicklooks and reports. The manual has a
+[recorded session](https://kanglcn.github.io/moraine/agent/) on the Campi Flegrei data set.
 
-``` bash
-git clone git@github.com:kanglcn/moraine.git ./moraine
-cd ./moraine
-pip install -e '.[dev,dl]'
-pytest                      # or `pytest -m "not slow"` for a quick run
-```
+</details>
 
-Tests that need the sample data set, a GPU, GAMMA or the deep learning
-models are skipped when these are not available. Point
-`MORAINE_TEST_DATA` to the sample data directory (default: `./data`,
-containing `rslc.zarr` and the GAMMA output `gamma/`; `gamma/sim_orb/` with the
-precomputed simulated orbital phases makes the GAMMA loading test take seconds
-instead of ~15 min) to run them.
+## 📚 Documentation
 
-## How to use
+**[The manual](https://kanglcn.github.io/moraine/)** is in English and [中文](https://kanglcn.github.io/moraine/zh/).
+Its main pages:
 
-The manual is at <https://kanglcn.github.io/moraine/>: concepts, the
-workflows, the command line and Python API references generated from the
-code, the tutorials and a recorded session with an AI agent. Every
-function is documented by its docstring, e.g. `help(moraine.emi)` or
-`help(moraine.cli.emi)`, and every command by `moraine COMMAND --help`.
-The source of the manual is `docs/` (`pip install -e '.[docs]'`,
-`mkdocs serve`).
+| page | what is there |
+|---|---|
+| [Install](https://kanglcn.github.io/moraine/start/install/) | pip or conda, the GPU packages, the deep learning models, GAMMA |
+| [Concepts](https://kanglcn.github.io/moraine/start/concepts/) | the three layers, rasters and point clouds, chunks, pipelines, GPU or CPU |
+| [Checking results](https://kanglcn.github.io/moraine/start/checking/) | pyramids, `moraine info`, `moraine quicklook`, `moraine view` |
+| [Workflows](https://kanglcn.github.io/moraine/workflows/) | the six example pipelines with their parameters, expected results and checks |
+| [Tutorials](https://kanglcn.github.io/moraine/tutorials/) | the same chain as notebooks of `moraine.cli` calls with interactive maps |
+| [Command line](https://kanglcn.github.io/moraine/cli/), [Python API](https://kanglcn.github.io/moraine/api/) | every command and function, generated from the docstrings: arguments, shapes, dtypes, defaults, examples |
+| [Theory](https://kanglcn.github.io/moraine/theory/emcf/) | the principle of EMCF unwrapping and of the phase closure correction |
+| [Talk to an agent](https://kanglcn.github.io/moraine/agent/) | a recorded session of an AI agent processing a data set |
+| [Changelog](https://kanglcn.github.io/moraine/dev/changelog/), [Roadmap](https://kanglcn.github.io/moraine/roadmap/) | what changed, what is planned |
 
-## Command line and pipelines
+In the terminal, `moraine list` lists the commands and `moraine COMMAND --help` prints the reference of one.
 
-Every processing function of `moraine.cli` is also a `moraine` command,
-with its options and help generated from the function docstring:
+## 🤝 Contributing
 
-``` bash
-moraine list                                   # all commands
-moraine amp-disp --help
-moraine amp-disp --rslc raw/rslc.zarr --adi ps/adi.zarr --cuda
-moraine info ps/adi.zarr                       # shape, dtype and chunks of a result
-moraine ras-pyramid --ras ps/adi.zarr --out_dir ps/adi_pyramid
-moraine info ps/adi_pyramid                    # + statistics of all the data and anomaly warnings
-moraine quicklook ps/adi_pyramid -o adi.png    # PNG of the whole scene, drawn from the pyramid
-moraine view ps/adi_pyramid -o view.ipynb      # notebook with interactive maps (moraine.cli.view)
-moraine image-pairs --rslc raw/rslc.zarr --bandwidth 1 --out pairs.txt
-```
+Bug reports and feature requests are welcome as [issues](https://github.com/kanglcn/moraine/issues), questions and
+ideas in the [discussions](https://github.com/kanglcn/moraine/discussions), fixes, documentation and new methods as
+pull requests. [Developing moraine](https://kanglcn.github.io/moraine/development/) explains how a change is
+discussed, made, validated and submitted, [ARCHITECTURE.md](https://github.com/kanglcn/moraine/blob/main/ARCHITECTURE.md)
+maps the code and the [design decisions](https://kanglcn.github.io/moraine/decisions/) say why it is built this way.
 
-A whole processing chain can be written in a TOML file and run with
-`moraine run pipeline.toml`. Finished steps are skipped when their
-arguments and inputs did not change, so a failed or modified pipeline is
-resumed where needed; `moraine status pipeline.toml` shows the state,
-and logs, output metadata and PNGs of the pyramids made by `ras-pyramid`
-/ `pc-pyramid` steps are kept in `.moraine/`:
+## 📜 License
 
-``` toml
-[defaults]
-cuda = true
+moraine is free software under the [GPL-3.0](https://github.com/kanglcn/moraine/blob/main/LICENSE). The trained deep
+learning models, downloaded by `moraine.download_dl_model()`, are under
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
-[[step]]
-name = "adi"
-run = "amp-disp"
-rslc = "raw/rslc.zarr"
-adi = "ps/adi.zarr"
+## ⭐ Star history
 
-[[step]]
-name = "ps_can"
-run = "pc-logic-ras"
-ras = "ps/adi.zarr"
-gix = "ps/ps_can_gix.zarr"
-operation = "(ras>=0)&(ras<=0.3)"
-```
-
-Add `--json` to any command for machine readable output (logs go to
-stderr), which makes moraine easy to drive from scripts and AI agents.
-
-The whole processing chain is available as verified example pipelines
-in [examples](./examples) (load GAMMA data, PS, DS, PS+DS refinement,
-unwrapping), each with a guide in [docs/workflows](./docs/workflows):
-parameters, expected result ranges and checks.
-
-## Processing with an AI agent
-
-[AGENTS.md](./AGENTS.md) tells coding agents (Claude Code, Codex,
-Cursor, ...) how to run and check moraine processing; `CLAUDE.md` and
-`.claude/skills/` point Claude Code to it. Prepare the input data, then
-ask the agent in plain words, e.g. "process the GAMMA data in
-/data/site_a (reference 20220620) up to unwrapping in /work/site_a".
-
-## Contact us
-
-- Most discussion happens on
-  [GitHub](https://github.com/kanglcn/moraine). Feel free to [open an
-  issue](https://github.com/kanglcn/moraine/issues/new) or comment on
-  any open issue or pull request.
-- use github
-  [discussions](https://github.com/kanglcn/moraine/discussions) to ask
-  questions or leave comments.
-
-## License
-
-- This package is opened under
-  [GPL-v3](https://www.gnu.org/licenses/gpl-3.0.en.html).
-- The deep learning models under `moraine/dl_model/*` are opened under
-  [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
-
-## General Guidelines for Making a Pull Request (PR)[^2]
-
-We follow the [git pull request
-workflow](https://www.asmeurer.com/git-workflow/) to make changes to our
-codebase.
-
-Before you make a PR, have a quick look at the titles of all the
-existing issues first. If there is already an issue that matches your
-PR, leave a comment there to let us know what you plan to do. Otherwise,
-open an issue describing what you want to do.
-
-What should be included in a PR
-
-- Each pull request should consist of a small and logical collection of
-  changes; larger changes should be broken down into smaller parts and
-  integrated separately.
-
-- Bug fixes should be submitted in separate PRs.
-
-How to write and submit a PR
-
-- Read [docs/development.md](./docs/development.md) (how to change,
-  validate and report), [ARCHITECTURE.md](./ARCHITECTURE.md) (module map),
-  [docs/decisions/](./docs/decisions/README.md) and
-  [docs/contracts/](./docs/contracts/README.md) (formats others depend on).
-
-- The source code is the `.py` files in `moraine/`. Document new
-  functions with [numpy style
-  docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and
-  add tests in `tests/`; run `pytest` before submitting.
-
-- The CI runs on machines without GPU, so GPU related packages (`cupy`,
-  `numba.cuda`) must only be imported behind
-  `moraine.api.utils_.is_cuda_available()`, and GPU tests are marked with
-  `@pytest.mark.gpu`.
-
-- Describe what your PR changes and why this is a good thing. Be as
-  specific as you can. The PR description is how we keep track of the
-  changes made to the project over time.
-
-- Do not commit changes to files that are irrelevant to your feature or
-  bugfix (e.g.: .gitignore, IDE project files, etc).
-
-- Write descriptive commit messages. Chris Beams has written a
-  [guide](https://cbea.ms/git-commit/) on how to write good commit
-  messages.
-
-PR review
-
-Be willing to accept criticism and work on improving your code; we don’t
-want to break other users’ code, so care must be taken not to introduce
-bugs.
-
-Be aware that the pull request review process is not immediate, and is
-generally proportional to the size of the pull request.
-
-[^1]: The pronciples are modified from the
-    [principle](https://wiki.archlinux.org/title/Arch_Linux) of Arch
-    Linux.
-
-[^2]: this is modified from the [Contributers
-    Guide](https://www.pygmt.org/latest/contributing.html) of
-    [PyGMT](https://www.pygmt.org/latest/index.html).
+<a href="https://www.star-history.com/#kanglcn/moraine&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=kanglcn/moraine&type=Date&theme=dark">
+    <img alt="Star history of kanglcn/moraine" src="https://api.star-history.com/svg?repos=kanglcn/moraine&type=Date" width="600">
+  </picture>
+</a>
