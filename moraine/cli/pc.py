@@ -9,12 +9,12 @@ import logging
 from pathlib import Path
 import zarr
 import numpy as np
-import numexpr as ne
 from typing import Callable
 
 from .logging import mc_logger
 import moraine as mr
 from ..api.utils_.chunk import all_chunk_slices
+from ..api.utils_.expr import evaluate
 from .zarr_ import ZarrDir, _parallel_read_pc_dir, whole_trailing, _parallel_read_pc_dir_whole
 from .executor import Executor, Chunk
 from .utils_ import mk_clean_dir
@@ -813,7 +813,8 @@ def pc_logic_ras(ras,
         output: grid index (azimuth, range) of the point cloud, shape (n_points, 2), int, of the pixels
         where `operation` is True
     operation : str
-        numexpr expression on the raster, which is named `ras`, e.g. '(ras>=0)&(ras<=0.3)'
+        elementwise expression of the raster, which is named `ras`, in the syntax of `math`, e.g.
+        '(ras>=0)&(ras<=0.3)'
     chunks : int, default: 100000
         chunk size in output data, optional
     """
@@ -822,7 +823,7 @@ def pc_logic_ras(ras,
     ras_zarr = zarr.open(ras, mode='r'); logger.zarr_info(ras,ras_zarr)
 
     ras = ras_zarr[:]; logger.info('loading ras into memory.')
-    is_pc = ne.evaluate(operation,{'ras':ras})
+    is_pc = evaluate(operation,{'ras':ras})
     logger.info(f'select pc based on operation: {operation}')
     gix = np.stack(np.where(is_pc),axis=-1).astype(np.int32)
     n_pc = gix.shape[0]
@@ -852,7 +853,7 @@ def pc_logic_pc(idx_in:str,
     idx : str
         output: grid index or hillbert index of the points where `operation` is True
     operation : str
-        numexpr expression on the point cloud data, which is named `pc_in`, e.g.
+        elementwise expression of the point cloud data, which is named `pc_in`, in the syntax of `math`, e.g.
         '(pc_in>=0.1)&(pc_in<=0.5)'
     chunks : int, optional
         point chunk size of the output data, same as `idx_in` by default
@@ -865,7 +866,7 @@ def pc_logic_pc(idx_in:str,
     idx_in = idx_in_zarr[:]; logger.info('loading idx_in into memory.')
     pc_in = pc_in_zarr[:]; logger.info('loading pc_in into memory.')
 
-    is_pc = ne.evaluate(operation,{'pc_in':pc_in})
+    is_pc = evaluate(operation,{'pc_in':pc_in})
     logger.info(f'select pc based on operation: {operation}')
     idx = idx_in[is_pc]
     n_pc = idx.shape[0]
