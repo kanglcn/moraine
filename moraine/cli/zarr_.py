@@ -9,7 +9,7 @@ import math
 from pathlib import Path
 import zarr
 import numpy as np
-from ..api.utils_.chunk import fill_slice as _fill_slice, all_chunk_slices
+from ..api.utils_.chunk import fill_slice as _fill_slice
 
 
 def _one_chunk_slices_and_out_shape(data_zarr,slices):
@@ -20,7 +20,6 @@ def _one_chunk_slices_and_out_shape(data_zarr,slices):
     out_shape = []
     for i in range(len(slices)):
         chunk_size = data_zarr.chunks[i]
-        shape = data_zarr.shape[i]
         zarr_slices = slices[i]
         start = zarr_slices.start
         stop = zarr_slices.stop

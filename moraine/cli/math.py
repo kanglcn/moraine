@@ -5,7 +5,6 @@ __all__ = ['math']
 
 import logging
 import zarr
-import numpy as np
 
 from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.expr import evaluate

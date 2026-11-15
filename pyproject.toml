@@ -73,5 +73,9 @@ markers = [
 extend-exclude = ["nbs", ".ipynb_checkpoints"]
 
 [tool.ruff.lint]
-# only errors that break at run time: syntax errors, undefined names, invalid comparisons / statements
-select = ["E9", "F63", "F7", "F82"]
+# errors that break at run time (syntax errors, undefined names, invalid comparisons / statements) and dead code
+# (unused imports and variables)
+select = ["E9", "F63", "F7", "F82", "F401", "F841"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]    # the packages re-export the names of their modules

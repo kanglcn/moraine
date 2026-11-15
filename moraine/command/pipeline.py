@@ -162,10 +162,6 @@ def _why_rerun(step, rec, workdir):
     return None
 
 
-def _is_done(step, rec, workdir):
-    return _why_rerun(step, rec, workdir) is None
-
-
 @contextlib.contextmanager
 def _in_dir(d):
     old = os.getcwd()

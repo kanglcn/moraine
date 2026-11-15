@@ -42,8 +42,6 @@ from ..api.tnet import check_image_pairs
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'ts', 'plot']
 # functions that need python callables as input
 _EXCLUDE = {'data_reduce'}
-# options added to every command
-_GLOBAL_OPTIONS = ('json', 'traceback', 'log', 'quiet')
 # version of the --json output format, see docs/contracts/json-output.md
 JSON_VERSION = 1
 
@@ -245,7 +243,6 @@ def commands()->dict:
                 continue
             summary, docs = parse_docstring(raw.__doc__)
             cmd = Command(fname.replace('_', '-'), f, mod, summary)
-            skip = False
             for p in inspect.signature(raw).parameters.values():
                 if p.kind is inspect.Parameter.VAR_KEYWORD:
                     cmd.has_kwargs = True
@@ -253,16 +250,11 @@ def commands()->dict:
                     continue
                 kind, text = _kind(p)
                 required = p.default is inspect.Parameter.empty
-                if 'Callable' in text:
-                    if required:
-                        skip = True
-                    continue
                 typ, desc = docs.get(p.name, (text, ''))
                 n, scalar = _tuple_spec(text) if kind == 'tuple' else (None, False)
                 cmd.params.append(Param(p.name, kind, required, None if required else p.default, typ or text, desc,
                                         n, scalar))
-            if not skip:
-                out[cmd.name] = cmd
+            out[cmd.name] = cmd
     return out
 
 
@@ -365,7 +357,7 @@ def _setup_logging(args):
     if getattr(args, 'log', None):
         fh = logging.FileHandler(args.log); fh.setFormatter(fmt); fh.setLevel(logging.INFO); root.addHandler(fh)
         root.setLevel(logging.INFO)
-    for noisy in ('distributed', 'bokeh', 'numba', 'matplotlib', 'fsspec', 'asyncio'):
+    for noisy in ('numba', 'matplotlib', 'fsspec', 'asyncio'):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
 

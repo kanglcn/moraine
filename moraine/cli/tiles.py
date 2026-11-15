@@ -261,7 +261,6 @@ def _crs(x0, y0, xm, ym, res, crs, what):
 def _show(base, show, image_pairs, sliders, dates, is_pc):
     """(name, raster function, point function, sliders [(name, count)], phase_like, default slider values)
     of a `show` option."""
-    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
         if len(stack) != 1:

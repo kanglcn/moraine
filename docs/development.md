@@ -157,7 +157,7 @@ mkdocs serve                   # http://127.0.0.1:8000/
 Run the layers that the change can affect, from cheap to expensive:
 
 ```bash
-ruff check                    # syntax errors and undefined names (rules in pyproject.toml)
+ruff check                    # syntax errors, undefined names, unused imports and variables (rules in pyproject.toml)
 pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
 pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
                               # (with a GPU the process leaves through os._exit after the report: numba-cuda 0.30

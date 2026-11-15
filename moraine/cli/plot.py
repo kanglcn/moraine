@@ -462,7 +462,6 @@ def pc_pyramid(
     pc_zarr = zarr.open(pc,mode='r')
     logger.zarr_info(pc, pc_zarr)
 
-    n_pc = pc_zarr.shape[0]
     channel_chunks = (1,)*(pc_zarr.ndim-1)
     logger.info(f'rendering point cloud data coordinates:')
     if x is None and y is None:

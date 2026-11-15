@@ -21,7 +21,6 @@ import os
 import pickle
 import queue
 import tempfile
-import threading
 import time
 import traceback
 import uuid

@@ -5,7 +5,6 @@ __all__ = ['gamma_mcf_pt', 'mcf_pc', 'emcf_pc', 'unwrap_correct_closure_pc']
 
 import logging
 import zarr
-import time
 import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor

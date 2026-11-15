@@ -4,7 +4,6 @@
 __all__ = ['load_gamma_flatten_rslc', 'load_gamma_lat_lon_hgt', 'load_gamma_look_vector', 'load_gamma_range',
            'load_gamma_metadata', 'load_gamma_bperp']
 
-import glob
 from pathlib import Path
 import tempfile
 import re
@@ -15,15 +14,13 @@ import datetime
 from decimal import Decimal
 import toml
 import zarr
-import time
 
 import numpy as np
 import numba
 from ..api.utils_ import mjit
 from scipy.constants import speed_of_light
 
-import moraine as mr
-from ..api.utils_.gamma_io import read_gamma_image, write_gamma_image, read_gamma_plist, write_gamma_plist
+from ..api.utils_.gamma_io import read_gamma_image, read_gamma_plist
 from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.orbit import bperp as _bperp
 from .logging import mc_logger
@@ -154,7 +151,6 @@ def load_gamma_flatten_rslc(
                                             for k, (date, rslc_, par) in enumerate(zip(dates, rslcs, rslc_pars))))
 
     reference_idx = dates.index(reference)
-    ref_rslc = rslcs[reference_idx]
     ref_rslc_par = rslc_pars[reference_idx]
     hgt = Path(hgt)
 
@@ -230,7 +226,7 @@ def load_gamma_lat_lon_hgt(diff_par:str,
         rslc chunk size
     """
     logger = logging.getLogger(__name__)
-    geo_width = _geo_width_nlines(dem_par)[0]
+    _geo_width_nlines(dem_par)          # a wrong dem_par fails here, before the outputs are created
     rdc_width, rdc_nlines = _rdc_width_nlines(rslc_par)
     logger.info(f'image shape: ({rdc_nlines},{rdc_width})')
 
@@ -434,9 +430,6 @@ def load_gamma_metadata(rslc_dir:str,
                 radar_f = float(line.split()[1])
                 rdr_wavelen = speed_of_light/radar_f
                 logger.info('Fetching randar wavelength')
-            if re.search('heading',line):
-                heading = float(line.split()[1])
-                logger.info('Fetching heading angle')
             if re.search('range_pixel_spacing',line):
                 dr = float(line.split()[1])
                 logger.info('Fetching range pixel spacing')
