@@ -8,4 +8,13 @@ print(mr.nimage_from_npair(15))                    # 15 pairs of all images: 6 i
 ```
 
 The image pairs file of the `image-pairs` command has the same two columns (reference, secondary); the
-interferogram of a pair is `ref * conj(sec)`.
+interferogram of a pair is `ref * conj(sec)`. Image pairs are sorted by reference and then secondary index without
+duplicates, and every reference index is smaller than its secondary index:
+
+```python exec="true" source="above" result="text" session="tnet"
+mr.check_image_pairs(tnet.image_pairs)             # no error
+try:
+    mr.check_image_pairs([[0, 2], [0, 1], [1, 2]])
+except ValueError as e:
+    print(e)
+```

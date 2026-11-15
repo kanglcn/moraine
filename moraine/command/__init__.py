@@ -36,6 +36,8 @@ from pathlib import Path
 
 import numpy as np
 
+from ..api.tnet import check_image_pairs
+
 # modules of moraine.cli whose logged functions become commands
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'ts', 'plot']
 # functions that need python callables as input
@@ -91,7 +93,8 @@ def literal(text):
 
 
 def image_pairs(value):
-    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec)."""
+    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec), checked against
+    the data conventions (sorted without duplicates, ref < sec)."""
     if isinstance(value, np.ndarray):
         pairs = value
     elif isinstance(value, (list, tuple)):
@@ -109,6 +112,11 @@ def image_pairs(value):
     pairs = np.asarray(pairs, dtype=np.int64)
     if pairs.ndim != 2 or pairs.shape[1] != 2:
         raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
+    try:
+        check_image_pairs(pairs)
+    except ValueError as e:
+        where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
+        raise UsageError(f'image pairs{where}: {e}') from None
     return pairs
 
 

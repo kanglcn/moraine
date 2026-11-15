@@ -1,4 +1,4 @@
-"""The code keeps the promises of docs/contracts/: JSON output, pipeline files and pyramids."""
+"""The code keeps the promises of docs/contracts/: JSON output, pipeline files, pyramids and data conventions."""
 import json
 import re
 from pathlib import Path
@@ -346,3 +346,26 @@ def test_newer_pyramid_is_rejected(tmp_path, rng):
         'version': PYRAMID_VERSION + 1, 'kind': 'raster'}
     with pytest.raises(ValueError):
         pyramid_levels(tmp_path / 'pyr')
+
+
+# ---------------------------------------------------------------- data conventions
+
+@pytest.mark.parametrize('pairs, match', [
+    ([[0, 2], [0, 1], [1, 2]], 'sorted'),
+    ([[0, 1], [0, 1], [1, 2]], 'without duplicates'),
+    ([[0, 1], [2, 1]], 'smaller'),
+    ([[0, 1], [1, 1]], 'smaller'),
+])
+def test_commands_take_image_pairs_of_the_data_conventions(tmp_path, pairs, match):
+    """The image pairs of the commands and pipeline files (text files, .npy files, lists) are sorted without
+    duplicates, every reference index smaller than its secondary index (data.md)."""
+    from moraine.command import image_pairs as read_image_pairs
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    np.save(tmp_path / 'pairs.npy', np.array(pairs))
+    for value in (str(tmp_path / 'pairs.txt'), str(tmp_path / 'pairs.npy'), str(pairs), pairs):
+        with pytest.raises(UsageError, match=match):
+            read_image_pairs(value)
+    with pytest.raises(UsageError, match='pairs.txt'):              # the error names the file
+        read_image_pairs(str(tmp_path / 'pairs.txt'))
+    mc.image_pairs(str(tmp_path / 'made.txt'), nimages=6, bandwidth=2)
+    np.testing.assert_array_equal(read_image_pairs(str(tmp_path / 'made.txt'))[:3], [[0, 1], [0, 2], [1, 2]])
