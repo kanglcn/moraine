@@ -30,11 +30,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-from ..api.utils_ import is_cuda_available
 from .zarr_ import parallel_read_zarr, parallel_write_zarr
-
-if is_cuda_available():
-    import cupy as cp
 
 
 # ---------------------------------------------------------------- tasks
@@ -110,6 +106,8 @@ def chunk_task(fn, inputs, outputs, cuda=False, kwargs=None):
     -------
     None
     """
+    if cuda:
+        import cupy as cp
     xp = cp if cuda else np
 
     def resolve(a):

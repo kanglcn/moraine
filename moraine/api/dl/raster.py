@@ -10,8 +10,6 @@ from ..utils_.jit import ngpjit, mcuda_jit
 from ..utils_.device import is_cuda_available, get_array_module
 from ..utils_.chunk import chunkwise_slicing_mapping
 from .model import _import_torch, _get_model, _cuda_device
-if is_cuda_available():
-    import cupy as cp
 
 def _infer_unet(
     model,
@@ -37,6 +35,7 @@ def _infer_unet(
     with torch.inference_mode():
         if isinstance(x, np.ndarray):
             return run(torch.from_numpy(x).to(param.device)).cpu().numpy()
+        import cupy as cp
         return cp.from_dlpack(run(torch.from_dlpack(cp.ascontiguousarray(x))))
 
 @ngpjit
@@ -84,6 +83,7 @@ if is_cuda_available():
 
     def _pre_infer_cp(intf, adi=None):
         """model input (1, 2 or 3, nlines, width) float32 and the mask of pixels without data; random phase there"""
+        import cupy as cp
         nlines, width = intf.shape
         out = cp.empty((1,2 if adi is None else 3,nlines,width),dtype=cp.float32)
         mask = cp.empty((nlines,width),dtype=cp.bool_)
@@ -129,6 +129,7 @@ if is_cuda_available():
             out[i,j] = complex(infer_out[0,0,i,j], infer_out[0,1,i,j])
 
     def _after_infer_n2f_cp(infer_out,mask):
+        import cupy as cp
         nlines, width = mask.shape
         out = cp.empty((nlines,width),dtype=cp.complex64)
         if nlines*width > 0:

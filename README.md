@@ -281,10 +281,11 @@ How to write and submit a PR
   docstrings](https://numpydoc.readthedocs.io/en/latest/format.html) and
   add tests in `tests/`; run `pytest` before submitting.
 
-- The CI runs on machines without GPU, so GPU related packages (`cupy`,
-  `numba.cuda`) must only be imported behind
-  `moraine.api.utils_.is_cuda_available()`, and GPU tests are marked with
-  `@pytest.mark.gpu`.
+- The CI runs on machines without GPU, so GPU related packages must only
+  be imported where the GPU is used: `cupy` inside the functions of the
+  GPU code paths (`import moraine` does not import it), `numba.cuda`
+  behind `moraine.api.utils_.is_cuda_available()`; GPU tests are marked
+  with `@pytest.mark.gpu`.
 
 - Describe what your PR changes and why this is a good thing. Be as
   specific as you can. The PR description is how we keep track of the

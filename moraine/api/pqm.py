@@ -6,8 +6,6 @@ import math
 import numpy as np
 from .utils_.device import is_cuda_available, get_array_module
 from .utils_.jit import mcuda_jit
-if is_cuda_available():
-    import cupy as cp
 from numba import prange
 from .utils_.jit import ngpjit
 from .tnet import TempNet
@@ -114,6 +112,7 @@ def temp_coh(
     if xp is np:
         out_temp_coh = _temp_coh_pc_numba(intf,rslc,image_pairs)
     else:
+        import cupy as cp
         out_temp_coh = cp.empty(n_points, dtype=cp.float32)
         if n_points > 0:
             _temp_coh_pc_cuda[(n_points*32+block_size-1)//block_size, block_size](

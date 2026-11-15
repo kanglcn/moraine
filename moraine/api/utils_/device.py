@@ -49,8 +49,11 @@ def get_mem_avail():
 
 def get_array_module(array):
     if is_cuda_available():
+        # an array is a cupy array only once cupy is imported: numpy input does not import cupy
+        cupy = sys.modules.get('cupy')
+        if cupy is None:
+            return np
         try:
-            import cupy
             return cupy.get_array_module(array)
         except:
             return np

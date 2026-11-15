@@ -9,8 +9,6 @@ import numba
 from .utils_.device import is_cuda_available, get_array_module
 from .utils_.jit import mcuda_jit
 from .utils_.jit import mjit
-if is_cuda_available():
-    import cupy as cp
 
 # already robust enough for nan value
 @mjit(nopython=True, parallel=True)
@@ -60,6 +58,7 @@ if is_cuda_available():
             out[i,j] = math.sqrt(s/np.float32(nimages))/mean
 
     def _amp_disp_cp(rslc, block_size=128):
+        import cupy as cp
         nlines, width, nimages = rslc.shape
         amp_disp = cp.empty((nlines,width),dtype=cp.float32)
         if nlines*width > 0:

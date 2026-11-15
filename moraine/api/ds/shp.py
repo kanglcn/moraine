@@ -7,7 +7,6 @@ import numpy as np
 from ..utils_.device import is_cuda_available, get_array_module
 from ..utils_.jit import mcuda_jit
 if is_cuda_available():
-    import cupy as cp
     from numba import cuda
 import math
 from numba import prange
@@ -174,6 +173,7 @@ def ks_test(rmli:np.ndarray,
     if xp is np:
         _ks_test_numba(_sort_numba(rmli), az_half_win, r_half_win, p_table, p, dist)
     else:
+        import cupy as cp
         n = p.size
         if n > 0:
             _ks_test_cuda[(n+block_size-1)//block_size, block_size](

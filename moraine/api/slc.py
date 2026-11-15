@@ -8,8 +8,6 @@ import numba
 from numba import prange
 from .utils_.device import is_cuda_available, get_array_module
 from .utils_.jit import mjit, ngpjit
-if is_cuda_available():
-    import cupy as cp
 
 @mjit(nopython=True, parallel=True)
 def _rslc2amp_numba(rslc):
@@ -23,6 +21,7 @@ def _rslc2amp_numba(rslc):
 
 if is_cuda_available():
     def _rslc2amp_cp(rslc):
+        import cupy as cp
         return cp.abs(rslc)
 
 def rslc2amp(rslc:np.ndarray,
@@ -65,6 +64,7 @@ def _calamp_numba(amp):
 
 if is_cuda_available():
     def _calamp_cp(amp):
+        import cupy as cp
         return amp/cp.nanmean(amp)
 
 def calamp(amp:np.ndarray,

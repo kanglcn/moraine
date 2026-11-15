@@ -6,9 +6,6 @@ import functools
 import importlib
 from pathlib import Path
 import requests
-from ..utils_.device import is_cuda_available
-if is_cuda_available():
-    import cupy as cp
 
 def _fetch_github_file(
     gid:str,
@@ -141,4 +138,5 @@ def _get_model(name, path=None, device='cpu', compile=False, half=False):
     return _load_model(name, None if path is None else str(path), device, compile, half)
 
 def _cuda_device():
+    import cupy as cp
     return f'cuda:{cp.cuda.runtime.getDevice()}'
