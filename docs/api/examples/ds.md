@@ -30,13 +30,6 @@ coh = mr.emperical_co_pc(rslc, idx, pc_is_shp)                   # compressed co
 print(coh.shape, coh.dtype)
 C = mr.uncompress_coh(coh)                                       # full hermitian matrices, (n_points, nimages, nimages)
 print(C.shape, np.allclose(np.diagonal(C, axis1=1, axis2=2).real, 1, atol=1e-5))
-print(mr.isPD(np.abs(C)))                                        # is the coherence magnitude matrix positive definite?
-```
-
-```python exec="true" source="above" result="text" session="co"
-bad = np.abs(C[0]).copy()
-bad[0, 1] = bad[1, 0] = 1.5                                      # not a valid coherence matrix any more
-print(mr.isPD(bad[None])[0], mr.isPD(mr.nearestPD(bad[None]))[0])
 ```
 
 The compressed layout is the upper triangle in the order of `numpy.triu_indices(nimages, 1)` (data contract);

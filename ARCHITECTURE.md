@@ -67,7 +67,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/ps.py` | amplitude dispersion index for PS selection | `amp_disp` |
 | `moraine/api/ds/__init__.py` | distributed scatterers; re-exports the names of `shp.py`, `co.py` and `pl.py` | |
 | `moraine/api/ds/shp.py` | statistically homogeneous pixels (KS test) | `ks_test`, `select_shp` |
-| `moraine/api/ds/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs, positive definiteness, regularization | `emperical_co_pc`, `uncompress_coh` |
+| `moraine/api/ds/co.py` | covariance / coherence matrices and the effective number of looks of the SHPs | `emperical_co_pc`, `uncompress_coh` |
 | `moraine/api/ds/pl.py` | phase linking (EMI) and DS temporal coherence | `emi`, `ds_temp_coh` |
 | `moraine/api/ds/emi_cuda_.py` | GPU kernel of the regularized EMI (imported by `pl.py` only with a GPU) | |
 | `moraine/api/ds/linalg_.py` | small dense linear algebra of the phase linking on the CPU without LAPACK: Householder tridiagonalization, Sturm multisection, inverse iteration, Gauss-Jordan inverse | |
