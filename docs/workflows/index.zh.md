@@ -3,16 +3,16 @@
 moraine 的处理链是六个经过验证的 pipeline 文件（决策 0009、0033）：每个文件改动前都在样例数据集上完整跑一遍，
 指南里的数字和图都来自那次运行。样例数据集是 Campi Flegrei：Sentinel-1 降轨 track 22，2019-01-02 到 2021-12-29
 共 92 景，全分辨率 981 x 4160 像元，那不勒斯西边正在隆升的火山口（仓库里的 `data/CampiFlegrei/README.md` 说明
-GAMMA 结果是怎样做出来的）。文件的 `[vars]` 默认值就是它的值；其他数据用 `--var` 给出你的值。六个文件共用一个
-工作目录、互相读取输出，所以要按顺序运行：
+GAMMA 结果是怎样做出来的）。文件的 `[vars]` 默认值就是它的值；其他数据用 `--var` 给出你的值。`01_load` 写进
+`raw/meta.toml` 的值（像元间距、雷达波长）直接从这个文件读。六个文件共用一个工作目录、互相读取输出，所以要按顺序运行：
 
 ```bash
 moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=YYYYMMDD --var geo=YYYYMMDD
 moraine run examples/02_ps.toml --workdir WORK --var shape=NLINES,WIDTH
 moraine run examples/03_ds.toml --workdir WORK --var shape=NLINES,WIDTH
 moraine run examples/04_refine.toml --workdir WORK
-moraine run examples/05_unwrap.toml --workdir WORK --var shape=NLINES,WIDTH --var range_pixel_spacing=... --var azimuth_pixel_spacing=...
-moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...) & (lat > ...)" --var wavelength=...
+moraine run examples/05_unwrap.toml --workdir WORK --var shape=NLINES,WIDTH
+moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...) & (lat > ...)"
 ```
 
 | pipeline | 指南 | 做什么 | 输出 |

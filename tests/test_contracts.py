@@ -187,6 +187,18 @@ def test_pipeline_version(tmp_path):
         load_pipeline(tmp_path / 'p.toml')
 
 
+def test_pipeline_variables_from_files(tmp_path):
+    rows = [k for k in _tables('pipeline-file.md')['Tables'] if k.startswith('[vars] ')]
+    assert rows == ['[vars] NAME = { file = "PATH", key = "KEY" }']
+    (tmp_path / 'm.toml').write_text('n = 3\n')
+    var = rows[0].replace('[vars] NAME', 'n').replace('PATH', 'm.toml').replace('KEY', 'n')
+    (tmp_path / 'p.toml').write_text(f'[vars]\n{var}\n' + STEP.replace('nimages = 3', 'nimages = "${n}"'))
+    assert load_pipeline(tmp_path / 'p.toml')['steps'][0]['values']['nimages'] == 3     # a whole value keeps its type
+    (tmp_path / 'p.toml').write_text('[vars]\nn = { file = "m.toml", key = "n", default = 1 }\n' + STEP)
+    with pytest.raises(UsageError, match='a variable read from a file'):          # no other keys
+        load_pipeline(tmp_path / 'p.toml')
+
+
 # ---------------------------------------------------------------- pyramids
 
 @pytest.mark.parametrize('rows', [1024, 16])     # one band, or bands of 16 lines with levels beyond the band

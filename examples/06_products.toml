@@ -11,7 +11,7 @@
 # reference area: a stable, coherent area in one region of the closure correction (`unw/pc_region.zarr`),
 # here a box of longitude / latitude; a polygon drawn on a map works too (`polygon-mask`, see the guide)
 ref_area = "(lon > 14.225) & (lat > 40.82) & (lat < 40.89)"
-wavelength = "0.055465759531382094"   # m, `radar_wavelength` of raw/meta.toml
+wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }   # m, from the metadata of 01_load.toml
 
 [[step]]
 name = "ref_mask"

@@ -8,9 +8,9 @@ moraine run examples/06_products.toml --workdir WORK
 ```
 
 Set `[vars] ref_area` to a reference area of the data (an expression of `lon` and `lat` in the syntax of `math`, the longitude and
-latitude of the points) and `wavelength` to the radar wavelength in meters (`radar_wavelength` of
-`raw/meta.toml`); the defaults are the ones of the sample data set (a box east of the caldera, Sentinel-1
-0.0554658 m).
+latitude of the points); the default is the one of the sample data set (a box east of the caldera). The radar
+wavelength in meters (`wavelength`, 0.0554658 m for Sentinel-1) is read from `radar_wavelength` of `raw/meta.toml` of
+`01_load`.
 
 ## Steps
 
