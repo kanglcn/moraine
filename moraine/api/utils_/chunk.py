@@ -45,47 +45,30 @@ def all_chunk_slices(
     shape,
     chunks,
 ):
-    """get the slices for every input chunks
+    """The slices of every chunk of an array (`out_slices` of `chunkwise_slicing_mapping`).
 
     Parameters
     ----------
-    shape
-        np.array, cp.array,zarr
-    chunks
-    """
-    out_slices = []
-    for shape_, chunk_ in zip(shape,chunks):
-        if chunk_ <0: chunk_ = shape_
-        bound_1dim = np.arange(0,shape_+chunk_,chunk_)
-        if bound_1dim[-1] > shape_: bound_1dim[-1] = shape_
+    shape : tuple of int
+        shape of the array
+    chunks : tuple of int
+        chunk size in every dimension, a negative size for the whole dimension
 
-        slice_1dim = []
-        for j in range(bound_1dim.shape[0]-1):
-            slice_1dim.append(slice(int(bound_1dim[j]),int(bound_1dim[j+1])))
-        out_slices.append(slice_1dim)
-    out_slices = list(itertools.product(*out_slices))
-    return out_slices
+    Returns
+    -------
+    list of tuple of slice
+        the slices of every chunk, the last dimension varying fastest
+    """
+    return chunkwise_slicing_mapping(shape, chunks, (0,) * len(shape))[1]
 
 def all_chunk_slices_with_overlap(
-    shape, 
-    chunks, 
+    shape,
+    chunks,
     depths,
 ):
-    '''get the slices for every input chunks with overlap'''
-    out_slices = []
-    for shape_, chunk_, depth_ in zip(shape,chunks,depths):
-        if chunk_ <0: chunk_ = shape_
-        starts_1dim = np.arange(-depth_,shape_-depth_,chunk_)
-        starts_1dim[starts_1dim<0] = 0
-        ends_1dim = np.arange(chunk_+depth_,shape_+chunk_+depth_,chunk_)
-        ends_1dim[ends_1dim>shape_] = shape_
-
-        slice_1dim = []
-        for j in range(starts_1dim.shape[0]):
-            slice_1dim.append(slice(int(starts_1dim[j]),int(ends_1dim[j])))
-        out_slices.append(slice_1dim)
-    out_slices = list(itertools.product(*out_slices))
-    return out_slices
+    """The slices of every chunk of an array extended by `depths` (tuple of int) on both sides and cut at the array
+    bounds (`in_slices` of `chunkwise_slicing_mapping`), the chunks in the order of `all_chunk_slices`."""
+    return chunkwise_slicing_mapping(shape, chunks, depths)[0]
 
 def chunkwise_slicing_mapping(
     shape,
