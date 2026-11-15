@@ -86,7 +86,7 @@ def co(work, shp):
     mc.ras2pc_ras_chunk(str(d / 'ds_can_gix.zarr'), str(d / 'is_shp.zarr'), str(d / 'ds_can_is_shp'),
                         str(d / 'ds_can_key.zarr'), chunks=CHUNKS)
     mc.emperical_co_pc(str(d / 'rslc.zarr'), str(d / 'ds_can_is_shp'), str(d / 'ds_can_gix.zarr'),
-                       str(d / 'ds_can_coh'), chunks=CHUNKS)
+                       str(d / 'ds_can_coh'), coh_mean=str(d / 'ds_can_coh_mean.zarr'), chunks=CHUNKS)
     chunks = zarr.open(str(d / 'ds_can_gix.zarr'), mode='r').chunks[0]
     mc.pc_concat(str(d / 'ds_can_coh'), str(d / 'ds_can_coh.zarr'), key=str(d / 'ds_can_key.zarr'), chunks=chunks)
     return d
@@ -96,11 +96,13 @@ def test_emperical_co_pc(work, co):
     d, crop = work
     gix = r(d / 'ds_can_gix.zarr')
     is_shp = r(d / 'is_shp.zarr')[gix[:, 0], gix[:, 1]]
-    np.testing.assert_array_almost_equal(r(d / 'ds_can_coh.zarr'), mr.emperical_co_pc(crop, gix, is_shp))
-    n_point = gix.shape[0]
-    mc.data_reduce(str(d / 'ds_can_coh.zarr'), str(d / 'coh_ave.zarr'), map_func=np.abs, reduce_func=np.sum,
-                   post_map_func=lambda x: x / n_point)
-    assert mr.uncompress_coh(r(d / 'coh_ave.zarr')).shape == (17, 17)
+    coh = r(d / 'ds_can_coh.zarr')
+    np.testing.assert_array_almost_equal(coh, mr.emperical_co_pc(crop, gix, is_shp))
+    # the mean coherence magnitude of every image pair over the points
+    coh_mean = r(d / 'ds_can_coh_mean.zarr')
+    assert coh_mean.dtype == np.float32 and coh_mean.shape == (17, 17)
+    ref = np.nanmean(np.abs(coh), axis=0, dtype=np.float64)
+    np.testing.assert_allclose(coh_mean, mr.uncompress_coh(ref), rtol=1e-6)
 
 
 @pytest.fixture(scope='module')

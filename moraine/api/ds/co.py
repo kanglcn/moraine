@@ -296,6 +296,76 @@ def emperical_co_pc(rslc:np.ndarray,
         return coh
     return coh, _n_looks(pc_is_shp, _rslc_rho2(rslc))
 
+# The sums of the coherence magnitudes of the image pairs over the points (the mean coherence of `emperical-co-pc`),
+# in float64 and without a temporary array of the size of the coherence: the points are cut into blocks of `block`,
+# every block sums its points in their order (one task of the parallel loop on the CPU, one thread per image pair on
+# the GPU), then the sums of the blocks are added. The result does not depend on the number of threads, and the sums
+# of the chunks of a command add up to that of all points.
+@ngpjit
+def _coh_abs_sums_numba(coh, block, sums, counts):
+    n_pc, npairs = coh.shape
+    for b in prange(sums.shape[0]):
+        for i in range(b*block, min((b+1)*block, n_pc)):
+            for p in range(npairs):
+                c = coh[i, p]
+                re = np.float64(c.real); im = np.float64(c.imag)
+                if math.isfinite(re) and math.isfinite(im):
+                    sums[b, p] += math.sqrt(re*re+im*im)
+                    counts[b, p] += 1
+
+if is_cuda_available():
+    @mcuda_jit()
+    def _coh_abs_sums_cuda(coh, block, sums, counts):
+        # thread (block of points, image pair): the points of the block in their order, as on the CPU
+        b = cuda.blockIdx.x
+        p = cuda.blockIdx.y*cuda.blockDim.x+cuda.threadIdx.x
+        if p >= coh.shape[1]:
+            return
+        s = np.float64(0.0)
+        k = np.int64(0)
+        for i in range(b*block, min((b+1)*block, coh.shape[0])):
+            c = coh[i, p]
+            re = np.float64(c.real); im = np.float64(c.imag)
+            if math.isfinite(re) and math.isfinite(im):
+                s += math.sqrt(re*re+im*im)
+                k += 1
+        sums[b, p] = s
+        counts[b, p] = k
+
+def _coh_abs_sums(coh:np.ndarray,
+                  block:int=1024,
+                  block_size:int=128,
+                 )-> tuple:
+    """Sums over the points of the finite coherence magnitudes of every image pair, and their numbers.
+
+    Parameters
+    ----------
+    coh : np.ndarray
+        compressed coherence of the points, complex64, shape (n_points, n_pairs), numpy or cupy
+    block : int, default: 1024
+        points summed by one task, only affects the speed and the float64 rounding of the sums
+    block_size : int, default: 128
+        the CUDA block size, only affects the speed
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        the sum of |coh| over the points where `coh` is finite, float64, shape (n_pairs,), and the number of these
+        points, int64, shape (n_pairs,); numpy or cupy as `coh`
+    """
+    xp = get_array_module(coh)
+    coh = xp.ascontiguousarray(coh)
+    n_pc, n_pairs = coh.shape
+    n_blocks = max(1, (n_pc+block-1)//block)
+    sums = xp.zeros((n_blocks, n_pairs), dtype=np.float64)
+    counts = xp.zeros((n_blocks, n_pairs), dtype=np.int64)
+    if n_pc > 0 and n_pairs > 0:
+        if xp is np:
+            _coh_abs_sums_numba(coh, block, sums, counts)
+        else:
+            _coh_abs_sums_cuda[(n_blocks, (n_pairs+block_size-1)//block_size), block_size](coh, block, sums, counts)
+    return sums.sum(axis=0), counts.sum(axis=0)
+
 @ngjit
 def uncompress_single_coh_numba(coh, nimages, image_pairs):
     uncompressed_coh = np.zeros((nimages,nimages),dtype=coh.dtype)

@@ -70,7 +70,6 @@ def test_literal_and_image_pairs(tmp_path):
 def test_commands_registry():
     cmds = commands()
     assert {'amp-disp', 'shp-test', 'emi', 'n2f', 'mcf-pc', 'pc-concat', 'ras-pyramid'} <= set(cmds)
-    assert 'data-reduce' not in cmds          # needs python callables
     shp = get_command('shp_test')
     by_name = {p.name: p for p in shp.params}
     assert by_name['rslc'].required and by_name['rslc'].help

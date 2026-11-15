@@ -100,7 +100,7 @@ def chunk_task(fn, inputs, outputs, cuda=False, kwargs=None):
         anything else is passed as it is
     outputs : list
         where the results go, one `Chunk` per returned array; ``None`` discards a result. A single array result is
-        written to the first output
+        written to the first output; the results after the last output are returned by the task
     cuda : bool, default: False
         compute on the GPU: the inputs are cupy arrays, the results are moved back before they are written
     kwargs : dict, optional
@@ -108,7 +108,9 @@ def chunk_task(fn, inputs, outputs, cuda=False, kwargs=None):
 
     Returns
     -------
-    None
+    tuple or None
+        the results of `fn` after the last output (numpy arrays with `cuda`), small results such as sums over the
+        chunk; None if `fn` returns no more results than outputs
     """
     xp = cp if cuda else np
 
@@ -133,7 +135,10 @@ def chunk_task(fn, inputs, outputs, cuda=False, kwargs=None):
         if cuda and not isinstance(result, np.ndarray):
             result = cp.asnumpy(result)
         out.write(result)
-    return None
+    returned = results[len(outputs):]
+    if not returned:
+        return None
+    return tuple(cp.asnumpy(r) if cuda and not isinstance(r, np.ndarray) else r for r in returned)
 
 
 # ---------------------------------------------------------------- own backend
@@ -443,7 +448,10 @@ class Executor:
                 self.logger.info(f'{desc}: {done}/{n} done, {time.time() - t0:.1f} s')
         return self._workers.map(fn, tasks, on_done)
 
-    def map_chunks(self, fn, tasks, cuda:bool=None, desc:str='chunks', **kwargs) -> None:
-        """`chunk_task` for every ``(inputs, outputs)`` of `tasks` (see `chunk_task`), with `kwargs` for `fn`."""
+    def map_chunks(self, fn, tasks, cuda:bool=None, desc:str='chunks', **kwargs) -> list:
+        """`chunk_task` for every ``(inputs, outputs)`` of `tasks` (see `chunk_task`), with `kwargs` for `fn`.
+
+        Returns what the tasks return, in the order of `tasks`: the results of `fn` after its outputs, or None.
+        """
         cuda = self.cuda if cuda is None else cuda
         return self.map(chunk_task, [(fn, inputs, outputs, cuda, kwargs) for inputs, outputs in tasks], desc=desc)

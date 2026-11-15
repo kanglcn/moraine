@@ -23,6 +23,7 @@ def emperical_co_pc(
     gix:str,
     coh_dir:str,
     n_looks_dir:str=None,
+    coh_mean:str=None,
     image_pairs:np.ndarray=None,
     chunks:tuple[int,int]=None,
     cuda:bool=False,
@@ -50,6 +51,12 @@ def emperical_co_pc(
         float32, shape (n_points,), one zarr per raster chunk (merge as `coh_dir`): the number of
         independent looks with the same variance of the coherence estimate as the correlated SHPs, from
         their positions and the speckle correlation of `rslc`; input `n_looks` of `ds-temp-coh`
+    coh_mean : str, optional
+        output: mean coherence magnitude of every image pair over the points, float32, shape (nimages,
+        nimages): element (i, j) is the mean of |coherence| of the pair of images i and j over the points
+        where it is finite; symmetric, 1 on the diagonal, NaN for the image pairs not in `image_pairs` and for
+        those without a finite coherence. An image with low values in its row has a low coherence with the
+        other images
     image_pairs : np.ndarray, optional
         input: image pairs (element in the coherence matrix) to be calculated, all image pairs by default
     chunks : tuple[int, int], optional
@@ -112,5 +119,37 @@ def emperical_co_pc(
         tasks.append((inputs, outputs))
     logger.info(f'coherence of {len(tasks)} raster chunks with points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
-        ex.map_chunks(mr.emperical_co_pc, tasks, desc='coherence', image_pairs=image_pairs, return_n_looks=return_n_looks)
+        sums = ex.map_chunks(_emperical_co_pc_chunk, tasks, desc='coherence', image_pairs=image_pairs,
+                             return_n_looks=return_n_looks, coh_sums=coh_mean is not None)
+    if coh_mean is not None:
+        _write_coh_mean(coh_mean, sums, image_pairs, nimage, logger)
     logger.info('done.')
+
+
+def _emperical_co_pc_chunk(rslc, gix, is_shp, image_pairs, return_n_looks, coh_sums):
+    """the coherence (and the number of looks) of the points of a raster chunk; with `coh_sums` also the sum over the
+    points of the finite coherence magnitudes of every image pair, float64, and their number, int64, (n_image_pairs,)"""
+    out = mr.emperical_co_pc(rslc, gix, is_shp, image_pairs=image_pairs, return_n_looks=return_n_looks)
+    if not coh_sums:
+        return out
+    out = out if isinstance(out, tuple) else (out,)
+    # the sums of the chunk while its coherence is in memory, on its device; the task returns them (`chunk_task`)
+    return (*out, *mr.api.ds.co._coh_abs_sums(out[0]))
+
+
+def _write_coh_mean(path, sums, image_pairs, nimages, logger):
+    """write the mean coherence magnitude of the image pairs, (nimages, nimages) float32, from the sums and numbers of
+    the finite coherence magnitudes of the tasks"""
+    total = np.zeros(len(image_pairs), dtype=np.float64)
+    count = np.zeros(len(image_pairs), dtype=np.int64)
+    for s, n in sums:
+        total += s
+        count += n
+    mean = np.full((nimages, nimages), np.nan, dtype=np.float32)
+    has = count > 0
+    ref, sec = image_pairs[has, 0], image_pairs[has, 1]
+    mean[ref, sec] = mean[sec, ref] = total[has]/count[has]
+    np.fill_diagonal(mean, 1)
+    z = zarr.open(path, mode='w', shape=mean.shape, dtype=mean.dtype, chunks=mean.shape)
+    z[:] = mean
+    logger.zarr_info(path, z)
