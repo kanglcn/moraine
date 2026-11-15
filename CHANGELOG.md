@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+`moraine quicklook` and `moraine view` no longer accept `--post_proc`, the name of `--show` for one day in
+2026-09 that was never released; use `--show`.
+
 A variable of a pipeline file can be the value of a key of a TOML file, e.g. `[vars] wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }`, the file relative to the working directory (pipeline file contract, still version 1). The file is read when the pipeline file is loaded and again before each step using the variable runs, so an earlier step or pipeline may make it; until it exists, the steps using the variable are planned to run, and they fail if it is still missing when they run. A value that is exactly `"${name}"` is the value of the variable with its type, so a list stays a list (e.g. the dates of `meta.toml`); inside a longer string `${name}` is replaced by its text as before. The step hash holds the values read: a step reruns when a value changes, not when only other keys of the file change. The 05 and 06 examples read the pixel spacings and the radar wavelength from `raw/meta.toml` of `01_load` instead of copies in `[vars]`, and need no `--var` for them. A `[vars]` value that is a TOML number, boolean or list and is the whole value of an argument keeps its type now instead of becoming text, which changes the hash of its steps once; the steps of the examples keep their hashes
 
 A boolean argument given as text, e.g. `cuda = "${gpu}"` in a pipeline file with `--var gpu=false` or with `[vars] gpu = false`, was true whatever the text (Python's `bool` of a non-empty string). Text is `true` or `false` now, in any case, and other text is an error. Booleans written as TOML values (`cuda = false`) and the options of the commands (`--no-cuda`) were right
