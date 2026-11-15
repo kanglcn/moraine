@@ -4,7 +4,8 @@
 #   moraine run examples/04_refine.toml --workdir WORK
 #
 # Outputs in WORK/pc/: pc_can_* (merged candidates) and the refined points: pc_hix, pc_ph, pc_e, pc_n, pc_lon,
-# pc_lat, pc_temp_coh, and their height, look vector and slant range pc_hgt, pc_theta, pc_phi, pc_range.
+# pc_lat, pc_temp_coh, and their height, look vector, slant range and perpendicular baselines pc_hgt, pc_theta,
+# pc_phi, pc_range, pc_bperp.
 
 [defaults]
 cuda = true                       # set to false without a GPU
@@ -82,8 +83,8 @@ pc = ["pc/pc_ph.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr", "pc/pc_lon.zarr", "pc/pc_
 name = "geometry"                 # height, look vector and slant range of the refined points, for the deformation products
 run = "ras2pc"
 idx = "pc/pc_hix.zarr"
-ras = ["raw/hgt.zarr", "raw/theta.zarr", "raw/phi.zarr", "raw/range.zarr"]
-pc = ["pc/pc_hgt.zarr", "pc/pc_theta.zarr", "pc/pc_phi.zarr", "pc/pc_range.zarr"]
+ras = ["raw/hgt.zarr", "raw/theta.zarr", "raw/phi.zarr", "raw/range.zarr", "raw/bperp.zarr"]
+pc = ["pc/pc_hgt.zarr", "pc/pc_theta.zarr", "pc/pc_phi.zarr", "pc/pc_range.zarr", "pc/pc_bperp.zarr"]
 
 [[step]]
 name = "pc_ph_pyramid"
