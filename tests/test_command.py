@@ -593,8 +593,10 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     assert 'moraine view' in repr(result)                              # a text description for readers
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 1   # no silent overwrite
     assert 'exists' in _json_out(capsys)['error']
-    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--post_proc', 'phase',
-                 '--json']) == 0                                       # the old option name still works
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--show', 'phase',
+                 '--json']) == 0
+    with pytest.raises(SystemExit):                                    # --post_proc, its name of 2026-09, is gone
+        main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--post_proc', 'phase'])
     # 3D maps over the terrain, for web mercator pyramids
     nb3d = d / 'v3d.ipynb'
     assert main(['view', str(d / 'map_pyr'), '-o', str(nb3d), '--terrain', '--json']) == 0

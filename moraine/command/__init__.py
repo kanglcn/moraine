@@ -449,7 +449,7 @@ def _build_parser(with_commands=True):
     p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
     p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
                    help='image of a stack, or two images (ref sec) with --show intf_all / coh (default: the first)')
-    p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
+    p.add_argument('--show', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of a stack, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     p.add_argument('--extent', help='part to draw, finer levels for smaller parts: "west,south,east,north" degrees '
@@ -459,7 +459,7 @@ def _build_parser(with_commands=True):
     p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
     p.add_argument('-o', '--out', default='view.ipynb', help='notebook to write (default: view.ipynb)')
-    p.add_argument('--show', '--post_proc', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
+    p.add_argument('--show', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of stacks, see moraine.cli.view (default: the phase for complex data)')
     p.add_argument('--dates', help='toml file with the image dates, e.g. the metadata of load-gamma-metadata')
     p.add_argument('--terrain', action='store_true',
