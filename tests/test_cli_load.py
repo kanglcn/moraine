@@ -1,6 +1,8 @@
 """Loading GAMMA results. Needs the GAMMA software on PATH and the sample GAMMA output."""
+import datetime
 import os
 import shutil
+import tomllib
 
 import numpy as np
 import pytest
@@ -31,9 +33,30 @@ def test_load_gamma_range(gamma, tmp_path):
 def test_load_gamma_metadata(gamma, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)   # base_calc writes base.out / base_calc.log to the working directory
     mc.load_gamma_metadata(str(gamma / 'rslc'), str(gamma / 'DEM' / 'dem_seg_par'), REF, str(tmp_path / 'meta.toml'))
-    meta = toml.load(tmp_path / 'meta.toml')
+    meta = tomllib.loads((tmp_path / 'meta.toml').read_text())   # standard TOML: the times are date-times
     assert len(meta['dates']) == NIMAGES
     assert REF in meta['dates']
+    times = meta['times']                    # UTC time of the centre line of every image
+    assert len(times) == NIMAGES
+    assert all(t.utcoffset() == datetime.timedelta(0) for t in times)
+    assert [f'{t:%Y%m%d}' for t in times] == meta['dates']
+    # 20220620.rslc.par: date 2022 6 20, center_time 33883.591635 s
+    utc = datetime.timezone.utc
+    assert times[meta['dates'].index(REF)] == datetime.datetime(2022, 6, 20, 9, 24, 43, 591635, tzinfo=utc)
+
+
+def test_read_gamma_center_time(tmp_path):
+    """The day of `date` plus `center_time`; the time that `date` has for Sentinel-1 (the start of the original
+    product) is not that of the image."""
+    from moraine.cli.load import _read_gamma_center_time
+    par = tmp_path / '20200707.rslc.par'
+    par.write_text('date:      2020 07 07 05 12 21.23730\nstart_time:             18742.918742   s\n'
+                   'center_time:            18743.925965   s\n')
+    utc = datetime.timezone.utc
+    assert _read_gamma_center_time(par) == datetime.datetime(2020, 7, 7, 5, 12, 23, 925965, tzinfo=utc)
+    par.write_text('date:      2020 07 07 05 12 21.23730\n')
+    with pytest.raises(ValueError, match='center_time'):
+        _read_gamma_center_time(par)
 
 
 def test_load_gamma_lat_lon_hgt(gamma, tmp_path):

@@ -11,6 +11,8 @@ import re
 import os
 import logging
 import math
+import datetime
+from decimal import Decimal
 import toml
 import zarr
 import time
@@ -376,6 +378,21 @@ def load_gamma_range(rslc_par:str,
     range_data[:] = rho2d
     logger.info('Done.')
 
+def _read_gamma_center_time(par):
+    """UTC time of the centre line of a GAMMA SLC par file, aware datetime to the microsecond"""
+    day = center = None
+    with open(par) as f:
+        for line in f:
+            key, _, value = line.partition(':')
+            key, value = key.strip(), value.split()
+            if key == 'date':           # year month day; Sentinel-1 adds the start time of the original product
+                day = datetime.datetime(*(int(v) for v in value[:3]), tzinfo=datetime.timezone.utc)
+            elif key == 'center_time':  # s of that day, read exactly (no float rounding)
+                center = Decimal(value[0])
+    if day is None or center is None:
+        raise ValueError(f'{par}: no date or center_time')
+    return day + datetime.timedelta(microseconds=round(center*1000000))
+
 @mc_logger
 def load_gamma_metadata(rslc_dir:str,
                         dem_par:str,
@@ -393,15 +410,22 @@ def load_gamma_metadata(rslc_dir:str,
     reference : str
         reference date, eg: '20200202'
     meta_file : str
-        output, text toml file for meta data
+        output: toml file with `dates`, the date of every image (YYYYMMDD, from the file names), nimages strings in
+        date order; `times`, the time of the centre line of every image (UTC, to the microsecond), nimages date-times
+        in the order of `dates`; `radar_wavelength`, `range_pixel_spacing` and `azimuth_pixel_spacing` (m) of the
+        reference image; `lonlat_bbox` (degrees) and `merca_bbox` (web mercator, m) of the DEM, [west, south, east,
+        north]; `perpendicular_baseline`, that of every image relative to the reference image at the scene centre
+        (m), nimages values in the order of `dates`
     """
     meta = dict()
     rslc_dir = Path(rslc_dir)
-    dates = []
+    dates, times = [], []
     logger = logging.getLogger(__name__)
     for par_file in sorted(rslc_dir.glob('*.rslc.par')):
         dates.append(par_file.name[:8])
+        times.append(_read_gamma_center_time(par_file))
     meta['dates'] = dates
+    meta['times'] = times
 
     logger.info('fetching slc related metadata.')
     with open(rslc_dir/(reference+'.rslc.par')) as f:
