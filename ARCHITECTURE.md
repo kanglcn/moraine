@@ -52,6 +52,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/utils_/chunk.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
 | `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
+| `moraine/api/utils_/orbit.py` | perpendicular baselines at points on the ground from the orbit state vectors, independent of the SAR processor | `bperp` |
 | *foundations* | | |
 | `moraine/api/pc/__init__.py` | point clouds; re-exports the names of the modules below | |
 | `moraine/api/pc/index.py` | grid and hilbert indices of point clouds, sorting | `pc_hix`, `pc_gix`, `pc_sort` |
@@ -94,7 +95,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/zarr_.py` | parallel zarr read / write, directories of per chunk zarrs | |
 | `moraine/cli/executor.py` | `Executor`: the workers of a command (threads of the process, spawned processes, one per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`) | |
 | `moraine/cli/utils_.py` | small helpers (clean output directories) | |
-| `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs) | `load-gamma-*` |
+| `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs; the perpendicular baselines from the orbits of the par files) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |
 | `moraine/cli/math.py` | elementwise numexpr expressions on zarr arrays | `math` |

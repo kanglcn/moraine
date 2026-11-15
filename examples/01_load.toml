@@ -3,7 +3,8 @@
 #
 #   moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20200707 --var geo=20200707
 #
-# Outputs in WORK/raw/: rslc, lat/lon/hgt, look vector, slant range, metadata, web mercator e/n.
+# Outputs in WORK/raw/: rslc, lat/lon/hgt, perpendicular baseline, look vector, slant range, metadata, web
+# mercator e/n.
 
 [vars]
 gamma = "/path/to/gamma"          # directory with rslc/, geocoding/ and DEM/
@@ -30,6 +31,16 @@ scratch_dir = "raw/scratch"
 lat_zarr = "raw/lat.zarr"
 lon_zarr = "raw/lon.zarr"
 hgt_zarr = "raw/hgt.zarr"
+
+[[step]]
+name = "bperp"                    # perpendicular baseline of every image at every pixel, from the orbits
+run = "load-gamma-bperp"
+rslc_dir = "${gamma}/rslc"
+reference = "${reference}"
+lat_zarr = "raw/lat.zarr"
+lon_zarr = "raw/lon.zarr"
+hgt_zarr = "raw/hgt.zarr"
+bperp_zarr = "raw/bperp.zarr"
 
 [[step]]
 name = "look_vector"
