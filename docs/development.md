@@ -148,7 +148,7 @@ quicklook PNGs of real runs under `docs/assets/`. Build and look at the site bef
 
 ```bash
 pip install -e '.[docs]'
-mkdocs build --strict          # the CI runs this on every push; main is deployed to gh-pages
+mkdocs build --strict          # the CI runs this on pushes to main and pull requests; main is deployed to gh-pages
 mkdocs serve                   # http://127.0.0.1:8000/
 ```
 
@@ -158,7 +158,7 @@ Run the layers that the change can affect, from cheap to expensive:
 
 ```bash
 ruff check                    # syntax errors, undefined names, unused imports and variables (rules in pyproject.toml)
-pytest tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
+pytest -m "not slow" tests/test_architecture.py tests/test_docs.py tests/test_decisions.py tests/test_contracts.py  # seconds
 pytest -m "not slow"          # about 2 min; GPU tests run when a GPU is visible
                               # (with a GPU the process leaves through os._exit after the report: numba-cuda 0.30
                               # crashes in the interpreter teardown; the exit code is still the test result)
@@ -174,8 +174,9 @@ git diff --check              # whitespace errors
 ### Pre-commit hook
 
 `.githooks/pre-commit` runs the cheap checks on every commit: whitespace errors, notebooks without
-outputs, `ruff check` of the staged python files and the four consistency test files above. Install it
-once per clone and point it to the python of the development environment:
+outputs, `ruff check` of the staged python files and the four consistency test files above without the slow
+manual build (`pytest -m slow` and the CI build the manual). Install it once per clone and point it to the
+python of the development environment:
 
 ```bash
 git config core.hooksPath .githooks
