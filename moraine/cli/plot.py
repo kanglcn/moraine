@@ -14,6 +14,7 @@ from numba import prange
 
 import os
 import multiprocessing
+import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
 import toml
@@ -34,9 +35,15 @@ def _pyramid_workers(n_workers):
     return min(8, os.cpu_count() or 1) if n_workers is None else n_workers
 
 def _pyramid_pool(n_workers, initializer, initargs):
-    """process pool rendering the channels of a pyramid: the work per channel is Python code that threads cannot
-    share, and forked processes start without importing anything"""
-    context = multiprocessing.get_context('fork' if 'fork' in multiprocessing.get_all_start_methods() else 'spawn')
+    """process pool rendering the channels of a pyramid (decision 0046). zarr handles the chunks of a process in one
+    I/O thread, about 1 - 2 thousand chunks a second, too few for the many small tiles of a pyramid: the channels
+    are rendered in processes. They start from a forkserver that has imported this module, as fast as a fork of
+    this process but without its threads and locks."""
+    if 'forkserver' in multiprocessing.get_all_start_methods():
+        context = multiprocessing.get_context('forkserver')
+        context.set_forkserver_preload([__name__])   # used when the server starts: once per process
+    else:
+        context = multiprocessing.get_context('spawn')
     return ProcessPoolExecutor(max_workers=_pyramid_workers(n_workers), mp_context=context, initializer=initializer,
                                initargs=initargs)
 
@@ -360,9 +367,13 @@ def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
                 xi[i,j] = idx_[0,1] + j*2
     return yi, xi
 
-def _pc_pyramid_init(pc, out_dir, maxlevel, coord, gix, yis, xis, step, method, valid):
-    _PYRAMID_WORKER.update(pc_zarr=zarr.open(pc,mode='r'), coord=coord, gix=gix, yis=yis, xis=xis, step=step,
-                           method=method, valid=valid, pc_out=zarr.open(Path(out_dir)/'pc.zarr',mode='r+'),
+def _pc_pyramid_init(pc, out_dir, maxlevel, coord, shared, step, method):
+    # the indices saved by pc_pyramid in the directory `shared`, memory mapped: one copy for all processes
+    load = lambda name: np.load(Path(shared)/f'{name}.npy', mmap_mode='r')
+    _PYRAMID_WORKER.update(pc_zarr=zarr.open(pc,mode='r'), coord=coord, gix=load('gix'), valid=load('valid'),
+                           yis=[load(f'yi_{level}') for level in range(1, maxlevel+1)],
+                           xis=[load(f'xi_{level}') for level in range(1, maxlevel+1)], step=step, method=method,
+                           pc_out=zarr.open(Path(out_dir)/'pc.zarr',mode='r+'),
                            ras_zarrs=[zarr.open(Path(out_dir)/f'{level}.zarr',mode='r+') for level in range(maxlevel+1)])
 
 def _pc_pyramid_channel(channel_idx):
@@ -525,8 +536,16 @@ def pc_pyramid(
     channel_idxs = list(np.ndindex(pc_zarr.shape[1:]))
     step = _sample_step(pc_zarr.size)
     logger.info(f'rendering {len(channel_idxs)} channels in {_pyramid_workers(n_workers)} processes.')
-    with _pyramid_pool(n_workers, _pc_pyramid_init, (pc, out_dir, maxlevel, coord, gix, yis, xis, step, method, valid)) as pool:
-        parts = list(pool.map(_pc_pyramid_channel, channel_idxs))
+    with tempfile.TemporaryDirectory(prefix='moraine-pyramid-') as shared:
+        # every process needs the indices: saved once, memory mapped by the processes (`_pc_pyramid_init`) instead
+        # of a copy for each; this process does not need them any more
+        arrays = {'gix': gix, 'valid': valid, **{f'yi_{level}': a for level, a in enumerate(yis, 1)},
+                  **{f'xi_{level}': a for level, a in enumerate(xis, 1)}}
+        for name, a in arrays.items():
+            np.save(Path(shared)/f'{name}.npy', a)
+        del arrays, gix, valid, yis, xis
+        with _pyramid_pool(n_workers, _pc_pyramid_init, (pc, out_dir, maxlevel, coord, shared, step, method)) as pool:
+            parts = list(pool.map(_pc_pyramid_channel, channel_idxs))
     # the marker with the statistics of the points: written last, a pyramid is complete when it has it
     _write_stats(out_dir, level0_zarr, 'point cloud', method, parts, pc_zarr.shape[1:], pc_zarr.dtype)
     logger.info('rendering finished.')
