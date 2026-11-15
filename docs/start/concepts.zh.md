@@ -35,6 +35,8 @@ mc.emi('ds/ds_can_coh.zarr', 'ds/ds_can_ph.zarr', cuda=True)   # 整个数据集
 moraine emi --coh ds/ds_can_coh.zarr --ph ds/ds_can_ph.zarr --cuda
 ```
 
+每层有哪些模块、哪一层可以调用哪一层，见开发者页面[架构](../dev/architecture.md)（英文）。
+
 ## 栅格与点云
 
 处理链里流动的数据集有两种（完整约定见[数据约定](../contracts/data.md)，英文）：
@@ -48,12 +50,60 @@ moraine emi --coh ds/ds_can_coh.zarr --ph ds/ds_can_ph.zarr --cuda
 干涉数据是复数：像对 `(ref, sec)` 的干涉图是 `ref * conj(sec)`，相位连接后的相位历史和滤波后的干涉图幅度为 1，
 点云的相干性压缩存放（相干矩阵的上三角，`(n_points, n_pairs)`），解缠相位是 float32 弧度 `(n_points, n_pairs)`。
 
+## 磁盘上的数据
+
+磁盘上的数据是 zarr 数组，而一个 zarr 数组是一个目录：`zarr.json` 记录形状、数据类型和分块，每个块存成一个文件，
+用 zstd 压缩（决策 0039）。复制、移动或删除时把整个目录当作一个文件。样例数据集的 rslc 堆栈：
+
+```text
+raw/rslc.zarr/       complex64 (981, 4160, 92)，分块 (1000, 1000, 1)
+├── zarr.json        形状、数据类型、分块、压缩方式
+└── c/               460 个块文件：c/<方位向块>/<距离向块>/<影像>
+    ├── 0/0/0        方位向 0-980，距离向 0-999，影像 0
+    ├── 0/0/1        方位向 0-980，距离向 0-999，影像 1
+    ├── ...
+    └── 0/4/91       方位向 0-980，距离向 4000-4159，影像 91
+```
+
+`moraine info PATH` 不读数据，只打印形状、数据类型和分块。任何 zarr 读取工具都能打开它，读出来的是 numpy 数组；
+只读需要的部分，不要读整个堆栈：
+
+```python
+import zarr
+
+rslc = zarr.open('raw/rslc.zarr', mode='r')   # 只读元数据
+block = rslc[:500, 1000:2000, 0]              # numpy 数组 (500, 1000) complex64
+```
+
 ## 分块
 
 zarr 数组按块存放，worker 并行处理各块；块的布局决定内存和速度。moraine 的约定（决策 0019）是：**空间上分块，
 每景影像（或每个像对）一个块**，例如栅格堆栈 `(lines_block, width_block, 1)`、点云堆栈 `(points_block, 1)`。
 按影像处理的步骤读整块，按空间块处理的步骤读每景影像的一块，都不需要重新分块。命令有 `chunks`（处理）和
 `out_chunks`（存储）参数；块太小时间都花在调度上，太大则内存不够。栅格沿方位向而不是距离向切分。
+
+## 命令怎样运行
+
+```text
+moraine run FILE            pipeline：按顺序运行各步，跳过没有变化的步骤
+└── moraine COMMAND ...     命令：帮助和参数检查来自 docstring
+    └── moraine.cli.<name>  打开输入，创建输出，列出任务
+        └── executor        运行任务：CPU 上用线程，每块 GPU 一个进程
+            └── task        zarr ──► 内存中 numpy / cupy 数组上的 API 函数 ──► zarr
+```
+
+一条命令从不把整个数据集放进内存。它在 `moraine.cli` 里的函数（Python 里是 `mc.<name>(...)`）把工作切成任务，
+每个任务是 API 函数处理的一个单元：一块像元或点（`chunks`），或者一景影像、一个像对。任务读入自己的输入块，在内存中
+对它们调用 API 函数，再写出自己的输出块，这些块不会被别的任务写。moraine 的执行器用自己的 worker 运行任务（决策
+0033、0034）：CPU 上是命令所在进程的线程，numba 内核把每个任务分摊到各个核上；用 `cuda` 时是 `CUDA_VISIBLE_DEVICES`
+里每块 GPU 一个进程，它在计算当前任务的同时读入下一个任务的块。`n_workers`、`threads_per_worker` 和 `processes`
+决定同时运行多少个任务、在哪里运行（[命令行](../cli/index.md)）。所以一条命令需要的是同时运行的那些任务的内存，
+加上少数命令在整个运行期间保留的小数组（帮助里给出每个点的字节数），而不是整个数据集的内存：内存不够时，把
+`chunks` 调小，或者减少同时运行的任务。
+
+能放进内存的数据（一小块裁剪、一次测试）直接用 API 函数更快：不用读写 zarr，也不用启动 worker。有些命令没有自己的
+API 函数：载入 GAMMA 结果、金字塔，以及对内存中的数组一行 numpy 就能完成的数据操作（`math`、`pc-logic-ras`、
+`pc-select-data`、`pc-concat` 等）。
 
 ## 处理链
 

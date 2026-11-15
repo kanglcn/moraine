@@ -39,6 +39,9 @@ mc.emi('ds/ds_can_coh.zarr', 'ds/ds_can_ph.zarr', cuda=True)   # a whole data se
 moraine emi --coh ds/ds_can_coh.zarr --ph ds/ds_can_ph.zarr --cuda
 ```
 
+The modules of each layer and the rules on which layer may use which are on the developer page
+[Architecture](../dev/architecture.md).
+
 ## Rasters and point clouds
 
 Two kinds of data sets run through a processing chain (the full conventions are in the
@@ -57,6 +60,32 @@ linked histories and filtered interferograms have unit amplitude, coherence of p
 compressed (the upper triangle of the coherence matrix, `(n_points, n_pairs)`), unwrapped phase is float32
 radians `(n_points, n_pairs)`.
 
+## Data on disk
+
+The data on disk are zarr arrays, and a zarr array is a directory: `zarr.json` with the shape, the dtype and the
+chunks, and one file per chunk, compressed with zstd (decision 0039). Copy, move or delete the directory as a whole,
+as if it were one file. The rslc stack of the sample data set:
+
+```text
+raw/rslc.zarr/       complex64 (981, 4160, 92), chunks (1000, 1000, 1)
+├── zarr.json        shape, dtype, chunks, compression
+└── c/               460 chunk files: c/<azimuth block>/<range block>/<image>
+    ├── 0/0/0        azimuth 0-980, range 0-999, image 0
+    ├── 0/0/1        azimuth 0-980, range 0-999, image 1
+    ├── ...
+    └── 0/4/91       azimuth 0-980, range 4000-4159, image 91
+```
+
+`moraine info PATH` prints the shape, the dtype and the chunks without reading any data. Any zarr reader opens the
+array, and what it reads is a numpy array; read the part you need, not the whole stack:
+
+```python
+import zarr
+
+rslc = zarr.open('raw/rslc.zarr', mode='r')   # reads the metadata only
+block = rslc[:500, 1000:2000, 0]              # numpy array (500, 1000) complex64
+```
+
 ## Chunks
 
 zarr arrays are stored in chunks, the workers process them in parallel; the chunk layout decides the memory and the
@@ -65,6 +94,32 @@ e.g. `(lines_block, width_block, 1)` for a raster stack and `(points_block, 1)` 
 image then reads whole chunks, and a step per block reads one chunk of every image, both without rechunking.
 Commands take `chunks` (processing) and `out_chunks` (storage) arguments; too small chunks spend the time in
 scheduling, too large ones run out of memory. Divide rasters along azimuth rather than range.
+
+## How a command runs
+
+```text
+moraine run FILE            pipeline: steps in order, unchanged ones skipped
+└── moraine COMMAND ...     command: help and argument checks from the docstring
+    └── moraine.cli.<name>  opens the inputs, creates the outputs, lists the tasks
+        └── executor        runs the tasks: threads on the CPU, one process per GPU
+            └── task        zarr ──► API function on numpy / cupy arrays ──► zarr
+```
+
+A command never holds a whole data set in memory. Its function in `moraine.cli` (`mc.<name>(...)` in Python)
+cuts the work into tasks, one per unit the API function takes: a block of pixels or points (`chunks`), or an image
+or image pair. A task reads its input chunks, calls the API function on them in memory and writes its output
+chunks, which no other task writes. moraine's executor runs the tasks on its own workers (decisions 0033, 0034): on
+the CPU in threads of the command's process, the numba kernels spreading each task over the cores; with `cuda` in
+one process per GPU of `CUDA_VISIBLE_DEVICES`, which reads the chunks of its next task while it computes the current
+one. `n_workers`, `threads_per_worker` and `processes` set how many tasks run at the same time and where
+([command line](../cli/index.md)). A command therefore needs the memory of the tasks it runs at the same time, plus
+the small arrays a few commands keep for the whole run (their help gives the bytes per point), not the memory of the
+data set: when one runs out of memory, make `chunks` smaller or run fewer tasks at a time.
+
+For data that fit in memory, a crop or a test, the API functions are quicker: no zarr to read and write, no workers
+to start. Some commands have no API function of their own: the loading of GAMMA results, the pyramids and data
+manipulation that is a line of numpy on arrays in memory (`math`, `pc-logic-ras`, `pc-select-data`, `pc-concat`,
+...).
 
 ## The processing chain
 
