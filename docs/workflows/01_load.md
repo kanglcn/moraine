@@ -15,7 +15,7 @@ gamma/
 
 Ask the user for the directory, the reference date (`reference`, the date the rslc stack is flattened to)
 and the date prefix of the geocoding files (`geo`) if they are not obvious from the file names. The defaults
-of the file are the ones of the sample data set, Campi Flegrei (`data/CampiFlegrei/gamma`, decision 0033).
+of the file are the ones of the sample data set, Campi Flegrei (`data/CampiFlegrei/gamma`, decision 0038).
 
 ```bash
 moraine run examples/01_load.toml --workdir WORK --var gamma=/path/to/gamma --var reference=20200707 --var geo=20200707
