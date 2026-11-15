@@ -53,6 +53,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0043](0043-no-threaded-library-in-numba-parallel-kernels.md) | Numba parallel kernels call no threaded library (BLAS, LAPACK) | Accepted |
 | [0044](0044-perpendicular-baselines-per-pixel-from-the-orbits.md) | Perpendicular baselines per pixel from the orbits | Accepted |
 | [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies | Accepted |
+| [0046](0046-pyramid-processes-from-a-forkserver.md) | The pyramids render in processes started by a forkserver | Accepted |
 
 ## Writing a record
 
