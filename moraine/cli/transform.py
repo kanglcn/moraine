@@ -3,43 +3,31 @@
 
 __all__ = ['transform']
 
-import multiprocessing
-import concurrent
+import functools
+import logging
+from pathlib import Path
+
 import numpy as np
 import zarr
-import logging
 from pyproj import Transformer
 
+from ..api.utils_.chunk import all_chunk_slices
+from .executor import Chunk, Executor
 from .logging import mc_logger
 
-def _transform(xx_in,
-              yy_in,
-              epsg_in=4326,
-              epsg_out=3857,
-              n_worker=None,
-             ):
-    """Parameters
-    ----------
-    xx_in
-        input x coordinate
-    yy_in
-        input y coordinate
-    epsg_in : default: 4326
-        input epsg
-    epsg_out : default: 3857
-        output epsg
-    n_worker : optional
-        number of worker, all cpus by default
-    """
-    if n_worker is None: n_worker = multiprocessing.cpu_count()
-    transformer = Transformer.from_crs(f"EPSG:{epsg_in}", f"EPSG:{epsg_out}",always_xy=True)
-    # xx_out = np.empty_like(xx_in); yy_out = np.empty_like(yy_in)
-    # xx_out_split = np.array_split(xx_out,n_worker); yy_out_split = np.array_split(yy_out,n_worker)
-    xx_out_list = []; yy_out_list = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=n_worker) as executor:
-        for i, (_xx_out, _yy_out) in enumerate(executor.map(transformer.transform,np.array_split(xx_in,n_worker),np.array_split(yy_in,n_worker))):
-            xx_out_list.append(_xx_out); yy_out_list.append(_yy_out)
-    return np.concatenate(xx_out_list), np.concatenate(yy_out_list)
+
+@functools.lru_cache(maxsize=None)
+def _transformer(epsg_in, epsg_out):
+    # one per pair of EPSG codes and process; a pyproj Transformer may be used by several threads at the same time
+    return Transformer.from_crs(f'EPSG:{epsg_in}', f'EPSG:{epsg_out}', always_xy=True)
+
+
+def _transform_chunk(xx, yy, epsg_in, epsg_out):
+    # PROJ computes without holding the GIL: the threads of the executor transform their chunks in parallel.
+    # pyproj returns two floats for a chunk of one element (taken for a point, numpy warns): back to the chunk shape
+    x, y = _transformer(epsg_in, epsg_out).transform(xx, yy)
+    return np.reshape(x, xx.shape), np.reshape(y, xx.shape)
+
 
 @mc_logger
 def transform(xx_in,
@@ -48,38 +36,55 @@ def transform(xx_in,
               yy_out,
               epsg_in=4326,
               epsg_out=3857,
+              n_workers=1,
+              threads_per_worker=4,
              ):
-    """Coordinate transformation.
-    By default, the input should be longitude (xx_in) and latitude (yy_in) (in degree) and outputs 
-    are x (east) and y (south) coordinate in web mercator projection (for plot with google earth map).
-    The chunks, shape and dtype of output are same as `xx_in`.
+    """Coordinate transformation between two coordinate reference systems (EPSG codes).
+    By default, longitude (`xx_in`) and latitude (`yy_in`) in degrees are transformed to the x (east) and y (north)
+    coordinates of the web mercator projection in meters, the coordinates of the maps of `moraine view`.
+    x is always the east axis (longitude, easting) and y the north axis (latitude, northing), whatever the axis order
+    of the EPSG definition. A point with a NaN coordinate gets NaN in both outputs.
 
     Parameters
     ----------
     xx_in
-        input: x coordinate (longitude in degree for the default epsg_in)
+        input: x coordinate of every pixel or point, any shape, e.g. (nlines, width) for a raster or (n_points,) for
+        a point cloud (longitude in degrees for the default epsg_in)
     yy_in
-        input: y coordinate (latitude in degree for the default epsg_in)
+        input: y coordinate, same shape as `xx_in` (latitude in degrees for the default epsg_in)
     xx_out
-        output: x coordinate in `epsg_out`, same shape and chunks as `xx_in`
+        output: x coordinate in `epsg_out`, same shape, chunks and dtype as `xx_in` (east in meters for the default
+        epsg_out); a new array, not one of the inputs
     yy_out
-        output: y coordinate in `epsg_out`, same shape and chunks as `xx_in`
+        output: y coordinate in `epsg_out`, same shape, chunks and dtype as `xx_in` (north in meters for the default
+        epsg_out); a new array, not one of the inputs
     epsg_in : int, default: 4326
-        EPSG code of the input coordinates (4326: WGS84 longitude/latitude)
+        EPSG code of the input coordinates (4326: WGS84 longitude / latitude)
     epsg_out : int, default: 3857
         EPSG code of the output coordinates (3857: web mercator)
+    n_workers : int, default: 1
+        number of workers
+    threads_per_worker : int, default: 4
+        tasks a worker runs at the same time
     """
     logger = logging.getLogger(__name__)
-    xx_in_path = xx_in; yy_in_path = yy_in; xx_out_path = xx_out; yy_out_path = yy_out
+    xx_in_zarr = zarr.open(xx_in, mode='r'); yy_in_zarr = zarr.open(yy_in, mode='r')
+    logger.zarr_info('xx_in', xx_in_zarr); logger.zarr_info('yy_in', yy_in_zarr)
+    if yy_in_zarr.shape != xx_in_zarr.shape:
+        raise ValueError(f'yy_in: shape {yy_in_zarr.shape} differs from xx_in: {xx_in_zarr.shape}')
+    # the outputs are created (emptied) before any input is read
+    ins, outs = {Path(p).resolve() for p in (xx_in, yy_in)}, {Path(p).resolve() for p in (xx_out, yy_out)}
+    if len(outs) < 2 or ins & outs:
+        raise ValueError('xx_out and yy_out must be two arrays other than the inputs')
+    transformer = _transformer(epsg_in, epsg_out)   # fails here for an unknown EPSG code
+    logger.info(f'EPSG:{epsg_in} -> EPSG:{epsg_out}: {transformer.description}')
 
-    logger.info(f'input EPSG: {epsg_in}.')
-    xx_in_zarr = zarr.open(xx_in_path,mode='r'); yy_in_zarr = zarr.open(yy_in_path,mode='r')
-    logger.zarr_info('xx_in',xx_in_zarr); logger.zarr_info('yy_in',yy_in_zarr)
-    logger.info(f'output EPSG: {epsg_out}.')
-    logger.info(f'do the transformation.')
-    xx_out, yy_out = _transform(xx_in_zarr[:],yy_in_zarr[:])
-    logger.info(f'write output.')
-    xx_out_zarr = zarr.open(xx_out_path,mode='w',shape=xx_in_zarr.shape,dtype=xx_in_zarr.dtype,chunks=xx_in_zarr.chunks)
-    yy_out_zarr = zarr.open(yy_out_path,mode='w',shape=xx_in_zarr.shape,dtype=xx_in_zarr.dtype,chunks=xx_in_zarr.chunks)
-    xx_out_zarr[:] = xx_out; yy_out_zarr[:] = yy_out
-    logger.info(f'write done.')
+    shape, chunks, dtype = xx_in_zarr.shape, xx_in_zarr.chunks, xx_in_zarr.dtype
+    for name, path in (('xx_out', xx_out), ('yy_out', yy_out)):
+        logger.zarr_info(name, zarr.open(path, mode='w', shape=shape, dtype=dtype, chunks=chunks))
+    tasks = [([Chunk(xx_in, sl), Chunk(yy_in, sl)], [Chunk(xx_out, sl), Chunk(yy_out, sl)])
+             for sl in all_chunk_slices(shape, chunks)]
+    logger.info(f'transform {len(tasks)} chunks')
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker) as ex:
+        ex.map_chunks(_transform_chunk, tasks, desc='transform', epsg_in=epsg_in, epsg_out=epsg_out)
+    logger.info('done.')

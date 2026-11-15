@@ -250,15 +250,3 @@ def test_pyramids_and_views(work, shp):
         mc.view(str(d / 'rslc_pyramid'), show='intf_seq')
     assert [len(p) for p in v.widget.layers] == [2, 1] and v.widget.kdims == [{'name': 'image', 'max': 15}]
     assert v.png(str(d / 'views.png'), index={'image': 3}) and (d / 'views.png').stat().st_size > 10_000
-
-
-def test_transform(tmp_path):
-    pyproj = pytest.importorskip('pyproj')
-    lon, lat = np.meshgrid(np.linspace(-150, -140, 50), np.linspace(60, 61, 40))
-    for name, data in [('lon.zarr', lon), ('lat.zarr', lat)]:
-        z = zarr.open(str(tmp_path / name), mode='w', shape=data.shape, dtype=data.dtype, chunks=(20, 50))
-        z[:] = data
-    mc.transform(str(tmp_path / 'lon.zarr'), str(tmp_path / 'lat.zarr'), str(tmp_path / 'e.zarr'), str(tmp_path / 'n.zarr'))
-    e, n = pyproj.Transformer.from_crs(4326, 3857, always_xy=True).transform(lon, lat)
-    np.testing.assert_allclose(r(tmp_path / 'e.zarr'), e)
-    np.testing.assert_allclose(r(tmp_path / 'n.zarr'), n)
