@@ -167,9 +167,12 @@ git diff --check              # whitespace errors
 ```
 
 - Changes in `moraine/cli/` or `moraine/command/`: run the slow tests too.
-- GPU code: run the tests on a GPU node (`CUDA_VISIBLE_DEVICES` set); skipped GPU tests prove nothing.
+- GPU code: mark its tests `@pytest.mark.gpu` (they are skipped without a GPU, e.g. in the CI) and run them on a GPU
+  node (`CUDA_VISIBLE_DEVICES` set); skipped GPU tests prove nothing.
 - Commands used by `examples/`: run the affected examples end to end on `data/gamma`.
-- Tests that need the sample data are skipped without it; say so when you report.
+- Tests that need the sample data are skipped without it; say so when you report. `MORAINE_TEST_DATA` points to the
+  sample data (default: `data/` of the repository) with `rslc.zarr` and the GAMMA results `gamma/`; with
+  `gamma/sim_orb/`, the simulated orbital phases, the GAMMA loading test takes seconds instead of about 15 min.
 
 ### Pre-commit hook
 
@@ -188,11 +191,25 @@ the commit message. The CI runs `ruff check` and `pytest -m "not slow"` on every
 
 ## Committing and releasing
 
-- Commit messages say what changed and why; mention bugs found and fixed.
+- Commit messages say what changed and why ([a guide](https://cbea.ms/git-commit/)); mention bugs found and fixed.
 - Do not commit data, processing outputs, credentials or executed notebook outputs.
 - `*.toml` is ignored by `.gitignore`; add an exception for new TOML files that belong in the repository.
 - Pushing, merging into `main`, tagging and releasing need the maintainer's explicit go. Never force-push
   shared branches.
+
+## Pull requests
+
+Contributions come as pull requests on GitHub, in the usual [pull request workflow](https://www.asmeurer.com/git-workflow/)
+(adapted from the [contributors guide](https://www.pygmt.org/latest/contributing.html) of PyGMT):
+
+- Look at the [issues](https://github.com/kanglcn/moraine/issues) first. If one matches your change, say there what you
+  plan to do; otherwise open one that describes it. The issue is where the change is discussed before it is made.
+- A pull request is one small, logical change; split larger ones, and send bug fixes in pull requests of their own.
+- Describe what the pull request changes and why, as specifically as you can: the descriptions record how the project
+  changed over time.
+- Leave out changes of files that the change does not need (`.gitignore`, IDE project files, ...).
+- Be ready to accept criticism and to improve the code: other users' code must not break. A review takes time, roughly
+  in proportion to the size of the pull request.
 
 ## Reporting
 
