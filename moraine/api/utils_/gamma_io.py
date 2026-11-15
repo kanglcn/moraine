@@ -85,7 +85,7 @@ def read_gamma_pdata(
 
     data = np.fromfile(imag,dtype=dt)
     if dt != '>i4':
-        mask = data==0
+        mask = abs(data)<1e-30 # mask gamma nan value, as read_gamma_image
         if dt == '>c8':
             data[mask] = np.nan+1j*np.nan
         else:
