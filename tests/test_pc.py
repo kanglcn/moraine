@@ -115,6 +115,14 @@ def test_pc_intersect(gpu):
 
 
 @pytest.mark.parametrize('gpu', GPU)
+def test_pc_intersect_empty(gpu):
+    xp = _xp(gpu)
+    h, e = xp.asarray(HIX1), xp.asarray(HIX1[:0])
+    for a, b in ((h, e), (e, h), (e, e)):
+        assert [_get(x).shape for x in pc_intersect(a, b)] == [(0,)] * 3
+
+
+@pytest.mark.parametrize('gpu', GPU)
 def test_pc_diff(gpu):
     xp = _xp(gpu)
     gix, i1 = map(_get, pc_diff(xp.asarray(GIX1), xp.asarray(GIX2), shape=(4, 4)))

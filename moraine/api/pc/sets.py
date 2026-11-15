@@ -141,6 +141,8 @@ def pc_intersect(idx1:np.ndarray,
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
     xp = get_array_module(idx1_1d)
+    if idx2_1d.shape[0] == 0:
+        idx1_1d = idx1_1d[:0] # cupy (13.6) intersect1d reads out of bounds when the second array is empty
     idx, iidx1, iidx2 = xp.intersect1d(idx1_1d,idx2_1d,assume_unique=True,return_indices=True)
     return (idx if dims is None else _unravel_gix(idx, dims)), iidx1, iidx2
 
