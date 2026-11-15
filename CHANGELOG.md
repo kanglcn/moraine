@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The coherence views of `moraine.cli.view` (`show='coh'`, `'coh_abs'`) with `image_pairs` have sliders up to the largest image index of the pairs. They stopped at the secondary image of the last pair, e.g. at image 2 for the pairs (0, 1), (0, 3), (1, 2), and the pair (0, 3) could not be shown
+
 `TempNet` checks that its image pairs link all the images (every image to every other one through a chain of pairs), are sorted by reference and then secondary index without duplicates, and have every reference index smaller than its secondary index. It rejected connected networks such as `[[0, 1], [0, 2], [1, 3], [2, 3]]`, as it only checked that the first pair of every reference image was with the next image, and accepted networks in two parts such as `[[0, 1], [2, 3]]` and duplicate pairs. Its number of images is the largest image index + 1 instead of the secondary index of the last pair + 1: `image_pairs_idx` found the wrong pair in networks whose last pair does not hold the last image, e.g. pair 3 instead of 4 for (1, 2) in `[[0, 1], [0, 3], [0, 4], [0, 5], [1, 2]]`. The errors name the first wrong pair or the images not linked to image 0
 
 `load-gamma-metadata` writes `times` to `meta.toml`: the time of the centre line of every image (UTC, to the microsecond, TOML date-times in the order of `dates`), from `date` and `center_time` of the `*.rslc.par` files; `dates` (YYYYMMDD) do not change. For time axes and corrections that need the time of an acquisition, not only its day (Campi Flegrei: 05:12:13.78 to 05:12:31.89 UTC). The 01 guide no longer lists a heading in `meta.toml`, which was never written.

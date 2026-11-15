@@ -267,7 +267,7 @@ def _show(base, show, image_pairs, sliders, dates, is_pc):
             raise ValueError(f"show={show!r} needs compressed coherence (..., n_pairs), not shape {base.shape}")
         tnet = _image_pairs(image_pairs, stack[0])
         ras, pc = _coh_post_procs(tnet, 'phase' if show == 'coh' else 'abs')
-        n = int(tnet.image_pairs[-1, -1]) + 1
+        n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
         return show, ras, pc, list(zip(SLIDERS[show], counts)), show == 'coh', {'sec': min(1, n - 1)}
     if callable(show):

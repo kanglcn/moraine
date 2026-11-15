@@ -354,6 +354,17 @@ def test_coherence_sliders(tmp_path):
         view(str(pyr), show='coh', image_pairs=str(tmp_path / 'pairs.txt'))
 
 
+def test_coherence_sliders_reach_the_last_image(tmp_path):
+    pairs = np.array([(0, 1), (0, 3), (1, 2)])          # the last pair does not hold the last image
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    coh, pyr = _coh_pc(tmp_path, pairs)
+    layer = view(str(pyr), show='coh', image_pairs=str(tmp_path / 'pairs.txt'))
+    assert [(k['name'], k['max']) for k in layer.kdims] == [('ref', 3), ('sec', 3)]
+    geom = grid_geom(0, 0, 0, layer.edge_origin)
+    np.testing.assert_allclose(layer.raster_values(geom, {'ref': 0, 'sec': 3})[:3, :4].ravel(), np.angle(coh[:, 1]),
+                               rtol=1e-5)
+
+
 # ---------------------------------------------------------------- time series
 
 def test_raster_time_series(tmp_path, stack, rng):
