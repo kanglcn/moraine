@@ -137,7 +137,7 @@ class TempNet(object):
                 raise ValueError(f'ref and sec must have the same length, got {len(ref)} and {len(sec)}')
 
         query_1d = ref*self._n_images+sec
-        mask = np.isin(query_1d,self._image_pairs_1d,assume_unique=True,invert=True)
+        mask = np.isin(query_1d,self._image_pairs_1d,invert=True)     # not assume_unique: queries may repeat pairs
         # an index outside 0 .. n_images - 1 can have the code of a pair of the network, e.g. (0, 5) that of (1, 2)
         # with 3 images, also through an overflow of the code
         mask |= (ref < 0) | (ref >= self._n_images) | (sec < 0) | (sec >= self._n_images)
