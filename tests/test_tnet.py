@@ -1,7 +1,19 @@
 import numpy as np
 import pytest
 
-from moraine.api.tnet import TempNet, nimage_from_npair
+from moraine.api.tnet import TempNet, check_image_pairs, nimage_from_npair
+
+# image pairs against the data conventions: sorted without duplicates, every reference index smaller
+AGAINST_CONVENTIONS = [
+    ([[0, 1], [0, 1], [1, 2]], 'without duplicates'),
+    ([[1, 2], [0, 1]], 'sorted'),
+    ([[0, 2], [0, 1], [1, 2]], 'sorted'),
+    ([[0, 1], [2, 1]], 'smaller'),
+    ([[0, 0]], 'smaller'),
+    ([[-1, 0]], '0 or larger'),
+    (np.zeros((0, 2), int), 'no image pairs'),
+    ([0, 1], 'shape'),
+]
 
 
 def test_from_bandwidth():
@@ -33,17 +45,32 @@ def test_bandwidth_networks_are_valid(nimages):
 @pytest.mark.parametrize('pairs, match', [
     ([[0, 1], [2, 3]], 'not linked'),                       # two parts
     ([[0, 2]], 'not linked'),                               # image 1 has no pair
-    ([[0, 1], [0, 1], [1, 2]], 'without duplicates'),
-    ([[1, 2], [0, 1]], 'sorted'),
-    ([[0, 1], [2, 1]], 'smaller'),
-    ([[0, 0]], 'smaller'),
-    ([[-1, 0]], '0 or larger'),
-    (np.zeros((0, 2), int), 'no image pairs'),
-    ([0, 1], 'shape'),
-])
+] + AGAINST_CONVENTIONS)
 def test_invalid_networks(pairs, match):
     with pytest.raises(ValueError, match=match):
         TempNet(np.asarray(pairs))
+
+
+@pytest.mark.parametrize('pairs, match', AGAINST_CONVENTIONS)
+def test_check_image_pairs(pairs, match):
+    with pytest.raises(ValueError, match=match):
+        check_image_pairs(pairs)
+
+
+def test_conventions_do_not_need_linked_images():
+    """A network may leave out images or have parts: the conventions hold, only `TempNet` needs all images linked."""
+    for pairs in ([[0, 1], [2, 3]], [[1, 2], [1, 3], [2, 3]]):
+        check_image_pairs(pairs)
+        with pytest.raises(ValueError, match='not linked'):
+            TempNet(pairs)
+
+
+def test_load_checks_the_conventions(tmp_path):
+    TempNet([[1, 2], [2, 3]], check_if_valid=False).save(str(tmp_path / 'leaves_out_0.zarr'))
+    np.testing.assert_array_equal(TempNet.load(str(tmp_path / 'leaves_out_0.zarr')).image_pairs, [[1, 2], [2, 3]])
+    TempNet([[0, 2], [0, 1], [1, 2]], check_if_valid=False).save(str(tmp_path / 'unsorted.zarr'))
+    with pytest.raises(ValueError, match='sorted'):
+        TempNet.load(str(tmp_path / 'unsorted.zarr'))
 
 
 def test_nimage_from_npair():

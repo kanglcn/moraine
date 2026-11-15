@@ -1,7 +1,7 @@
 """utilities holding temporal network info"""
 
 
-__all__ = ['TempNet', 'nimage_from_npair']
+__all__ = ['TempNet', 'check_image_pairs', 'nimage_from_npair']
 
 import math
 import numpy as np
@@ -17,8 +17,19 @@ def _imagepair_from_bandwidth(nimages,bandwidth=None):
     idx = np.where((sec-ref)<=bandwidth)
     return np.stack((ref[idx], sec[idx]),axis=-1).astype(np.int32)
 
-def _check_image_pairs(image_pairs):
-    """ValueError unless the image pairs (n_pairs, 2) are a network as `TempNet` needs it."""
+def check_image_pairs(image_pairs):
+    """Raise a ValueError unless the image pairs follow the data conventions.
+
+    The conventions: at least one pair, image indices 0 or larger, every reference index smaller than its
+    secondary index, the pairs sorted by reference and then secondary index without duplicates. The error names
+    the first pair that breaks them.
+
+    Parameters
+    ----------
+    image_pairs : np.ndarray
+        (n_pairs, 2) int: the reference and secondary image index of each pair
+    """
+    image_pairs = np.asarray(image_pairs)
     if image_pairs.ndim != 2 or image_pairs.shape[1] != 2:
         raise ValueError(f'image pairs must have shape (n_pairs, 2), got {image_pairs.shape}')
     if len(image_pairs) == 0:
@@ -37,6 +48,12 @@ def _check_image_pairs(image_pairs):
         k = bad[0]
         raise ValueError(f'image pairs must be sorted by reference and then secondary index, without duplicates: '
                          f'pair {k} ({ref[k]}, {sec[k]}) follows ({ref[k - 1]}, {sec[k - 1]})')
+
+def _check_linked(image_pairs):
+    """ValueError unless the image pairs (n_pairs, 2), checked by `check_image_pairs`, link all the images 0 to the
+    largest index."""
+    ref, sec = image_pairs[:, 0].astype(np.int64), image_pairs[:, 1].astype(np.int64)
+    n_images = int(sec.max()) + 1
     graph = coo_matrix((np.ones(len(ref), np.int8), (ref, sec)), shape=(n_images, n_images))
     _, component = connected_components(graph, directed=False)
     apart = np.flatnonzero(component != component[0])
@@ -52,16 +69,17 @@ class TempNet(object):
     ----------
     image_pairs : np.ndarray
         (n_pairs, 2) int: the reference and secondary image index of each pair, of the images 0 to n_images - 1,
-        n_images being the largest index + 1
+        n_images being the largest index + 1; sorted by reference and then secondary index without duplicates,
+        every reference index smaller than its secondary index (`check_image_pairs`)
     check_if_valid : bool, default: True
-        raise a ValueError unless the image pairs are sorted by reference and then secondary index without
-        duplicates, every reference index is smaller than its secondary index, and the pairs link all the images
-        (every image to every other one through a chain of pairs)
+        raise a ValueError unless the image pairs follow these conventions and link all the images (every image
+        to every other one through a chain of pairs)
     """
     def __init__(self,image_pairs,check_if_valid=True):
         image_pairs = np.asarray(image_pairs)
         if check_if_valid:
-            _check_image_pairs(image_pairs)
+            check_image_pairs(image_pairs)
+            _check_linked(image_pairs)
         self._image_pairs = image_pairs.astype(np.int32)
         # the largest index: the last pair need not hold it, e.g. [[0, 1], [0, 3], [1, 2]]
         self._n_images = int(self._image_pairs.max()) + 1 if len(self._image_pairs) else 0
@@ -125,10 +143,11 @@ class TempNet(object):
         Parameters
         ----------
         zarr_path : str
-            zarr path
+            zarr path; its image pairs must follow the data conventions (`check_image_pairs`), else a ValueError
         """
-        tempnet_zarr = zarr.open(zarr_path,mode='r')
-        return cls(tempnet_zarr[:], check_if_valid=False)
+        image_pairs = zarr.open(zarr_path,mode='r')[:]
+        check_image_pairs(image_pairs)
+        return cls(image_pairs, check_if_valid=False)
 
 def nimage_from_npair(npair):
     '''infer number of images from number of pairs assuming all pairs are selected.'''

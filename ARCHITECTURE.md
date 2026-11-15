@@ -60,7 +60,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/pc/sets.py` | set operations of point clouds | `pc_union`, `pc_intersect`, `pc_diff` |
 | `moraine/api/pc/raster.py` | raster <-> point cloud, points in the order of raster chunks | `ras2pc`, `pc2ras` |
 | `moraine/api/pc/rtree.py` | hilbert R-tree for bounding box queries on point clouds | `HilbertRtree` |
-| `moraine/api/tnet.py` | temporal network: image pairs | `TempNet` |
+| `moraine/api/tnet.py` | temporal network: image pairs | `TempNet`, `check_image_pairs` |
 | `moraine/api/polygon.py` | polygon GeoJSON files (longitude / latitude or radar grid), point in polygon | `read_polygons`, `write_polygons`, `polygons_contain` |
 | `moraine/api/slc.py` | basic operations on SLC stacks: amplitude, amplitude calibration, interferograms, multilooking | `rslc2amp`, `calamp`, `intf` |
 | *stages* | | |

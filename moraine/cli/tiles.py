@@ -215,14 +215,15 @@ def _coh_post_procs(tnet, kind):
 
 def _image_pairs(image_pairs, n_pairs):
     """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs."""
-    from ..api.tnet import TempNet, nimage_from_npair
+    from ..api.tnet import TempNet, check_image_pairs, nimage_from_npair
     if image_pairs is None:
         return TempNet.from_bandwidth(nimage_from_npair(n_pairs))
     pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
         else np.asarray(image_pairs, dtype=np.int32)
     if len(pairs) != n_pairs:
         raise ValueError(f'{len(pairs)} image pairs for data with {n_pairs} pairs')
-    return TempNet(pairs, check_if_valid=False)
+    check_image_pairs(pairs)        # the column of the pair of the sliders is searched in this order (decision 0047)
+    return TempNet(pairs, check_if_valid=False)         # the network may leave out images
 
 
 def _series_values(v, v_ref):
@@ -1125,7 +1126,9 @@ def view(
     resolution : float, optional
         point data only: cell size of the rasterized points; 1 for integer coordinates
     image_pairs : str, optional
-        image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs'; all pairs by default
+        image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs', sorted by reference and then
+        secondary index without duplicates, every reference index smaller than its secondary index, as made by
+        `moraine image-pairs`; all pairs by default
     sliders : dict, optional
         number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
         shape or `dates` by default

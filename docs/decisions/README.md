@@ -54,6 +54,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0044](0044-perpendicular-baselines-per-pixel-from-the-orbits.md) | Perpendicular baselines per pixel from the orbits | Accepted |
 | [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies | Accepted |
 | [0046](0046-pyramid-processes-from-a-forkserver.md) | The pyramids render in processes started by a forkserver | Accepted |
+| [0047](0047-image-pairs-sorted-reference-first.md) | Image pairs are sorted without duplicates, the reference index smaller than the secondary | Accepted |
 
 ## Writing a record
 

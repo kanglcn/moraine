@@ -365,6 +365,21 @@ def test_coherence_sliders_reach_the_last_image(tmp_path):
                                rtol=1e-5)
 
 
+def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
+    """Image pairs against the data conventions are rejected (with these unsorted pairs the sliders (0, 1) showed
+    the coherence of (0, 2)); a network may leave out images."""
+    pairs = np.array([(0, 2), (0, 1), (1, 2)])
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    _, pyr = _coh_pc(tmp_path, pairs)
+    with pytest.raises(ValueError, match='sorted'):
+        view(str(pyr), show='coh', image_pairs=str(tmp_path / 'pairs.txt'))
+    with pytest.raises(ValueError, match='smaller'):
+        view(str(pyr), show='coh_abs', image_pairs=np.array([(0, 1), (2, 0), (1, 2)]))
+    layer = view(str(pyr), show='coh_abs', image_pairs=np.array([(1, 2), (1, 3), (2, 3)]))     # no image 0
+    geom = grid_geom(0, 0, 0, layer.edge_origin)
+    assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
+
+
 # ---------------------------------------------------------------- time series
 
 def test_raster_time_series(tmp_path, stack, rng):

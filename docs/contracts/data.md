@@ -44,6 +44,10 @@ Decision 0019.
 
 - Image pairs `(n_pairs, 2)` int: (reference, secondary) image index; the interferogram is
   `ref * conj(sec)`. Image pair files have these two columns.
+- Image pairs are sorted by reference and then secondary index without duplicates, and every reference index is
+  smaller than its secondary index (decision 0047), as `moraine image-pairs` writes them. The commands, pipeline
+  files, the viewer and `TempNet` reject other image pairs, naming the first wrong pair
+  (`moraine.check_image_pairs`).
 - Interferograms and phase histories are complex; the phase is `angle(...)`. Filtered interferograms and
   phase histories have unit amplitude.
 - Coherence of point clouds is compressed: the upper triangle of the coherence matrix,
