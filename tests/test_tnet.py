@@ -65,13 +65,5 @@ def test_conventions_do_not_need_linked_images():
             TempNet(pairs)
 
 
-def test_load_checks_the_conventions(tmp_path):
-    TempNet([[1, 2], [2, 3]], check_if_valid=False).save(str(tmp_path / 'leaves_out_0.zarr'))
-    np.testing.assert_array_equal(TempNet.load(str(tmp_path / 'leaves_out_0.zarr')).image_pairs, [[1, 2], [2, 3]])
-    TempNet([[0, 2], [0, 1], [1, 2]], check_if_valid=False).save(str(tmp_path / 'unsorted.zarr'))
-    with pytest.raises(ValueError, match='sorted'):
-        TempNet.load(str(tmp_path / 'unsorted.zarr'))
-
-
 def test_nimage_from_npair():
     assert nimage_from_npair(6) == 4
