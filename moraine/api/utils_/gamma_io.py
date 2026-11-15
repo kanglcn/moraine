@@ -1,10 +1,13 @@
-"""internal utilities for working with gamma software"""
+"""Read and write GAMMA binary files: rasters, point data and point lists, big endian"""
 
 
 __all__ = ['read_gamma_image', 'read_gamma_pdata', 'write_gamma_image', 'read_gamma_plist', 'write_gamma_plist']
 
-import numpy as np
 import os
+
+import numpy as np
+
+_DTYPES = {'float': '>f4', 'fcomplex': '>c8', 'double': '>f8', 'int': '>i4'}   # GAMMA data formats
 
 def read_gamma_image(imag:str,
                      width:int,
@@ -12,94 +15,90 @@ def read_gamma_image(imag:str,
                      y0:int=0,
                      ny:int=None,
                     ):
-    """read gamma image into numpy array.
+    """Read a GAMMA raster into a numpy array.
 
     Parameters
     ----------
     imag : str
-        gamma raster data
+        GAMMA raster file
     width : int
-        data width
+        number of values per line
     dtype : str, default: 'float'
-        data format, only 'float', 'fcomplex', 'double' and 'int' are supported.
+        GAMMA data format: 'float', 'fcomplex', 'double' or 'int'
     y0 : int, default: 0
-        line number to start reading
+        first line to read
     ny : int, optional
         number of lines to read, default: to the last line
-    """
-    if dtype == 'float':
-        dt = '>f4'
-    elif dtype == 'fcomplex':
-        dt = '>c8'
-    elif dtype == 'int':
-        dt = '>i4'
-    elif dtype =='double':
-        dt = '>f8'
-    else: raise ValueError('Unsupported data type')
 
-    with open(imag,"rb") as datf:
-        datf.seek(0,os.SEEK_END)
-        size = datf.tell()
-    n_byte = int(dt[-1]) # number of byte per data point
-    nlines = int(size / n_byte / width)
+    Returns
+    -------
+    np.ndarray
+        lines `y0` to `y0 + ny - 1`, shape (ny, width), float32, complex64, float64 or int32 (`dtype`) in the native
+        byte order; values with an absolute value below 1e-30 (GAMMA's no data) are nan, except for 'int'
+    """
+    if dtype not in _DTYPES:
+        raise ValueError('Unsupported data type')
+    dt = np.dtype(_DTYPES[dtype])
+    nlines = os.path.getsize(imag)//(dt.itemsize*width)
     if y0 > nlines:
         raise ValueError(f'y0 = {y0} is beyond the {nlines} lines of the file')
     if ny is None: ny = nlines-y0
     if y0+ny > nlines:
         raise ValueError(f'y0 + ny = {y0+ny} is beyond the {nlines} lines of the file')
-    offset = y0*width*n_byte
-    with open(imag,'rb') as datf:
-        data = np.fromfile(datf,dtype=dt,offset=offset,count=ny*width)
-    if dt != '>i4':
-        mask = abs(data)<1e-30 # mask gamma nan value
-        if dt == '>c8':
-            data[mask] = np.nan+1j*np.nan
-        else:
-            data[mask] = np.nan
-    data = data.astype(data.dtype.newbyteorder('native'))
-    return data.reshape(-1,width)
+    data = np.fromfile(imag, dtype=dt, offset=y0*width*dt.itemsize, count=ny*width)
+    if dtype != 'int':
+        data[abs(data)<1e-30] = np.nan+1j*np.nan if dtype == 'fcomplex' else np.nan
+    return data.astype(dt.newbyteorder('native')).reshape(-1,width)
 
 def read_gamma_pdata(
     imag:str,
     dtype:str='float',
 ):
-    # zero value in the data is transformed to nan
-    """read gamma image into numpy array.
+    """Read GAMMA point data (one value per point) into a numpy array.
 
     Parameters
     ----------
     imag : str
-        gamma point cloud data
+        GAMMA point data file
     dtype : str, default: 'float'
-        data format, only 'float', 'fcomplex', 'double' and 'int' are supported.
-    """
-    if dtype == 'float':
-        dt = '>f4'
-    elif dtype == 'fcomplex':
-        dt = '>c8'
-    elif dtype == 'int':
-        dt = '>i4'
-    elif dtype =='double':
-        dt = '>f8'
-    else: raise ValueError('Unsupported data type')
+        GAMMA data format: 'float', 'fcomplex', 'double' or 'int'
 
-    data = np.fromfile(imag,dtype=dt)
-    if dt != '>i4':
-        mask = abs(data)<1e-30 # mask gamma nan value, as read_gamma_image
-        if dt == '>c8':
-            data[mask] = np.nan+1j*np.nan
-        else:
-            data[mask] = np.nan
-    data = data.astype(data.dtype.newbyteorder('native'))
-    return data
+    Returns
+    -------
+    np.ndarray
+        shape (n_points,), float32, complex64, float64 or int32 (`dtype`) in the native byte order; values with an
+        absolute value below 1e-30 (GAMMA's no data) are nan, except for 'int'
+    """
+    return read_gamma_image(imag, 1, dtype)[:, 0]
 
 def write_gamma_image(imag,path):
-    # support both raster and point cloud
-    imag = imag.astype(imag.dtype.newbyteorder('big'))
-    imag.tofile(path)
+    """Write a numpy array to a GAMMA binary file (big endian): a raster, point data or a point list.
+
+    Parameters
+    ----------
+    imag : np.ndarray
+        data: a raster of shape (nlines, width), point data of shape (n_points,) or a point list of shape (n_points,
+        2); float32, complex64, float64 or int32 for the GAMMA formats 'float', 'fcomplex', 'double' and 'int'
+    path : str
+        output file
+    """
+    imag.astype(imag.dtype.newbyteorder('big')).tofile(path)
 
 def read_gamma_plist(plist:str,dtype='int'):
+    """Read a GAMMA point list (two values per point, e.g. range and azimuth pixel) into a numpy array.
+
+    Parameters
+    ----------
+    plist : str
+        GAMMA point list file
+    dtype : str, default: 'int'
+        GAMMA data format: 'float', 'fcomplex', 'double' or 'int'
+
+    Returns
+    -------
+    np.ndarray
+        shape (n_points, 2), as `read_gamma_image` of width 2
+    """
     return read_gamma_image(plist,width=2,dtype=dtype)
 
-def write_gamma_plist(imag,path):
-    return write_gamma_image(imag,path)
+write_gamma_plist = write_gamma_image
