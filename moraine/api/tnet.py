@@ -100,6 +100,27 @@ class TempNet(object):
         ref=None,
         sec=None,
     ):
+        """Find image pairs in the network: the row of each pair in `TempNet.image_pairs`, -1 if it is not there.
+
+        Give the pairs either as `image_pairs` or as `ref` and `sec`. Pairs are given as in the network, the
+        reference index first: (2, 1) is not found as (1, 2). A pair with an image index outside 0 .. n_images - 1
+        is not in the network.
+
+        Parameters
+        ----------
+        image_pairs : np.ndarray, optional
+            (n, 2) int: the reference and secondary image index of each pair to find
+        ref : int or sequence of int, optional
+            (n,): the reference image index of each pair to find, if `image_pairs` is not given
+        sec : int or sequence of int, optional
+            (n,): the secondary image index of each pair to find; an int if `ref` is an int
+
+        Returns
+        -------
+        np.ndarray or np.int64
+            (n,) int64: the row of each pair in `TempNet.image_pairs`, -1 for a pair not in the network; a single
+            np.int64 for int `ref` and `sec`
+        """
         single_input = False
         if image_pairs is not None:
             ref = image_pairs[:,0]
@@ -117,6 +138,9 @@ class TempNet(object):
 
         query_1d = ref*self._n_images+sec
         mask = np.isin(query_1d,self._image_pairs_1d,assume_unique=True,invert=True)
+        # an index outside 0 .. n_images - 1 can have the code of a pair of the network, e.g. (0, 5) that of (1, 2)
+        # with 3 images, also through an overflow of the code
+        mask |= (ref < 0) | (ref >= self._n_images) | (sec < 0) | (sec >= self._n_images)
         result = np.searchsorted(self._image_pairs_1d,query_1d)
         result[mask] = -1
         if single_input:
