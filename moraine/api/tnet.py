@@ -5,7 +5,6 @@ __all__ = ['TempNet', 'check_image_pairs', 'nimage_from_npair']
 
 import math
 import numpy as np
-import zarr
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
@@ -146,32 +145,6 @@ class TempNet(object):
         if single_input:
             result = result[0]
         return result
-
-    def save(self,path:str,
-            ):
-        """Save the TempNet.
-
-        Parameters
-        ----------
-        path : str
-            zarr path
-        """
-        tempnet_zarr = zarr.open(path,mode='w',shape=self._image_pairs.shape,dtype=self._image_pairs.dtype)
-        tempnet_zarr[:] = self._image_pairs[:]
-
-    @classmethod
-    def load(cls, zarr_path:str,
-            ):
-        """classmethod to load the saved TempNet.
-
-        Parameters
-        ----------
-        zarr_path : str
-            zarr path; its image pairs must follow the data conventions (`check_image_pairs`), else a ValueError
-        """
-        image_pairs = zarr.open(zarr_path,mode='r')[:]
-        check_image_pairs(image_pairs)
-        return cls(image_pairs, check_if_valid=False)
 
 def nimage_from_npair(npair):
     '''infer number of images from number of pairs assuming all pairs are selected.'''

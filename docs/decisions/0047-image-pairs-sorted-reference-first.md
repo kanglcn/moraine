@@ -35,7 +35,8 @@ interferogram twice.
 - `moraine.check_image_pairs` checks it; the error names the first pair that breaks it. The image pairs moraine
   reads are checked: the `image_pairs` arguments of the commands and pipeline files (text files, `.npy` files and
   lists), the image pairs of the viewer, `TempNet` (`check_if_valid`, which also checks that the pairs link all the
-  images) and `TempNet.load` (`ds-temp-coh --tnet`).
+  images) and `TempNet.load` (`ds-temp-coh --tnet`). (Removed on 2026-11-15, with `TempNet.save`: `ds-temp-coh`
+  takes the coherence of all image pairs.)
 - The API functions keep the image pairs they take: `emcf_pc` and `emperical_co_pc` take any order and direction.
   Finding a pair by its images (the viewer, `TempNet.image_pairs_idx`) relies on the order.
 

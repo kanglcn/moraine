@@ -93,7 +93,6 @@ def ds_temp_coh(
     coh:str,
     ph:str,
     t_coh:str=None,
-    tnet:str=None,
     n_looks:str=None,
     t_coh_w:str=None,
     eff_n_pairs:str=None,
@@ -116,8 +115,6 @@ def ds_temp_coh(
         input: phase history of the points, complex, shape (n_points, nimages)
     t_coh : str, optional
         output: temporal coherence of the points, every image pair weighted the same, shape (n_points,)
-    tnet : str, optional
-        input: path of a saved `TempNet` with the image pairs of `coh`; all image pairs by default
     n_looks : str, optional
         input: effective number of independent looks of the coherence of the points, float32, shape
         (n_points,), in the order of `coh`: the merged `n_looks_dir` of `emperical-co-pc`; needed by
@@ -161,11 +158,7 @@ def ds_temp_coh(
     if chunks is None: chunks = coh_zarr.chunks[0]
     chunks = chunks[0] if isinstance(chunks, (tuple, list)) else int(chunks)
     if threads_per_worker is None and not cuda: threads_per_worker = 2
-    if tnet is not None:
-        tnet = mr.TempNet.load(tnet)
-    else:
-        tnet = mr.TempNet.from_bandwidth(nimage)
-    image_pairs = tnet.image_pairs
+    image_pairs = mr.TempNet.from_bandwidth(nimage).image_pairs
     outputs = [(t_coh, np.float32), (t_coh_w, np.float32), (eff_n_pairs, np.float32), (n_components, np.int16)]
     if not weighted:
         outputs = outputs[:1]
