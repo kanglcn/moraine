@@ -7,7 +7,6 @@ import logging
 import zarr
 import numpy as np
 from pathlib import Path
-import math
 
 import moraine as mr
 from ..api.utils_.chunk import all_chunk_slices, all_chunk_slices_with_overlap

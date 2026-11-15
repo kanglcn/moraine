@@ -1,17 +1,12 @@
 """basic logging functions for the CLI"""
 
 
-__all__ = ['McLogger', 'mc_logger', 'mc_logger_', 'get_logger']
+__all__ = ['McLogger', 'mc_logger', 'get_logger']
 
 import logging
 import sys
-import random
-import string
 import inspect
 from functools import wraps
-import types
-
-import zarr
 
 class McLogger(logging.getLoggerClass()):
     def zarr_info(self,
@@ -41,13 +36,6 @@ def mc_logger(func):
         for item in func_args_strs:
             logger.info(item)
         logger.info('fetching args done.')
-        return func(*args, **kwargs)
-    return log_args
-
-def mc_logger_(func):
-    @wraps(func)
-    def log_args(*args, **kwargs):
-        logging.setLoggerClass(McLogger)
         return func(*args, **kwargs)
     return log_args
 
