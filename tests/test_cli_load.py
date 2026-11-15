@@ -205,8 +205,7 @@ def test_load_gamma_bperp_phase_sim_orb(gamma, tmp_path):
     mc.load_gamma_lat_lon_hgt(str(diff_par), str(ref_par), str(gamma / 'DEM' / 'dem_seg_par'),
                               str(g / '20210802.hgt'), str(tmp_path / 'scratch'), *rasters)
     mc.load_gamma_bperp(str(rslc), REF, *rasters, str(tmp_path / 'bperp.zarr'))
-    r = _fetch_slc_par_date(rslc)
-    dates = r['date'].to_list()
+    dates, _, pars = _fetch_slc_par_date(rslc)
     kr = dates.index(REF)
     b = zarr.open(str(tmp_path / 'bperp.zarr'), mode='r')
     j = int(np.nanargmax(np.abs(b[NLINES//2, WIDTH//2])))           # the image with the longest baseline
@@ -224,7 +223,7 @@ def test_load_gamma_bperp_phase_sim_orb(gamma, tmp_path):
     bj = b[:, :, j]
     iy, ix = np.nonzero(np.isfinite(bj) & np.isfinite(sims[0]) & np.isfinite(sims[1]))
     pick = np.random.default_rng(0).choice(len(iy), 300, replace=False)
-    t, p, v = (np.stack(a) for a in zip(*(_read_gamma_orbit(x) for x in r['par'])))
+    t, p, v = (np.stack(a) for a in zip(*(_read_gamma_orbit(x) for x in pars)))
     n_out = int(np.ceil((t[:, -1] - t[:, 0]).max()/orbit._STEP)) + 1
     t, p, v = (np.stack(a) for a in zip(*(orbit._resample(*o, n_out) for o in zip(t, p, v))))
     rel = []

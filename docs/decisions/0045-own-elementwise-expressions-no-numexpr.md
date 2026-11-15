@@ -1,4 +1,4 @@
-# 0045 Elementwise expressions are evaluated by moraine; numexpr is not a dependency
+# 0045 Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies
 
 ## Status
 
@@ -17,7 +17,8 @@ cluster), else up to 16. `moraine/cli/__init__.py` imports every command module,
 idle threads, every later fork (the pyramids) was a fork of a multi-threaded process with Python's warning, and `math`
 ran numexpr's threads inside the threads of the executor. The three commands need elementwise arithmetic, comparisons
 and logic on chunks of a few million values, where numexpr's speed on one large array in many threads does not matter
-next to the zarr I/O; its reductions (`sum`, `min`, ...) gave a result per chunk in `math`.
+next to the zarr I/O; its reductions (`sum`, `min`, ...) gave a result per chunk in `math`. pandas, which moraine
+used for a list of files and one column of a GAMMA text file in `load.py`, imports numexpr wherever it is installed.
 
 ## Decision
 
@@ -30,7 +31,8 @@ next to the zarr I/O; its reductions (`sum`, `min`, ...) gave a result per chunk
   nan without a warning, as with numexpr.
 - Not supported: the reductions `sum`, `prod`, `min`, `max` and the string function `contains`. `and`, `or`, `not`,
   chained comparisons, `//` and `^` are errors, as in numexpr.
-- numexpr is not a dependency of moraine.
+- numexpr and pandas are not dependencies of moraine: `load.py` keeps the files of a GAMMA directory in lists and
+  reads the baselines of `base_calc` with `np.loadtxt`.
 
 ## Consequences
 
@@ -41,10 +43,10 @@ next to the zarr I/O; its reductions (`sum`, `min`, ...) gave a result per chunk
   `sin(a)*exp(b)/2` 9.9 instead of 4.7 ms; the executor runs the chunks in parallel. The commands take about the
   same time and memory: on 100 million float64 pixels `math` 2.0 instead of 2.4 s (a comparison) and 4.1 instead of
   5.5 - 7.0 s (sines and exponentials), `pc-logic-ras` 1.2 instead of 1.1 s.
-- pandas imports numexpr whenever it is installed, so an environment that still has numexpr keeps its threads in
-  every process that imports pandas (`moraine/cli/load.py`) until pandas is dropped too or numexpr is uninstalled.
+- `import moraine, moraine.cli, moraine.command` imports neither numexpr nor pandas and starts no thread (130 before
+  on the development cluster), also where numexpr is still installed (`tests/test_architecture.py`).
 
 ## Do not
 
 - Do not evaluate the expressions of pipeline files or command lines with `eval` or `exec`.
-- Do not use numexpr in moraine.
+- Do not use numexpr in moraine, nor pandas, which imports it.

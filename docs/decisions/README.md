@@ -52,7 +52,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0042](0042-formulas-in-the-manual-mathjax.md) | Formulas in the manual are LaTeX, typeset by MathJax | Accepted |
 | [0043](0043-no-threaded-library-in-numba-parallel-kernels.md) | Numba parallel kernels call no threaded library (BLAS, LAPACK) | Accepted |
 | [0044](0044-perpendicular-baselines-per-pixel-from-the-orbits.md) | Perpendicular baselines per pixel from the orbits | Accepted |
-| [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr is not a dependency | Accepted |
+| [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies | Accepted |
 
 ## Writing a record
 

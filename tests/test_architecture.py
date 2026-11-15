@@ -72,6 +72,14 @@ def test_import_moraine_does_not_import_dask():
     assert out.stdout.strip().endswith('False'), out.stdout + out.stderr
 
 
+def test_import_moraine_does_not_import_numexpr_or_pandas():
+    """numexpr starts its threads when it is imported, pandas imports numexpr where it is installed (decision 0045)."""
+    code = ('import sys, moraine, moraine.cli, moraine.command; '
+            'print([m for m in ("numexpr", "pandas") if m in sys.modules])')
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
+    assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
+
+
 # ---------------------------------------------------------------- inside the API (decision 0041)
 
 API_FOUNDATIONS = {'pc', 'tnet', 'polygon', 'slc'}
