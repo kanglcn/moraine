@@ -20,37 +20,32 @@ def emperical_co(rslc:np.ndarray,
                  is_shp:np.ndarray,
                  block_size:int=128,
                 )-> tuple[np.ndarray,np.ndarray]:
-    """Maximum likelihood covariance estimator.
+    """Maximum likelihood estimate of the covariance and coherence matrices of every pixel of a raster from its SHPs.
 
     Parameters
     ----------
     rslc : np.ndarray
-        rslc stack, dtype: `cupy.complexfloating`
+        rslc stack, dtype: `np.complex64`, shape: (nlines, width, nimages), numpy or cupy; nan marks missing data
     is_shp : np.ndarray
-        shp bool, dtype: `cupy.bool`
+        SHPs of every pixel, dtype: `bool`, shape: (nlines, width, az_win, r_win) with odd az_win and r_win, numpy or
+        cupy like `rslc`: `is_shp[i, j, k, l]` is True if pixel (i + k - az_win//2, j + l - r_win//2) is an SHP of
+        pixel (i, j); positions outside the raster are not used
     block_size : int, default: 128
         no effect, kept for compatibility
 
     Returns
     -------
     tuple[np.ndarray, np.ndarray]
-        the covariance and coherence matrix `cov` and `coh`
+        the covariance and coherence matrix `cov` and `coh` of every pixel, dtype: `np.complex64` (that of `rslc`),
+        shape: (nlines, width, nimages, nimages), numpy or cupy like `rslc`. `cov[i, j, m, n]` is the mean of
+        `x[m] * conj(x[n])` over the rslc `x` (nimages,) of the SHPs of pixel (i, j), and `coh[i, j, m, n]` is
+        `cov[i, j, m, n] / sqrt(cov[i, j, m, m] * cov[i, j, n, n])`, the coherence of the image pair (m, n) that
+        `emperical_co_pc` gives for the point (i, j) with the SHPs `is_shp[i, j]`. nan for the pixels without SHP,
+        and in the rows and columns of the images with nan at an SHP of the pixel
     """
-    xp = get_array_module(rslc)
-    if xp is np:
-        raise NotImplementedError("Currently only cuda version available.")
-    nlines, width, nimages = rslc.shape
-    az_win, r_win = is_shp.shape[-2:]
-
-    cov = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
-    coh = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
-    az_idx, r_idx = (cp.asarray(i.ravel(), dtype=cp.int32) for i in np.meshgrid(np.arange(nlines), np.arange(width), indexing='ij'))
-    for start, stop, c, n in _shp_products_cp(rslc, az_idx, r_idx, is_shp.reshape(-1, az_win, r_win)):
-        c = c.conj()     # sum x_m conj(x_j)
-        cov[start:stop] = c/n[:,None,None].astype(cp.float32)
-        d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
-        coh[start:stop] = c*(d[:,:,None]*d[:,None,:])
-    return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
+    if get_array_module(rslc) is np:
+        return _emperical_co_numba(rslc, is_shp)
+    return _emperical_co_cp(rslc, is_shp)
 
 # Coherence of the SHP samples X (n_shp, nimages) of a point on the CPU: the upper triangle of X^H X normalized by its
 # diagonal. No BLAS inside the numba parallel loop (decision 0043): a threaded BLAS (MKL with its OpenMP runtime) called
@@ -60,8 +55,10 @@ def emperical_co(rslc:np.ndarray,
 # the samples, every sample is read once per block. LLVM does not keep such accumulators in registers when the block is
 # written in numba (it vectorizes over the samples, or not at all), so it is written in LLVM vector instructions. Only
 # the blocks of the upper triangle are computed (half the work of X^H X), and the coherence of the full network of image
-# pairs, the upper triangle in row order, is written row by row without looking up the pairs. On the GPU: batched matrix
-# products; every image pair of the point reads the same samples, so all pairs come from one product.
+# pairs, the upper triangle in row order, is written row by row without looking up the pairs. The rasters of
+# `emperical_co` take the same per point computation for every pixel and write both triangles of the full matrices from
+# the upper one. On the GPU: batched matrix products; every image pair of the point reads the same samples, so all pairs
+# come from one product.
 @intrinsic
 def _conj_xt_x_4x8(typingctx, xr, xi, cr, ci, n, m0, j0):
     """cr + i ci [m0:m0+4, j0:j0+8] = sum over k < n of conj(x[k, m0:m0+4]) x[k, j0:j0+8], x = xr + i xi; float32 C
@@ -214,6 +211,61 @@ def _emperical_co_pc_numba(
                 _coh_pairs(cr, ci, d, image_pairs, coh, i)
     return coh
 
+@ngjit
+def _co_full(cr, ci, d, n, cov, coh):
+    """cov = conj(C) / n and coh = conj(C) d_m d_j, (nimages, nimages), from the upper triangle of C = cr + i ci (j >= m),
+    the lower triangle its conjugate"""
+    nimages = d.shape[0]
+    nf = np.float32(n)
+    for m in range(nimages):
+        dm = d[m]
+        crm = cr[m]; cim = ci[m]
+        s = dm*dm
+        vr = crm[m]; vi = -cim[m]
+        cov[m, m] = complex(vr/nf, vi/nf)
+        coh[m, m] = complex(vr*s, vi*s)
+        for j in range(m+1, nimages):
+            s = dm*d[j]
+            vr = crm[j]; vi = -cim[j]
+            cov[m, j] = complex(vr/nf, vi/nf)
+            cov[j, m] = complex(vr/nf, -vi/nf)
+            coh[m, j] = complex(vr*s, vi*s)
+            coh[j, m] = complex(vr*s, -vi*s)
+
+@ngpjit
+def _emperical_co_numba(
+    rslc,
+    is_shp,
+):
+    nlines, width, nimages = rslc.shape
+    az_win, r_win = is_shp.shape[2:]
+    n_px = nlines*width
+    ncol = (nimages+7)//8*8     # columns of the samples and of C: whole vectors of 8
+    nrow = (nimages+3)//4*4     # rows of C: whole blocks of 4
+    cov = np.empty((nlines, width, nimages, nimages), dtype=rslc.dtype)
+    coh = np.empty((nlines, width, nimages, nimages), dtype=rslc.dtype)
+    chunk = 16                  # pixels of a task of the parallel loop, which allocates its buffers once
+    for c in prange((n_px+chunk-1)//chunk):
+        xr = np.empty((az_win*r_win, ncol), dtype=np.float32)
+        xi = np.empty((az_win*r_win, ncol), dtype=np.float32)
+        cr = np.empty((nrow, ncol), dtype=np.float32)
+        ci = np.empty((nrow, ncol), dtype=np.float32)
+        d = np.empty(nimages, dtype=np.float32)
+        for i in range(c*chunk, min((c+1)*chunk, n_px)):
+            a = i//width; r = i%width
+            n = _shp_samples(rslc, a, r, is_shp[a, r], xr, xi)
+            if n == 0:
+                cov[a, r] = np.nan
+                coh[a, r] = np.nan
+                continue
+            for m0 in range(0, nimages, 4):
+                for j0 in range((m0//8)*8, ncol, 8):
+                    _conj_xt_x_4x8(xr, xi, cr, ci, n, m0, j0)
+            for m in range(nimages):
+                d[m] = 1/math.sqrt(cr[m, m])
+            _co_full(cr, ci, d, n, cov[a, r], coh[a, r])
+    return cov, coh
+
 if is_cuda_available():
     def _shp_products_cp(rslc, az_idx, r_idx, pc_is_shp, max_bytes=2**30):
         """for batches of points: (start, stop, c, n) with c = X^H X of the SHP samples X (n_shp, nimages) of every
@@ -243,6 +295,20 @@ if is_cuda_available():
             d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
             coh[start:stop] = c[:,ref,sec].conj()*(d[:,ref]*d[:,sec])
         return coh
+
+def _emperical_co_cp(rslc, is_shp):
+    import cupy as cp
+    nlines, width, nimages = rslc.shape
+    az_win, r_win = is_shp.shape[-2:]
+    cov = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
+    coh = cp.empty((nlines*width,nimages,nimages),dtype=rslc.dtype)
+    az_idx, r_idx = (cp.asarray(i.ravel(), dtype=cp.int32) for i in np.meshgrid(np.arange(nlines), np.arange(width), indexing='ij'))
+    for start, stop, c, n in _shp_products_cp(rslc, az_idx, r_idx, is_shp.reshape(-1, az_win, r_win)):
+        c = c.conj()     # sum x_m conj(x_j)
+        cov[start:stop] = c/n[:,None,None].astype(cp.float32)
+        d = 1/cp.sqrt(cp.diagonal(c, axis1=1, axis2=2).real)
+        coh[start:stop] = c*(d[:,:,None]*d[:,None,:])
+    return cov.reshape(nlines,width,nimages,nimages), coh.reshape(nlines,width,nimages,nimages)
 
 def emperical_co_pc(rslc:np.ndarray,
                     idx:np.ndarray,

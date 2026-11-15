@@ -1,5 +1,3 @@
-import itertools
-import math
 from pathlib import Path
 
 import numpy as np
@@ -16,21 +14,75 @@ def _ds_can(is_shp, min_shp=3):
     return is_ds_can, np.stack(np.where(is_ds_can), axis=-1), is_shp[is_ds_can]
 
 
-@pytest.mark.gpu
-def test_emperical_co_gpu(rng):
-    import cupy as cp
-    rslc, is_shp = synthetic_shp(rng, p_true=0.7)
-    cov, coh = emperical_co(cp.asarray(rslc), cp.asarray(is_shp))
-    cov, coh = cov.get(), coh.get()
+def _co_reference(rslc, is_shp):
+    """covariance and coherence matrices of every pixel from the rslc of its SHPs, sums in float64; nan without SHP"""
+    nlines, width, nimages = rslc.shape
     haz, hr = is_shp.shape[2] // 2, is_shp.shape[3] // 2
-    for i, j, k, l in itertools.product(range(rslc.shape[0]), range(rslc.shape[1]), range(rslc.shape[2]), range(rslc.shape[2])):
-        _cov, a2k, a2l, n = 0j, 0.0, 0.0, 0
-        for m, q in itertools.product(range(is_shp.shape[2]), range(is_shp.shape[3])):
-            if is_shp[i, j, m, q]:
-                s = rslc[i + m - haz, j + q - hr]
-                _cov += s[k] * s[l].conj(); a2k += abs(s[k]) ** 2; a2l += abs(s[l]) ** 2; n += 1
-        assert abs(_cov / n - cov[i, j, k, l]) < 1e-6
-        assert abs(_cov / math.sqrt(a2k * a2l) - coh[i, j, k, l]) < 1e-6
+    cov = np.full((nlines, width, nimages, nimages), np.nan, np.complex128)
+    for a, r in np.ndindex(nlines, width):
+        k, l = np.nonzero(is_shp[a, r])
+        x = rslc[a + k - haz, r + l - hr].astype(np.complex128)      # (n_shp, nimages); synthetic SHPs stay inside
+        if len(x):
+            cov[a, r] = (x[:, :, None] * x[:, None, :].conj()).mean(axis=0)
+    p = np.sqrt(np.diagonal(cov, axis1=2, axis2=3).real)
+    with np.errstate(invalid='ignore'):
+        return cov, cov / (p[..., :, None] * p[..., None, :])
+
+
+@pytest.mark.parametrize('gpu', [False, pytest.param(True, marks=pytest.mark.gpu)])
+def test_emperical_co(rng, gpu):
+    """Covariance and coherence matrices of every pixel against float64 sums; a nan pixel makes the rows and columns of
+    its image nan where it is an SHP, not elsewhere; a pixel without SHP is nan."""
+    rslc, is_shp = synthetic_shp(rng, p_true=0.7)
+    rslc[2, 4, 3] = np.nan
+    is_shp[1, 3, 2, 3] = False                    # (2, 4) is not an SHP of (1, 3)
+    is_shp[3, 5, 0, 1] = True                     # but of (3, 5)
+    is_shp[0, 0] = False
+    if gpu:
+        import cupy as cp
+        cov, coh = (a.get() for a in emperical_co(cp.asarray(rslc), cp.asarray(is_shp)))
+    else:
+        cov, coh = emperical_co(rslc, is_shp)
+    assert cov.shape == coh.shape == (5, 10, 17, 17) and cov.dtype == coh.dtype == np.complex64
+    assert np.isnan(coh[0, 0]).all() and np.isfinite(coh[1, 3]).all()
+    assert np.isnan(coh[3, 5, 3]).all() and np.isnan(coh[3, 5, :, 3]).all() and np.isfinite(coh[3, 5, 0, 1])
+    exp_cov, exp_coh = _co_reference(rslc, is_shp)
+    np.testing.assert_allclose(cov, exp_cov, rtol=1e-5, atol=1e-6)
+    np.testing.assert_allclose(coh, exp_coh, rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.gpu
+def test_emperical_co_cpu_gpu(rng):
+    import cupy as cp
+    rslc, is_shp = synthetic_shp(rng, shape=(30, 40), nimages=21, half_az_win=2, half_r_win=5, p_true=0.5)
+    rslc[10, 20, 4] = np.nan
+    is_shp[3, 3] = False
+    cpu = emperical_co(rslc, is_shp)
+    gpu = emperical_co(cp.asarray(rslc), cp.asarray(is_shp))
+    for c, g in zip(cpu, gpu):
+        assert isinstance(g, cp.ndarray) and c.shape == g.shape == (30, 40, 21, 21) and c.dtype == g.dtype == np.complex64
+        np.testing.assert_allclose(c, g.get(), rtol=1e-5, atol=1e-6)    # float32 sums in another order
+
+
+@pytest.mark.parametrize('gpu', [False, pytest.param(True, marks=pytest.mark.gpu)])
+def test_emperical_co_as_points(rng, gpu):
+    """The coherence of every pixel is that of emperical_co_pc for the pixel as a point with its SHPs."""
+    rslc, is_shp = synthetic_shp(rng, shape=(12, 17), nimages=13, half_az_win=2, half_r_win=4, p_true=0.5)
+    rslc[5, 8, 2] = np.nan
+    is_shp[0, 3] = False
+    nlines, width, nimages = rslc.shape
+    idx = np.stack(np.meshgrid(np.arange(nlines), np.arange(width), indexing='ij'), -1).reshape(-1, 2)
+    pc_is_shp = is_shp.reshape(-1, *is_shp.shape[2:])
+    if gpu:
+        import cupy as cp
+        coh = emperical_co(cp.asarray(rslc), cp.asarray(is_shp))[1].get()
+        pc_coh = emperical_co_pc(cp.asarray(rslc), cp.asarray(idx), cp.asarray(pc_is_shp)).get()
+    else:
+        coh = emperical_co(rslc, is_shp)[1]
+        pc_coh = emperical_co_pc(rslc, idx, pc_is_shp)
+    assert np.isnan(pc_coh).any() and not np.isnan(pc_coh).all()
+    m, j = np.triu_indices(nimages, 1)
+    np.testing.assert_allclose(coh.reshape(-1, nimages, nimages)[:, m, j], pc_coh, rtol=1e-6, atol=1e-7)
 
 
 def test_emperical_co_pc_image_pairs(rng):
