@@ -272,79 +272,6 @@ def ras_pyramid(
     _write_stats(out_dir, downsampled_ras_zarrs[0], 'raster', method, parts, ras_zarr.shape[2:], ras_zarr.dtype)
     logger.info('rendering finished.')
 
-def _default_ras_post_proc(data_zarr, xslice, yslice, *kdims):
-    data_n_kdim = data_zarr.ndim - 2
-    if len(kdims) != data_n_kdim:
-        raise ValueError(f'{len(kdims)} indices given for data with {data_n_kdim} index dimensions')
-    if len(kdims) == 0:
-        # zarr do not support empty tuple as input
-        return data_zarr[yslice,xslice]
-    else:
-        index_tuple = (yslice, xslice, *kdims)
-        return data_zarr[index_tuple]
-
-def _ras_phase_post_proc(data_zarr, xslice, yslice, *kdims):
-    data_n_kdim = data_zarr.ndim - 2
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim != 1 or not np.iscomplexobj(data_zarr):
-        raise ValueError(f'phase needs complex data with one index dimension, got {data_zarr.dtype} with {data_n_kdim}')
-    return np.angle(data_zarr[yslice,xslice,i])
-
-def _ras_inf_0_post_proc(data_zarr, xslice, yslice, *kdims):
-    data_n_kdim = data_zarr.ndim - 2
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,0]*data_zarr[yslice,xslice,i].conj())
-        else:
-            return data_zarr[yslice,xslice,0]-data_zarr[yslice,xslice,i]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,0,i])
-        else:
-            return data_zarr[yslice,xslice,0,i]
-
-def _ras_inf_seq_post_proc(data_zarr, xslice, yslice, *kdims):
-    data_n_kdim = data_zarr.ndim - 2
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i]*data_zarr[yslice,xslice,i+1].conj())
-        else:
-            return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,i+1]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i,i+1])
-        else:
-            return data_zarr[yslice,xslice,i,i+1]
-def _ras_inf_all_post_proc(data_zarr, xslice, yslice, *kdims):
-    data_n_kdim = data_zarr.ndim - 2
-    if len(kdims) != 2:
-        raise ValueError(f'this show needs two indices, got {len(kdims)}')
-    i,j = kdims
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i]*data_zarr[yslice,xslice,j].conj())
-        else:
-            return data_zarr[yslice,xslice,i]-data_zarr[yslice,xslice,j]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[yslice,xslice,i,j])
-        else:
-            return data_zarr[yslice,xslice,i,j]
-
 @ngpjit
 def _next_level_idx_from_raster_of_integer(pc_idx, nan_value):
     '''return the raster indices to the next level of raster'''
@@ -569,79 +496,6 @@ class _LazyRtree:
                 self._rtree = HilbertRtree.build(x_,y_,page_size=_RTREE_PAGE)
         return self._rtree.bbox_query(bounds, x, y)
 
-def _default_pc_post_proc(data_zarr, idx_array, *kdims):
-    data_n_kdim = data_zarr.ndim - 1
-    if len(kdims) != data_n_kdim:
-        raise ValueError(f'{len(kdims)} indices given for data with {data_n_kdim} index dimensions')
-    if len(kdims) == 0:
-        return data_zarr[idx_array]
-    else:
-        index_tuple = (idx_array, *kdims)
-        return data_zarr[index_tuple]
-
-def _pc_phase_post_proc(data_zarr, idx_array, *kdims):
-    data_n_kdim = data_zarr.ndim - 1
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim != 1 or not np.iscomplexobj(data_zarr):
-        raise ValueError(f'phase needs complex data with one index dimension, got {data_zarr.dtype} with {data_n_kdim}')
-    return np.angle(data_zarr[idx_array,i])
-
-def _pc_inf_0_post_proc(data_zarr, idx_array, *kdims):
-    data_n_kdim = data_zarr.ndim - 1
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,0]*data_zarr[idx_array,i].conj())
-        else:
-            return data_zarr[idx_array,0]-data_zarr[idx_array,i]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,0,i])
-        else:
-            return data_zarr[idx_array,0,i]
-
-def _pc_inf_seq_post_proc(data_zarr, idx_array, *kdims):
-    data_n_kdim = data_zarr.ndim - 1
-    if len(kdims) != 1:
-        raise ValueError(f'this show needs one index, got {len(kdims)}')
-    i = kdims[0]
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i]*data_zarr[idx_array,i+1].conj())
-        else:
-            return data_zarr[idx_array,i]-data_zarr[idx_array,i+1]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i,i+1])
-        else:
-            return data_zarr[idx_array,i,i+1]
-
-def _pc_inf_all_post_proc(data_zarr, idx_array, *kdims):
-    data_n_kdim = data_zarr.ndim - 1
-    if len(kdims) != 2:
-        raise ValueError(f'this show needs two indices, got {len(kdims)}')
-    i,j = kdims
-    if data_n_kdim == 1:
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i]*data_zarr[idx_array,j].conj())
-        else:
-            return data_zarr[idx_array,i]-data_zarr[idx_array,j]
-    else:
-        if data_n_kdim != 2:
-            raise ValueError(f'the data must have one or two index dimensions, got {data_n_kdim}')
-        if np.iscomplexobj(data_zarr):
-            return np.angle(data_zarr[idx_array,i,j])
-        else:
-            return data_zarr[idx_array,i,j]
-
 # ---------------------------------------------------------------- pyramid reading and plotting rules
 # used by `moraine info` / `quicklook` / `view` (moraine/command/summary.py) and the tile viewer
 
@@ -763,11 +617,6 @@ def _channel_warnings(p, limit=20):
     return out
 
 
-def _phase_2d(data_zarr, xslice, yslice):
-    return np.angle(data_zarr[yslice, xslice])
-
-
-_PHASE_POST_PROC = ('phase', 'intf_0', 'intf_seq', 'intf_all')
 _FRAME = (900, 700)            # largest plot area (width, height) in screen pixels
 _MAX_RATIO = 4                 # scenes more elongated than 1:4 are drawn with this ratio
 
@@ -775,38 +624,6 @@ _MAX_RATIO = 4                 # scenes more elongated than 1:4 are drawn with t
 def _cyclic_cmap():
     import colorcet
     return colorcet.colorwheel
-
-
-def _phase_pc_1d(data_zarr, idx_array):
-    return np.angle(data_zarr[idx_array])
-
-
-def _kdim_ranges(shape, post_proc):
-    """Range of the image indices i (and j) of a stack for the sliders."""
-    extra = shape[2:]
-    if not extra:
-        return {}
-    n = extra[0]
-    if post_proc == 'intf_seq':
-        return {'i': (0, n - 2)}
-    if post_proc == 'intf_all':
-        return {'i': (0, n - 1), 'j': (0, n - 1)}
-    if post_proc in ('phase', 'intf_0'):
-        return {'i': (0, n - 1)}
-    return {name: (0, m - 1) for name, m in zip(('i', 'j'), extra)}
-
-
-def _resolve_post_proc(base, post_proc):
-    """(post_proc, raster post processing, point post processing, phase_like) of a pyramid with level 0 `base`:
-    complex data show their phase by default."""
-    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
-    ras_proc = pc_proc = post_proc
-    if post_proc is None and complex_data:
-        if base.ndim == 3:
-            ras_proc = pc_proc = post_proc = 'phase'
-        else:
-            ras_proc, pc_proc = _phase_2d, _phase_pc_1d
-    return post_proc, ras_proc, pc_proc, complex_data or post_proc in _PHASE_POST_PROC
 
 
 def _frame_size(width, height):
