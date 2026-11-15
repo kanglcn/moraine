@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+A boolean argument given as text, e.g. `cuda = "${gpu}"` in a pipeline file with `--var gpu=false` or with `[vars] gpu = false`, was true whatever the text (Python's `bool` of a non-empty string). Text is `true` or `false` now, in any case, and other text is an error. Booleans written as TOML values (`cuda = false`) and the options of the commands (`--no-cuda`) were right
+
 Image pairs are sorted by reference and then secondary index without duplicates, and every reference index is smaller than its secondary index (data conventions, decision 0047). The commands and pipeline files (`image_pairs` text files, `.npy` files and lists), the viewer (`moraine.cli.view`), `TempNet` and `TempNet.load` (`ds-temp-coh --tnet`) reject other image pairs and name the first wrong pair; the new `moraine.check_image_pairs` checks them. The viewer showed the coherence of another pair for some positions of its sliders with an image pair file in another order, e.g. that of (0, 2) for (0, 1) with the pairs (0, 2), (0, 1), (1, 2), and a pair written (2, 0) as missing. Files made by `moraine image-pairs` are unchanged; the API functions `emcf_pc` and `emperical_co_pc` still take image pairs in any order and direction
 
 The coherence views of `moraine.cli.view` (`show='coh'`, `'coh_abs'`) with `image_pairs` have sliders up to the largest image index of the pairs. They stopped at the secondary image of the last pair, e.g. at image 2 for the pairs (0, 1), (0, 3), (1, 2), and the pair (0, 3) could not be shown

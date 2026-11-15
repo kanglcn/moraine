@@ -7,7 +7,7 @@ import zarr
 
 from moraine.command import (main, commands, get_command, bind_args, parse_docstring, literal, image_pairs,
                              UsageError)
-from moraine.command.pipeline import run_pipeline, pipeline_status
+from moraine.command.pipeline import load_pipeline, run_pipeline, pipeline_status
 from moraine.command.summary import summarize, quicklook
 
 
@@ -89,6 +89,21 @@ def test_bind_args():
         bind_args(cmd, {'rslc': 'r', 'adi': 'a'}, kw={'memory_limit': '2GB'})
     math = get_command('math')          # **data: the inputs of the expression are extra keyword arguments
     assert bind_args(math, {'output': 'o.zarr', 'operation': 'a*2'}, kw={'a': 'a.zarr'})['a'] == 'a.zarr'
+
+
+def test_bool_arguments_from_text(tmp_path):
+    # text from `--var` or a pipeline variable: 'false' gave True (bool of a non-empty string)
+    cmd = get_command('amp-disp')
+    assert [cmd.convert('cuda', v) for v in ('false', 'False', ' TRUE ', 'true', False, 1)] == \
+        [False, False, True, True, False, True]
+    with pytest.raises(UsageError, match="cuda = 'no' is not a boolean"):
+        cmd.convert('cuda', 'no')
+    (tmp_path / 'p.toml').write_text('[vars]\ngpu = false\n\n[[step]]\nname = "adi"\nrun = "amp-disp"\n'
+                                     'rslc = "r.zarr"\nadi = "a.zarr"\ncuda = "${gpu}"\n')
+
+    def cuda(**variables):
+        return load_pipeline(str(tmp_path / 'p.toml'), variables=variables)['steps'][0]['kwargs']['cuda']
+    assert cuda() is False and cuda(gpu='false') is False and cuda(gpu='true') is True
 
 
 # ---------------------------------------------------------------- summary / quicklook
