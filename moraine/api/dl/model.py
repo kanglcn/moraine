@@ -5,7 +5,6 @@ __all__ = ['download_dl_model']
 import functools
 import importlib
 from pathlib import Path
-import requests
 
 def _fetch_github_file(
     gid:str,
@@ -27,6 +26,7 @@ def _fetch_github_file(
     out_path : str
         output path
     """
+    import requests
     url = '/'.join(['https://raw.githubusercontent.com', gid, repo, 'refs','heads', branch, file_path])
     print(' '.join(['Downloading', url,'to',out_path]))
     try:

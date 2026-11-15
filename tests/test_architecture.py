@@ -94,6 +94,13 @@ def test_import_moraine_does_not_import_cupy():
     assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
 
 
+def test_import_moraine_does_not_import_requests():
+    """requests is needed only to download the deep learning models"""
+    code = 'import sys, moraine, moraine.cli, moraine.command; print("requests" in sys.modules)'
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
+    assert out.stdout.strip().endswith('False'), out.stdout + out.stderr
+
+
 # ---------------------------------------------------------------- inside the API (decision 0041)
 
 API_FOUNDATIONS = {'pc', 'tnet', 'polygon', 'slc'}
