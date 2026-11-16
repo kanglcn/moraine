@@ -341,6 +341,28 @@ def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
     assert (idx != -1).sum() == len(x)
 
 
+def test_pyramid_statistics_keep_their_digits(tmp_path, rng):
+    """The standard deviation keeps its digits where the mean is large against it, in the marker and in stats.zarr:
+    values of 1e5 +- 0.01 in bands and channels of a raster, the amplitude of complex points of modulus 1."""
+    ras = 1e5 + 0.01 * rng.standard_normal((64, 37, 3))
+    write_zarr(tmp_path / 'ras.zarr', ras, (16, 37, 1))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), rows=16)
+    pyr = tmp_path / 'pyr'
+    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']['stats']['std'] == \
+        pytest.approx(ras.std(), rel=1e-5)
+    table = zarr.open(str(pyr / 'stats.zarr'), mode='r')
+    np.testing.assert_allclose(table[:, table.attrs['columns'].index('std')], ras.std(axis=(0, 1)), rtol=1e-9)
+    n = 2000
+    g = random_gix(rng, (60, 50), n)
+    write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+    ph = np.exp(1j * rng.uniform(-np.pi, np.pi, (n, 2))).astype(np.complex64)
+    write_zarr(tmp_path / 'ph.zarr', ph, (n, 1))
+    mc.pc_pyramid(str(tmp_path / 'ph.zarr'), str(tmp_path / 'pc_pyr'), x=str(tmp_path / 'x.zarr'),
+                  y=str(tmp_path / 'y.zarr'), ras_resolution=1)
+    stats = zarr.open(str(tmp_path / 'pc_pyr' / '0.zarr'), mode='r').attrs['moraine_pyramid']['stats']
+    assert stats['amplitude_std'] == pytest.approx(np.abs(ph).astype(np.float64).std(), rel=1e-5)
+
+
 def test_newer_pyramid_is_rejected(tmp_path, rng):
     write_zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))

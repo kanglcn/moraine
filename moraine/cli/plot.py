@@ -113,11 +113,35 @@ def _block_mean(values, count):
 def _merge_parts(parts):
     """One `_part_stats` of the parts (bands) of a channel."""
     finite = [p for p in parts if p['n'] - p['nan'] - p['inf']]
+    _, mean, m2 = _moments(parts)
     return {'n': sum(p['n'] for p in parts), 'nan': sum(p['nan'] for p in parts), 'inf': sum(p['inf'] for p in parts),
-            'sum': sum(p['sum'] for p in parts), 'sum2': sum(p['sum2'] for p in parts),
+            'mean': mean, 'm2': m2,
             'min': min(p['min'] for p in finite) if finite else np.nan,
             'max': max(p['max'] for p in finite) if finite else np.nan,
             'sample': np.concatenate([p['sample'] for p in parts]) if parts else np.empty(0)}
+
+
+def _moments(parts):
+    """(number, mean, sum of the squared deviations from the mean) of the finite values of all `parts`."""
+    # the parts are combined two at a time by their numbers, means and sums of squared deviations (Chan, Golub and
+    # LeVeque 1983); sums of the values and of their squares lose the digits of the variance where the mean is
+    # large against the standard deviation (1e4 +- 0.01, the amplitude of phases of modulus 1)
+    m = [(p['n'] - p['nan'] - p['inf'], p['mean'], p['m2']) for p in parts]
+    while len(m) > 1:
+        m = [_combine(*m[i:i + 2]) for i in range(0, len(m), 2)]
+    return m[0] if m else (0, 0.0, 0.0)
+
+
+def _combine(a, b=None):
+    """(number, mean, sum of the squared deviations) of the values of two parts given as such triples."""
+    if b is None or not b[0]:
+        return a
+    if not a[0]:
+        return b
+    n = a[0] + b[0]
+    d = b[1] - a[1]
+    return n, a[1] + d * b[0] / n, a[2] + b[2] + d * d * a[0] * b[0] / n
+
 
 def _sample_step(n_values):
     """Every `step`-th finite value of the data goes into the sample for the percentiles of the statistics."""
@@ -125,8 +149,9 @@ def _sample_step(n_values):
 
 
 def _part_stats(a, step):
-    """Exact sums and a regular sample of a part of the data (a channel or a band), pooled by `_pool_stats`: of
-    the amplitude for complex data, of 0 / 1 for booleans."""
+    """Numbers of values, nan and infinite values of a part of the data (a channel or a band), and the mean, the
+    sum of the squared deviations from it (``m2``), the minimum, maximum and a regular sample of its finite values,
+    pooled by `_pool_stats`: of the amplitude for complex data, of 0 / 1 for booleans."""
     a = np.asarray(a).ravel()
     if a.dtype == bool:
         v, nan = a.astype(np.float64), np.zeros(a.shape, bool)
@@ -138,8 +163,10 @@ def _part_stats(a, step):
         nan = np.isnan(v)
     inf = np.isinf(v)
     finite = v[~(nan | inf)]
-    return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'sum': float(finite.sum()),
-            'sum2': float(np.square(finite).sum()), 'min': float(finite.min()) if finite.size else np.nan,
+    mean = float(finite.mean()) if finite.size else 0.0
+    dev = finite - mean
+    return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'mean': mean,
+            'm2': float(np.square(dev, out=dev).sum()), 'min': float(finite.min()) if finite.size else np.nan,
             'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step]}
 
 
@@ -153,8 +180,8 @@ def _pool_stats(parts, dtype):
     n_finite = n - nan - inf
     out, warnings = {}, []
     if n_finite:
-        mean = sum(p['sum'] for p in parts) / n_finite
-        std = math.sqrt(max(sum(p['sum2'] for p in parts) / n_finite - mean ** 2, 0.0))
+        _, mean, m2 = _moments(parts)
+        std = math.sqrt(m2 / n_finite)
         lo = min(p['min'] for p in parts if p['n'] - p['nan'] - p['inf'])
         hi = max(p['max'] for p in parts if p['n'] - p['nan'] - p['inf'])
         pct = np.percentile(np.concatenate([p['sample'] for p in parts]), [1, 50, 99])
@@ -185,9 +212,8 @@ def _channel_row(p):
     n_finite = p['n'] - p['nan'] - p['inf']
     if not n_finite:
         return [p['nan'] / p['n'] if p['n'] else np.nan] + [np.nan] * (len(_STATS_COLUMNS) - 1)
-    mean = p['sum'] / n_finite
     pct = np.percentile(p['sample'], [1, 50, 99]) if p['sample'].size else [np.nan] * 3
-    return [p['nan'] / p['n'], p['min'], p['max'], mean, math.sqrt(max(p['sum2'] / n_finite - mean ** 2, 0.0)), *pct]
+    return [p['nan'] / p['n'], p['min'], p['max'], p['mean'], math.sqrt(p['m2'] / n_finite), *pct]
 
 
 def _write_stats(out_dir, z0, kind, method, parts, channel_shape, dtype):
