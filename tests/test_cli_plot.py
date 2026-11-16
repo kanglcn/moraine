@@ -122,3 +122,35 @@ def test_raster_pyramid_holds_one_band_at_a_time(tmp_path, monkeypatch, method):
         finally:
             tracemalloc.stop()
         assert peak < 1.5 * band.nbytes + stats, (peak / band.size, stats / band.size)   # bytes a pixel of a band
+
+
+@pytest.mark.parametrize('dtype', ['bool', 'int16', 'float32', 'float64', 'complex64'])
+def test_raster_pyramid_memory_of_the_help_of_rows(tmp_path, dtype):
+    """The help of `rows` of ras-pyramid gives the bytes a process needs per pixel of a band of `rows` lines, B: the
+    peak traced while a channel renders (without the sample of the statistics), the larger of the two methods, is
+    within 0.8 to 1.05 times B. The help said max(40, 8 x itemsize), which was 64 for float64, 30 % more than the
+    49.6 bytes measured on 8192 x 4160 pixels (48.5 here) since b2f5a1d."""
+    import re
+    from moraine.cli import plot
+    from moraine.command import get_command
+    help_ = next(p.help for p in get_command('ras-pyramid').params if p.name == 'rows')
+    m = re.search(r'B = (\d+) for complex64 and max\((\d+), ([\d.]+) x itemsize\) otherwise', help_)
+    assert m, help_
+    B = int(m[1]) if dtype == 'complex64' else max(int(m[2]), float(m[3]) * np.dtype(dtype).itemsize)
+    rows, width, n_bands = 256, 2048, 4
+    rng = np.random.default_rng(0)
+    data = rng.random((rows * n_bands, width)) * 100
+    data = (data > 50) if dtype == 'bool' else (data + 1j * data[::-1]) if dtype == 'complex64' else data
+    ras = write_zarr(tmp_path / 'ras.zarr', data.astype(dtype), (rows, rows))
+    peaks = []
+    for method in ('decimate', 'mean'):
+        pyr = tmp_path / f'pyr_{method}'
+        mc.ras_pyramid(ras, str(pyr), rows=rows, method=method, n_workers=1)
+        plot._ras_pyramid_init(ras, str(pyr), len(pyramid_levels(pyr)) - 1, data.size, rows, method)
+        tracemalloc.start()
+        try:
+            plot._ras_pyramid_channel(())
+            peaks.append(tracemalloc.get_traced_memory()[1] / (rows * width))
+        finally:
+            tracemalloc.stop()
+    assert 0.8 * B <= max(peaks) <= 1.05 * B, (peaks, B)

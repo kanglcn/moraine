@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The help of `rows` of `ras-pyramid` estimates the memory of a process as 0.5 GB plus B x rows x width bytes with B = 64 for complex64 and max(42, 6.25 x itemsize) otherwise (42 for float32, 50 for float64), the larger of the two methods as measured; it said max(40, 8 x itemsize), 64 for float64, which needs 49.6 since a band is released before the next one is read
+
 `.png(path)` of the views of `moraine.cli.view` of a name ending with a dot, e.g. `x.`, writes x.png and returns that name, as for a name without a suffix: it returned `x.`, a file that did not exist, while matplotlib wrote x.png (or x.pdf, ... with another `savefig.format` of its configuration)
 
 `moraine.cli.view` rejects `sliders` of a show function with fewer than one value when the view is made, e.g. `sliders={'i': 0}`, with a ValueError "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"; it made a slider 0 .. -1, which failed when drawn
