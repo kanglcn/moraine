@@ -26,11 +26,11 @@ Flegrei data set (Sentinel-1, 92 dates); the whole of it is on the [Talk to an a
 <i>rslc</i> load-gamma-flatten-rslc ... done (125.8 s)
 <i>rslc_pyramid</i> ras-pyramid ... done (20.9 s)
 <span class="mo-ok">pipeline finished: 7 steps, 161.8 s</span></div>
-    <p>The stack is (981, 4160, 92) complex64; 40 % of the pixels are nan, which is the Gulf of Pozzuoli masked by the
+    <p>The stack is (981, 4160, 92) complex64; 41 % of the pixels are nan, which is the Gulf of Pozzuoli masked by the
     coregistration, as the data set description says. Next: PS candidates.</p>
   </div></div>
   <div class="mo-msg mo-msg--agent"><div class="mo-avatar">AI</div><div class="mo-bubble">
-    <p>... four pipelines and 500 s of processing later: 223 875 refined points, unwrapped. The interferogram between
+    <p>... four pipelines and 380 s of processing later: 223 875 refined points, unwrapped. The interferogram between
     the first and the last image shows the uplift of the caldera as about ten fringes centred on Pozzuoli.</p>
     <img src="assets/campi/04_pc_intf_0_91.webp" alt="interferogram 2019-01-02 / 2021-12-29 of the refined points of Campi Flegrei" loading="lazy">
     <p><span class="mo-cursor">Two things to decide: the DS threshold and the reference point</span></p>
