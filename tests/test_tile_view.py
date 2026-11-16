@@ -926,6 +926,18 @@ def test_map_size(ras, grid_pc):
     assert w.pixel_size(2.5) == 2 ** -2.5                    # the zoom is continuous
 
 
+def test_opacity_from_0_to_1(tmp_path):
+    """An opacity outside 0 - 1 (or nan) is a ValueError when the view is made; it was taken, and a PNG blended its
+    colours out of their range (matplotlib clipped them with a warning) or drew nan."""
+    import re
+    a = np.random.default_rng(0).random((10, 10)).astype(np.float32)
+    for opacity in (2.0, -0.5, float('nan')):
+        error = f'opacity must be a number from 0 to 1, not {opacity!r}'
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(a, opacity=opacity)
+    for opacity in (0, 0.5, 1):
+        assert view(a, opacity=opacity).opacity == opacity
+
 def test_terrain(mercator_pc, grid_pc):
     """3D views: the `terrain` of the layers reaches the widget; web mercator layers only."""
     from moraine.cli.tiles import TERRAIN_TILES

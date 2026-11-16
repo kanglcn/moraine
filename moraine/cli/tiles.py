@@ -652,6 +652,8 @@ class _Layer(_Shown):
             if len(size) != 2 or min(size) <= 0:
                 raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
             self.size = size
+        if not 0 <= float(opacity) <= 1:    # the colours of a PNG would leave their range (nan: all nan)
+            raise ValueError(f'opacity must be a number from 0 to 1, not {opacity!r}')
         clim = _clim(clim)          # a reversed range would draw everything in the first colour
         self.terrain = _terrain(terrain)
         if self.terrain and self.crs != 'web_mercator':
@@ -1251,7 +1253,7 @@ def view(
         (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a real stack ('intf_0',
         'intf_seq', 'intf_all')
     opacity : float, default: 1.0
-        opacity of the layer, 0 - 1
+        opacity of the layer, 0 - 1; another value is a ValueError
     label : str, optional
         name of the layer; the pyramid directory name by default
     size : tuple, optional
