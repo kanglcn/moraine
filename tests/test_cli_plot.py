@@ -1,9 +1,12 @@
-"""The pyramids render in processes that are not forks of the calling process (decision 0046)."""
+"""The pyramids render in processes that are not forks of the calling process (decision 0046), with the memory of a
+band of lines of a raster at a time."""
 import tempfile
 import threading
+import tracemalloc
 import warnings
 
 import numpy as np
+import pytest
 import zarr
 
 import moraine.cli as mc
@@ -51,3 +54,25 @@ def test_pyramids_do_not_fork_the_calling_process(tmp_path, monkeypatch):
                 np.testing.assert_array_equal(values[idx != -1], pc[idx[idx != -1]])
             else:
                 assert np.isfinite(values[idx != -1]).all()
+
+
+@pytest.mark.parametrize('method', ['decimate', 'mean'])
+def test_raster_pyramid_memory_does_not_grow_with_the_bands(tmp_path, method):
+    """A process renders a channel of a raster band by band: the memory it needs is that of a band (and of the sample
+    of the statistics), not that of the channel. Measured in this process on channels of 16 and 64 bands."""
+    from moraine.cli import plot
+    rows, width = 32, 512
+    band = rows * width * 4                                    # bytes of a band of float32
+
+    def peak(n_bands):
+        ras, pyr = tmp_path / f'ras_{n_bands}.zarr', tmp_path / f'pyr_{n_bands}'
+        write_zarr(ras, np.random.default_rng(0).random((rows * n_bands, width), dtype=np.float32), (rows, width))
+        mc.ras_pyramid(str(ras), str(pyr), rows=rows, method=method, n_workers=1)
+        plot._ras_pyramid_init(str(ras), str(pyr), len(pyramid_levels(pyr)) - 1, 64, rows, method)
+        tracemalloc.start()
+        try:
+            plot._ras_pyramid_channel(())
+            return tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+    assert peak(64) - peak(16) < 8 * band          # 48 more bands; c99c11b kept them all: 98 - 145 bands more

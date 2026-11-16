@@ -73,7 +73,7 @@ def _ras_pyramid_channel(channel_idx):
             f = 2 ** level
             parallel_write_zarr(cur.astype(zarrs[level].dtype, copy=False), zarrs[level],
                                 (slice(r0 // f, r0 // f + cur.shape[0]), slice(None), *channel))
-        tops.append(cur); counts.append(cnt)
+        tops.append(cur.copy()); counts.append(cnt)     # a copy: a decimated level is a view of the whole band
     if band_levels < len(zarrs) - 1:
         cur = np.concatenate(tops, axis=0)
         cnt = np.concatenate(counts, axis=0) if mean else None
@@ -165,9 +165,10 @@ def _part_stats(a, step):
     finite = v[~(nan | inf)]
     mean = float(finite.mean()) if finite.size else 0.0
     dev = finite - mean
+    # a copy: a view of `finite` would keep all the values of the part, until a channel's bands are merged
     return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'mean': mean,
             'm2': float(np.square(dev, out=dev).sum()), 'min': float(finite.min()) if finite.size else np.nan,
-            'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step]}
+            'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step].copy()}
 
 
 def _pool_stats(parts, dtype):
