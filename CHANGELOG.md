@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`pc_union` and `pc_intersect` with cupy arrays return the dtypes of the CPU. With int32 hilbert indices the positions of `pc_union` (the points of `idx1` and the new points of `idx2` in the union, the new points in `idx2`) are int32 on the GPU too, instead of int64: for hilbert indices those of the points of `idx1` have the dtype of `idx1`, the others that of `idx2`. `pc_intersect` of an int32 `idx1` and an int64 `idx2` gives an int64 intersection on the GPU too, instead of int32. The values, grid indices and `pc_diff` do not change; the docstrings give the dtypes
+
 `pc_union` and `pc-union` of an int32 hilbert index `idx1` and an int64 `idx2` give the union in int64 on the CPU, as on the GPU, numpy's promotion of the two dtypes. It had the dtype of `idx1`, which cut the values of `idx2` beyond the int32 range: the union of [1, 5] (int32) and [3, 2**33] was [1, 3, 5, 0]. The other dtypes, grid indices and the positions returned do not change
 
 `pc_union`, `pc_intersect` and `pc_diff` of grid indices without `shape`, and so the commands `pc-union`, `pc-intersect`, `pc-diff` and `pc-select-data` (whose default is no `shape`), raise a ValueError when a grid index is empty: "shape (nlines, width) is needed when a grid index is empty", as the raster shape cannot be inferred from it. They raised an IndexError, "index -1 is out of bounds for axis 0 with size 0". With `shape` they work as before, also with empty grid indices

@@ -1,3 +1,4 @@
+import itertools
 import math
 
 import numpy as np
@@ -104,12 +105,25 @@ def test_pc_union_int32_int64(gpu):
 
 
 @pytest.mark.gpu
-def test_pc_union_cpu_gpu_agree(rng):
+@pytest.mark.parametrize('fn', [pc_union, pc_intersect, pc_diff])
+def test_set_operations_cpu_gpu_agree(fn, rng):
+    """The GPU gives the outputs of the CPU, values and dtypes, for grid and hilbert indices of int32 and int64, empty
+    or not: with int32 hilbert indices pc_union gave int64 positions on the GPU (int32 on the CPU), and pc_intersect
+    of an int32 idx1 and an int64 idx2 an int32 intersection (int64 on the CPU)."""
     import cupy as cp
-    h1 = np.sort(rng.choice(100_000, size=1_000, replace=False))
-    h2 = np.sort(rng.choice(100_000, size=1_000, replace=False))
-    for a, b in zip(pc_union(h1, h2), pc_union(cp.asarray(h1), cp.asarray(h2))):
-        np.testing.assert_array_equal(a, b.get())
+    shape = (300, 400)
+    h1 = np.sort(rng.choice(shape[0] * shape[1], size=1_000, replace=False))
+    h2 = np.sort(rng.choice(shape[0] * shape[1], size=1_000, replace=False))
+    for kind, d1, d2, (n1, n2) in itertools.product(('hix', 'gix'), (np.int32, np.int64), (np.int32, np.int64),
+                                                   ((1000, 1000), (0, 1000), (1000, 0), (0, 0))):
+        a, b = h1[:n1], h2[:n2]
+        if kind == 'gix':
+            a, b = (np.stack(np.unravel_index(h, shape), axis=-1) for h in (a, b))
+        a, b = a.astype(d1), b.astype(d2)
+        kw = {'shape': shape} if kind == 'gix' else {}
+        for c, g in zip(fn(a, b, **kw), fn(cp.asarray(a), cp.asarray(b), **kw), strict=True):
+            assert isinstance(g, cp.ndarray) and g.dtype == c.dtype, (kind, d1, d2, n1, n2)
+            np.testing.assert_array_equal(g.get(), c)
 
 
 def test_pc_intersect(gpu):

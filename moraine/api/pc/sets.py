@@ -111,6 +111,9 @@ def pc_union(idx1:np.ndarray,
         - index of the point in output union index that originally in the first point cloud `inv_iidx`
         - index of the point in output union index that only exist in the second point cloud `inv_iidx2`
         - index of the point in the second input index that are not in the first input point cloud
+
+        These three are int64 for grid indices; for hillbert indices the first has the dtype of `idx1`, the others
+        that of `idx2` (int32 for int32 hillbert indices).
     """
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
     xp = get_array_module(idx1_1d)
@@ -126,6 +129,10 @@ def pc_union(idx1:np.ndarray,
         ninv_iidx2 = xp.flatnonzero(xp.isin(idx2_1d, idx1_1d, assume_unique=True, invert=True))
         inv_iidx1 = xp.searchsorted(idx, idx1_1d)
         inv_iidx2 = xp.searchsorted(idx, idx2_1d[ninv_iidx2])
+        # the dtypes of the cpu: the positions of the points of idx1 in that of idx1, the others in that of idx2
+        inv_iidx1 = inv_iidx1.astype(idx1_1d.dtype, copy=False)
+        inv_iidx2 = inv_iidx2.astype(idx2_1d.dtype, copy=False)
+        ninv_iidx2 = ninv_iidx2.astype(idx2_1d.dtype, copy=False)
     return (idx if dims is None else _unravel_gix(idx, dims)), inv_iidx1, inv_iidx2, ninv_iidx2
 
 def pc_intersect(idx1:np.ndarray,
@@ -146,9 +153,10 @@ def pc_intersect(idx1:np.ndarray,
     Returns
     -------
     tuple
-        - the intersect index `idx`
-        - index of the point in first point cloud index that also exist in the second point cloud
-        - index of the point in second point cloud index that also exist in the first point cloud
+        - the intersect index `idx`, sorted: grid index (n, 2) int32, or hillbert index (n,) of the dtype of `idx1`
+          and `idx2` promoted (int64 for int32 and int64)
+        - index of the point in first point cloud index that also exist in the second point cloud, int64
+        - index of the point in second point cloud index that also exist in the first point cloud, int64
     """
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
@@ -156,6 +164,7 @@ def pc_intersect(idx1:np.ndarray,
     if idx2_1d.shape[0] == 0:
         idx1_1d = idx1_1d[:0] # cupy (13.6) intersect1d reads out of bounds when the second array is empty
     idx, iidx1, iidx2 = xp.intersect1d(idx1_1d,idx2_1d,assume_unique=True,return_indices=True)
+    idx = idx.astype(np.result_type(idx1_1d.dtype, idx2_1d.dtype), copy=False) # cupy (13.6) gives the dtype of idx1
     return (idx if dims is None else _unravel_gix(idx, dims)), iidx1, iidx2
 
 def pc_diff(idx1:np.ndarray,
@@ -176,8 +185,8 @@ def pc_diff(idx1:np.ndarray,
     Returns
     -------
     tuple
-        - the diff index `idx`
-        - index of the point in first point cloud index that do not exist in the second point cloud
+        - the diff index `idx`, sorted: grid index (n, 2) int32, or hillbert index (n,) of the dtype of `idx1`
+        - index of the point in first point cloud index that do not exist in the second point cloud, int64
     """
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
     xp = get_array_module(idx1_1d)
