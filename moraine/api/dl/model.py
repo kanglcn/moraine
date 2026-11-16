@@ -4,11 +4,19 @@ __all__ = ['download_dl_model']
 
 import functools
 import importlib
+import os
 from pathlib import Path
 
 def _https_context():
-    """The SSL context of the downloads: one with the CA bundle of certifi where the package certifi can be imported,
-    else None, the default context of urllib with the certificates of the Python installation."""
+    """The SSL context of the downloads: None, urllib's default context, which trusts the certificate authorities of
+    the environment variables SSL_CERT_FILE and SSL_CERT_DIR, where one of them is set (not empty); else one with the
+    CA bundle of certifi where the package certifi can be imported; else None, the default context with the
+    certificates of the Python installation."""
+    # SSL_CERT_FILE / SSL_CERT_DIR give certificate authorities of their own, e.g. that of a company's TLS-inspecting
+    # proxy: OpenSSL loads them in place of its default file / directory when the default context is made, and a
+    # context with the CA bundle of certifi would ignore them. An empty value counts as not set.
+    if os.environ.get('SSL_CERT_FILE') or os.environ.get('SSL_CERT_DIR'):
+        return None
     # python.org builds of Python on macOS have no certificates of their own until "Install Certificates" is run;
     # certifi is not a dependency of moraine
     try:
