@@ -15,6 +15,7 @@ moraine amp-disp --rslc raw/rslc.zarr --adi ps/ras_adi.zarr --cuda
 - **Arguments** are `--name VALUE`; `--a-b` is accepted for `--a_b`. Booleans are `--cuda` / `--no-cuda`. Lists
   of paths take several values (`--ras a.zarr b.zarr`). Tuples take their integers (`--chunks 1000 1000`, also
   `1000,1000`). Image pairs are a file made by `image-pairs` (two integer columns) or a literal `[[0,1],[1,2]]`.
+  `None` is the default of an optional argument; a required argument cannot be `None` (a usage error).
 - **Unknown argument names are errors**, with a suggestion; nothing is passed silently into `**kwargs`. Extra
   keyword arguments (the input arrays of `math`) are explicit: `--kw a=a.zarr --kw b=b.zarr`.
 - Every argument's help names **input** or **output**, the shape and dtype of the array, the unit and the
