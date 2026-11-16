@@ -115,7 +115,7 @@ every change is designed for that size, not for the sample data.
 | any public function | its numpy docstring (shapes, dtypes, defaults) and its tests |
 | modules (add, remove, move, rename) | `ARCHITECTURE.md` (checked by `tests/test_architecture.py`) |
 | the `--json` output, pipeline files, pyramids or data conventions | the contract in `docs/contracts/` and its tests; bump the contract version if old files / scripts break |
-| an example pipeline | rerun it on the sample data and update the numbers in its guide (decision 0009) |
+| an example pipeline | rerun it on the sample data and update the numbers in its guide (decision 0038) |
 | a design choice (dependency, interface, approach) | a new record in `docs/decisions/` |
 | dependencies | `pyproject.toml`; a decision record for a major one |
 | user visible behaviour | the `Unreleased` section of `CHANGELOG.md` |
