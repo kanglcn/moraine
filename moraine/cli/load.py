@@ -127,7 +127,7 @@ def load_gamma_flatten_rslc(
     rslc_dir : str
         input: GAMMA rslc directory with '????????.rslc' and '????????.rslc.par' files
     reference : str
-        reference date, eg: '20200202'
+        reference date, one of the dates of the images in `rslc_dir`, e.g. '20200202'
     hgt : str
         input: DEM height in radar coordinates (GAMMA float), same size as one rslc
     scratch_dir : str
@@ -151,6 +151,8 @@ def load_gamma_flatten_rslc(
     logger.info('rslc found:\n' + '\n'.join(f'{k:4d}  {date}  {rslc_}  {par}'
                                             for k, (date, rslc_, par) in enumerate(zip(dates, rslcs, rslc_pars))))
 
+    if reference not in dates:
+        raise ArgumentError(f'reference {reference} is not a date of {rslc_dir}')
     reference_idx = dates.index(reference)
     ref_rslc_par = rslc_pars[reference_idx]
     hgt = Path(hgt)
@@ -397,7 +399,7 @@ def load_gamma_metadata(rslc_dir:str,
     dem_par : str
         input: DEM par file
     reference : str
-        reference date, eg: '20200202'
+        reference date, one of the dates of the images in `rslc_dir`, e.g. '20200202'
     meta_file : str
         output: toml file with `dates`, the date of every image (YYYYMMDD, from the file names), nimages strings in
         date order; `times`, the time of the centre line of every image (UTC, to the microsecond), nimages date-times
@@ -408,11 +410,12 @@ def load_gamma_metadata(rslc_dir:str,
     """
     meta = dict()
     rslc_dir = Path(rslc_dir)
-    dates, times = [], []
     logger = logging.getLogger(__name__)
-    for par_file in sorted(rslc_dir.glob('*.rslc.par')):
-        dates.append(par_file.name[:8])
-        times.append(_read_gamma_center_time(par_file))
+    par_files = sorted(rslc_dir.glob('*.rslc.par'))
+    dates = [par_file.name[:8] for par_file in par_files]
+    if reference not in dates:
+        raise ArgumentError(f'reference {reference} is not a date of {rslc_dir}')
+    times = [_read_gamma_center_time(par_file) for par_file in par_files]
     meta['dates'] = dates
     meta['times'] = times
 
