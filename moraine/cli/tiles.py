@@ -896,6 +896,9 @@ class PointLayer(_Layer):
             self._pc = np.asarray(_open(data)[...])
             if not (self._x.shape == self._y.shape == self._pc.shape[:1]):
                 raise ValueError(f'x {self._x.shape}, y {self._y.shape} and data {self._pc.shape} do not match')
+            if self._x.size == 0:           # no extent to rasterize them in
+                raise ValueError(f'the point data have no points: x {self._x.shape}, y {self._y.shape} and data '
+                                 f'{self._pc.shape}; there is nothing to view')
             if resolution is None:
                 if not (np.all(self._x == np.round(self._x)) and np.all(self._y == np.round(self._y))):
                     raise ValueError('give `resolution` (cell size of the rasterized points): the coordinates '
@@ -1169,7 +1172,7 @@ def view(
     data : str or np.ndarray
         a pyramid directory made by `ras_pyramid` or `pc_pyramid`; a raster, (nlines, width[, n[, m]]), as
         array or zarr path (read into memory, at most 512 MiB); or point data, (n_points[, n[, m]]), with `x`
-        and `y`
+        and `y` and at least one point
     x : str or np.ndarray, optional
         x coordinate (range or web mercator x) of point data that is not a pyramid, (n_points,)
     y : str or np.ndarray, optional

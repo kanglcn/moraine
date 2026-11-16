@@ -244,6 +244,22 @@ def test_point_data_in_memory(grid_pc):
         view(val, x=gx)
 
 
+def test_point_data_without_points(tmp_path):
+    """Point data without points, arrays or zarr paths, are an error of `view` that says so; it was numpy's "zero-size
+    array to reduction operation minimum which has no identity"."""
+    import re
+    write_zarr(tmp_path / 'pc.zarr', np.empty((0, 3), np.complex64), (1, 3))
+    write_zarr(tmp_path / 'x.zarr', np.empty(0), (1,)); write_zarr(tmp_path / 'y.zarr', np.empty(0), (1,))
+    for data, x, y, kw, shape in [
+            (np.empty(0, np.float32), np.empty(0), np.empty(0), {}, '(0,)'),
+            (np.empty((0, 3), np.complex64), np.empty(0), np.empty(0), dict(resolution=7.5, show='intf_seq'), '(0, 3)'),
+            (str(tmp_path / 'pc.zarr'), str(tmp_path / 'x.zarr'), str(tmp_path / 'y.zarr'), {}, '(0, 3)')]:
+        with pytest.raises(ValueError, match='^' + re.escape(f'the point data have no points: x (0,), y (0,) and data '
+                                                             f'{shape}; there is nothing to view') + '$'):
+            view(data, x=x, y=y, **kw)
+    assert view(np.ones(1, np.float32), x=np.zeros(1), y=np.zeros(1)).n_points == 1        # one point is enough
+
+
 def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
     """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
     coordinates (a pyramid without the tree is rejected: tests/test_contracts.py); points in memory get one built."""
