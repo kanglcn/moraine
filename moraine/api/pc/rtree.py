@@ -88,7 +88,9 @@ def _build_hillbert_rtree(x, y, page_size):
     input_size = x.shape[0]
     num_pages = math.ceil(input_size/page_size)
 
-    tree_depth = math.ceil(np.log2(num_pages))
+    # no points: the tree of one page, a leaf without points (nan bounds, as the leaves after the last page), which
+    # no query enters
+    tree_depth = math.ceil(np.log2(num_pages)) if num_pages > 1 else 0
     next_pow2 = 2 ** tree_depth
     tree_length = next_pow2 * 2 - 1
     bounds_tree = np.full((tree_length, 4), np.nan)
@@ -264,7 +266,8 @@ class HilbertRtree:
         Parameters
         ----------
         x : np.ndarray
-            x coordinates, e.g., lon, shape [n_points,]
+            x coordinates, e.g., lon, shape [n_points,]; no points (n_points = 0) give a tree whose queries find
+            none
         y : np.ndarray
             y coordinates, e.g., lat, shape [n_points,]
         page_size : default: 512

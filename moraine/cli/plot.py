@@ -383,7 +383,7 @@ def pc_pyramid(
     Parameters
     ----------
     pc : str
-        input: point cloud data, shape (n_points,) or (n_points, n)
+        input: point cloud data, shape (n_points,) or (n_points, n), at least one point
     out_dir : str
         output directory to store rendered data
     x : str, optional
@@ -411,11 +411,12 @@ def pc_pyramid(
     if method not in _METHODS['point cloud']:
         raise ValueError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
     logger = logging.getLogger(__name__)
-    logger.info('clean out dir')
-    out_dir = Path(out_dir); mk_clean_dir(out_dir)
-
     pc_zarr = zarr.open(pc,mode='r')
     logger.zarr_info(pc, pc_zarr)
+    if pc_zarr.shape[0] == 0:       # the grid of the levels is placed on the points (docs/contracts/pyramid.md)
+        raise ValueError(f'the point cloud is empty: {pc} has no points; a point cloud pyramid needs at least one')
+    logger.info('clean out dir')
+    out_dir = Path(out_dir); mk_clean_dir(out_dir)
 
     channel_chunks = (1,)*(pc_zarr.ndim-1)
     logger.info(f'rendering point cloud data coordinates:')

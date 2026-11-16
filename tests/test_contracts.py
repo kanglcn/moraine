@@ -245,6 +245,23 @@ def test_point_cloud_pyramid_layout(tmp_path, rng):
         np.testing.assert_array_equal(ras[idx != -1], pc[idx[idx != -1]])
 
 
+def test_point_cloud_pyramid_has_points(tmp_path):
+    """A point cloud pyramid has at least one point, as its grid is placed on the points: pc-pyramid of an empty point
+    cloud says so before it cleans the output directory (it failed while reading the coordinates: "slice start 0 is
+    outside the shape 0 of dimension 0")."""
+    for name, shape, chunks in [('pc.zarr', (0, 3), (100, 1)), ('x.zarr', (0,), (100,)), ('y.zarr', (0,), (100,)),
+                                ('yx.zarr', (0, 2), (100, 1))]:
+        zarr.open(str(tmp_path / name), mode='w', shape=shape, dtype=np.float32, chunks=chunks)
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    error = f'the point cloud is empty: {tmp_path / "pc.zarr"} has no points; a point cloud pyramid needs at least one'
+    for coordinates in ({'x': str(tmp_path / 'x.zarr'), 'y': str(tmp_path / 'y.zarr')},
+                        {'yx': str(tmp_path / 'yx.zarr')}):
+        with pytest.raises(ValueError, match=re.escape(error)):
+            mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(out), **coordinates)
+        assert [p.name for p in out.iterdir()] == ['old']
+
+
 def _block_means(a, f):
     """Expected means of the f x f blocks of `a` (h, w) over its finite values, nan where none."""
     h, w = a.shape
