@@ -187,15 +187,6 @@ def test_pc_select_data(w, rng):
     np.testing.assert_array_equal(r(w('pc.zarr')), pc_in[iidx, 0])
 
 
-def test_data_reduce(w, rng):
-    pc1 = _cplx(rng, 1000); pc2 = _cplx(rng, 800, 3)
-    w('pc_in1.zarr', pc1, (200,)); w('pc_in2.zarr', pc2, (200, 1))
-    mc.data_reduce(w('pc_in1.zarr'), w('pc_out1.zarr'), map_func=np.abs, reduce_func=np.sum, post_map_func=lambda x: x / 1000)
-    mc.data_reduce(w('pc_in2.zarr'), w('pc_out2.zarr'), map_func=np.abs, reduce_func=np.sum, post_map_func=lambda x: x / 800)
-    np.testing.assert_array_almost_equal(r(w('pc_out1.zarr'))[0], np.mean(np.abs(pc1), axis=0))
-    np.testing.assert_array_almost_equal(r(w('pc_out2.zarr')), np.mean(np.abs(pc2), axis=0))
-
-
 def test_bool2gix(tmp_path):
     rng = np.random.default_rng(0)
     is_pc = rng.random((30, 40)) < 0.2

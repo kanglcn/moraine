@@ -2,14 +2,13 @@
 
 
 __all__ = ['gix2bool', 'bool2gix', 'ras2pc', 'pc_concat', 'ras2pc_ras_chunk', 'pc2ras', 'pc_hix', 'pc_gix', 'pc_sort', 'pc_union',
-           'pc_intersect', 'pc_diff', 'pc_logic_ras', 'pc_logic_pc', 'pc_select_data', 'data_reduce']
+           'pc_intersect', 'pc_diff', 'pc_logic_ras', 'pc_logic_pc', 'pc_select_data']
 
 import itertools
 import logging
 from pathlib import Path
 import zarr
 import numpy as np
-from typing import Callable
 
 from .logging import mc_logger
 import moraine as mr
@@ -88,13 +87,6 @@ def _pc_union(pc1,pc2,inv_iidx1,inv_iidx2,iidx2,n_pc):
     pc[inv_iidx1] = pc1
     pc[inv_iidx2] = pc2[iidx2]
     return pc
-
-
-def _reduce_chunk(chunk, map_func, reduce_func, axis):
-    data = chunk.read()
-    if map_func is not None:
-        data = map_func(data)
-    return reduce_func(data, axis=axis, keepdims=True)
 
 
 def _gather_channels(ex, fn, in_paths, out_paths, refs, n_pc, chunks, desc, logger):
@@ -934,67 +926,4 @@ def pc_select_data(
     pc_in_list, pc_list = _path_lists(pc_in=pc_in, pc=pc)
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         _gather_channels(ex, _indexing_pc_data, [[p] for p in pc_in_list], pc_list, [ex.put(iidx_in)], n_pc, chunks, 'channels', logger)
-    logger.info('done.')
-
-@mc_logger
-def data_reduce(
-    data_in:str,
-    out:str,
-    map_func:Callable=None,
-    reduce_func:Callable=np.mean,
-    axis=0,
-    post_map_func:Callable=None,
-    processes=False,
-    n_workers=1,
-    threads_per_worker=4,
-):
-    """reduction operation for dataset.
-
-    Parameters
-    ----------
-    data_in : str
-        path (in string) for the input data
-    out : str
-        output, path (in string) for the output data
-    map_func : Callable, optional
-        elementwise mapping function for input, no mapping by default
-    reduce_func : Callable, default: np.mean
-        reduction function after mapping, np.mean by default
-    axis : default: 0
-        axis to be reduced, 0 for point cloud data, (0,1) for raster data
-    post_map_func : Callable, optional
-        post mapping after reduction, no mapping by default
-    processes : default: False
-        use processes for the workers instead of threads
-    n_workers : default: 1
-        number of workers
-    threads_per_worker : default: 4
-        tasks a worker runs at the same time
-    """
-    logger = logging.getLogger(__name__)
-    data_in_zarr = zarr.open(data_in,mode='r'); logger.zarr_info(data_in, data_in_zarr)
-    axes = (axis,) if isinstance(axis, int) else tuple(axis)
-    slices = all_chunk_slices(data_in_zarr.shape, data_in_zarr.chunks)
-    n_blocks = [-(-n // c) for n, c in zip(data_in_zarr.shape, data_in_zarr.chunks)]
-    logger.info(f'reduction of {len(slices)} chunks')
-    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
-        parts = ex.map(_reduce_chunk, [(Chunk(data_in, sl), map_func, reduce_func, axes) for sl in slices], desc='chunks')
-    # the reductions of the chunks in the chunk grid, then the reduction over the chunks
-    grid = np.empty(n_blocks, dtype=object)
-    for pos, part in zip(itertools.product(*[range(n) for n in n_blocks]), parts):
-        grid[pos] = part
-    reduced_result = np.block(grid.tolist())
-    logger.info('continue the reduction on reduced data over every chunk')
-    reduced_result = reduce_func(reduced_result,axis=axis,keepdims=False)
-    logger.info('post mapping')
-    if post_map_func is not None:
-        result = post_map_func(reduced_result)
-    else:
-        result = reduced_result
-    logger.info('writing output.')
-    shape = result.shape
-    if len(shape) == 0:
-        shape = (1,)
-    out_zarr = zarr.open(out,mode='w',shape=shape,dtype=result.dtype,chunks=shape)
-    out_zarr[:] = result
     logger.info('done.')

@@ -19,6 +19,17 @@ def _two(a, b, scale=1.0):
     return a + b, (a - b) * scale
 
 
+def _two_and_sums(a, b, scale=1.0):
+    """`_two` and two small results more: the column sums of a + b and the number of rows"""
+    return *_two(a, b, scale), (a + b).sum(axis=0), a.shape[0]
+
+
+def _adi_and_sum(rslc):
+    """the amplitude dispersion index and its column sums, numpy or cupy"""
+    adi = mr.amp_disp(rslc)
+    return adi, adi.sum(axis=0)
+
+
 def _fail(a):
     raise ValueError('bad task')
 
@@ -61,9 +72,15 @@ def test_chunk_task(tmp_path, rng):
         tasks.append(([Chunk(str(tmp_path / 'a.zarr'), sl), Chunk(str(tmp_path / 'b.zarr'), sl)],
                       [Chunk(str(tmp_path / 'sum.zarr'), sl), Chunk(str(tmp_path / 'diff.zarr'), sl)]))
     with Executor(threads_per_worker=2) as ex:
-        ex.map_chunks(_two, tasks, scale=2.0)
+        assert ex.map_chunks(_two, tasks, scale=2.0) == [None, None]
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sum.zarr'), mode='r')[:], a + b)
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'diff.zarr'), mode='r')[:], (a - b) * 2)
+    # the results after the outputs are returned by the tasks, in the order of the tasks
+    with Executor(threads_per_worker=2) as ex:
+        returned = ex.map_chunks(_two_and_sums, tasks, scale=2.0)
+    for (inputs, _), (sums, n) in zip(tasks, returned):
+        np.testing.assert_array_equal(sums, (a + b)[inputs[0].slices[0]].sum(axis=0))
+        assert n == 32
     # a discarded output, a Device argument and a whole array chunk
     zarr.open(str(tmp_path / 'c.zarr'), mode='w', shape=a.shape, dtype=a.dtype, chunks=(16, 48))
     chunk_task(_two, [Chunk(str(tmp_path / 'a.zarr')), Device(b)], [None, Chunk(str(tmp_path / 'c.zarr'))], kwargs={'scale': 0.5})
@@ -81,9 +98,13 @@ def test_chunk_task_processes_read_ahead(tmp_path, rng):
         sl = (slice(start, start + 16), slice(0, 48))
         tasks.append(([Chunk(str(tmp_path / 'a.zarr'), sl)], [Chunk(str(tmp_path / 'sum.zarr'), sl), Chunk(str(tmp_path / 'diff.zarr'), sl)]))
     with Executor(processes=True, n_workers=2, threads_per_worker=1) as ex:
-        ex.map_chunks(_two, tasks, scale=2.0, b=Chunk(str(tmp_path / 'row.zarr')))   # a chunk as a keyword argument too
+        # a chunk as a keyword argument too; the results after the outputs come back from the processes
+        returned = ex.map_chunks(_two_and_sums, tasks, scale=2.0, b=Chunk(str(tmp_path / 'row.zarr')))
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sum.zarr'), mode='r')[:], a + row)
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'diff.zarr'), mode='r')[:], (a - row) * 2)
+    for (inputs, _), (sums, n) in zip(tasks, returned):
+        np.testing.assert_array_equal(sums, (a + row)[inputs[0].slices[0]].sum(axis=0))
+        assert n == 16
     # a chunk that cannot be read is the error of its task
     bad = [([Chunk(str(tmp_path / 'missing.zarr'), (slice(0, 16), slice(0, 48)))], [Chunk(str(tmp_path / 'sum.zarr'), (slice(0, 16), slice(0, 48)))])]
     with Executor(processes=True, n_workers=1) as ex, pytest.raises(Exception):
@@ -111,7 +132,11 @@ def test_chunk_task_gpu(tmp_path, rng):
     with Executor(cuda=True) as ex:
         assert 'GPU' in ex.describe()
         ex.map_chunks(mr.amp_disp, tasks)
+        returned = ex.map_chunks(_adi_and_sum, tasks)     # a result after the outputs comes back as a numpy array
     np.testing.assert_allclose(zarr.open(str(tmp_path / 'adi.zarr'), mode='r')[:], mr.amp_disp(rslc), rtol=1e-5)
+    for s, (sums,) in zip((0, 20), returned):
+        assert type(sums) is np.ndarray
+        np.testing.assert_allclose(sums, mr.amp_disp(rslc[s:s + 20]).sum(axis=0), rtol=1e-5)
 
 
 def test_unknown_worker_arguments_are_errors():

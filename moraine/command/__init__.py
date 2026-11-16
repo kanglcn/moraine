@@ -40,8 +40,6 @@ from ..api.tnet import check_image_pairs
 
 # modules of moraine.cli whose logged functions become commands
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'ts', 'plot']
-# functions that need python callables as input
-_EXCLUDE = {'data_reduce'}
 # version of the --json output format, see docs/contracts/json-output.md
 JSON_VERSION = 1
 
@@ -243,7 +241,7 @@ def commands()->dict:
         for fname in getattr(m, '__all__', []):
             f = getattr(m, fname)
             raw = getattr(f, '__wrapped__', None)
-            if raw is None or fname in _EXCLUDE:
+            if raw is None:
                 continue
             summary, docs = parse_docstring(raw.__doc__)
             cmd = Command(fname.replace('_', '-'), f, mod, summary)
