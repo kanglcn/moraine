@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`.png(path)` of the views of `moraine.cli.view` appends .png to a name without a suffix and returns that name, as `moraine quicklook -o` does: it returned the name given, a file that did not exist, while matplotlib wrote the name with the suffix and in the format of its configuration (`savefig.format`, png by default, e.g. a PDF named NAME.pdf with another configuration). Names with a suffix are written as before
+
 `moraine quicklook --extent` takes a value whose first number has a minus sign, e.g. `--extent -122.5,37.5,-122,38` west of Greenwich or `--extent -0.5,-0.5,100,100` from the edge of the first pixel, as the views give extents; argparse took the value for an unknown option and stopped with "argument --extent: expected one argument" (`--extent=-122.5,...` worked)
 
 `moraine.cli.view` of point data without points (`x`, `y` and the data of length 0, arrays or zarr paths) raises a ValueError that says so when the view is made: "the point data have no points: x (0,), y (0,) and data (0, 3); there is nothing to view". It was numpy's "zero-size array to reduction operation minimum which has no identity"

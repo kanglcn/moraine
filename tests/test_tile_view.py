@@ -867,6 +867,19 @@ def test_png(tmp_path, ras, stack, grid_pc, mercator_pc):
     assert view(str(mercator_pc[-1])).png(str(tmp_path / 'm.png'))
 
 
+def test_png_of_a_name_without_a_suffix(tmp_path, monkeypatch):
+    """`.png(path)` of a name without a suffix writes and returns path.png, a PNG; it returned the name, and
+    matplotlib wrote the file with the suffix and the format of its configuration (savefig.format, png by default)."""
+    import matplotlib
+    v = view(np.ones((10, 10), np.float32))
+    assert v.png(str(tmp_path / 'name')) == str(tmp_path / 'name.png')
+    assert (tmp_path / 'name.png').stat().st_size > 1000 and not (tmp_path / 'name').exists()
+    monkeypatch.setitem(matplotlib.rcParams, 'savefig.format', 'pdf')
+    assert v.png(str(tmp_path / 'other')) == str(tmp_path / 'other.png')
+    assert (tmp_path / 'other.png').read_bytes()[:4] == b'\x89PNG' and not (tmp_path / 'other.pdf').exists()
+    assert v.png(str(tmp_path / 'third.png')) == str(tmp_path / 'third.png')       # a name with a suffix as it is
+
+
 def test_png_extent(tmp_path, ras, mercator_pc):
     """A part of the scene is drawn from the finest level that fits, down to the data themselves; extents are
     pixels on the radar grid and degrees on web mercator; the view describes the extent and the finest cell."""
