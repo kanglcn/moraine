@@ -133,7 +133,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 |---|---|
 | `tests/` | pytest; `conftest.py` has the sample data fixtures, the `gpu` fixture (a test on the CPU and on the GPU), the helpers the tests share (zarr writing and reading, skips without GAMMA or the trained models, ...) and the `gpu` / `slow` markers |
 | `tests/browser/` | the viewer's JavaScript in jsdom and in headless Chromium, run by hand (not pytest) |
-| `examples/` | verified pipelines of the whole processing chain (decision 0009) |
+| `examples/` | verified pipelines of the whole processing chain (decision 0038) |
 | `docs/workflows/` | one guide per example pipeline |
 | `docs/decisions/` | design decision records |
 | `docs/contracts/` | promises on formats others depend on (JSON output, pipeline files, pyramids, data) |

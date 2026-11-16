@@ -1,6 +1,6 @@
 # The viewer: how it works, what was learnt, what is open
 
-Implementation notes of the visualization system (`moraine.cli.view`, decisions 0007, 0018, 0035, 0036, 0049) for
+Implementation notes of the visualization system (`moraine.cli.view`, decisions 0018, 0036, 0049) for
 whoever changes it next. The user documentation is the docstring of `view` and `AGENTS.md`; the formats are
 in `docs/contracts/pyramid.md`. Updated 2026-10-10.
 
