@@ -216,7 +216,7 @@ saved view.ipynb: open it in Jupyter or VS Code and run all cells
   数据约定和规则（不往样例数据里写、一次只跑一条 GPU pipeline、不删结果）。各工具专用的文件只指向它（决策 0008），
   `tests/test_docs.py` 保证它与代码一致。
 - **工作流指南**（`docs/workflows/`）给 agent 的正是一位同事会给的东西：参数、样例数据上每个结果的预期范围、看什么、
-  数字不对时怎么办。示例 pipeline 每次改动前都在真实数据上验证（决策 0009、0033）。
+  数字不对时怎么办。示例 pipeline 每次改动前都在真实数据上验证（决策 0038）。
 - **能自我解释的命令。** `moraine list`，`moraine COMMAND --help` 给出 docstring 里的形状、类型和默认值，未知参数被
   拒绝并给出建议，`--json` 在 stdout 打印一个对象和每个输出的摘要。
 - **不用画图的检查。** `moraine info` 从金字塔给出统计量和异常警告，`moraine quicklook` 出一张 agent 能看、能放大的
