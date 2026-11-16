@@ -987,6 +987,24 @@ def test_pipeline_variable_from_a_file_made_later(tmp_path, monkeypatch):
     assert res['ok'] and res['steps'][0]['args']['nimages'] == 6
 
 
+def test_an_empty_string_is_not_a_path(tmp_path, capsys, monkeypatch):
+    """The `outputs` and `inputs` of a command (JSON output, pipeline state) leave out the arguments that are empty
+    strings: pathlib takes '' for the working directory, which a command making a file in it modifies, so '' was
+    listed as an output (as `download-era5 --times ''` did), or as an input that changes."""
+    def write_note(out:str, note:str):
+        Path(out).write_text(note)
+    monkeypatch.setitem(commands(), 'write-note', Command(
+        'write-note', write_note, 'test', 'Write a text file.',
+        [Param('out', 'str', True, None, 'str', 'output'), Param('note', 'str', True, None, 'str', 'its text')]))
+    monkeypatch.chdir(tmp_path)
+    capsys.readouterr()
+    for run in ('new file', 'file rewritten'):          # the working directory changes, then it does not
+        assert main(['write-note', '--out', 'note.txt', '--note', '', '--json', '-q']) == 0
+        result = json_out(capsys)
+        assert result['outputs'] == ['note.txt'] and result['inputs'] == {}, (run, result)
+        assert [s['path'] for s in result['summaries']] == ['note.txt'] and (tmp_path / 'note.txt').read_text() == ''
+
+
 def test_image_pairs_command(tmp_path, capsys):
     write_zarr(tmp_path / 'rslc.zarr', np.zeros((4, 5, 6), np.complex64))
     assert main(['image-pairs', '--rslc', str(tmp_path / 'rslc.zarr'), '--bandwidth', '2', '--out',

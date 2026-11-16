@@ -342,7 +342,8 @@ def _strings(values):
 def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
     """Run `cmd` and return a record with the outputs it created or modified and their summaries."""
     from .summary import summarize
-    candidates = list(dict.fromkeys(_strings(kwargs.values())))   # any string may be a path, e.g. out_dir='pyr'
+    # any string may be a path, e.g. out_dir='pyr'; but not '', which pathlib takes for the working directory
+    candidates = list(dict.fromkeys(s for s in _strings(kwargs.values()) if s))
     before = {s: _mtime(s) for s in candidates}
     call = dict(kwargs)
     for p in cmd.params:              # image pair files are read now, relative to the working directory
