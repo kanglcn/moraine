@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`pc_sort` of a grid index without `shape`, and so the command `pc-sort` (whose default is no `shape`), raises a ValueError when the grid index is empty: "shape (nlines, width) is needed when a grid index is empty", as the set operations do, as the raster shape cannot be inferred from it. It raised numpy's ValueError "zero-size array to reduction operation maximum which has no identity" (cupy's on the GPU). With `shape`, and for hilbert indices, it works as before, also with empty indices
+
 `download_dl_model` checks the HTTPS certificates of the server with the CA bundle of certifi where the package certifi can be imported, as moraine 0.10.0 did through requests, and with the certificates of the Python installation (of the system or the conda environment) otherwise; certifi is not a dependency. python.org builds of Python on macOS have no certificates until their "Install Certificates" command is run: without certifi the download fails there with "certificate verify failed", printed and not raised as before. A CA bundle of certifi that cannot be loaded is a failed download too: printed, not raised, no file written
 
 `read_gamma_pdata` (`moraine.api.utils_.gamma_io`), the reader of GAMMA point data, sets float and complex values with an absolute value below 1e-30 (GAMMA's no data) to nan, as `read_gamma_image` does; before, only exact zeros were nan. Its only user is `gamma_mcf_pt` (command `gamma-mcf-pt`), for the unwrapped phases of GAMMA `mcf_pt`, where a nonzero phase below 1e-30 rad does not occur in practice

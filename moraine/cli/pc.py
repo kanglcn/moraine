@@ -546,7 +546,7 @@ def pc_sort(
     pc : str | list, optional
         output, path (in string) or list of path for the output point cloud data
     shape : tuple[int, int], optional
-        (nline, width), faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx_in` is empty, faster if provided
     chunks : int, optional
         chunk size in output data, same as `idx_in` by default
     key : str, optional
