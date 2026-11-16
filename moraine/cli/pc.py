@@ -614,7 +614,7 @@ def pc_union(
     pc : str | list, optional
         output: path or list of paths of the point cloud data of the union
     shape : tuple[int, int], optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
     chunks : int, optional
         point chunk size of the output data, same as `idx1` by default
     processes : default: False
@@ -683,7 +683,7 @@ def pc_intersect(
         output: path or list of paths of the point cloud data of the intersection, taken from `pc1` or
         `pc2` (see `prefer_1`)
     shape : tuple[int, int], optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
     chunks : int, optional
         point chunk size of the output data, same as `idx1` by default
     prefer_1 : bool, default: True
@@ -754,7 +754,7 @@ def pc_diff(
     pc : str | list, optional
         output: path or list of paths of the point cloud data of these points, taken from `pc1`
     shape : tuple[int, int], optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
     chunks : int, optional
         point chunk size of the output data, same as `idx1` by default
     processes : default: False
@@ -897,7 +897,8 @@ def pc_select_data(
     pc : str | list
         output, path (in string) or list of path for the output point cloud data
     shape : tuple[int, int], optional
-        shape of the raster data the point cloud from, must be provided if `idx` is hix
+        shape of the raster data the point cloud from, must be provided if `idx` is hix, or if `idx_in` and `idx`
+        are grid indices and one of them is empty
     chunks : int, optional
         point chunk size of the output data, same as `idx` by default
     processes : default: False

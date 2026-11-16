@@ -24,7 +24,16 @@ def _ras_dims(
     -------
     tuple
         the shape of the original raster image
+
+    Raises
+    ------
+    ValueError
+        when a grid index is empty: the shape cannot be inferred then
     """
+    for which, gix in (('first', gix1), ('second', gix2)):
+        if gix.shape[0] == 0:
+            raise ValueError(f'shape (nlines, width) is needed when a grid index is empty: the {which} grid index '
+                             'has no points')
     xp = get_array_module(gix1)
     dims_az = max(int(gix1[-1,0]),int(gix2[-1,0]))+1
     dims_r = max(int(xp.max(gix1[:,1])),int(xp.max(gix2[:,1])))+1
@@ -93,7 +102,7 @@ def pc_union(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------
@@ -129,7 +138,7 @@ def pc_intersect(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------
@@ -159,7 +168,7 @@ def pc_diff(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------

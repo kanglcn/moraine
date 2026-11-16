@@ -157,6 +157,29 @@ def test_pc_diff(w, rng, kind):
     np.testing.assert_array_equal(r(w('pc.zarr')), pc1[iidx1])
 
 
+def test_set_commands_empty_gix_need_shape(w, rng, tmp_path):
+    """With an empty grid index the set commands and pc-select-data ask for `shape` (an IndexError before) and write
+    no output; with `shape` they give the points of the other grid index or none."""
+    gix = random_gix(rng, (100, 100), 50); pc_in = rng.random((50, 3)).astype(np.float32)
+    w('e.zarr', gix[:0], (200, 1)); w('g.zarr', gix, (200, 1)); w('pc_in.zarr', pc_in, (200, 1))
+    match = r'shape \(nlines, width\) is needed when a grid index is empty: the second grid index has no points'
+    for fn in (mc.pc_union, mc.pc_intersect, mc.pc_diff):
+        with pytest.raises(ValueError, match=match):
+            fn(w('g.zarr'), w('e.zarr'), w('i.zarr'))
+        assert not (tmp_path / 'i.zarr').exists()
+    with pytest.raises(ValueError, match=match):
+        mc.pc_select_data(w('g.zarr'), w('e.zarr'), w('pc_in.zarr'), w('pc.zarr'))
+    assert not (tmp_path / 'pc.zarr').exists()
+    mc.pc_union(w('e.zarr'), w('g.zarr'), w('i.zarr'), shape=(100, 100))
+    np.testing.assert_array_equal(r(w('i.zarr')), gix)
+    mc.pc_intersect(w('g.zarr'), w('e.zarr'), w('i.zarr'), shape=(100, 100))
+    assert r(w('i.zarr')).shape == (0, 2)
+    mc.pc_diff(w('g.zarr'), w('e.zarr'), w('i.zarr'), w('pc_in.zarr'), w('pc.zarr'), shape=(100, 100))
+    np.testing.assert_array_equal(r(w('i.zarr')), gix); np.testing.assert_array_equal(r(w('pc.zarr')), pc_in)
+    mc.pc_select_data(w('g.zarr'), w('e.zarr'), w('pc_in.zarr'), w('pc.zarr'), shape=(100, 100))
+    assert r(w('pc.zarr')).shape == (0, 3)
+
+
 def test_pc_logic_ras(w, rng):
     ras = rng.random((100, 100)).astype(np.float32)
     w('ras.zarr', ras, (10, 100))

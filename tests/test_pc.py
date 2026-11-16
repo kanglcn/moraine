@@ -113,6 +113,25 @@ def test_pc_intersect_empty(gpu):
         assert [_get(x).shape for x in pc_intersect(a, b)] == [(0,)] * 3
 
 
+def test_empty_gix_needs_shape(gpu):
+    """Without `shape` the raster shape of grid indices cannot be inferred from an empty one: a ValueError asks for
+    `shape` (an IndexError before); with `shape` the empty point cloud is one without points."""
+    xp = _xp(gpu)
+    g, e = xp.asarray(GIX1), xp.asarray(GIX1[:0])
+    for fn in (pc_union, pc_intersect, pc_diff):
+        for a, b, which in ((g, e, 'second'), (e, g, 'first'), (e, e, 'first')):
+            with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+                                                 f'the {which} grid index has no points'):
+                fn(a, b)
+    gix, inv1, inv2, iidx2 = map(_get, pc_union(e, g, shape=(4, 4)))
+    np.testing.assert_array_equal(gix, GIX1); assert inv1.shape == (0,)
+    np.testing.assert_array_equal(inv2, np.arange(6)); np.testing.assert_array_equal(iidx2, np.arange(6))
+    gix, i1, i2 = map(_get, pc_intersect(g, e, shape=(4, 4)))
+    assert gix.shape == (0, 2) and i1.shape == i2.shape == (0,)
+    gix, i1 = map(_get, pc_diff(g, e, shape=(4, 4)))
+    np.testing.assert_array_equal(gix, GIX1); np.testing.assert_array_equal(i1, np.arange(6))
+
+
 def test_pc_diff(gpu):
     xp = _xp(gpu)
     gix, i1 = map(_get, pc_diff(xp.asarray(GIX1), xp.asarray(GIX2), shape=(4, 4)))
