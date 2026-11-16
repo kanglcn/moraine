@@ -446,9 +446,11 @@ def _build_parser(with_commands=True):
     p.add_argument('pyramid', help='pyramid directory made by `moraine ras-pyramid` or `moraine pc-pyramid`')
     p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
     p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
-                   help='image of a stack, or two images (ref sec) with --show intf_all / coh (default: the first)')
+                   help='image of a stack, i j of 4D data (..., n, n), or two images (ref sec) with --show intf_all / '
+                        'coh / coh_abs (default: the first)')
     p.add_argument('--show', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
-                   help='what to show of a stack, see moraine.cli.view (default: the phase for complex data)')
+                   help='what to show of a stack, see moraine.cli.view (default: the phase for complex data, the '
+                        'values otherwise)')
     p.add_argument('--width', type=int, default=1000, help='image width in pixels (default: 1000)')
     p.add_argument('--extent', help='part to draw, finer levels for smaller parts: "west,south,east,north" degrees '
                    '(web mercator) or "range_min,azimuth_min,range_max,azimuth_max" pixels (radar grid); '
@@ -458,7 +460,8 @@ def _build_parser(with_commands=True):
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
     p.add_argument('-o', '--out', default='view.ipynb', help='notebook to write (default: view.ipynb)')
     p.add_argument('--show', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
-                   help='what to show of stacks, see moraine.cli.view (default: the phase for complex data)')
+                   help='what to show of stacks, see moraine.cli.view (default: the phase for complex data, the values '
+                        'otherwise)')
     p.add_argument('--dates', help='toml file with the image dates, e.g. the metadata of load-gamma-metadata')
     p.add_argument('--terrain', action='store_true',
                    help='3D maps over the terrain (public elevation tiles); web mercator pyramids only')

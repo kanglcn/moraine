@@ -90,10 +90,11 @@ def quicklook(
         output PNG file
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
-        (i, j) for 4D data, (ref, sec) for 'intf_all', at most one value per slider and each within the range of
-        its slider; the first images by default
+        (i, j) for 4D data (..., n, n), (ref, sec) for 'intf_all' / 'coh' / 'coh_abs', at most one value per slider
+        and each within the range of its slider; the first images by default
     show : str, optional
-        what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
+        what to show of a stack, see `moraine.cli.view`; the phase for complex data, the values otherwise by
+        default
     width : int, default: 1000
         image width in pixels
     extent : str, optional
@@ -145,7 +146,7 @@ def view(
     out : str
         notebook to write (.ipynb)
     show : str, optional
-        what to show of stacks, see `moraine.cli.view`
+        what to show of stacks, see `moraine.cli.view`; the phase for complex data, the values otherwise by default
     dates : str, optional
         toml file with the image ``dates`` (e.g. of `load_gamma_metadata`), shown with the sliders
     terrain : bool, default: False

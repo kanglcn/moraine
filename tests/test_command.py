@@ -425,6 +425,25 @@ def test_quicklook_index_of_the_sliders(tmp_path, capsys, rng):
     assert out.stat().st_size > 1000
 
 
+def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):
+    """The help of `moraine quicklook` and `moraine view`, which the manual shows, says what the docstrings of the
+    functions say: the default of --show, and the sliders of --index, also i j of 4D data (it did not say that)."""
+    from moraine.command import summary
+    helps = {}
+    for name in ('quicklook', 'view'):
+        with pytest.raises(SystemExit):
+            main([name, '--help'])
+        helps[name] = ' '.join(capsys.readouterr().out.split())            # without the wrapping of argparse
+        doc = parse_docstring(getattr(summary, name).__doc__)[1]['show'][1]
+        m = re.fullmatch(r'(.*), see `moraine.cli.view`; (.*) by default', doc)
+        assert m, doc
+        assert f'{m[1]}, see moraine.cli.view (default: {m[2]})' in helps[name]
+    index = parse_docstring(summary.quicklook.__doc__)[1]['index'][1]
+    assert "(i, j) for 4D data (..., n, n), (ref, sec) for 'intf_all' / 'coh' / 'coh_abs'" in index
+    assert ('image of a stack, i j of 4D data (..., n, n), or two images (ref sec) with --show intf_all / coh / '
+            'coh_abs') in helps['quicklook']
+
+
 @pytest.mark.parametrize('data,warning', [
     (np.full((60, 40), np.nan, np.float32), 'all values are nan'),
     (np.where(np.arange(2400).reshape(60, 40) % 97 == 0, np.inf, 1.5).astype(np.float32), 'infinite values'),
