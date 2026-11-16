@@ -276,7 +276,7 @@ def pc_sort(idx:np.ndarray,
     idx : np.ndarray
         unsorted `gix` (2D) or `hix`(1D)
     shape : tuple, optional
-        (nline, width), faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx` is empty, faster if provided
 
     Returns
     -------
@@ -287,6 +287,9 @@ def pc_sort(idx:np.ndarray,
     if idx.ndim == 2:
         if shape is not None:
             dims_az, dims_r = shape
+        elif idx.shape[0] == 0:
+            raise ValueError('shape (nlines, width) is needed when a grid index is empty: '
+                             'the grid index has no points')
         else:
             dims_az = int(xp.max(idx[:,0]))+1
             dims_r = int(xp.max(idx[:,1]))+1

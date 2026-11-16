@@ -149,7 +149,7 @@ def test_download_dl_model(tmp_path, monkeypatch, capsys):
         no_server = s.getsockname()[1]                  # a port nobody listens on
     port = [server.server_address[1]]
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-    monkeypatch.setattr(urllib.request, 'urlopen', lambda url, *a, **k: opener.open(
+    monkeypatch.setattr(urllib.request, 'urlopen', lambda url, *a, context=None, **k: opener.open(   # http: no SSL
         url.replace('https://raw.githubusercontent.com', f'http://127.0.0.1:{port[0]}'), *a, **k))
     getaddrinfo = socket.getaddrinfo
 
@@ -175,3 +175,55 @@ def test_download_dl_model(tmp_path, monkeypatch, capsys):
     finally:
         server.shutdown()
         server.server_close()
+
+
+# a self-signed CA certificate (EC P-256, CN "moraine test CA", its key not kept): the CA bundle of a fake certifi
+_TEST_CA = """-----BEGIN CERTIFICATE-----
+MIIBmzCCAUGgAwIBAgIUCGA+MBAM+s4Sz/WwHwH2m4mAc8gwCgYIKoZIzj0EAwIw
+GjEYMBYGA1UEAwwPbW9yYWluZSB0ZXN0IENBMCAXDTI2MTExNjAzMjAzNloYDzIx
+MjYxMDIzMDMyMDM2WjAaMRgwFgYDVQQDDA9tb3JhaW5lIHRlc3QgQ0EwWTATBgcq
+hkjOPQIBBggqhkjOPQMBBwNCAARG6PrUqs3Xw7D57wu4D8HHhTP4NDkBTv6XTrxw
+S/vPAR9R29kEUZQkJVFKiiU0p7VbCr87u5sR44JGWp0G5dR9o2MwYTAdBgNVHQ4E
+FgQUqa0Ge+SVYz8NJykkJI/Oc3xlngUwHwYDVR0jBBgwFoAUqa0Ge+SVYz8NJykk
+JI/Oc3xlngUwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMCAgQwCgYIKoZI
+zj0EAwIDSAAwRQIgISmFyfzgnI19/CEuGw+ne+W+c0fu9h4C4TBf2faKCo0CIQCC
+IfkzqvCMPbJ17lpCjFUf6u8hDshEjWDBEtfW3oN64A==
+-----END CERTIFICATE-----
+"""
+
+
+def test_download_dl_model_certificates(tmp_path, monkeypatch, capsys):
+    """HTTPS checks the certificates of the server with the CA bundle of certifi where the package certifi can be
+    imported (python.org builds of Python on macOS have no certificates of their own), and with the default context
+    of urllib (the certificates of the Python installation) where it cannot; a bundle of certifi that cannot be
+    loaded is a failed download (printed, not raised). urlopen fails here: no network."""
+    import ssl
+    import sys
+    import types
+    import urllib.error
+    import urllib.request
+    contexts = []
+
+    def urlopen(url, *args, context=None, **kwargs):
+        contexts.append(context)
+        raise urllib.error.URLError('no network in the tests')
+    monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    (tmp_path / 'cacert.pem').write_text(_TEST_CA)
+    certifi = types.ModuleType('certifi')
+    certifi.where = lambda: str(tmp_path / 'cacert.pem')
+    monkeypatch.setitem(sys.modules, 'certifi', certifi)
+    mr.download_dl_model('n2f', path=tmp_path)
+    (context,) = contexts
+    assert isinstance(context, ssl.SSLContext), context
+    assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
+    assert context.get_ca_certs(binary_form=True) == [ssl.PEM_cert_to_DER_cert(_TEST_CA)]    # certifi's only
+    certifi.where = lambda: str(tmp_path / 'missing.pem')
+    mr.download_dl_model('n2f', path=tmp_path)
+    assert len(contexts) == 1
+    monkeypatch.setitem(sys.modules, 'certifi', None)          # certifi cannot be imported
+    mr.download_dl_model('n2f', path=tmp_path)
+    assert len(contexts) == 2 and contexts[1] is None
+    out = capsys.readouterr().out
+    assert out.count('Error downloading file: <urlopen error no network in the tests>') == 2
+    assert out.count('Error downloading file: [Errno 2] No such file or directory') == 1
+    assert not (tmp_path / 'n2f.pth').exists()

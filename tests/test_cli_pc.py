@@ -111,6 +111,18 @@ def test_pc_sort(w, rng):
     np.testing.assert_array_equal(r(w('hix.zarr')), hix_in[ind])
 
 
+def test_pc_sort_empty_gix_needs_shape(w, tmp_path):
+    """pc-sort of an empty grid index without `shape` asks for it (numpy's "zero-size array to reduction operation
+    maximum which has no identity" before) and writes no output; with `shape` its outputs have no points."""
+    w('e.zarr', np.zeros((0, 2), np.int32), (200, 1)); w('pc_in.zarr', np.zeros((0, 3), np.float32), (200, 1))
+    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+                                         'the grid index has no points'):
+        mc.pc_sort(w('e.zarr'), w('gix.zarr'), w('pc_in.zarr'), w('pc.zarr'), key=w('key.zarr'))
+    assert not any((tmp_path / name).exists() for name in ('gix.zarr', 'pc.zarr', 'key.zarr'))
+    mc.pc_sort(w('e.zarr'), w('gix.zarr'), w('pc_in.zarr'), w('pc.zarr'), shape=(100, 100), key=w('key.zarr'))
+    assert [r(w(name)).shape for name in ('gix.zarr', 'pc.zarr', 'key.zarr')] == [(0, 2), (0, 3), (0,)]
+
+
 @pytest.mark.parametrize('kind', ['gix', 'hix'])
 def test_pc_union(w, rng, kind):
     pc1 = _cplx(rng, 1000, 3); pc2 = _cplx(rng, 800, 3)

@@ -163,6 +163,19 @@ def test_empty_gix_needs_shape(gpu):
     np.testing.assert_array_equal(gix, GIX1); np.testing.assert_array_equal(i1, np.arange(6))
 
 
+def test_pc_sort_empty_gix_needs_shape(gpu):
+    """Without `shape` pc_sort cannot infer the raster shape from an empty grid index: a ValueError asks for `shape`
+    (numpy's "zero-size array to reduction operation maximum which has no identity" before); with `shape`, as for an
+    empty hilbert index, there is nothing to sort. A grid index with points needs no `shape`."""
+    xp = _xp(gpu)
+    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+                                         'the grid index has no points'):
+        pc_sort(xp.asarray(GIX1[:0]))
+    for key in (pc_sort(xp.asarray(GIX1[:0]), shape=(4, 4)), pc_sort(xp.asarray(HIX1[:0]))):
+        assert _get(key).shape == (0,)
+    np.testing.assert_array_equal(_get(pc_sort(xp.asarray(GIX1[::-1].copy()))), np.arange(6)[::-1])
+
+
 def test_pc_diff(gpu):
     xp = _xp(gpu)
     gix, i1 = map(_get, pc_diff(xp.asarray(GIX1), xp.asarray(GIX2), shape=(4, 4)))

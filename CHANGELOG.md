@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+`pc_sort` of a grid index without `shape`, and so the command `pc-sort` (whose default is no `shape`), raises a ValueError when the grid index is empty: "shape (nlines, width) is needed when a grid index is empty", as the set operations do, as the raster shape cannot be inferred from it. It raised numpy's ValueError "zero-size array to reduction operation maximum which has no identity" (cupy's on the GPU). With `shape`, and for hilbert indices, it works as before, also with empty indices
+
+`download_dl_model` checks the HTTPS certificates of the server with the CA bundle of certifi where the package certifi can be imported, as moraine 0.10.0 did through requests, and with the certificates of the Python installation (of the system or the conda environment) otherwise; certifi is not a dependency. python.org builds of Python on macOS have no certificates until their "Install Certificates" command is run: without certifi the download fails there with "certificate verify failed", printed and not raised as before. A CA bundle of certifi that cannot be loaded is a failed download too: printed, not raised, no file written
+
 Wrong inputs of `moraine quicklook` are usage errors (exit code 2), as a wrong `--index` already was: a path that is not a pyramid or a pyramid to rebuild, an `--extent` that is not four numbers with the minimum before the maximum, a `--show` that does not fit the data (e.g. `phase` of real data, `coh` of a stack that is not compressed coherence, `intf_seq` of a raster without a stack). They were processing errors (exit code 1). The messages are the same, without the name of the exception (`ValueError: `) in front, and the JSON output is that of an error (`ok` false, `error`); an error while drawing stays a processing error. `moraine.command.summary.quicklook` raises them as `moraine.command.UsageError` instead of a ValueError. `moraine.cli.view` rejects a named `show` that does not fit the data when the view is made, with the ValueError it raised when the view was drawn: 'phase' needs complex data with one stack dimension, 'intf_0', 'intf_seq' and 'intf_all' one or two stack dimensions, 'intf_seq' two images or more. Such views failed in every tile of the map, `.png()` and `quicklook`, and 'intf_all' of data without a stack failed with an IndexError when it was made
 
 Setting the slider values of a view of `moraine.cli.view` from Python, `v.index = {...}`, takes the sliders of the view within their ranges, as `png(index=...)` does, and raises a ValueError that names them otherwise, before the map draws anything; the sliders keep their values. A value outside the range of its slider reached the tiles of the map: a zarr BoundsCheckError for the images of a stack, nothing drawn (nan) for coherence
@@ -30,7 +34,7 @@ The default view (`show` not given) of `moraine.cli.view` and `moraine quicklook
 
 Where cupy is installed, `import moraine` no longer imports cupy (and pytest, which cupy imports) through zarr: moraine imports zarr with cupy hidden (decision 0050), and the GPU code paths import cupy when they run. A command, every worker process and the forkserver of the pyramids start about 0.36 s faster (`import moraine.cli` with `CUDA_VISIBLE_DEVICES` set: 1.46 - 1.49 instead of 1.82 - 1.87 s). zarr's GPU buffers (`zarr.config.enable_gpu()`), which moraine does not use, do not work in a process that imports moraine before zarr; a script that needs them imports zarr or cupy first
 
-requests is no longer a dependency: `download_dl_model` downloads the models with the standard library (`urllib.request`), with the certificates of the Python installation (of the system or the conda environment) instead of those of certifi. Errors are handled as before: a failed download (an HTTP error, no connection) prints the error and raises nothing, a missing output directory raises; a file cut short (fewer bytes than the server announced) is a failed download now, and a failed download writes no file (it could leave a partial file before, with urllib3 1.x even reported as downloaded)
+requests is no longer a dependency: `download_dl_model` downloads the models with the standard library (`urllib.request`); the certificates are those of certifi where it is installed (see above). Errors are handled as before: a failed download (an HTTP error, no connection) prints the error and raises nothing, a missing output directory raises; a file cut short (fewer bytes than the server announced) is a failed download now, and a failed download writes no file (it could leave a partial file before, with urllib3 1.x even reported as downloaded)
 
 toml (unmaintained) is no longer a dependency: moraine reads TOML files with the standard library's `tomllib` (`view(dates=...)` and `--dates`, point cloud pyramids) and writes `meta.toml` (`load-gamma-metadata`) and `bounds.toml` (`pc-pyramid`) itself. The files have the same keys, values and types as before, read with `tomllib` or with `toml`; only the spaces in the lists differ. Scripts that read them with `toml.load` need toml installed, or the standard library as in the tutorials: `with open('meta.toml', 'rb') as f: meta = tomllib.load(f)`
 
@@ -281,7 +285,6 @@ Add interative point plot tool
 
 ## 0.8.5
 
-
 ## 0.8.4
 
 Add n2ft model
@@ -327,14 +330,9 @@ _No response_
 numpy version 1.22.4
 ```
 
-
 ### Are you willing to help fix this bug?
 
 No
-
-
-
-
 
 ## 0.8.1
 
@@ -357,7 +355,6 @@ memory limit;
 - more flexiable plot functions
 - carefully deal with nan values for all functions
 - Update `pl.temp_coh` with elementwise kernel
-
 
 ## 0.7.0
 Make cuda depedency optional
@@ -406,7 +403,6 @@ Add logic operation for pc index
 Add `transform` for coordinate reprojection
 
 Add holoviews plot
-
 
 Maintain:
 
@@ -495,7 +491,4 @@ Add tutorial for adaptive multilooking
 Remove cupy requirement for automatically publish to pypi
 
 ## 0.0.1
-
-
-
 
