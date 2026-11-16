@@ -269,6 +269,28 @@ def test_none_for_an_optional_argument_is_its_default(tmp_path, capsys):
                                          "(shape of one image (nlines,width)), got 'None'; write e.g. --shape 1000 1000")
 
 
+def test_an_empty_list_of_a_required_argument_is_a_usage_error(tmp_path, capsys, rng):
+    """An empty list for a required list argument, e.g. times = [] in a pipeline file, is a usage error (exit code 2)
+    that names the argument, before anything runs; it failed with "IndexError: list index out of range" (exit code
+    1). An optional list argument passes an empty list to the command: pc-sort with pc_in = [] and pc = [] sorts the
+    index and has no data to sort."""
+    (tmp_path / 'p.toml').write_text('[[step]]\nname = "d"\nrun = "download-era5"\nout_dir = "era5"\ntimes = []\n'
+                                     'bbox = [14.0, 40.7, 14.3, 40.9]\n')
+    capsys.readouterr()
+    assert main(['run', str(tmp_path / 'p.toml'), '--workdir', str(tmp_path), '--json', '-q']) == 2
+    assert json_out(capsys)['error'] == (f"{tmp_path / 'p.toml'}: step 'd': download-era5: argument times needs at "
+                                         f"least one value, got an empty list: {_help('download-era5', 'times')}")
+    assert not (tmp_path / 'era5').exists()
+    with pytest.raises(UsageError, match='argument dates needs at least one value'):
+        get_command('pc-sc-dem-error').convert('dates', [])
+    hix = rng.permutation(50).astype(np.int64)
+    write_zarr(tmp_path / 'hix.zarr', hix)
+    (tmp_path / 'q.toml').write_text('[[step]]\nname = "s"\nrun = "pc-sort"\nidx_in = "hix.zarr"\nidx = "sorted.zarr"\n'
+                                     'pc_in = []\npc = []\n')
+    assert main(['run', str(tmp_path / 'q.toml'), '--workdir', str(tmp_path), '--json', '-q']) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sorted.zarr'), mode='r')[:], np.arange(50))
+
+
 # ---------------------------------------------------------------- pipeline
 
 PIPELINE = '''

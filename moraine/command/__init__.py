@@ -185,7 +185,8 @@ class Command:
 
     def convert(self, name, value):
         """Convert a value from the command line or a pipeline file to what the function expects; the text None is
-        None, the default of an optional argument, and a UsageError for a required one."""
+        None, the default of an optional argument, and a UsageError for a required one, as is an empty list for a
+        required list argument."""
         p = next(q for q in self.params if q.name == name)
         if value is None:
             return None             # from Python, or a pipeline variable of a file not made yet
@@ -197,6 +198,11 @@ class Command:
             return image_pairs(value)
         if p.kind == 'list':
             if isinstance(value, (list, tuple)):
+                if not value:           # e.g. times = [] in a pipeline file
+                    if p.required:
+                        raise UsageError(f'{self.name}: argument {name} needs at least one value, got an empty '
+                                         f'list: {p.help}')
+                    return []           # the command decides, e.g. pc-sort with pc_in = [] and pc = []: no data
                 return list(value) if len(value) > 1 else value[0]
             return value
         if p.kind == 'str':

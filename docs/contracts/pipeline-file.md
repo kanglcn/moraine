@@ -28,7 +28,8 @@ No other top level tables and no other `[pipeline]` keys are allowed.
   directory.
 - Booleans, integers, floats and strings are TOML values. Tuples (`tuple[int, int]` arguments) are TOML
   lists `[1000, 1000]` or strings `"1000,1000"`; their number of integers is checked.
-- The string `"None"` is None, the default of an optional argument; for a required argument it is an error.
+- The string `"None"` is None, the default of an optional argument; for a required argument it is an error, as
+  is an empty list `[]`.
 - Arguments accepting several paths take a TOML list.
 - `image_pairs` is a file with two integer columns (made by the `image-pairs` command) or a list of pairs,
   sorted without duplicates and with every reference index smaller than its secondary index
