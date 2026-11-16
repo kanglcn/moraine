@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`pc_union` and `pc-union` of an int32 hilbert index `idx1` and an int64 `idx2` give the union in int64 on the CPU, as on the GPU, numpy's promotion of the two dtypes. It had the dtype of `idx1`, which cut the values of `idx2` beyond the int32 range: the union of [1, 5] (int32) and [3, 2**33] was [1, 3, 5, 0]. The other dtypes, grid indices and the positions returned do not change
+
 `pc_union`, `pc_intersect` and `pc_diff` of grid indices without `shape`, and so the commands `pc-union`, `pc-intersect`, `pc-diff` and `pc-select-data` (whose default is no `shape`), raise a ValueError when a grid index is empty: "shape (nlines, width) is needed when a grid index is empty", as the raster shape cannot be inferred from it. They raised an IndexError, "index -1 is out of bounds for axis 0 with size 0". With `shape` they work as before, also with empty grid indices
 
 With a GPU visible (`CUDA_VISIBLE_DEVICES` set), moraine imports cupy only when it computes on the GPU, no longer when it is imported or computes on the CPU: `import moraine` and the commands no longer fail where cupy is not installed (e.g. a CPU-only environment on a GPU node) and run on the CPU without it. Where cupy is installed, zarr still imports it when moraine is imported (for zarr's GPU buffers, which moraine does not use), and cupy imports pytest

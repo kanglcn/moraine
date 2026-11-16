@@ -86,6 +86,23 @@ def test_pc_union_hix(gpu):
     np.testing.assert_equal(data, [3, 3, 6, 2, 5, 4, 1, 32])
 
 
+def test_pc_union_int32_int64(gpu):
+    """The union of int32 and int64 hilbert indices is int64 and holds the values of both: on the CPU it had the dtype
+    of idx1, int32, which cut the values of idx2 beyond the int32 range (2**33 became 0)."""
+    xp = _xp(gpu)
+    h32, h64 = np.array([1, 5], np.int32), np.array([3, 5, 2**33], np.int64)
+    hix, inv1, inv2, iidx2 = map(_get, pc_union(xp.asarray(h32), xp.asarray(h64)))
+    assert hix.dtype == np.int64
+    np.testing.assert_array_equal(hix, [1, 3, 5, 2**33])
+    np.testing.assert_array_equal(inv1, [0, 2]); np.testing.assert_array_equal(inv2, [1, 3])
+    np.testing.assert_array_equal(iidx2, [0, 2])
+    hix, inv1, inv2, iidx2 = map(_get, pc_union(xp.asarray(h64), xp.asarray(h32)))
+    assert hix.dtype == np.int64
+    np.testing.assert_array_equal(hix, [1, 3, 5, 2**33])
+    np.testing.assert_array_equal(inv1, [1, 2, 3]); np.testing.assert_array_equal(inv2, [0])
+    np.testing.assert_array_equal(iidx2, [0])
+
+
 @pytest.mark.gpu
 def test_pc_union_cpu_gpu_agree(rng):
     import cupy as cp
