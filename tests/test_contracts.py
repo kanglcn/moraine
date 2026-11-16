@@ -277,6 +277,62 @@ def test_point_cloud_pyramid_has_points(tmp_path):
         assert [p.name for p in out.iterdir()] == ['old']
 
 
+def test_raster_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp_path, capsys):
+    """ras-pyramid of an empty raster or of data without the 2 dimensions of a raster is an argument error before the
+    output directory is cleaned (it was cleaned, then "math domain error", "Chunk size must be positive or -1, got 0",
+    "not enough values to unpack"); on the command line a usage error (exit code 2)."""
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    for name, shape, error in [
+            ('lines.zarr', (0, 5), 'the raster is empty: {path} has shape (0, 5); a raster pyramid needs at least one value'),
+            ('stack.zarr', (4, 5, 0), 'the raster is empty: {path} has shape (4, 5, 0); a raster pyramid needs at least '
+                                      'one value'),
+            ('line.zarr', (5,), 'ras must have shape (nlines, width) or (nlines, width, ...), got (5,)')]:
+        path = str(tmp_path / name)
+        zarr.open(path, mode='w', shape=shape, dtype=np.float32, chunks=tuple(max(1, n) for n in shape))
+        error = error.format(path=path)
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mc.ras_pyramid(path, str(out))
+        assert [p.name for p in out.iterdir()] == ['old']
+        capsys.readouterr()
+        assert main(['ras-pyramid', '--ras', path, '--out_dir', str(out), '--json', '-q']) == 2
+        assert json_out(capsys)['error'] == error and [p.name for p in out.iterdir()] == ['old']
+
+
+def test_point_cloud_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp_path, capsys, rng):
+    """pc-pyramid checks the coordinates before it cleans the output directory: the shape of yx, the shapes of x and
+    y, the number of points of the coordinates against that of pc, and that they are given; and a point cloud without
+    values. These are argument errors, on the command line usage errors (exit code 2). The output directory was
+    cleaned before the shape of yx was checked, and the other cases failed later (a shape mismatch while the points
+    were rendered, "could not broadcast", a zarr error of a missing path), or wrote a broken pyramid."""
+    w = lambda name, data: write_zarr(tmp_path / name, data, tuple(max(1, n) for n in data.shape))
+    pc, pc0 = w('pc.zarr', rng.random(10).astype(np.float32)), w('pc0.zarr', np.zeros((10, 0), np.float32))
+    x8, x10, y10 = (w(f'{n}.zarr', rng.random(int(n[1:])).astype(np.float32)) for n in ('x8', 'x10', 'y10'))
+    yx8, yx3 = w('yx8.zarr', rng.random((8, 2)).astype(np.float32)), w('yx3.zarr', rng.random((10, 3)).astype(np.float32))
+    yx10 = w('yx10.zarr', rng.random((10, 2)).astype(np.float32))
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    for data, coordinates, error in [
+            (pc, dict(yx=yx3), 'yx must have shape (n_points, 2), got (10, 3)'),
+            (pc, dict(yx=yx8), 'pc (10,) and the coordinates yx (8, 2) have different numbers of points'),
+            (pc, dict(x=x8, y=y10), 'x and y must have shape (n_points,), got (8,) and (10,)'),
+            (pc, dict(x=x8, y=x8), 'pc (10,) and the coordinates x, y (8,) have different numbers of points'),
+            (pc, dict(x=x10), 'give both `x` and `y`, or `yx`'),
+            (pc, dict(y=y10, yx=yx10), 'give both `x` and `y`, or `yx`'),
+            (pc, {}, 'give the coordinates of the points with `x` and `y` or with `yx`'),
+            (pc0, dict(yx=yx10), f'the point cloud is empty: {pc0} has shape (10, 0); a point cloud pyramid needs at '
+                                 'least one value')]:
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mc.pc_pyramid(data, str(out), **coordinates)
+        assert [p.name for p in out.iterdir()] == ['old']
+        capsys.readouterr()
+        argv = [a for k, v in coordinates.items() for a in (f'--{k}', v)]
+        assert main(['pc-pyramid', '--pc', data, '--out_dir', str(out), *argv, '--json', '-q']) == 2
+        assert json_out(capsys)['error'] == error and [p.name for p in out.iterdir()] == ['old']
+    mc.pc_pyramid(pc, str(out), x=x10, y=y10, ras_resolution=0.1)      # the right inputs make the pyramid
+    assert (out / 'pc.zarr').exists() and not (out / 'old').exists()
+
+
 def _block_means(a, f):
     """Expected means of the f x f blocks of `a` (h, w) over its finite values, nan where none."""
     h, w = a.shape
