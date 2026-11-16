@@ -575,22 +575,17 @@ _NUMBER_OPTIONS = ('--clim', '--extent')
 
 
 def _normalize_options(argv):
-    """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands, and a value of
-    `_NUMBER_OPTIONS` of quicklook that starts with a minus sign (--clim -11,6 for --clim=-11,6, --extent
-    -122.5,37.5,-122,38 for --extent=-122.5,37.5,-122,38)."""
-    if argv and argv[0] == 'quicklook':
-        out = []
-        for tok in argv:
-            # argparse takes '-11,6' for an unknown option: only a single number may start with a minus sign
-            if out and out[-1] in _NUMBER_OPTIONS and re.match(r'-\.?\d', tok):
-                out[-1] = f'{out[-1]}={tok}'
-            else:
-                out.append(tok)
-        return out
-    if not argv or argv[0] in ('list', 'info', 'view', 'run', 'status'):
+    """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands, quicklook and view,
+    and a value of `_NUMBER_OPTIONS` of quicklook that starts with a minus sign (--clim -11,6 for --clim=-11,6,
+    --extent -122.5,37.5,-122,38 for --extent=-122.5,37.5,-122,38)."""
+    if not argv or argv[0] in ('list', 'info', 'run', 'status'):
         return argv
     out = []
     for tok in argv:
+        # argparse takes '-11,6' for an unknown option: only a single number may start with a minus sign
+        if argv[0] == 'quicklook' and out and out[-1] in _NUMBER_OPTIONS and re.match(r'-\.?\d', tok):
+            out[-1] = f'{out[-1]}={tok}'
+            continue
         if tok.startswith('--') and len(tok) > 2:
             name, eq, value = tok[2:].partition('=')
             prefix = 'no-' if name.startswith('no-') else ''

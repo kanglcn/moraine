@@ -9,6 +9,7 @@ import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor
 import moraine as mr
+from ..api.ts import _days
 from .logging import mc_logger
 from .zarr_ import parallel_read_zarr
 from .executor import Executor, Chunk
@@ -225,7 +226,8 @@ def emcf_pc(
     azimuth_pixel_spacing : float
         azimuth pixel spacing in meters
     dates : str or list, optional
-        acquisition date of every image (YYYYMMDD), nimages values; needed by `temporal_cost` 'length'
+        acquisition date of every image (YYYYMMDD), nimages values in increasing order; needed by
+        `temporal_cost` 'length'
     weight : str, optional
         input: quality of the points from 0 (unreliable) to 1, e.g. the temporal coherence, shape (n_points,);
         needed by `spatial_cost` 'weight'
@@ -244,7 +246,6 @@ def emcf_pc(
     out_chunks : int, optional
         point chunk size of `unw_ph`, same as `ph` by default
     """
-    import datetime
     import shutil
     from concurrent.futures import ThreadPoolExecutor
     from pathlib import Path
@@ -261,13 +262,8 @@ def emcf_pc(
                          f'(points_block, 1) (docs/contracts/data.md)')
     pairs = _emcf._image_pairs(image_pairs, nimages)
     n_pairs = pairs.shape[0]
-    t = None
-    if dates is not None:
-        dates = [dates] if isinstance(dates, (str, int)) else list(dates)
-        if len(dates) != nimages:
-            raise ArgumentError(f'dates: {len(dates)} dates for {nimages} images')
-        days = [datetime.datetime.strptime(str(d), '%Y%m%d') for d in dates]
-        t = np.array([(d - days[0]).days for d in days], dtype=np.float64)
+    # days from the first date; ArgumentError for dates that are not nimages YYYYMMDD in increasing order
+    t = None if dates is None else _days([dates] if isinstance(dates, int) else dates, nimages)
     pair_cost = _emcf._pair_costs(t, pairs, temporal_cost)
     flags = _emcf._spatial_cost_flags(spatial_cost, weight)
     order, parent, n_loops = _pair_forest(pairs, nimages)

@@ -30,7 +30,8 @@ moraine amp-disp --rslc raw/rslc.zarr --adi ps/ras_adi.zarr --cuda
 
 `list`, `info`, `quicklook`, `view`, `run` and `status` are not processing commands: they inspect results, make
 pictures and notebooks and run pipeline files. Their help is on the [built-in commands](builtin.md) page;
-[Checking results](../start/checking.md) and [Workflows](../workflows/index.md) explain how to use them.
+[Checking results](../start/checking.md) and [Workflows](../workflows/index.md) explain how to use them. `quicklook`
+and `view` accept `--a-b` for `--a_b` too (`--image-pairs`).
 
 ## In Python
 

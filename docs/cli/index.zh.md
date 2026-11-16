@@ -28,6 +28,7 @@ moraine amp-disp --rslc raw/rslc.zarr --adi ps/ras_adi.zarr --cuda
 
 `list`、`info`、`quicklook`、`view`、`run` 和 `status` 不是处理命令：它们查看结果、出图、写 notebook、运行 pipeline
 文件。它们的帮助在[内置命令](builtin.md)页；用法见[检查结果](../start/checking.md)和[工作流](../workflows/index.md)。
+`quicklook` 和 `view` 也接受 `--a-b` 代替 `--a_b`（`--image-pairs`）。
 
 ## 在 Python 里
 

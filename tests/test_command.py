@@ -374,6 +374,11 @@ def test_dashed_option_spelling():
     assert _normalize_options(['shp-test', '--az-half-win', '5', '--no-cuda', '--r-half-win=5']) == \
         ['shp-test', '--az_half_win', '5', '--no-cuda', '--r_half_win=5']
     assert _normalize_options(['run', 'p.toml', '--dry-run']) == ['run', 'p.toml', '--dry-run']
+    # quicklook and view too, with the values of quicklook that start with a minus sign
+    assert _normalize_options(['quicklook', 'my-pyr', '--image-pairs', 'p-1.txt', '--clim', '-11,6', '-o', 'a-b.png']) \
+        == ['quicklook', 'my-pyr', '--image_pairs', 'p-1.txt', '--clim=-11,6', '-o', 'a-b.png']
+    assert _normalize_options(['view', 'a-pyr', 'b', '--image-pairs=p-1.txt', '--extent', '-1,2']) == \
+        ['view', 'a-pyr', 'b', '--image_pairs=p-1.txt', '--extent', '-1,2']
 
 
 @pytest.mark.parametrize('tokens', [['40', '30'], ['40,30'], ['(40,30)'], ['40,', '30']])
@@ -775,6 +780,39 @@ def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
     with pytest.raises(SystemExit):
         main(['quicklook', '--help'])
     assert '--image_pairs FILE' in capsys.readouterr().out
+
+
+def test_quicklook_and_view_accept_options_with_dashes(tmp_path, capsys, rng):
+    """`moraine quicklook` and `moraine view` accept `--image-pairs` for `--image_pairs`, as the processing commands
+    accept `--a-b` for `--a_b`; argparse stopped with "unrecognized arguments: --image-pairs" (exit code 2). Their help
+    shows the options with underscores, as that of the processing commands does."""
+    import moraine.cli as mc
+    pairs = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', (rng.uniform(0, 1, (12, 5)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (12, 5))))
+               .astype(np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    pyr, pairs_file = str(tmp_path / 'pyr'), str(tmp_path / 'pairs.txt')
+    pngs, notebooks = {}, {}
+    for option in ('--image_pairs', '--image-pairs'):
+        png, nb = tmp_path / f'q{option}.png', tmp_path / f'v{option}.ipynb'
+        assert main(['quicklook', pyr, '-o', str(png), '--show', 'coh', option, pairs_file, '--index', '1', '3',
+                     '--width', '300', '--json']) == 0, option
+        assert json_out(capsys)['png'] == str(png)
+        assert main(['view', pyr, '-o', str(nb), '--show', 'coh', f'{option}={pairs_file}', '--json']) == 0, option
+        assert json_out(capsys)['notebook'] == str(nb)
+        pngs[option], notebooks[option] = png.read_bytes(), nb.read_text()
+    assert pngs['--image-pairs'] == pngs['--image_pairs'] and notebooks['--image-pairs'] == notebooks['--image_pairs']
+    assert f'image_pairs={str(Path(pairs_file).resolve())!r}' in notebooks['--image-pairs']
+    for command in ('quicklook', 'view', 'emcf-pc'):
+        with pytest.raises(SystemExit):
+            main([command, '--help'])
+        text = capsys.readouterr().out
+        assert '--image_pairs' in text and '--image-pairs' not in text, command
 
 
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):

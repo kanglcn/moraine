@@ -6,6 +6,8 @@
 - known truth, consistency with the wrapped phase, independence of the point order
 """
 import itertools
+import re
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -15,7 +17,8 @@ import moraine as mr
 from moraine.api.unwrap.mcf import mcf_pc, _mcf_network, _mcf_residues, _mcf_ssp, _mcf_integrate
 from moraine.api.unwrap.gamma import gamma_mcf_pt
 from moraine.api.utils_ import ArgumentError
-from conftest import write_zarr, need_gamma
+from moraine.command import main
+from conftest import write_zarr, need_gamma, json_out
 
 
 def wrap(unw):
@@ -630,6 +633,38 @@ def test_cli_emcf_pc_errors(tmp_path):
         mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), dates=['20210101', '20210113'], **args)
     with pytest.raises(ArgumentError, match='two different images'):
         mc.emcf_pc(gix, ph_path, np.array([[0, 0]]), str(tmp_path / 'u.zarr'), **args)
+
+
+def test_cli_emcf_pc_dates_are_checked(tmp_path, capsys):
+    """emcf-pc checks `dates` as pc-sc-dem-error does: nimages dates YYYYMMDD in increasing order, before it reads the
+    points or writes anything; a wrong one is an ArgumentError, on the command line a usage error (exit code 2, the
+    JSON error). A date that is not YYYYMMDD failed in strptime with a plain ValueError (exit code 1), and dates out of
+    order were taken."""
+    import moraine.cli as mc
+    x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=300)
+    nimages = ph.shape[1]
+    gix = write_zarr(tmp_path / 'gix.zarr', np.stack((y / 10, x / 10), -1).astype(np.int32), (100, 2))
+    ph_path = write_zarr(tmp_path / 'ph.zarr', ph, (100, 1))
+    pairs = hop3(nimages)
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    dates = [str(np.datetime64('2021-01-01') + 12 * k).replace('-', '') for k in range(nimages)]
+    out = tmp_path / 'u.zarr'
+    args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0, temporal_cost='length')
+    for bad, error in [
+            (dates[:2], f'2 dates for {nimages} images; give the date (YYYYMMDD) of every image, in order'),
+            (['2021-01-01', *dates[1:]], "dates must be YYYYMMDD, got '2021-01-01'"),
+            (['20210132', *dates[1:]], "dates must be YYYYMMDD, got '20210132'"),
+            ([dates[1], dates[0], *dates[2:]], f'dates must increase (the images in date order): {dates[1]} is '
+                                               f'followed by {dates[0]}')]:
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mc.emcf_pc(gix, ph_path, pairs, str(out), dates=bad, **args)
+        argv = ['--gix', gix, '--ph', ph_path, '--image_pairs', str(tmp_path / 'pairs.txt'), '--unw_ph', str(out),
+                *(a for k, v in args.items() for a in (f'--{k}', str(v))), '--dates', *bad]
+        assert main(['emcf-pc', *argv, '--json', '-q']) == 2, bad
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not out.exists() and not Path(f'{out}.tmp').exists()
+    mc.emcf_pc(gix, ph_path, pairs, str(out), dates=','.join(dates), **args)    # text with commas, as pc-sc-dem-error
+    assert out.exists()
 
 
 def _islands_files(tmp_path, chunk):

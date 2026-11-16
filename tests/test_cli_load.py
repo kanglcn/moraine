@@ -10,7 +10,8 @@ import zarr
 
 import moraine.cli as mc
 from moraine.api.utils_ import ArgumentError
-from conftest import data_path, need_gamma, write_zarr
+from moraine.command import main
+from conftest import data_path, need_gamma, write_zarr, json_out
 
 NLINES, WIDTH, NIMAGES, REF = 2500, 1834, 17, '20220620'
 
@@ -193,6 +194,32 @@ def test_load_gamma_bperp_errors(tmp_path):
     rslc_dir, rasters, _ = _synthetic_gamma(other, n_sv=(15, 14, 15))
     with pytest.raises(ValueError, match='different numbers of orbit state vectors'):
         mc.load_gamma_bperp(str(rslc_dir), '20200113', *rasters, str(other / 'b.zarr'))
+
+
+def test_reference_date_is_checked(tmp_path, capsys, monkeypatch):
+    """load-gamma-flatten-rslc and load-gamma-metadata check that `reference` is a date of the images in `rslc_dir`,
+    as load-gamma-bperp does, before they read the par files, run GAMMA or write anything: "reference 2020-01-13 is not
+    a date of RSLC_DIR", an ArgumentError, on the command line a usage error (exit code 2). They failed with
+    "ValueError: '2020-01-13' is not in list" (load-gamma-flatten-rslc) and with a FileNotFoundError of the par file of
+    the reference (load-gamma-metadata), processing errors (exit code 1)."""
+    rslc_dir, _, _ = _synthetic_gamma(tmp_path)
+    for par in rslc_dir.glob('*.rslc.par'):          # the date and time of the image, for load-gamma-metadata
+        par.write_text(par.read_text() + f'date:  {par.name[:4]} {par.name[4:6]} {par.name[6:8]}\n'
+                                         'center_time:  18743.925965   s\n')
+    monkeypatch.setattr(os, 'system', lambda command: pytest.fail(f'GAMMA is run: {command}'))
+    scratch, rslc, meta = tmp_path / 'scratch', tmp_path / 'rslc.zarr', tmp_path / 'meta' / 'meta.toml'
+    for reference in ('2020-01-13', '20200102'):
+        error = f'reference {reference} is not a date of {rslc_dir}'
+        with pytest.raises(ArgumentError, match=f'^{error}$'):
+            mc.load_gamma_flatten_rslc(str(rslc_dir), reference, str(tmp_path / 'hgt'), str(scratch), str(rslc))
+        with pytest.raises(ArgumentError, match=f'^{error}$'):
+            mc.load_gamma_metadata(str(rslc_dir), str(tmp_path / 'dem_par'), reference, str(meta))
+        for argv in (['load-gamma-flatten-rslc', '--hgt', str(tmp_path / 'hgt'), '--scratch_dir', str(scratch),
+                      '--rslc', str(rslc)],
+                     ['load-gamma-metadata', '--dem_par', str(tmp_path / 'dem_par'), '--meta_file', str(meta)]):
+            assert main([*argv, '--rslc_dir', str(rslc_dir), '--reference', reference, '--json', '-q']) == 2, argv
+            assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not scratch.exists() and not rslc.exists() and not meta.parent.exists()
 
 
 def test_load_gamma_bperp(gamma, tmp_path, monkeypatch):
