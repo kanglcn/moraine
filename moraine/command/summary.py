@@ -78,7 +78,9 @@ def quicklook(
     """Save a PNG of a pyramid, drawn like `moraine.cli.view` (``view(pyramid).png(out)``).
 
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
-    first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds).
+    first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds). Wrong inputs raise a UsageError (the
+    command exits with 2) before anything is drawn: a path that is not a pyramid or one to rebuild, a `show` that
+    does not fit the data, a wrong `extent`, an `index` beyond the sliders.
 
     Parameters
     ----------
@@ -88,10 +90,11 @@ def quicklook(
         output PNG file
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
-        (i, j) for 4D data, (ref, sec) for 'intf_all', each within the range of its slider; the first images by
-        default
+        (i, j) for 4D data (..., n, n), (ref, sec) for 'intf_all' / 'coh' / 'coh_abs', at most one value per slider
+        and each within the range of its slider; the first images by default
     show : str, optional
-        what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
+        what to show of a stack, see `moraine.cli.view`; the phase for complex data, the values otherwise by
+        default
     width : int, default: 1000
         image width in pixels
     extent : str, optional
@@ -104,16 +107,21 @@ def quicklook(
     str
         the output path
     """
-    from ..cli.tiles import view as _view, view_index
-    if not pyramid_levels(Path(pyramid)):
-        raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras {pyramid} '
-                         f'--out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
-    if extent is not None and not isinstance(extent, (tuple, list)):
-        extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
-    layer = _view(str(pyramid), show=show)
+    from ..cli.tiles import view as _view, view_index, _data_extent
+    try:        # the inputs, before anything is drawn: their errors are a wrong command line, with their messages
+        if not pyramid_levels(Path(pyramid)):       # ValueError for a pyramid to rebuild
+            raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras '
+                             f'{pyramid} --out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
+        if extent is not None and not isinstance(extent, (tuple, list)):
+            extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
+        layer = _view(str(pyramid), show=show)      # ValueError for a show that does not fit the data
+        if extent is not None:
+            _data_extent(extent, layer.crs)
+    except ValueError as e:
+        raise UsageError(str(e)) from None
     try:
         view_index([[layer]], tuple(index))
-    except ValueError as e:         # values outside the ranges of the sliders: a wrong command line
+    except ValueError as e:         # more values than sliders, values outside their ranges: a wrong command line
         raise UsageError(f'--index {" ".join(str(i) for i in index)}: {e}') from None
     return layer.png(out, width=width, index=tuple(index), extent=extent)
 
@@ -138,7 +146,7 @@ def view(
     out : str
         notebook to write (.ipynb)
     show : str, optional
-        what to show of stacks, see `moraine.cli.view`
+        what to show of stacks, see `moraine.cli.view`; the phase for complex data, the values otherwise by default
     dates : str, optional
         toml file with the image ``dates`` (e.g. of `load_gamma_metadata`), shown with the sliders
     terrain : bool, default: False

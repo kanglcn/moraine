@@ -451,6 +451,74 @@ def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
         view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
 
 
+def test_named_shows_that_do_not_fit_the_data(tmp_path, rng):
+    """A named show that does not fit the data is an error of `view`, before anything is drawn (`moraine quicklook`
+    makes it a usage error): 'phase' needs complex data with one stack dimension, 'intf_0', 'intf_seq' and 'intf_all'
+    one or two, 'intf_seq' two images. The views were made and failed in every tile, 'intf_all' of data without a
+    stack with an IndexError when it was made."""
+    ts = rng.normal(size=(30, 20, 3)).astype(np.float32)
+    write_zarr(tmp_path / 'ts.zarr', ts, (15, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'ts_pyr'))
+    pyr, x, y = _grid_points(tmp_path, ts[:3, :4].reshape(12, 3), 'pts')
+    for data, show, error in [
+            (ts, 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (str(tmp_path / 'ts_pyr'), 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (str(pyr), 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (np.ones((10, 10, 3, 3), np.complex64), 'phase', 'phase needs complex data with one index dimension, got '
+                                                             'complex64 with 2'),
+            (np.ones((10, 10), np.complex64), 'phase', 'phase needs complex data with one index dimension, got '
+                                                       'complex64 with 0'),
+            (np.ones((10, 10), np.float32), 'intf_0', 'the data must have one or two index dimensions, got 0'),
+            (np.ones((10, 10), np.complex64), 'intf_all', 'the data must have one or two index dimensions, got 0'),
+            (np.ones((10, 10, 2, 2, 2), np.complex64), 'intf_seq', 'the data must have one or two index dimensions, '
+                                                                   'got 3'),
+            (np.ones((10, 10, 1), np.complex64), 'intf_seq', 'intf_seq needs at least two images, got 1')]:
+        with pytest.raises(ValueError, match=f'^{error}$'):
+            view(data, show=show)
+    with pytest.raises(ValueError, match='^phase needs complex data'):
+        view(ts[:3, :4].reshape(12, 3), x=x, y=y, show='phase')
+    assert view(np.ones((10, 10, 2), np.complex64), show='intf_seq').kdims == [{'name': 'image', 'max': 0}]
+
+
+def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of real data are coloured like other real values, viridis with the colour
+    bar of the layer: the differences of two images of a stack over +-(p99 - p01) of the statistics of the data (the
+    differences of two values within the 1 % - 99 % range), the elements of matrices (..., n, n) over p01 .. p99.
+    They had the cyclic colours of phases over (-pi, pi] and the colour bar 'phase (rad)', so that differences beyond
+    pi saturated; complex data keep the colours of phases."""
+    import colorcet
+    from moraine.cli.plot import _stats
+    ts = np.cumsum(rng.normal(-5, 2, (30, 20, 4)), axis=-1).astype(np.float32)      # a time series, e.g. in mm
+    ts[..., 0] = 0
+    m = rng.normal(5, 2, (30, 20, 3, 3)).astype(np.float32)                           # matrices
+    for name, a in (('ts', ts), ('m', m)):
+        write_zarr(tmp_path / f'{name}.zarr', a, (15, 20) + (1,) * (a.ndim - 2))
+        mc.ras_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'))
+    pts = ts[:3, :4].reshape(12, 4)
+    pyr, x, y = _grid_points(tmp_path, pts, 'pts')
+    for show, _, _, (i, j) in NAMED_SHOWS:
+        for layer, data in [(view(str(tmp_path / 'ts_pyr'), show=show), ts), (view(ts, show=show), ts),
+                            (view(str(pyr), show=show), pts), (view(pts, x=x, y=y, show=show), pts),
+                            (view(str(tmp_path / 'm_pyr'), show=show), m), (view(m, show=show), m)]:
+            st = _stats(data.ravel())
+            assert layer.colors[0] == '#440154' and layer.colors[-1] == '#fde725'          # viridis
+            assert layer.bar_label == layer.label and 'phase (rad)' not in repr(layer)
+            if data is m:
+                assert layer.clim == pytest.approx((st['p01'], st['p99']), rel=1e-5)
+            else:
+                width = st['p99'] - st['p01']
+                assert layer.clim == pytest.approx((-width, width), rel=1e-5)
+                diff = data[..., i] - data[..., j]
+                assert np.abs(diff).max() > np.pi            # beyond the colours of phases, within these
+                inside = np.abs(diff) < width
+                assert inside.mean() > 0.9 and np.all(np.isin(layer.indices(diff[inside]), [0, 254], invert=True))
+    s = np.exp(1j * ts).astype(np.complex64)                  # complex data: the colours of phases
+    for show, *_ in NAMED_SHOWS:
+        layer = view(s, show=show)
+        assert layer.clim == pytest.approx((-np.pi, np.pi)) and layer.bar_label == 'phase (rad)'
+        assert layer.colors[0] == colorcet.colorwheel[0].lower()
+
+
 def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
     """By default complex data with two stack dimensions, e.g. coherence matrices (..., n, n), show the phase of
     element (i, j) of the sliders i and j in the colours of phases, as real ones show its value (it failed when
@@ -570,6 +638,34 @@ def test_state_in_python(grid_pc):
     assert stack.widget.index == {'i': 2} and stack.index == {'i': 2}
     layer.polygons = [[[5, 5], [20, 5], [20, 30]]]
     assert layer.widget.polygons == [[[5, 5], [20, 5], [20, 30]]]
+
+
+def test_index_set_in_python_within_the_sliders(tmp_path, stack):
+    """`.index = {...}` takes the sliders of the view within their ranges, as `png(index=...)` does: other values are a
+    ValueError and the sliders of the map do not move, so nothing is drawn with them (an image beyond the stack
+    reached the tiles: an IndexError for stacks, nan for coherence)."""
+    s, pyr = stack                                                      # 4 images
+    _, coh_pyr = _coh_pc(tmp_path, np.array([(i, j) for i in range(4) for j in range(i + 1, 4)]))
+    for v in (view(str(pyr), show='intf_all'), view(str(coh_pyr), show='coh')):
+        moved = []
+        v.widget.observe(moved.append, names='index')
+        for value, match in [
+                ({'sec': 6}, r"^slider 'sec' = 6 is outside its range 0 \.\. 3; the sliders are ref 0 \.\. 3, "
+                             r"sec 0 \.\. 3$"),
+                ({'ref': 2, 'sec': -1}, r"^slider 'sec' = -1 is outside its range 0 \.\. 3;"),
+                ({'image': 1}, r"^no slider 'image'; the view has the sliders ref 0 \.\. 3, sec 0 \.\. 3$")]:
+            with pytest.raises(ValueError, match=match):
+                v.index = value
+            assert v.index == {'ref': 0, 'sec': 1} and moved == []
+        v.index = {'ref': 3, 'sec': 0}                                  # the last image too
+        assert v.index == {'ref': 3, 'sec': 0} and len(moved) == 1
+        v.index = {'sec': 2}                                            # some of the sliders
+        assert v.index == {'ref': 3, 'sec': 2}
+    layout = view(str(pyr)) + view(np.ones((60, 40, 6), np.complex64))   # the merged slider: image 0 .. 3
+    with pytest.raises(ValueError, match=r"^slider 'image' = 5 is outside its range 0 \.\. 3$"):
+        layout.index = {'image': 5}
+    layout.index = {'image': 3}
+    assert layout.index == {'image': 3}
 
 
 def test_view_messages(grid_pc, monkeypatch):
@@ -759,3 +855,28 @@ def test_png_index_within_the_sliders(tmp_path, stack):
         rows = np.floor(geom.y0 + np.arange(size[1]) * geom.sy + 0.5).astype(int)
         np.testing.assert_allclose(values, np.angle(s[..., i] * s[..., j].conj())[np.ix_(rows, cols)], rtol=1e-5,
                                    atol=1e-6)
+
+
+def test_png_index_of_the_sliders_of_the_view(tmp_path, stack):
+    """`png(index=...)` takes the sliders of the view only: a name that is not a slider and more values than sliders
+    are errors that name the sliders of the view (they were ignored and the default images drawn)."""
+    s, pyr = stack                                                      # 4 images
+    out = tmp_path / 'i.png'
+    for show, index, match in [
+            (None, {'images': 2}, r"^no slider 'images'; the view has the slider image 0 \.\. 3$"),
+            ('intf_all', {'ref': 1, 'sek': 2, 'i': 0}, r"^no sliders 'sek', 'i'; the view has the sliders ref 0 \.\. 3, "
+                                                      r"sec 0 \.\. 3$"),
+            (None, (0, 2), r"^2 values for 1 slider; the view has the slider image 0 \.\. 3$"),
+            ('intf_all', [1, 2, 3], r"^3 values for 2 sliders; the view has the sliders ref 0 \.\. 3, sec 0 \.\. 3$")]:
+        with pytest.raises(ValueError, match=match):
+            view(str(pyr), show=show).png(str(out), index=index)
+    with pytest.raises(ValueError, match=r'^1 value for 0 sliders; the view has no sliders$'):
+        view(np.ones((10, 10), np.float32)).png(str(out), index=(0,))
+    with pytest.raises(ValueError, match=r"^no slider 'image'; the view has no sliders$"):
+        view(np.ones((10, 10), np.float32)).png(str(out), index={'image': 0})
+    layout = view(str(pyr)) + view(np.ones((60, 40, 2), np.float32))     # sliders image and i, of different layers
+    with pytest.raises(ValueError, match=r"^3 values for 2 sliders; the view has the sliders image 0 \.\. 3, i 0 \.\. 1$"):
+        layout.png(str(out), index=(0, 1, 0))
+    assert not out.exists()
+    layout.png(str(out), width=200, index={'i': 1})                     # the sliders of any layer of the view
+    assert out.stat().st_size > 1000

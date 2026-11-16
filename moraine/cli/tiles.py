@@ -275,7 +275,8 @@ def _crs(x0, y0, xm, ym, res, crs, what):
 
 def _show(base, show, image_pairs, sliders, dates):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
-    phase_like, default slider values) of a `show` option."""
+    colours, default slider values) of a `show` option; colours of `_colours`: 'phase', 'values' or 'differences'
+    (of two images of a real stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
         if len(stack) != 1:
@@ -284,7 +285,7 @@ def _show(base, show, image_pairs, sliders, dates):
         n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
         return show, _show_coh(tnet, 'phase' if show == 'coh' else 'abs'), list(zip(SLIDERS[show], counts)), \
-            show == 'coh', {'sec': min(1, n - 1)}
+            'phase' if show == 'coh' else 'values', {'sec': min(1, n - 1)}
     if callable(show):
         names = list(inspect.signature(show).parameters)[1:]
         if len(names) > 2:
@@ -309,6 +310,13 @@ def _show(base, show, image_pairs, sliders, dates):
     complex_data = np.iscomplexobj(np.empty(0, base.dtype))
     if show is None and complex_data and len(stack) == 1:
         show = 'phase'                               # complex data show their phase by default
+    # a named show that does not fit the data is an error of the view, before anything is drawn (`_show_named`)
+    if show == 'phase' and (len(stack) != 1 or not complex_data):
+        raise ValueError(f'phase needs complex data with one index dimension, got {base.dtype} with {len(stack)}')
+    if show in ('intf_0', 'intf_seq', 'intf_all') and len(stack) not in (1, 2):
+        raise ValueError(f'the data must have one or two index dimensions, got {len(stack)}')
+    if show == 'intf_seq' and stack[0] < 2:
+        raise ValueError(f'intf_seq needs at least two images, got {stack[0]}')
     if show is None:                                 # sliders over the first two stack dimensions
         fn, names, counts = (_show_angle if complex_data else _show_values), ('i', 'j'), list(stack)
     else:
@@ -316,15 +324,20 @@ def _show(base, show, image_pairs, sliders, dates):
         counts = [] if not stack else [stack[0] - 1] if show == 'intf_seq' else [stack[0]] * len(names)
     # start on an interferogram, not on the zero phase of an image with itself
     index = {'sec': 1} if show == 'intf_all' and counts[1] > 1 else {}
-    return show, fn, list(zip(names, counts)), complex_data or show is not None, index
+    # the named shows of a real stack of images are the differences of two of its images (`_show_named`)
+    colours = 'phase' if complex_data else \
+        'differences' if show in ('intf_0', 'intf_seq', 'intf_all') and len(stack) == 1 else 'values'
+    return show, fn, list(zip(names, counts)), colours, index
 
 
-def _colours(name, phase_like, stats, label, cmap, clim):
-    """(lut, clim, colour bar label): cyclic over (-pi, pi] for phases, viridis over the 1 % - 99 % range of
-    `stats()` otherwise, (0, 1) for booleans and 'coh_abs'; `cmap`, `clim` override."""
+def _colours(name, colours, stats, label, cmap, clim):
+    """(lut, clim, colour bar label) of the `colours` of `_show`: cyclic over (-pi, pi] for 'phase', viridis
+    otherwise, over the 1 % - 99 % range of `stats()` for 'values' and over +-(p99 - p01), the differences of two
+    values within it, for 'differences'; (0, 1) for booleans (+-1 for their differences) and 'coh_abs'; `cmap`,
+    `clim` override."""
     if name == 'coh_abs':
         cmap_, clim_, label = 'viridis', (0, 1), 'coherence'
-    elif phase_like:
+    elif colours == 'phase':
         cmap_, clim_, label = _cyclic_cmap(), (-np.pi, np.pi), 'phase (rad)'
     else:
         st = stats()
@@ -335,6 +348,8 @@ def _colours(name, phase_like, stats, label, cmap, clim):
             clim_ = (st['p01'], st['p99'])
         else:
             clim_ = (0, 1)
+        if colours == 'differences':
+            clim_ = (clim_[0] - clim_[1], clim_[1] - clim_[0])
     cmap_ = cmap_ if cmap is None else cmap
     clim_ = clim_ if clim is None else clim
     return _lut(cmap_), tuple(float(c) for c in clim_), label
@@ -396,11 +411,13 @@ class _Shown:
 
     @property
     def index(self):
-        """Slider values by name; set it to change the images shown."""
+        """Slider values by name; set some of them to change the images shown: sliders of the view, each within
+        its range (`repr` lists them), a ValueError otherwise."""
         return dict(self.widget.index)
 
     @index.setter
     def index(self, value):
+        view_index(self._panels(), value)       # checked before the maps draw anything
         self.widget.index = {**self.widget.index, **value}
 
     def png(self, path, width:int=1000, index=None, extent:tuple=None)->str:
@@ -416,8 +433,9 @@ class _Shown:
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
-            slider values by name, or in the order of the sliders, each within the range of its slider (`repr`
-            of the view lists them); the first images by default
+            slider values by name, or in the order of the sliders (at most one value per slider), of sliders of
+            the view and each within the range of its slider (`repr` of the view lists them); the first images by
+            default
         extent : tuple, optional
             the part to draw: (west, south, east, north) longitudes and latitudes in degrees on a web mercator
             map, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid; the whole extent
@@ -485,15 +503,31 @@ def view_sliders(panels):
     return list(kdims.values()), index
 
 
+def _sliders_text(kdims)->str:
+    """The sliders of a view and their ranges, for the errors of `view_index`."""
+    if not kdims:
+        return 'the view has no sliders'
+    return f"the view has the slider{'s' if len(kdims) > 1 else ''} " + \
+        ', '.join(f"{k['name']} 0 .. {k['max']}" for k in kdims)
+
+
 def view_index(panels, index=None):
     """(sliders, values by name) of maps of layers: the sliders of `view_sliders`, the values of `index` (dict by
-    name, or values in the order of the sliders) and the default values of the others; ValueError for a value
-    outside the range of its slider."""
+    name, or values in the order of the sliders) and the default values of the others; ValueError for a name that is
+    not a slider, more values than sliders and a value outside the range of its slider."""
     kdims, values = view_sliders(panels)
+    names = [k['name'] for k in kdims]
     if isinstance(index, dict):
         given = dict(index)
+        unknown = [n for n in given if n not in names]
+        if unknown:
+            raise ValueError(f"no slider{'s' if len(unknown) > 1 else ''} {', '.join(repr(n) for n in unknown)}; "
+                             f'{_sliders_text(kdims)}')
     elif index:
-        given = dict(zip([k['name'] for k in kdims], index))
+        if len(index) > len(kdims):
+            raise ValueError(f"{len(index)} value{'s' if len(index) > 1 else ''} for {len(kdims)} "
+                             f"slider{'' if len(kdims) == 1 else 's'}; {_sliders_text(kdims)}")
+        given = dict(zip(names, index))
     else:
         given = {}
     for k in kdims:
@@ -570,13 +604,13 @@ class _Layer(_Shown):
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
         self.polygon_file = None if polygons is None else str(polygons)
-        name, self.show_fn, counts, phase_like, index = _show(base, show, image_pairs, sliders, self.dates)
+        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates)
         self.show_name = name if isinstance(name, str) else ('function' if callable(show) else None)
         self.kdims = [{'name': k, 'max': int(n) - 1} for k, n in counts]
         self.default_index = {k['name']: index.get(k['name'], 0) for k in self.kdims}
-        if phase_like is None:       # a show function: colours from its values on a coarse level
-            phase_like, stats = self._guess(base.dtype)
-        self.lut, self.clim, self.bar_label = _colours(name, phase_like, stats, self.label, cmap, clim)
+        if colours is None:          # a show function: colours from its values on a coarse level
+            colours, stats = self._guess(base.dtype)
+        self.lut, self.clim, self.bar_label = _colours(name, colours, stats, self.label, cmap, clim)
         self.opacity = float(opacity)
         self.title = f'{self.label}  {self.data_shape} {base.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
@@ -595,9 +629,9 @@ class _Layer(_Shown):
             self.ts = default_ts
 
     def _guess(self, dtype):
-        """(phase_like, stats) of a `show` function from its values on the finest level of at most
+        """(colours of `_colours`, stats) of a `show` function from its values on the finest level of at most
         SAMPLE_CELLS cells: phases for complex data shown within (-pi, pi] with negative values (magnitudes
-        are not negative)."""
+        are not negative), values otherwise."""
         level = next((lv for lv in range(self.max_level + 1)
                       if np.prod(self.levels(lv).shape[:2]) <= SAMPLE_CELLS), self.max_level)
         data = self.levels(level)
@@ -606,7 +640,7 @@ class _Layer(_Shown):
         finite = a[np.isfinite(a)]
         phase = np.iscomplexobj(np.empty(0, dtype)) and finite.size > 0 and \
             -np.pi - 1e-6 <= finite.min() < 0 and finite.max() <= np.pi + 1e-6
-        return phase, lambda: _stats(a.ravel())
+        return 'phase' if phase else 'values', lambda: _stats(a.ravel())
 
     def describe(self):
         return (f'{self.label}: {self.kind} {self.data_shape} {self.dtype}'
@@ -1104,7 +1138,8 @@ def view(
     On the map: zoom and pan read only what is on screen; sliders choose the image of a stack; the cursor shows
     the values of all layers; click a pixel or point to plot its time series, double click one to make it the
     reference of the time series; draw polygons with the polygon button. In Python, ``.selected``,
-    ``.reference``, ``.polygons`` and ``.index`` (slider values) follow the map. Point clouds are drawn as
+    ``.reference``, ``.polygons`` and ``.index`` (slider values; set it to move the sliders, within their ranges)
+    follow the map. Point clouds are drawn as
     individual points when zoomed in; web mercator coordinates are drawn north up over a base map, or over the
     terrain in 3D with `terrain`.
 
@@ -1119,12 +1154,15 @@ def view(
     y : str or np.ndarray, optional
         y coordinate (azimuth or web mercator y) of point data that is not a pyramid, (n_points,)
     show : str or callable, optional
-        what to show of a stack: 'phase', 'intf_0' (interferograms with the first image), 'intf_seq'
-        (sequential interferograms), 'intf_all' (any pair, sliders ref and sec), 'coh' / 'coh_abs' (phase /
-        magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function
-        ``f(v, *sliders)`` of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose
-        other arguments are sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] *
-        np.conj(v[..., sec]))``; the phase for complex data, the values otherwise by default
+        what to show of a stack: 'phase' (of complex images (..., n)), 'intf_0' (interferograms with the first
+        image), 'intf_seq' (sequential interferograms), 'intf_all' (any pair, sliders ref and sec) of images
+        (..., n), the differences of the two images for a real stack (e.g. of unwrapped phase or displacement),
+        or element (i, j) of matrices (..., n, n), its phase for complex data; 'coh' / 'coh_abs' (phase /
+        magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function ``f(v, *sliders)``
+        of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose other arguments are
+        sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] * np.conj(v[..., sec]))``; the
+        phase for complex data, the values otherwise by default. A named show that does not fit the data is a
+        ValueError
     dates : list or str, optional
         date of each image, or a toml file with ``dates`` (e.g. of `load_gamma_metadata`), shown with the
         sliders and on the time axis
@@ -1135,9 +1173,12 @@ def view(
         GeoJSON file of the polygons drawn on the map: read if it exists, written on every change; use it
         with `polygon_mask`
     cmap : str or list, optional
-        matplotlib colour map name or list of colours; cyclic for phases, viridis otherwise by default
+        matplotlib colour map name or list of colours; cyclic for the phases of complex data, viridis
+        otherwise by default
     clim : tuple, optional
-        (min, max) of the colours; (-pi, pi) for phases, the 1 % - 99 % range otherwise by default
+        (min, max) of the colours; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 %
+        range of the data (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a
+        real stack ('intf_0', 'intf_seq', 'intf_all')
     opacity : float, default: 1.0
         opacity of the layer, 0 - 1
     label : str, optional
