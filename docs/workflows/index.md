@@ -1,6 +1,6 @@
 # Workflows
 
-The processing chain of moraine as six verified pipeline files (decisions 0009, 0033): each one is run end to
+The processing chain of moraine as six verified pipeline files (decision 0038): each one is run end to
 end on the sample data set before it changes, and the numbers and figures in its guide come from that run. The
 sample data set is Campi Flegrei: Sentinel-1 descending track 22, 92 dates from 2019-01-02 to 2021-12-29, 981 x
 4160 pixels at full resolution, the uplifting caldera west of Naples (`data/CampiFlegrei/README.md` in the

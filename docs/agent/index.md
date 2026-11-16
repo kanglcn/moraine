@@ -230,7 +230,7 @@ choose a reference point in `view.ipynb` (double click) before you read displace
   (decision 0008), and `tests/test_docs.py` keeps it in step with the code.
 - **The workflow guides** (`docs/workflows/`) give the agent what a colleague would: the parameters, the expected
   ranges of every result on the sample data, what to look at and what to do when the numbers are off. The
-  example pipelines are verified on real data before they change (decision 0009).
+  example pipelines are verified on real data before they change (decision 0038).
 - **Commands that explain themselves.** `moraine list`, `moraine COMMAND --help` with shapes, dtypes and
   defaults from the docstrings, unknown arguments rejected with a suggestion, `--json` with one object on stdout
   and the summaries of every output.

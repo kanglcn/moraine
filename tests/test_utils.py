@@ -193,10 +193,12 @@ IfkzqvCMPbJ17lpCjFUf6u8hDshEjWDBEtfW3oN64A==
 
 
 def test_download_dl_model_certificates(tmp_path, monkeypatch, capsys):
-    """HTTPS checks the certificates of the server with the CA bundle of certifi where the package certifi can be
-    imported (python.org builds of Python on macOS have no certificates of their own), and with the default context
-    of urllib (the certificates of the Python installation) where it cannot; a bundle of certifi that cannot be
-    loaded is a failed download (printed, not raised). urlopen fails here: no network."""
+    """HTTPS checks the certificates of the server with the default context of urllib where the environment variable
+    SSL_CERT_FILE or SSL_CERT_DIR is set (not empty): it trusts the certificate authorities they give (e.g. that of a
+    TLS-inspecting proxy). Otherwise with the CA bundle of certifi where the package certifi can be imported
+    (python.org builds of Python on macOS have no certificates of their own), and with the default context (the
+    certificates of the Python installation) where it cannot; a bundle of certifi that cannot be loaded is a failed
+    download (printed, not raised). urlopen fails here: no network."""
     import ssl
     import sys
     import types
@@ -208,7 +210,10 @@ def test_download_dl_model_certificates(tmp_path, monkeypatch, capsys):
         contexts.append(context)
         raise urllib.error.URLError('no network in the tests')
     monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    monkeypatch.delenv('SSL_CERT_FILE', raising=False)
+    monkeypatch.delenv('SSL_CERT_DIR', raising=False)
     (tmp_path / 'cacert.pem').write_text(_TEST_CA)
+    test_ca = ssl.PEM_cert_to_DER_cert(_TEST_CA)
     certifi = types.ModuleType('certifi')
     certifi.where = lambda: str(tmp_path / 'cacert.pem')
     monkeypatch.setitem(sys.modules, 'certifi', certifi)
@@ -216,14 +221,29 @@ def test_download_dl_model_certificates(tmp_path, monkeypatch, capsys):
     (context,) = contexts
     assert isinstance(context, ssl.SSLContext), context
     assert context.verify_mode == ssl.CERT_REQUIRED and context.check_hostname
-    assert context.get_ca_certs(binary_form=True) == [ssl.PEM_cert_to_DER_cert(_TEST_CA)]    # certifi's only
+    assert context.get_ca_certs(binary_form=True) == [test_ca]    # certifi's only
     certifi.where = lambda: str(tmp_path / 'missing.pem')
     mr.download_dl_model('n2f', path=tmp_path)
     assert len(contexts) == 1
+    certifi.where = lambda: str(tmp_path / 'cacert.pem')
+    for name, value in [('SSL_CERT_FILE', str(tmp_path / 'cacert.pem')), ('SSL_CERT_DIR', str(tmp_path))]:
+        monkeypatch.setenv(name, value)            # certifi can be imported: the variable wins
+        mr.download_dl_model('n2f', path=tmp_path)
+        assert contexts[-1] is None, name
+        monkeypatch.delenv(name)
+    assert len(contexts) == 3
+    monkeypatch.setenv('SSL_CERT_FILE', str(tmp_path / 'cacert.pem'))     # the default context trusts its CA
+    assert test_ca in ssl.create_default_context().get_ca_certs(binary_form=True)
+    monkeypatch.setenv('SSL_CERT_FILE', '')        # empty values count as not set: certifi
+    monkeypatch.setenv('SSL_CERT_DIR', '')
+    mr.download_dl_model('n2f', path=tmp_path)
+    assert len(contexts) == 4 and contexts[3].get_ca_certs(binary_form=True) == [test_ca]
+    monkeypatch.delenv('SSL_CERT_FILE')
+    monkeypatch.delenv('SSL_CERT_DIR')
     monkeypatch.setitem(sys.modules, 'certifi', None)          # certifi cannot be imported
     mr.download_dl_model('n2f', path=tmp_path)
-    assert len(contexts) == 2 and contexts[1] is None
+    assert len(contexts) == 5 and contexts[4] is None
     out = capsys.readouterr().out
-    assert out.count('Error downloading file: <urlopen error no network in the tests>') == 2
+    assert out.count('Error downloading file: <urlopen error no network in the tests>') == 5
     assert out.count('Error downloading file: [Errno 2] No such file or directory') == 1
     assert not (tmp_path / 'n2f.pth').exists()
