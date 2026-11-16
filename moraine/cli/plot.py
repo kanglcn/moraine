@@ -17,12 +17,12 @@ import multiprocessing
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
-import toml
 from ..api.utils_ import ngpjit
 from ..api.pc.rtree import HilbertRtree
 from .logging import mc_logger
 from ..api.utils_.coord import Coord
 from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
+from .utils_ import write_toml
 
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
@@ -413,8 +413,7 @@ def pc_pyramid(
     coord = Coord(x0, ras_resolution, nx, y0, ras_resolution, ny)
     bounds = {'bounds':[x0, y0, coord.xm, coord.ym]}
     logger.info(f"rasterizing point cloud data to grid with bounds: {bounds['bounds']}.")
-    with open(out_dir/'bounds.toml',mode='w') as f:
-        toml.dump(bounds, f, encoder=toml.TomlNumpyEncoder())
+    write_toml(out_dir/'bounds.toml', bounds)
 
     maxlevel = coord.maxlevel
 

@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+toml (unmaintained) is no longer a dependency: moraine reads TOML files with the standard library's `tomllib` (`view(dates=...)` and `--dates`, point cloud pyramids) and writes `meta.toml` (`load-gamma-metadata`) and `bounds.toml` (`pc-pyramid`) itself. The files have the same keys, values and types as before, read with `tomllib` or with `toml`; only the spaces in the lists differ. Scripts that read them with `toml.load` need toml installed, or the standard library as in the tutorials: `with open('meta.toml', 'rb') as f: meta = tomllib.load(f)`
+
 numcodecs is no longer a dependency of its own: moraine does not import it, and zarr, which requires it, still installs it
 
 With a GPU visible (`CUDA_VISIBLE_DEVICES` set), moraine imports cupy only when it computes on the GPU, no longer when it is imported or computes on the CPU: `import moraine` and the commands no longer fail where cupy is not installed (e.g. a CPU-only environment on a GPU node) and run on the CPU without it. Where cupy is installed, zarr still imports it when moraine is imported (for zarr's GPU buffers, which moraine does not use), and cupy imports pytest
