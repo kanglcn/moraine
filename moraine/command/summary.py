@@ -134,7 +134,8 @@ def quicklook(
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
     first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds). Wrong inputs raise a UsageError (the
     command exits with 2) before anything is drawn: a path that is not a pyramid or one to rebuild, a `show` that
-    does not fit the data, a wrong `extent` or `clim`, an `index` beyond the sliders, an `out` that is not a PNG.
+    does not fit the data (the default fits data with at most two stack dimensions), a wrong `extent` or `clim`, an
+    `index` beyond the sliders, an `out` that is not a PNG.
 
     Parameters
     ----------

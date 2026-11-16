@@ -326,6 +326,12 @@ def _show(base, show, image_pairs, sliders, dates, shape):
         raise ValueError(f'the data must have one or two index dimensions, got {len(stack)}')
     if show == 'intf_seq' and stack[0] < 2:
         raise ValueError(f'intf_seq needs at least two images, got {stack[0]}')
+    if show is None and len(stack) > 2:              # the default has two sliders, i and j: it would fail when drawn
+        example = (f"show=lambda v, i, j: v[..., i, j{', 0' * (len(stack) - 2)}], "
+                   f"sliders={{'i': {stack[0]}, 'j': {stack[1]}}}")
+        raise ValueError(f"data of shape {shape}: {len(stack)} stack dimensions, more than the shows of a view take "
+                         f"(the default and 'intf_0', 'intf_seq', 'intf_all': one or two; 'phase', 'coh', 'coh_abs': "
+                         f'one); show them with a function of the visible stack and its sliders, e.g. {example}')
     if show is None:                                 # sliders over the first two stack dimensions
         fn, names, counts = (_show_angle if complex_data else _show_values), ('i', 'j'), list(stack)
     else:
@@ -1176,8 +1182,8 @@ def view(
         magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function ``f(v, *sliders)``
         of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose other arguments are
         sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] * np.conj(v[..., sec]))``; the
-        phase for complex data, the values otherwise by default. A named show that does not fit the data is a
-        ValueError
+        phase for complex data, the values otherwise by default, for data with at most two stack dimensions. A named
+        show that does not fit the data is a ValueError, as is the default for data with more stack dimensions
     dates : list or str, optional
         date of each image, or a toml file with ``dates`` (e.g. of `load_gamma_metadata`), shown with the
         sliders and on the time axis

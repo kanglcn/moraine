@@ -346,6 +346,8 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
     write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    write_zarr(tmp_path / 'm5.zarr', rng.random((30, 20, 2, 2, 2)).astype(np.float32), (30, 20, 1, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'm5.zarr'), str(tmp_path / 'm5_pyr'))
     write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
     write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
     pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
@@ -371,7 +373,9 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
                                      '6, 10, ...) or the number of the image pairs given (none are given)'),
             ([str(tmp_path / 'r_pyr'), '--show', 'intf_seq'], 'the data must have one or two index dimensions, got 0'),
             ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
-                                                         "shape (30, 20)")]:
+                                                         "shape (30, 20)"),
+            ([str(tmp_path / 'm5_pyr')], 'data of shape (30, 20, 2, 2, 2): 3 stack dimensions, more than the shows of '
+                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; ")]:
         capsys.readouterr()
         assert main(['quicklook', *args, '-o', str(out), '--json']) == 2, args
         result = json_out(capsys)

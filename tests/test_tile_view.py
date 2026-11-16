@@ -505,6 +505,42 @@ def test_named_shows_that_do_not_fit_the_data(tmp_path, rng):
     assert view(np.ones((10, 10, 2), np.complex64), show='intf_seq').kdims == [{'name': 'image', 'max': 0}]
 
 
+def test_default_show_of_more_than_two_stack_dimensions(tmp_path, rng):
+    """The default show of data with three or more stack dimensions, rasters and points, real and complex, is an error
+    of `view` that names the shape and the shows (the view was made and failed when drawn: "2 indices given for data
+    with 3 index dimensions"); a show function, e.g. that of the message, draws them."""
+    import re
+    a = rng.random((10, 8, 2, 3, 4)).astype(np.float32)
+    write_zarr(tmp_path / 'a.zarr', a, (10, 8, 1, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'a.zarr'), str(tmp_path / 'a_pyr'))
+    p = a[:3, :4].reshape(12, 2, 3, 4)
+    pyr, x, y = _grid_points(tmp_path, p, 'pts')
+    shows = ("more than the shows of a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; "
+             "'phase', 'coh', 'coh_abs': one); show them with a function of the visible stack and its sliders, e.g. ")
+    for data, kw, error in [
+            (a, {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                    "sliders={{'i': 2, 'j': 3}}"),
+            (str(tmp_path / 'a_pyr'), {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, "
+                                          "0], sliders={{'i': 2, 'j': 3}}"),
+            (a.astype(np.complex64), {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, "
+                                         "0], sliders={{'i': 2, 'j': 3}}"),
+            (p, dict(x=x, y=y), "(12, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                                "sliders={{'i': 2, 'j': 3}}"),
+            (str(pyr), {}, "(12, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                           "sliders={{'i': 2, 'j': 3}}"),
+            (np.ones((5, 5, 2, 2, 2, 2), np.float32), {}, "(5, 5, 2, 2, 2, 2): 4 stack dimensions, {}show=lambda v, i, "
+                                                          "j: v[..., i, j, 0, 0], sliders={{'i': 2, 'j': 2}}")]:
+        with pytest.raises(ValueError, match='^' + re.escape('data of shape ' + error.format(shows)) + '$'):
+            view(data, **kw)
+    geom = grid_geom(0, 0, 0, RAS)
+    for layer in (view(a, show=lambda v, i, j: v[..., i, j, 0], sliders={'i': 2, 'j': 3}),
+                  view(str(tmp_path / 'a_pyr'), show=lambda v, i, j: v[..., i, j, 0], sliders={'i': 2, 'j': 3})):
+        assert [(k['name'], k['max']) for k in layer.kdims] == [('i', 1), ('j', 2)]
+        np.testing.assert_array_equal(layer.raster_values(geom, {'i': 1, 'j': 2})[:10, :8], a[..., 1, 2, 0])
+    _check_points([view(str(pyr), show=lambda v, i, j: v[..., i, j, 3], sliders={'i': 2, 'j': 3})], {'i': 0, 'j': 1},
+                  p[:, 0, 1, 3])
+
+
 def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):
     """'intf_0', 'intf_seq' and 'intf_all' of real data are coloured like other real values, viridis with the colour
     bar of the layer: the differences of two images of a stack over +-(p99 - p01) of the statistics of the data (the
