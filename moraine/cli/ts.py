@@ -11,6 +11,7 @@ import moraine as mr
 from ..api.ts import _days
 from .logging import mc_logger
 from .executor import Executor, Chunk
+from .utils_ import ArgumentError
 
 
 def _reference_column(pc_part, out_part, ref, method):
@@ -71,19 +72,19 @@ def pc_reference(
     """
     logger = logging.getLogger(__name__)
     if (ref_mask is None) == (ref_point is None):
-        raise ValueError('give the reference with exactly one of `ref_mask` and `ref_point`')
+        raise ArgumentError('give the reference with exactly one of `ref_mask` and `ref_point`')
     if method not in ('median', 'mean'):
-        raise ValueError(f"method must be 'median' or 'mean', not {method!r}")
+        raise ArgumentError(f"method must be 'median' or 'mean', not {method!r}")
     pc_zarr = zarr.open(pc, mode='r'); logger.zarr_info(pc, pc_zarr)
     if pc_zarr.ndim not in (1, 2):
-        raise ValueError(f'pc must have shape (n_points,) or (n_points, n), got shape {pc_zarr.shape}')
+        raise ArgumentError(f'pc must have shape (n_points,) or (n_points, n), got shape {pc_zarr.shape}')
     if not np.issubdtype(pc_zarr.dtype, np.floating):
-        raise ValueError(f'pc must be floating point, got {pc_zarr.dtype}')
+        raise ArgumentError(f'pc must be floating point, got {pc_zarr.dtype}')
     n_points = pc_zarr.shape[0]
     if ref_mask is not None:
         mask_zarr = zarr.open(ref_mask, mode='r'); logger.zarr_info(ref_mask, mask_zarr)
         if mask_zarr.dtype != bool or mask_zarr.shape != (n_points,):
-            raise ValueError(f'ref_mask must be bool of shape ({n_points},), got {mask_zarr.dtype} {mask_zarr.shape}')
+            raise ArgumentError(f'ref_mask must be bool of shape ({n_points},), got {mask_zarr.dtype} {mask_zarr.shape}')
         ref = mask_zarr[:]
         n_ref = int(ref.sum())
         if n_ref == 0:
@@ -92,7 +93,7 @@ def pc_reference(
     else:
         ref = int(ref_point)
         if not 0 <= ref < n_points:
-            raise ValueError(f'ref_point {ref} is not one of the {n_points} points')
+            raise ArgumentError(f'ref_point {ref} is not one of the {n_points} points')
         logger.info(f'reference: point {ref}')
 
     if out_chunks is None:
@@ -154,12 +155,12 @@ def pc_disp(
     logger = logging.getLogger(__name__)
     wavelength = float(wavelength)
     if not 0 < wavelength < 1:
-        raise ValueError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
+        raise ArgumentError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
     pc_zarr = zarr.open(pc, mode='r'); logger.zarr_info(pc, pc_zarr)
     if pc_zarr.ndim not in (1, 2):
-        raise ValueError(f'pc must have shape (n_points,) or (n_points, n), got shape {pc_zarr.shape}')
+        raise ArgumentError(f'pc must have shape (n_points,) or (n_points, n), got shape {pc_zarr.shape}')
     if not np.issubdtype(pc_zarr.dtype, np.floating):
-        raise ValueError(f'pc must be floating point (unwrapped phase in radians), got {pc_zarr.dtype}')
+        raise ArgumentError(f'pc must be floating point (unwrapped phase in radians), got {pc_zarr.dtype}')
     if out_chunks is None:
         out_chunks = pc_zarr.chunks[0]
     chunks = (out_chunks, 1) if pc_zarr.ndim == 2 else (out_chunks,)
@@ -242,7 +243,7 @@ def pc_sc_dem_error(
     logger = logging.getLogger(__name__)
     disp_zarr = zarr.open(disp, mode='r'); logger.zarr_info(disp, disp_zarr)
     if disp_zarr.ndim != 2:
-        raise ValueError(f'disp must have shape (n_points, nimages), got shape {disp_zarr.shape}')
+        raise ArgumentError(f'disp must have shape (n_points, nimages), got shape {disp_zarr.shape}')
     n_points, nimages = disp_zarr.shape
     for name, path, shape in (('disp', disp, (n_points, nimages)), ('bperp', bperp, (n_points, nimages)),
                               ('slant_range', slant_range, (n_points,)), ('theta', theta, (n_points,))):
@@ -250,15 +251,15 @@ def pc_sc_dem_error(
         if name != 'disp':
             logger.zarr_info(path, z)
         if not np.issubdtype(z.dtype, np.floating):
-            raise ValueError(f'{name} must be floating point, got {z.dtype}')
+            raise ArgumentError(f'{name} must be floating point, got {z.dtype}')
         if z.shape != shape:
-            raise ValueError(f'{name} must have shape {shape}, got shape {z.shape}')
+            raise ArgumentError(f'{name} must have shape {shape}, got shape {z.shape}')
     if nimages < 4:
-        raise ValueError(f'the DEM error needs at least 4 images, got {nimages}')
+        raise ArgumentError(f'the DEM error needs at least 4 images, got {nimages}')
     days = _days(dates, nimages)
     dates = [str(d).strip() for d in (dates.replace(',', ' ').split() if isinstance(dates, str) else dates)]
     if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < nimages:
-        raise ValueError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
+        raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
     logger.info(f'{nimages} images from {dates[0]} to {dates[-1]} ({int(days[-1])} days), relative to image {ref} '
                 f'({dates[ref]})')
     if out_chunks is None:

@@ -11,6 +11,7 @@ from numba import prange
 from ..tnet import TempNet
 from ..utils_.device import get_mem_avail, get_n_cpus_avail
 from ..utils_.jit import mjit
+from ..utils_.errors import ArgumentError
 from .closure import _l1_fit, _pair_forest
 from .mcf import _SPATIAL_COST_RANGE, _TWO_PI, _edge_length, _mcf_edges, _mcf_ssp
 
@@ -28,10 +29,10 @@ def _pair_costs(t, pairs, mode):
     """Cost of correcting every pair: 'constant' 1; 'length': shorter interferograms in time cost more to
     correct, relative to the median time span, 1..20 (like the distance costs of spurt). Decision 0020."""
     if mode not in ('constant', 'length'):
-        raise ValueError(f'unknown temporal_cost {mode!r}: constant or length')
+        raise ArgumentError(f'unknown temporal_cost {mode!r}: constant or length')
     if mode == 'length':
         if t is None:
-            raise ValueError(f'temporal_cost {mode!r} needs the acquisition times t')
+            raise ArgumentError(f'temporal_cost {mode!r} needs the acquisition times t')
         span = np.maximum(np.abs(t[pairs[:, 1]] - t[pairs[:, 0]]), 1e-12)
         cost = np.clip(np.round(4 * np.median(span) / span), 1, 20).astype(np.int64)
     else:
@@ -91,11 +92,11 @@ def _spatial_cost_flags(mode, weight):
     flags = 0
     for name in mode.split('+'):
         if name not in _SPATIAL_COST_FACTORS:
-            raise ValueError(f'unknown spatial_cost {mode!r}: combine {", ".join(_SPATIAL_COST_FACTORS)} with +, '
+            raise ArgumentError(f'unknown spatial_cost {mode!r}: combine {", ".join(_SPATIAL_COST_FACTORS)} with +, '
                              f'or constant')
         flags |= _SPATIAL_COST_FACTORS[name]
     if flags & 2 and weight is None:
-        raise ValueError("spatial_cost 'weight' needs the point weights")
+        raise ArgumentError("spatial_cost 'weight' needs the point weights")
     return flags
 
 
@@ -106,9 +107,9 @@ def _image_pairs(image_pairs, nimages):
     """The image pairs checked, (n_pairs, 2) int64."""
     pairs = np.asarray(image_pairs)
     if pairs.ndim != 2 or pairs.shape[1] != 2 or pairs.shape[0] == 0 or not np.issubdtype(pairs.dtype, np.integer):
-        raise ValueError(f'image_pairs must be integers of shape (n_pairs, 2), got {pairs.dtype} {pairs.shape}')
+        raise ArgumentError(f'image_pairs must be integers of shape (n_pairs, 2), got {pairs.dtype} {pairs.shape}')
     if pairs.min() < 0 or pairs.max() >= nimages or (pairs[:, 0] == pairs[:, 1]).any():
-        raise ValueError(f'image_pairs must pair two different images of 0 .. {nimages - 1}')
+        raise ArgumentError(f'image_pairs must pair two different images of 0 .. {nimages - 1}')
     return np.ascontiguousarray(pairs, dtype=np.int64)
 
 
@@ -269,17 +270,17 @@ def emcf_pc(
     """
     ph = np.ascontiguousarray(ph)
     if ph.ndim != 2:
-        raise ValueError(f'ph must have shape (n_points, nimages), got {ph.shape}')
+        raise ArgumentError(f'ph must have shape (n_points, nimages), got {ph.shape}')
     nimages = ph.shape[1]
     if image_pairs is None:
         if nimages < 2:
-            raise ValueError('at least 2 images are needed')
+            raise ArgumentError('at least 2 images are needed')
         image_pairs = TempNet.from_bandwidth(nimages, min(3, nimages - 1)).image_pairs
     pairs = _image_pairs(image_pairs, nimages)
     if t is not None:
         t = np.asarray(t, dtype=np.float64)
         if t.shape != (nimages,):
-            raise ValueError(f't must have shape ({nimages},), got {t.shape}')
+            raise ArgumentError(f't must have shape ({nimages},), got {t.shape}')
     pair_cost = _pair_costs(t, pairs, temporal_cost)
     flags = _spatial_cost_flags(spatial_cost, weight)
     order, parent, n_loops = _pair_forest(pairs, nimages)

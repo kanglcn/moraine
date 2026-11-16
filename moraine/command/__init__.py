@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 from ..api.tnet import check_image_pairs
-from ..cli.utils_ import ArgumentError
+from ..api.utils_.errors import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'tropo', 'ts', 'plot']
@@ -126,7 +126,8 @@ def _tuple_spec(annotation:str)->tuple:
 
 
 def _int_tuple(p, value):
-    """Parse '2500 1834' (two tokens), '2500,1834', '(2500,1834)', [2500, 1834] or 2500 and check it against `p`."""
+    """Parse '2500 1834' (two tokens), '2500,1834', '(2500,1834)', [2500, 1834] or 2500 and check it against `p`;
+    None (also the text None) is the default of an optional tuple and a UsageError for a required one."""
     raw = value
     if isinstance(value, (list, tuple)) and value and all(isinstance(v, str) for v in value):
         tokens = [t for v in value for t in v.replace('(', ' ').replace(')', ' ').replace('[', ' ').replace(']', ' ')
@@ -136,23 +137,25 @@ def _int_tuple(p, value):
             value = value[0]
     elif isinstance(value, str):
         value = literal(value)
-    if value is None:
-        return None
-    if isinstance(value, list):
-        value = tuple(value)
     what = f'{p.n} integers' if p.n else 'integers'
     if p.scalar:
         what = f'an integer or {what}'
     hint = f' ({p.help})' if p.help else ''
+    shown = ' '.join(raw) if isinstance(raw, (list, tuple)) and all(isinstance(v, str) for v in raw) else raw
+    example = f'write e.g. --{p.name} ' + ' '.join(['1000'] * (p.n or 2))
+    if value is None:
+        if p.required:
+            raise UsageError(f'--{p.name} is required: it needs {what}{hint}, got {shown!r}; {example}')
+        return None
+    if isinstance(value, list):
+        value = tuple(value)
     if isinstance(value, int) and not isinstance(value, bool):
         if p.scalar:
             return value
         value = (value,)
     if not isinstance(value, tuple) or not all(isinstance(v, int) and not isinstance(v, bool) for v in value) \
        or (p.n and len(value) != p.n):
-        shown = ' '.join(raw) if isinstance(raw, (list, tuple)) and all(isinstance(v, str) for v in raw) else raw
-        raise UsageError(f'--{p.name} needs {what}{hint}, got {shown!r}; write e.g. --{p.name} '
-                         + ' '.join(['1000'] * (p.n or 2)))
+        raise UsageError(f'--{p.name} needs {what}{hint}, got {shown!r}; {example}')
     return value
 
 
@@ -181,11 +184,14 @@ class Command:
     kwargs_help: str = ''
 
     def convert(self, name, value):
-        """Convert a value from the command line or a pipeline file to what the function expects."""
+        """Convert a value from the command line or a pipeline file to what the function expects; the text None is
+        None, the default of an optional argument, and a UsageError for a required one."""
         p = next(q for q in self.params if q.name == name)
         if value is None:
-            return None
+            return None             # from Python, or a pipeline variable of a file not made yet
         if p.kind == 'pairs':
+            if isinstance(value, str) and literal(value) is None:
+                return self._none(p)
             if isinstance(value, str) and isinstance(literal(value), str):
                 return value            # a file, read in `execute`: it may be made by an earlier pipeline step
             return image_pairs(value)
@@ -204,12 +210,20 @@ class Command:
                 return value.strip().lower() == 'true'
             return bool(value)
         value = literal(value)
+        if value is None:
+            return self._none(p)
         if isinstance(value, str) and (p.type_doc or '').split(',')[0].strip() in ('float', 'int'):
             hint = ' (an empty value: a --var NAME= without a value?)' if value == '' else ''
             raise UsageError(f'{self.name}: argument {name} = {value!r} is not a number{hint}')
         if isinstance(value, list) and 'tuple' in p.type_doc:
             value = tuple(value)
         return value
+
+    def _none(self, p):
+        """None for an optional argument; a required argument has no default and None is not one of its values"""
+        if p.required:
+            raise UsageError(f'{self.name}: argument {p.name} is required and cannot be None: {p.help}')
+        return None
 
 
 def _kind(p):

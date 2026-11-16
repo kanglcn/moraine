@@ -5,6 +5,7 @@ __all__ = ['emperical_co', 'emperical_co_pc', 'uncompress_single_coh_numba', 'un
 import math
 import numpy as np
 from ..utils_.device import is_cuda_available, get_array_module
+from ..utils_.errors import ArgumentError
 from ..utils_.jit import mcuda_jit
 if is_cuda_available():
     from numba import cuda
@@ -710,7 +711,7 @@ def _shp_n_looks(pc_is_shp:np.ndarray,
     """
     xp = get_array_module(pc_is_shp)
     if pc_is_shp.shape[2] > 64:
-        raise ValueError('SHP windows wider than 64 pixels in range are not supported')
+        raise ArgumentError('SHP windows wider than 64 pixels in range are not supported')
     max_az, max_r = (rho2.shape[0]-1)//2, (rho2.shape[1]-1)//2
     rho2 = xp.ascontiguousarray(xp.asarray(rho2, dtype=np.float32))
     pc_is_shp = xp.ascontiguousarray(pc_is_shp)

@@ -5,6 +5,7 @@ __all__ = ['pc_union', 'pc_intersect', 'pc_diff']
 import numpy as np
 from ..utils_.device import get_array_module
 from ..utils_.jit import ngjit
+from ..utils_.errors import ArgumentError
 from .index import _ravel_gix, _unravel_gix, _check_idx_sorted
 
 def _ras_dims(
@@ -32,7 +33,7 @@ def _ras_dims(
     """
     for which, gix in (('first', gix1), ('second', gix2)):
         if gix.shape[0] == 0:
-            raise ValueError(f'shape (nlines, width) is needed when a grid index is empty: the {which} grid index '
+            raise ArgumentError(f'shape (nlines, width) is needed when a grid index is empty: the {which} grid index '
                              'has no points')
     xp = get_array_module(gix1)
     dims_az = max(int(gix1[-1,0]),int(gix2[-1,0]))+1
@@ -43,7 +44,7 @@ def _flat_idx(idx1, idx2, shape):
     """The indices of the two point clouds of `pc_union`, `pc_intersect` or `pc_diff` as 1D indices, checked to be
     sorted and unique, and the raster shape of grid indices (None for hilbert indices)."""
     if idx1.ndim != idx2.ndim or idx1.ndim not in (1, 2):
-        raise ValueError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
+        raise ArgumentError(f'idx1 and idx2 must both be gix (n_points, 2) or both hix (n_points,), got {idx1.ndim} and {idx2.ndim} dimensions')
     dims = None
     if idx1.ndim == 2:
         dims = shape if shape is not None else _ras_dims(idx1,idx2)

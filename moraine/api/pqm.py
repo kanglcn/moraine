@@ -9,6 +9,7 @@ from .utils_.jit import mcuda_jit
 from numba import prange
 from .utils_.jit import ngpjit, ngjit
 from .tnet import TempNet
+from .utils_.errors import ArgumentError
 
 @ngpjit
 def _temp_coh_pc_numba(
@@ -92,7 +93,7 @@ def temp_coh(
     """
     xp = get_array_module(intf)
     if intf.ndim != rslc.ndim:
-        raise ValueError(f'intf and rslc must both be rasters or both point clouds, got {intf.ndim} and {rslc.ndim} dimensions')
+        raise ArgumentError(f'intf and rslc must both be rasters or both point clouds, got {intf.ndim} and {rslc.ndim} dimensions')
     if intf.ndim == 3:
         # convert to pc
         is_ras = True
@@ -223,29 +224,29 @@ def _phase_per_m(slant_range, theta, wavelength):
 def _check_su_inputs(intf, rslc, bperp, slant_range, theta, wavelength, image_pairs, max_dh):
     """checked image pairs (int32) of the inputs of `pc_su_dem_error`"""
     if rslc.ndim != 2 or intf.ndim != 2:
-        raise ValueError(f'intf and rslc must have shape (n_points, n_pairs) and (n_points, nimages), got shapes '
+        raise ArgumentError(f'intf and rslc must have shape (n_points, n_pairs) and (n_points, nimages), got shapes '
                          f'{tuple(intf.shape)} and {tuple(rslc.shape)}')
     n_points, nimages = rslc.shape
     for name, x in (('intf', intf), ('rslc', rslc)):
         if not np.issubdtype(x.dtype, np.complexfloating):
-            raise ValueError(f'{name} must be complex, got {x.dtype}')
+            raise ArgumentError(f'{name} must be complex, got {x.dtype}')
     for name, x, shape in (('intf', intf, (n_points, intf.shape[1])), ('bperp', bperp, (n_points, nimages)),
                            ('slant_range', slant_range, (n_points,)), ('theta', theta, (n_points,))):
         if tuple(x.shape) != shape:
-            raise ValueError(f'{name} must have shape {shape}, got shape {tuple(x.shape)}')
+            raise ArgumentError(f'{name} must have shape {shape}, got shape {tuple(x.shape)}')
     for name, x in (('bperp', bperp), ('slant_range', slant_range), ('theta', theta)):
         if not np.issubdtype(x.dtype, np.floating):
-            raise ValueError(f'{name} must be floating point, got {x.dtype}')
+            raise ArgumentError(f'{name} must be floating point, got {x.dtype}')
     if not 0 < float(wavelength) < 1:
-        raise ValueError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
+        raise ArgumentError(f'wavelength must be in meters, between 0 and 1, got {wavelength}')
     if not float(max_dh) > 0:
-        raise ValueError(f'max_dh must be positive, got {max_dh}')
+        raise ArgumentError(f'max_dh must be positive, got {max_dh}')
     if image_pairs is None:
         image_pairs = TempNet.from_bandwidth(nimages).image_pairs
     image_pairs = np.asarray(image_pairs).astype(np.int32)
     if image_pairs.ndim != 2 or image_pairs.shape != (intf.shape[1], 2) or \
        (image_pairs.size and (image_pairs.min() < 0 or image_pairs.max() >= nimages)):
-        raise ValueError(f'intf has {intf.shape[1]} interferograms of {nimages} images, but image_pairs has shape '
+        raise ArgumentError(f'intf has {intf.shape[1]} interferograms of {nimages} images, but image_pairs has shape '
                          f'{image_pairs.shape} with images {image_pairs.min() if image_pairs.size else "-"} to '
                          f'{image_pairs.max() if image_pairs.size else "-"}')
     return image_pairs

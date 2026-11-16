@@ -8,6 +8,7 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.command import main
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr, json_out
 
 
@@ -29,9 +30,9 @@ def test_write_read_polygons(tmp_path):
         'type': 'MultiPolygon', 'coordinates': [[[[0, 0], [1, 0], [1, 1], [0, 0]]], [[[5, 5], [6, 5], [6, 6]]]]}}))
     polys, coords = mr.read_polygons(tmp_path / 'q.geojson')
     assert coords == 'lonlat' and [len(q) for q in polys] == [3, 3]
-    with pytest.raises(ValueError, match='3 vertices'):
+    with pytest.raises(ArgumentError, match='3 vertices'):
         mr.write_polygons(tmp_path / 'r.geojson', [[[0, 0], [1, 1]]])
-    with pytest.raises(ValueError, match='coordinates'):
+    with pytest.raises(ArgumentError, match='coordinates'):
         mr.write_polygons(tmp_path / 'r.geojson', [SQUARE], 'utm')
 
 
@@ -70,9 +71,9 @@ def test_polygon_mask_points(tmp_path):
     mc.polygon_mask(str(tmp_path / 'geo.geojson'), str(tmp_path / 'g.zarr'), x=str(tmp_path / 'lon.zarr'),
                     y=str(tmp_path / 'lat.zarr'), keep='outside')
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 'g.zarr'), mode='r')[:], [False, True, False])
-    with pytest.raises(ValueError, match='longitude'):
+    with pytest.raises(ArgumentError, match='longitude'):
         mc.polygon_mask(str(tmp_path / 'geo.geojson'), str(tmp_path / 'x.zarr'), gix=str(tmp_path / 'gix.zarr'))
-    with pytest.raises(ValueError, match='exactly one'):
+    with pytest.raises(ArgumentError, match='exactly one'):
         mc.polygon_mask(str(tmp_path / 'grid.geojson'), str(tmp_path / 'x.zarr'), gix=str(tmp_path / 'gix.zarr'),
                         shape=(8, 16))
 

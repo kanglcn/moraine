@@ -7,6 +7,7 @@ import pytest
 from moraine.api.pc import pc_hix, pc_gix, pc_sort, pc2ras, pc_union, pc_intersect, pc_diff
 from moraine.api.pc.index import _unravel_gix, _check_idx_sorted
 from moraine.api.pc.raster import _pc_split_by_chunk, _gix_ras_chunk
+from moraine.api.utils_ import ArgumentError
 from conftest import random_gix
 
 
@@ -151,7 +152,7 @@ def test_empty_gix_needs_shape(gpu):
     g, e = xp.asarray(GIX1), xp.asarray(GIX1[:0])
     for fn in (pc_union, pc_intersect, pc_diff):
         for a, b, which in ((g, e, 'second'), (e, g, 'first'), (e, e, 'first')):
-            with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+            with pytest.raises(ArgumentError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
                                                  f'the {which} grid index has no points'):
                 fn(a, b)
     gix, inv1, inv2, iidx2 = map(_get, pc_union(e, g, shape=(4, 4)))
@@ -168,7 +169,7 @@ def test_pc_sort_empty_gix_needs_shape(gpu):
     (numpy's "zero-size array to reduction operation maximum which has no identity" before); with `shape`, as for an
     empty hilbert index, there is nothing to sort. A grid index with points needs no `shape`."""
     xp = _xp(gpu)
-    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+    with pytest.raises(ArgumentError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
                                          'the grid index has no points'):
         pc_sort(xp.asarray(GIX1[:0]))
     for key in (pc_sort(xp.asarray(GIX1[:0]), shape=(4, 4)), pc_sort(xp.asarray(HIX1[:0]))):

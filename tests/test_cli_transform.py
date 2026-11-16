@@ -3,6 +3,7 @@ import pytest
 import zarr
 
 import moraine.cli as mc
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr
 
 pyproj = pytest.importorskip('pyproj')
@@ -47,10 +48,10 @@ def test_transform_errors(tmp_path):
     xx = write_zarr(tmp_path / 'lon.zarr', np.full((4, 5), 14.0), (2, 5))
     yy = write_zarr(tmp_path / 'lat.zarr', np.full((4, 5), 40.8), (2, 5))
     e, n = str(tmp_path / 'e.zarr'), str(tmp_path / 'n.zarr')
-    with pytest.raises(ValueError, match='shape'):
+    with pytest.raises(ArgumentError, match='shape'):
         mc.transform(xx, write_zarr(tmp_path / 'lat_t.zarr', np.zeros((5, 4)), (5, 4)), e, n)
     for outputs in [(xx, n), (e, yy), (e, e)]:
-        with pytest.raises(ValueError, match='other than the inputs'):
+        with pytest.raises(ArgumentError, match='other than the inputs'):
             mc.transform(xx, yy, *outputs)
     with pytest.raises(pyproj.exceptions.CRSError):
         mc.transform(xx, yy, e, n, epsg_out=1)

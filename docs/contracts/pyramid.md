@@ -39,6 +39,8 @@ attribute `columns` (nan_fraction, min, max, mean, std, p01, p50, p99), has the 
   data over the finite pixels (nan where all are nan; complex data averaged as complex numbers), same dtype for
   floating point and complex data, float32 for integer and boolean data.
 - Chunks are `(chunks[0], chunks[1], 1, ...)` (default `(256, 256)`).
+- A raster pyramid has at least one value: `ras-pyramid` rejects an empty raster or stack, e.g. of shape (0, width)
+  or (nlines, width, 0).
 
 ## Point cloud pyramid (`pc-pyramid`)
 

@@ -10,6 +10,7 @@ from moraine.command import main, JSON_VERSION, UsageError
 from moraine.command.pipeline import load_pipeline, PIPELINE_VERSION
 from moraine.command.summary import pyramid_levels, summarize
 from moraine.cli.plot import PYRAMID_VERSION
+from moraine.api.utils_ import ArgumentError
 from conftest import REPO, write_zarr, json_out, random_gix
 
 CONTRACTS = REPO / 'docs' / 'contracts'
@@ -87,6 +88,20 @@ def test_json_processing_command_list_info_error(tmp_path, capsys, rng):
     out = json_out(capsys)
     assert out['ok'] is False
     _check(out, 'Every output', 'error')
+
+
+def test_json_usage_error_of_a_command(tmp_path, capsys):
+    """Arguments that a processing command does not accept are a usage error, found by the command or by the API
+    function it calls (decision 0052): exit code 2 and the error output."""
+    ras = write_zarr(tmp_path / 'ras.zarr', np.zeros((8, 8), np.float32))
+    empty = write_zarr(tmp_path / 'empty.zarr', np.zeros((0, 2), np.int32), (10, 2))
+    capsys.readouterr()
+    for argv in (['ras-pyramid', '--ras', ras, '--out_dir', str(tmp_path / 'pyr'), '--rows', '3'],
+                 ['pc-sort', '--idx_in', empty, '--idx', str(tmp_path / 'idx.zarr')]):
+        assert main(argv + ['--json', '-q']) == 2
+        out = json_out(capsys)
+        assert out['ok'] is False and not out['error'].startswith('ValueError')
+        _check(out, 'Every output', 'error')
 
 
 @pytest.mark.parametrize('data', [
@@ -213,7 +228,7 @@ def test_raster_pyramid_layout(tmp_path, rng, rows):
         np.testing.assert_array_equal(z[:], ras[::2**level, ::2**level])
         assert z.chunks == (16, 16, 1)
     assert pyramid_levels(pyr) == list(range(maxlevel + 1))
-    with pytest.raises(ValueError, match='power of 2'):
+    with pytest.raises(ArgumentError, match='power of 2'):
         mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr2'), rows=100)
 
 
@@ -257,9 +272,65 @@ def test_point_cloud_pyramid_has_points(tmp_path):
     error = f'the point cloud is empty: {tmp_path / "pc.zarr"} has no points; a point cloud pyramid needs at least one'
     for coordinates in ({'x': str(tmp_path / 'x.zarr'), 'y': str(tmp_path / 'y.zarr')},
                         {'yx': str(tmp_path / 'yx.zarr')}):
-        with pytest.raises(ValueError, match=re.escape(error)):
+        with pytest.raises(ArgumentError, match=re.escape(error)):
             mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(out), **coordinates)
         assert [p.name for p in out.iterdir()] == ['old']
+
+
+def test_raster_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp_path, capsys):
+    """ras-pyramid of an empty raster or of data without the 2 dimensions of a raster is an argument error before the
+    output directory is cleaned (it was cleaned, then "math domain error", "Chunk size must be positive or -1, got 0",
+    "not enough values to unpack"); on the command line a usage error (exit code 2)."""
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    for name, shape, error in [
+            ('lines.zarr', (0, 5), 'the raster is empty: {path} has shape (0, 5); a raster pyramid needs at least one value'),
+            ('stack.zarr', (4, 5, 0), 'the raster is empty: {path} has shape (4, 5, 0); a raster pyramid needs at least '
+                                      'one value'),
+            ('line.zarr', (5,), 'ras must have shape (nlines, width) or (nlines, width, ...), got (5,)')]:
+        path = str(tmp_path / name)
+        zarr.open(path, mode='w', shape=shape, dtype=np.float32, chunks=tuple(max(1, n) for n in shape))
+        error = error.format(path=path)
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mc.ras_pyramid(path, str(out))
+        assert [p.name for p in out.iterdir()] == ['old']
+        capsys.readouterr()
+        assert main(['ras-pyramid', '--ras', path, '--out_dir', str(out), '--json', '-q']) == 2
+        assert json_out(capsys)['error'] == error and [p.name for p in out.iterdir()] == ['old']
+
+
+def test_point_cloud_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp_path, capsys, rng):
+    """pc-pyramid checks the coordinates before it cleans the output directory: the shape of yx, the shapes of x and
+    y, the number of points of the coordinates against that of pc, and that they are given; and a point cloud without
+    values. These are argument errors, on the command line usage errors (exit code 2). The output directory was
+    cleaned before the shape of yx was checked, and the other cases failed later (a shape mismatch while the points
+    were rendered, "could not broadcast", a zarr error of a missing path), or wrote a broken pyramid."""
+    w = lambda name, data: write_zarr(tmp_path / name, data, tuple(max(1, n) for n in data.shape))
+    pc, pc0 = w('pc.zarr', rng.random(10).astype(np.float32)), w('pc0.zarr', np.zeros((10, 0), np.float32))
+    x8, x10, y10 = (w(f'{n}.zarr', rng.random(int(n[1:])).astype(np.float32)) for n in ('x8', 'x10', 'y10'))
+    yx8, yx3 = w('yx8.zarr', rng.random((8, 2)).astype(np.float32)), w('yx3.zarr', rng.random((10, 3)).astype(np.float32))
+    yx10 = w('yx10.zarr', rng.random((10, 2)).astype(np.float32))
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    for data, coordinates, error in [
+            (pc, dict(yx=yx3), 'yx must have shape (n_points, 2), got (10, 3)'),
+            (pc, dict(yx=yx8), 'pc (10,) and the coordinates yx (8, 2) have different numbers of points'),
+            (pc, dict(x=x8, y=y10), 'x and y must have shape (n_points,), got (8,) and (10,)'),
+            (pc, dict(x=x8, y=x8), 'pc (10,) and the coordinates x, y (8,) have different numbers of points'),
+            (pc, dict(x=x10), 'give both `x` and `y`, or `yx`'),
+            (pc, dict(y=y10, yx=yx10), 'give both `x` and `y`, or `yx`'),
+            (pc, {}, 'give the coordinates of the points with `x` and `y` or with `yx`'),
+            (pc0, dict(yx=yx10), f'the point cloud is empty: {pc0} has shape (10, 0); a point cloud pyramid needs at '
+                                 'least one value')]:
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mc.pc_pyramid(data, str(out), **coordinates)
+        assert [p.name for p in out.iterdir()] == ['old']
+        capsys.readouterr()
+        argv = [a for k, v in coordinates.items() for a in (f'--{k}', v)]
+        assert main(['pc-pyramid', '--pc', data, '--out_dir', str(out), *argv, '--json', '-q']) == 2
+        assert json_out(capsys)['error'] == error and [p.name for p in out.iterdir()] == ['old']
+    mc.pc_pyramid(pc, str(out), x=x10, y=y10, ras_resolution=0.1)      # the right inputs make the pyramid
+    assert (out / 'pc.zarr').exists() and not (out / 'old').exists()
 
 
 def _block_means(a, f):
@@ -302,7 +373,7 @@ def test_raster_pyramid_mean(tmp_path, rng):
     assert z.dtype == np.float32
     np.testing.assert_allclose(z[:], _block_means(n.astype(np.float64), 2), rtol=1e-6)
     assert summarize(str(tmp_path / 'npyr'))['method'] == 'mean'
-    with pytest.raises(ValueError, match='method'):
+    with pytest.raises(ArgumentError, match='method'):
         mc.ras_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'bad'), method='average')
 
 
@@ -333,7 +404,7 @@ def test_point_cloud_pyramid_mean(tmp_path, rng):
         assert z.dtype == np.float32 and np.isnan(z[0, 1]) and z[0, 0] == counts[0]      # (0, 1): no point
         s = summarize(str(tmp_path / f'n_{method}'))
         assert s['dtype'] == 'int16' and s['method'] == method and s['min'] == 1
-    with pytest.raises(ValueError, match='method'):
+    with pytest.raises(ArgumentError, match='method'):
         mc.pc_pyramid(str(tmp_path / 'n.zarr'), str(tmp_path / 'bad'), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
                       ras_resolution=1, method='decimate')
 

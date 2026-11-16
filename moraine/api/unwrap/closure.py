@@ -7,6 +7,7 @@ import warnings
 import numpy as np
 from numba import prange
 from ..utils_.jit import mjit
+from ..utils_.errors import ArgumentError
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 
@@ -380,17 +381,17 @@ def unwrap_correct_closure_pc(
     unw = np.asarray(unw)
     pairs = np.asarray(image_pairs)
     if ph.ndim != 2 or unw.ndim != 2 or unw.shape[0] != ph.shape[0]:
-        raise ValueError(f'ph (n_points, nimages) and unw (n_points, n_pairs) do not match: {ph.shape}, {unw.shape}')
+        raise ArgumentError(f'ph (n_points, nimages) and unw (n_points, n_pairs) do not match: {ph.shape}, {unw.shape}')
     if pairs.shape != (unw.shape[1], 2) or not np.issubdtype(pairs.dtype, np.integer):
-        raise ValueError(f'image_pairs must be integers of shape ({unw.shape[1]}, 2), got {pairs.dtype} {pairs.shape}')
+        raise ArgumentError(f'image_pairs must be integers of shape ({unw.shape[1]}, 2), got {pairs.dtype} {pairs.shape}')
     if pairs.min() < 0 or pairs.max() >= ph.shape[1] or (pairs[:, 0] == pairs[:, 1]).any():
-        raise ValueError(f'image_pairs must pair two different images of 0 .. {ph.shape[1] - 1}')
+        raise ArgumentError(f'image_pairs must pair two different images of 0 .. {ph.shape[1] - 1}')
     if not 0 <= int(ref) < ph.shape[1]:
-        raise ValueError(f'ref must be an image index of 0 .. {ph.shape[1] - 1}, got {ref}')
+        raise ArgumentError(f'ref must be an image index of 0 .. {ph.shape[1] - 1}, got {ref}')
     if not max_edge_factor > 1:
-        raise ValueError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
+        raise ArgumentError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
     if int(min_region_points) < 1:
-        raise ValueError(f'min_region_points must be at least 1, got {min_region_points}')
+        raise ArgumentError(f'min_region_points must be at least 1, got {min_region_points}')
     pairs = np.ascontiguousarray(pairs, dtype=np.int64)
     order, parent, n_loops = _pair_forest(pairs, ph.shape[1])
     _check_connected(parent)
@@ -415,7 +416,7 @@ def unwrap_correct_closure_pc(
 def _check_connected(parent):
     n_parts = int((parent < 0).sum())
     if n_parts > 1:
-        raise ValueError(f'image_pairs must connect all images, they make {n_parts} separate groups of images')
+        raise ArgumentError(f'image_pairs must connect all images, they make {n_parts} separate groups of images')
 
 
 def _check_rewrap(dev, name='unw'):

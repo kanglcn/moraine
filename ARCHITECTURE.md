@@ -49,9 +49,10 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/__main__.py` | `python -m moraine` entry point | |
 | `moraine/api/__init__.py` | re-exports the public names of the foundations and stages below (`__all__`) | |
 | *internal utilities* | | |
-| `moraine/api/utils_/__init__.py` | internal utilities, not re-exported as `moraine.*`; re-exports the names of `jit.py` and `device.py` as `moraine.api.utils_.*` | |
+| `moraine/api/utils_/__init__.py` | internal utilities, not re-exported as `moraine.*`; re-exports the names of `jit.py`, `device.py` and `errors.py` as `moraine.api.utils_.*` | |
 | `moraine/api/utils_/jit.py` | numba decorators with the compiled code cached by source hash (decision 0029) | `mjit`, `ngjit`, `ngpjit`, `mcuda_jit` |
 | `moraine/api/utils_/device.py` | GPU detection, numpy / cupy dispatch, available cores and memory | `is_cuda_available`, `get_array_module`, `get_mem_avail` |
+| `moraine/api/utils_/errors.py` | the error of wrong arguments, a ValueError that the command line reports as a usage error (decision 0052) | `ArgumentError` |
 | `moraine/api/utils_/chunk.py` | slices and halos for chunkwise processing of rasters and point clouds | `chunkwise_slicing_mapping`, `chunkwise_knn_mapping` |
 | `moraine/api/utils_/coord.py` | regular coordinate grid, coordinate <-> grid index, rasterization | `Coord` |
 | `moraine/api/utils_/gamma_io.py` | read / write GAMMA binary files | `read_gamma_image` |
@@ -99,7 +100,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr log helper | |
 | `moraine/cli/zarr_.py` | parallel zarr read / write, directories of per chunk zarrs | |
 | `moraine/cli/executor.py` | `Executor`: the workers of a command (threads of the process, spawned processes, one per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`) | |
-| `moraine/cli/utils_.py` | small helpers (clean output directories, write TOML files: `meta.toml`, `bounds.toml`); `ArgumentError`, the arguments a command rejects as not fitting together (a usage error on the command line) | |
+| `moraine/cli/utils_.py` | small helpers (clean output directories, write TOML files: `meta.toml`, `bounds.toml`); `ArgumentError` of `moraine/api/utils_/errors.py`, also importable from here | |
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs; the perpendicular baselines from the orbits of the par files) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |

@@ -9,6 +9,7 @@ import pytest
 import zarr
 
 import moraine.cli as mc
+from moraine.api.utils_ import ArgumentError
 from conftest import data_path, need_gamma, write_zarr
 
 NLINES, WIDTH, NIMAGES, REF = 2500, 1834, 17, '20220620'
@@ -181,10 +182,10 @@ def test_load_gamma_bperp_synthetic(tmp_path):
 
 def test_load_gamma_bperp_errors(tmp_path):
     rslc_dir, rasters, _ = _synthetic_gamma(tmp_path)
-    with pytest.raises(ValueError, match='not a date'):
+    with pytest.raises(ArgumentError, match='not a date'):
         mc.load_gamma_bperp(str(rslc_dir), '20200102', *rasters, str(tmp_path / 'b.zarr'))
     zarr.open(str(tmp_path / 'bad.zarr'), mode='w', shape=(3, 3), dtype=np.float32)
-    with pytest.raises(ValueError, match='shape'):
+    with pytest.raises(ArgumentError, match='shape'):
         mc.load_gamma_bperp(str(rslc_dir), '20200113', rasters[0], rasters[1], str(tmp_path / 'bad.zarr'),
                             str(tmp_path / 'b.zarr'))
     other = tmp_path / 'other'

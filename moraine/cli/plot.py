@@ -22,7 +22,7 @@ from ..api.pc.rtree import HilbertRtree
 from .logging import mc_logger
 from ..api.utils_.coord import Coord
 from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
-from .utils_ import write_toml
+from .utils_ import ArgumentError, write_toml
 
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
@@ -244,7 +244,7 @@ def ras_pyramid(
     Parameters
     ----------
     ras : str
-        input: 2D raster (nlines, width) or raster stack (nlines, width, n)
+        input: 2D raster (nlines, width) or raster stack (nlines, width, n), not empty
     out_dir : str
         output directory to store rendered data
     chunks : tuple[int, int], default: (256, 256)
@@ -263,15 +263,19 @@ def ras_pyramid(
         renders one channel of the raster
     """
     if rows < 1 or rows & (rows - 1):
-        raise ValueError(f'rows must be a power of 2, not {rows}')
+        raise ArgumentError(f'rows must be a power of 2, not {rows}')
     if method not in _METHODS['raster']:
-        raise ValueError(f"method must be one of {_METHODS['raster']}, not {method!r}")
+        raise ArgumentError(f"method must be one of {_METHODS['raster']}, not {method!r}")
     logger = logging.getLogger(__name__)
-    logger.info('clean out dir')
-    out_dir = Path(out_dir); mk_clean_dir(out_dir)
-
     ras_zarr = zarr.open(ras,mode='r')
     logger.zarr_info(ras, ras_zarr)
+    if ras_zarr.ndim < 2:
+        raise ArgumentError(f'ras must have shape (nlines, width) or (nlines, width, ...), got {ras_zarr.shape}')
+    if ras_zarr.size == 0:          # no level (log2 of 0 lines) or no channel to render
+        raise ArgumentError(f'the raster is empty: {ras} has shape {ras_zarr.shape}; a raster pyramid needs at least '
+                            'one value')
+    logger.info('clean out dir')
+    out_dir = Path(out_dir); mk_clean_dir(out_dir)
 
     ny, nx = ras_zarr.shape[0:2]
     n_channel = ras_zarr.ndim-2
@@ -388,9 +392,10 @@ def pc_pyramid(
     out_dir : str
         output directory to store rendered data
     x : str, optional
-        input: x coordinate of the points, e.g. longitude or web mercator x
+        input: x coordinate of the points, shape (n_points,), e.g. longitude or web mercator x; with `y`, or
+        `yx`
     y : str, optional
-        input: y coordinate of the points, e.g. latitude or web mercator y
+        input: y coordinate of the points, shape (n_points,), e.g. latitude or web mercator y
     yx : str, optional
         input: (y, x) coordinates of the points, shape (n_points, 2), e.g. gix; alternative to `x` and
         `y`
@@ -410,27 +415,43 @@ def pc_pyramid(
         holds one channel: the data of the points and the finest raster of the channel (3 rasters with 'mean')
     """
     if method not in _METHODS['point cloud']:
-        raise ValueError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
+        raise ArgumentError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
     logger = logging.getLogger(__name__)
     pc_zarr = zarr.open(pc,mode='r')
     logger.zarr_info(pc, pc_zarr)
     if pc_zarr.shape[0] == 0:       # the grid of the levels is placed on the points (docs/contracts/pyramid.md)
-        raise ValueError(f'the point cloud is empty: {pc} has no points; a point cloud pyramid needs at least one')
+        raise ArgumentError(f'the point cloud is empty: {pc} has no points; a point cloud pyramid needs at least one')
+    if pc_zarr.size == 0:
+        raise ArgumentError(f'the point cloud is empty: {pc} has shape {pc_zarr.shape}; a point cloud pyramid needs '
+                            'at least one value')
+    if x is None and y is None:
+        if yx is None:
+            raise ArgumentError('give the coordinates of the points with `x` and `y` or with `yx`')
+        yx_zarr = zarr.open(yx,mode='r'); logger.zarr_info(yx, yx_zarr)
+        if yx_zarr.ndim != 2 or yx_zarr.shape[1] != 2:
+            raise ArgumentError(f'yx must have shape (n_points, 2), got {yx_zarr.shape}')
+        coords, n_coords = f'yx {yx_zarr.shape}', yx_zarr.shape[0]
+    else:
+        if x is None or y is None:
+            raise ArgumentError('give both `x` and `y`, or `yx`')
+        x_zarr, y_zarr = zarr.open(x,mode='r'), zarr.open(y,mode='r')
+        logger.zarr_info(x, x_zarr); logger.zarr_info(y, y_zarr)
+        if x_zarr.ndim != 1 or y_zarr.shape != x_zarr.shape:
+            raise ArgumentError(f'x and y must have shape (n_points,), got {x_zarr.shape} and {y_zarr.shape}')
+        coords, n_coords = f'x, y {x_zarr.shape}', x_zarr.shape[0]
+    if n_coords != pc_zarr.shape[0]:
+        raise ArgumentError(f'pc {pc_zarr.shape} and the coordinates {coords} have different numbers of points')
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)
 
     channel_chunks = (1,)*(pc_zarr.ndim-1)
     logger.info(f'rendering point cloud data coordinates:')
     if x is None and y is None:
-        yx_zarr = zarr.open(yx,mode='r')
-        if yx_zarr.ndim != 2 or yx_zarr.shape[1] != 2:
-            raise ValueError(f'yx must have shape (n_points, 2), got {yx_zarr.shape}')
         yx = parallel_read_zarr(yx_zarr,(slice(None),slice(0,2)))
     else:
-        y_zarr = zarr.open(y,mode='r')
         yx = np.empty((y_zarr.shape[0],2),dtype=y_zarr.dtype)
-        yx[:,0] = parallel_read_zarr(zarr.open(y,mode='r'),(slice(None),))
-        yx[:,1] = parallel_read_zarr(zarr.open(x,mode='r'),(slice(None),))
+        yx[:,0] = parallel_read_zarr(y_zarr,(slice(None),))
+        yx[:,1] = parallel_read_zarr(x_zarr,(slice(None),))
     x, y = yx[:,1], yx[:,0]
 
     x0, xm, y0, ym = x.min(), x.max(), y.min(), y.max()

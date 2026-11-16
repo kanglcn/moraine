@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from moraine.api.utils_.expr import evaluate
+from moraine.api.utils_ import ArgumentError
 
 _rng = np.random.default_rng(0)
 F = _rng.normal(size=(30, 40)).astype(np.float32)
@@ -91,5 +92,5 @@ def test_no_warnings_for_invalid_values():
     ('where(f > 0, x=1, y=2)', 'keyword arguments of where()'),
 ])
 def test_errors(expression, message):
-    with pytest.raises(ValueError, match=re.escape(message)):
+    with pytest.raises(ArgumentError, match=re.escape(message)):
         evaluate(expression, ARRAYS)

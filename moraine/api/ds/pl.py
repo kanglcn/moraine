@@ -12,6 +12,7 @@ if is_cuda_available():
 import numba
 from numba import prange
 from ..utils_.jit import ngpjit, ngjit
+from ..utils_.errors import ArgumentError
 from ..tnet import TempNet, nimage_from_npair
 from .co import emperical_co_pc, uncompress_coh, _rslc_rho2, _n_looks
 from .linalg_ import (_inv_pivot, _tridiag_real, _tridiag_cplx, _gershgorin, _eig_index,
@@ -504,7 +505,7 @@ def ds_temp_coh(coh:np.ndarray,
     n_points, n_images = ph.shape
     if n_looks is not None:
         if not 1e-6 <= alpha <= 0.5:
-            raise ValueError(f'alpha must be between 1e-6 and 0.5, not {alpha}')
+            raise ArgumentError(f'alpha must be between 1e-6 and 0.5, not {alpha}')
         log_p = np.float32(math.log(_edge_pfa(n_images, float(alpha))))
     else:
         log_p = np.float32(0.0)
@@ -512,7 +513,7 @@ def ds_temp_coh(coh:np.ndarray,
     if xp is not np and n_looks is not None:
         shared_bytes = block_size//32*n_images*4
         if shared_bytes > _MAX_SHARED_BYTES:
-            raise ValueError(f'block_size x nimages must be at most {_MAX_SHARED_BYTES*8} on a GPU, not {block_size*n_images}')
+            raise ArgumentError(f'block_size x nimages must be at most {_MAX_SHARED_BYTES*8} on a GPU, not {block_size*n_images}')
     if image_pairs is None:
         image_pairs = TempNet.from_bandwidth(ph.shape[-1]).image_pairs
     image_pairs = xp.asarray(image_pairs, dtype=np.int32)

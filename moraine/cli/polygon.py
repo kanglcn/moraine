@@ -10,6 +10,7 @@ import zarr
 
 from ..api.polygon import read_polygons, polygons_contain
 from .logging import mc_logger
+from .utils_ import ArgumentError
 
 
 def _chunk_slices(shape, chunks):
@@ -58,23 +59,23 @@ def polygon_mask(
     """
     logger = logging.getLogger(__name__)
     if keep not in ('inside', 'outside'):
-        raise ValueError(f"keep must be 'inside' or 'outside', not {keep!r}")
+        raise ArgumentError(f"keep must be 'inside' or 'outside', not {keep!r}")
     given = [name for name, v in (('x/y', x if x is not None else y), ('gix', gix), ('shape', shape)) if v is not None]
     if len(given) != 1:
-        raise ValueError('give the data positions with exactly one of `x` and `y`, `gix` or `shape`')
+        raise ArgumentError('give the data positions with exactly one of `x` and `y`, `gix` or `shape`')
     polys, coordinates = read_polygons(polygons)
     logger.info(f'{len(polys)} polygons in {coordinates} coordinates read from {polygons}')
     if coordinates == 'lonlat' and x is None:
-        raise ValueError(f'{polygons} has longitude / latitude polygons: give the longitude and latitude of the '
+        raise ArgumentError(f'{polygons} has longitude / latitude polygons: give the longitude and latitude of the '
                          f'data as `x` and `y`')
 
     if x is not None:
         if y is None:
-            raise ValueError('give `y` with `x`')
+            raise ArgumentError('give `y` with `x`')
         x_zarr, y_zarr = zarr.open(x, mode='r'), zarr.open(y, mode='r')
         logger.zarr_info(x, x_zarr); logger.zarr_info(y, y_zarr)
         if x_zarr.shape != y_zarr.shape:
-            raise ValueError(f'x {x_zarr.shape} and y {y_zarr.shape} have different shapes')
+            raise ArgumentError(f'x {x_zarr.shape} and y {y_zarr.shape} have different shapes')
         out_shape, out_chunks = x_zarr.shape, x_zarr.chunks
         def positions(sl):
             return x_zarr[sl], y_zarr[sl]
@@ -82,7 +83,7 @@ def polygon_mask(
         gix_zarr = zarr.open(gix, mode='r')
         logger.zarr_info(gix, gix_zarr)
         if gix_zarr.ndim != 2 or gix_zarr.shape[1] != 2:
-            raise ValueError(f'gix must have shape (n_points, 2), not {gix_zarr.shape}')
+            raise ArgumentError(f'gix must have shape (n_points, 2), not {gix_zarr.shape}')
         out_shape, out_chunks = gix_zarr.shape[:1], gix_zarr.chunks[:1]
         def positions(sl):
             g = gix_zarr[sl[0]]

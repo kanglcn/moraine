@@ -166,6 +166,109 @@ def test_arguments_a_command_rejects_are_usage_errors(tmp_path, capsys, rng):
     assert main(args + ['--shape', '40', '30']) == 0 and json_out(capsys)['ok']
 
 
+@pytest.mark.parametrize('case', ['pc-union', 'pc-sort', 'ras-pyramid rows', 'ras-pyramid method', 'pc-pyramid method',
+                                  'polygon-mask', 'image-pairs', 'math'])
+def test_argument_errors_of_the_api_and_the_cli_are_usage_errors(tmp_path, capsys, rng, case):
+    """Argument errors are usage errors wherever they are found, in the API or the CLI (decision 0052): exit code 2,
+    the message as the JSON error and on stderr, without the name of the exception and the --traceback hint, and no
+    output. They were processing errors (exit code 1, "ValueError: ...")."""
+    import moraine as mr
+    w = lambda name, data: write_zarr(tmp_path / name, data)
+    gix = w('gix.zarr', random_gix(rng, (40, 30), 50))
+    empty = write_zarr(tmp_path / 'empty.zarr', np.zeros((0, 2), np.int32), (100, 2))
+    ras, pc = w('ras.zarr', rng.random((16, 16)).astype(np.float32)), w('pc.zarr', rng.random(50).astype(np.float32))
+    polygons = str(tmp_path / 'p.geojson')
+    mr.write_polygons(polygons, [[(0, 0), (20, 0), (0, 20)]], 'radar_grid')
+    out = str(tmp_path / 'out')
+    argv, error = {
+        'pc-union': (['pc-union', '--idx1', empty, '--idx2', gix, '--idx', out],
+                     'shape (nlines, width) is needed when a grid index is empty: the first grid index has no points'),
+        'pc-sort': (['pc-sort', '--idx_in', empty, '--idx', out],
+                    'shape (nlines, width) is needed when a grid index is empty: the grid index has no points'),
+        'ras-pyramid rows': (['ras-pyramid', '--ras', ras, '--out_dir', out, '--rows', '100'],
+                             'rows must be a power of 2, not 100'),
+        'ras-pyramid method': (['ras-pyramid', '--ras', ras, '--out_dir', out, '--method', 'average'],
+                               "method must be one of ('decimate', 'mean'), not 'average'"),
+        'pc-pyramid method': (['pc-pyramid', '--pc', pc, '--yx', gix, '--out_dir', out, '--method', 'average'],
+                              "method must be one of ('first', 'mean'), not 'average'"),
+        'polygon-mask': (['polygon-mask', '--polygons', polygons, '--mask', out, '--gix', gix, '--shape', '40', '30'],
+                         'give the data positions with exactly one of `x` and `y`, `gix` or `shape`'),
+        'image-pairs': (['image-pairs', '--out', out], 'give either `rslc` or `nimages`'),
+        'math': (['math', '--output', out, '--operation', 'a + b', '--kw', f'a={pc}', '--kw', f'b={ras}'],
+                 'b: shape (16, 16) differs from a: (50,)'),
+    }[case]
+    capsys.readouterr()
+    assert main(argv + ['--json', '-q']) == 2
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {'version': 1, 'ok': False, 'error': error}
+    assert f'moraine: error: {error}\n' in captured.err and '--traceback' not in captured.err
+    assert not Path(out).exists()
+
+
+def test_data_errors_stay_processing_errors(tmp_path, capsys, rng):
+    """A problem found in the values of the data is a processing error (decision 0052): exit code 1, the error with
+    the name of the exception; a pipeline step that fails with an argument error fails as any step (exit code 1)."""
+    pc = write_zarr(tmp_path / 'pc.zarr', rng.random((50, 3)).astype(np.float32))
+    mask = write_zarr(tmp_path / 'mask.zarr', np.zeros(50, bool))
+    capsys.readouterr()
+    assert main(['pc-reference', '--pc', pc, '--out', str(tmp_path / 'o.zarr'), '--ref_mask', mask, '--json', '-q']) == 1
+    assert json_out(capsys)['error'] == f'ValueError: {mask} has no reference point'
+    (tmp_path / 'p.toml').write_text('[[step]]\nname = "ref"\nrun = "pc-reference"\npc = "pc.zarr"\nout = "o.zarr"\n'
+                                     'ref_point = 1\nmethod = "mode"\n')
+    assert main(['run', str(tmp_path / 'p.toml'), '--json', '-q']) == 1
+    step = json_out(capsys)['steps'][0]
+    assert step['status'] == 'failed' and step['error'] == "ArgumentError: method must be 'median' or 'mean', not 'mode'"
+
+
+def _help(command, name):
+    return next(p.help for p in get_command(command).params if p.name == name)
+
+
+@pytest.mark.parametrize('case', ['pc2ras', 'pc-hix', 'pc-gix', 'gix2bool', 'pc-disp', 'mcf-pc'])
+def test_none_for_a_required_argument_is_a_usage_error(tmp_path, capsys, rng, case):
+    """None is not a value of a required argument: --shape None of pc2ras, pc-hix, pc-gix, gix2bool, --wavelength None,
+    --image_pairs None are usage errors (exit code 2) with a clear message, before the command runs; they failed in
+    the command with a TypeError or an IndexError (exit code 1)."""
+    gix = write_zarr(tmp_path / 'gix.zarr', random_gix(rng, (40, 30), 50))
+    pc = write_zarr(tmp_path / 'pc.zarr', rng.random(50).astype(np.float32))
+    ph = write_zarr(tmp_path / 'ph.zarr', np.ones((50, 3), np.complex64), (50, 1))
+    out = str(tmp_path / 'out.zarr')
+    shape = "--shape is required: it needs 2 integers ({}), got 'None'; write e.g. --shape 1000 1000"
+    argv, error = {
+        'pc2ras': (['pc2ras', '--idx', gix, '--pc', pc, '--ras', out], shape.format('shape of one image (nlines,width)')),
+        'pc-hix': (['pc-hix', '--gix', gix, '--hix', out], shape.format('raster shape (nlines, width)')),
+        'pc-gix': (['pc-gix', '--hix', pc, '--gix', out], shape.format('raster shape (nlines, width)')),
+        'gix2bool': (['gix2bool', '--gix', gix, '--is_pc', out], shape.format('raster shape (nlines, width)')),
+        'pc-disp': (['pc-disp', '--pc', pc, '--out', out, '--wavelength', 'None'],
+                    'pc-disp: argument wavelength is required and cannot be None: ' + _help('pc-disp', 'wavelength')),
+        'mcf-pc': (['mcf-pc', '--gix', gix, '--ph', ph, '--unw_ph', out, '--image_pairs', 'None',
+                    '--range_pixel_spacing', '1', '--azimuth_pixel_spacing', '1'],
+                   'mcf-pc: argument image_pairs is required and cannot be None: ' + _help('mcf-pc', 'image_pairs')),
+    }[case]
+    if case in ('pc2ras', 'pc-hix', 'pc-gix', 'gix2bool'):
+        argv += ['--shape', 'None']
+    capsys.readouterr()
+    assert main(argv + ['--json', '-q']) == 2
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {'version': 1, 'ok': False, 'error': error}
+    assert f'moraine: error: {error}\n' in captured.err and not Path(out).exists()
+
+
+def test_none_for_an_optional_argument_is_its_default(tmp_path, capsys):
+    """None stays the default of an optional argument (also --image_pairs None, which failed with a TypeError), and a
+    required argument of a pipeline whose variable is read from a file not made yet is bound later; a required
+    shape = "None" in a pipeline file is a usage error of the file"""
+    assert bind_args(get_command('pc-sort'), {'idx_in': 'a', 'idx': 'b', 'shape': ['None']})['shape'] is None
+    assert bind_args(get_command('temp-coh'), {'intf': 'a', 'rslc': 'b', 'image_pairs': 'None'})['image_pairs'] is None
+    assert bind_args(get_command('pc2ras'), {'idx': 'a', 'pc': 'b', 'ras': 'c', 'shape': None})['shape'] is None
+    (tmp_path / 'p.toml').write_text('[[step]]\nname = "r"\nrun = "pc2ras"\nidx = "gix.zarr"\npc = "pc.zarr"\n'
+                                     'ras = "ras.zarr"\nshape = "None"\n')
+    capsys.readouterr()
+    assert main(['run', str(tmp_path / 'p.toml'), '--json', '-q']) == 2
+    assert json_out(capsys)['error'] == (f"{tmp_path / 'p.toml'}: step 'r': --shape is required: it needs 2 integers "
+                                         "(shape of one image (nlines,width)), got 'None'; write e.g. --shape 1000 1000")
+
+
 # ---------------------------------------------------------------- pipeline
 
 PIPELINE = '''
@@ -940,6 +1043,11 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     assert 'moraine view' in repr(result)                              # a text description for readers
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 2   # no silent overwrite
     assert 'exists' in json_out(capsys)['error']
+    # another suffix: a usage error (decision 0052; a processing error before, exit code 1)
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(d / 'v.txt'), '--json']) == 2
+    assert json_out(capsys)['error'] == (f'{d / "v.txt"}: the notebook name must end with .ipynb, or have no suffix '
+                                         '(then .ipynb is appended)')
+    assert not (d / 'v.txt').exists()
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--show', 'phase',
                  '--json']) == 0
     with pytest.raises(SystemExit):                                    # --post_proc, its name of 2026-09, is gone
