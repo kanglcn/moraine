@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`read_gamma_pdata` (`moraine.api.utils_.gamma_io`), the reader of GAMMA point data, sets float and complex values with an absolute value below 1e-30 (GAMMA's no data) to nan, as `read_gamma_image` does; before, only exact zeros were nan. Its only user is `gamma_mcf_pt` (command `gamma-mcf-pt`), for the unwrapped phases of GAMMA `mcf_pt`, where a nonzero phase below 1e-30 rad does not occur in practice
+
 The package metadata give the license as `GPL-3.0-or-later`, the GNU General Public License version 3 or (at your option) any later version, as the LICENSE file has always said; 0.10.0 declared `GPL-3.0-only`. The README and the manual name it the same way
 
 With a GPU visible (`CUDA_VISIBLE_DEVICES` set), moraine imports cupy only when it computes on the GPU, no longer when it is imported or computes on the CPU: `import moraine` and the commands no longer fail where cupy is not installed (e.g. a CPU-only environment on a GPU node) and run on the CPU without it. Where cupy is installed, zarr still imports it when moraine is imported (for zarr's GPU buffers, which moraine does not use), and cupy imports pytest
