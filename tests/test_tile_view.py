@@ -206,6 +206,20 @@ def test_show_function(stack, monkeypatch):
         view(str(pyr), show=lambda v, a, b, c: v[..., a])
 
 
+def test_show_function_sliders_need_a_value():
+    """The sliders of a show function need at least one value: sliders={'i': 0} (or less) is a ValueError when the view
+    is made; it made a slider 0 .. -1, which failed when drawn."""
+    import re
+    for show, sliders, error in [
+            (lambda v, i: v[...] * i, {'i': 0}, "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"),
+            (lambda v, i, j: v[...] * i * j, {'i': 3, 'j': -1}, "sliders={'i': 3, 'j': -1}: slider 'j' has -1 values; a "
+                                                                'slider needs at least one')]:
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(np.ones((20, 30), np.float32), show=show, sliders=sliders)
+    assert view(np.ones((20, 30), np.float32), show=lambda v, i: v[...] * i, sliders={'i': 1}).kdims == \
+        [{'name': 'i', 'max': 0}]
+
+
 # ---------------------------------------------------------------- point clouds
 
 def test_point_cloud_raster_zoom(grid_pc):

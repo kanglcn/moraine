@@ -317,6 +317,9 @@ def _show(base, show, image_pairs, sliders, dates, shape):
             if missing:
                 raise ValueError(f'sliders={sliders} misses {missing}')
             counts = [int(sliders[n]) for n in names]
+            for n, c in zip(names, counts):           # a slider 0 .. -1 would fail when drawn
+                if c < 1:
+                    raise ValueError(f'sliders={sliders}: slider {n!r} has {c} values; a slider needs at least one')
         elif not names or len(names) == len(stack):
             counts = list(stack)
         elif len(stack) == 1 and len(names) == 2:          # e.g. two images of a stack
@@ -1263,7 +1266,7 @@ def view(
         `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2. Given with another show, a
         ValueError
     sliders : dict, optional
-        number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
+        number of values of each slider of a `show` function, 1 or more, e.g. {'ref': 17, 'sec': 17}; from the stack
         shape or `dates` by default
     crs : str, optional
         'grid' (radar grid, azimuth down) or 'web_mercator' (metres, north up); from the coordinates by default
