@@ -17,8 +17,9 @@ import numpy as np
 import zarr
 
 import moraine as mr
-from ..api.tropo import _times, _era5_hours
+from ..api.tropo import _times, _era5_hours, _geoid
 from .logging import mc_logger
+from .utils_ import ArgumentError
 from .executor import Executor, Chunk
 
 _DATASET = 'reanalysis-era5-pressure-levels'
@@ -41,10 +42,10 @@ def _bbox(bbox)->tuple:
     try:
         w, s, e, n = (float(v) for v in bbox)
     except (TypeError, ValueError):
-        raise ValueError(f'bbox must be [west, south, east, north] in degrees, got {bbox!r}') from None
+        raise ArgumentError(f'bbox must be [west, south, east, north] in degrees, got {bbox!r}') from None
     if not (-180 <= w < e <= 360 and e - w <= 360 and -90 <= s < n <= 90):
-        raise ValueError(f'bbox must be [west, south, east, north] in degrees with west < east and south < north, '
-                         f'got {[w, s, e, n]}')
+        raise ArgumentError(f'bbox must be [west, south, east, north] in degrees with west < east and south < '
+                            f'north, got {[w, s, e, n]}')
     return w, s, e, n
 
 
@@ -372,7 +373,7 @@ def download_era5(
     """
     logger = logging.getLogger(__name__)
     if source not in ('ncar', 'cds'):
-        raise ValueError(f"source must be 'ncar' or 'cds', not {source!r}")
+        raise ArgumentError(f"source must be 'ncar' or 'cds', not {source!r}")
     try:
         import h5py  # noqa: F401
     except ImportError:
@@ -495,13 +496,14 @@ def pc_tropo_era5(
         if name != 'lon':
             logger.zarr_info(path, z)
         if not np.issubdtype(z.dtype, np.floating):
-            raise ValueError(f'{name} must be floating point, got {z.dtype}')
+            raise ArgumentError(f'{name} must be floating point, got {z.dtype}')
         if z.shape != (n_points,):
-            raise ValueError(f'{name} must have shape ({n_points},), got shape {z.shape}')
+            raise ArgumentError(f'{name} must have shape ({n_points},), got shape {z.shape}')
     t_img = _times(times)
     nimages = len(t_img)
     if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < max(nimages, 1):
-        raise ValueError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
+        raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
+    geoid = _geoid(geoid)
     hours = _era5_hours(t_img)
     missing = [h for h in hours if not _era5_path(era5_dir, h).is_file()]
     if missing:
@@ -535,7 +537,7 @@ def pc_tropo_era5(
         tasks.append(([Chunk(p, (points,)) for p in (lon, lat, hgt, theta)], [Chunk(out, (points, images))]))
     with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
         stats = ex.map_chunks(
-            _tropo_task, tasks, desc='point blocks', times=t_img, geoid=float(geoid), era5_times=hours,
+            _tropo_task, tasks, desc='point blocks', times=t_img, geoid=geoid, era5_times=hours,
             pressure=first['pressure'], grid_lon=first['lon'], grid_lat=first['lat'], ref=int(ref),
             geopotential=ex.put(fields['z']), temperature=ex.put(fields['t']), specific_humidity=ex.put(fields['q']))
     count, total, squares = np.sum([s[0] for s in stats], axis=0)

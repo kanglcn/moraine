@@ -1,4 +1,5 @@
 import datetime
+import re
 import sys
 import types
 
@@ -9,9 +10,10 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.api import tropo as tr
+from moraine.api.utils_ import ArgumentError
 from moraine.cli import tropo as ctr
-from moraine.command import commands
-from conftest import write_zarr
+from moraine.command import commands, main
+from conftest import write_zarr, json_out
 
 LEVELS = np.array(ctr._LEVELS, dtype=np.float64) * 100        # Pa
 G0 = 9.80665
@@ -192,6 +194,68 @@ def test_pc_tropo_geoid_nan_and_errors():
         mr.pc_tropo_era5(lon, lat, h, theta, ['20190102', '20190114'], 0.0, hours, *args)
 
 
+def test_argument_errors_of_the_array_functions():
+    """The checks of the arguments of era5_zenith_delay and pc_tropo_era5, and of the shapes and dtypes of their arrays,
+    raise ArgumentError (decision 0052); they raised plain ValueErrors. Problems in the values of the data stay plain
+    ValueErrors: points outside the grid, a grid that is not equally spaced, pressures that are not positive or not
+    different, fields that are not finite, temperatures that are not positive, theta outside (0, pi/2], hours of the
+    images without fields."""
+    z, t, q = _exp_atmosphere(GRID_LAT, GRID_LON)
+    lon, lat, h = _points(n=10, seed=7, hmin=0, hmax=500)
+    zenith = dict(lon=lon, lat=lat, hgt=h, pressure=LEVELS, grid_lon=GRID_LON, grid_lat=GRID_LAT, geopotential=z,
+                  temperature=t, specific_humidity=q)
+    for kw, error in [
+            (dict(lat=lat[:5]), 'lon, lat and hgt must have one shape (n_points,), got lat of shape (5,)'),
+            (dict(hgt=h.reshape(2, 5)), 'lon, lat and hgt must have one shape (n_points,), got hgt of shape (2, 5)'),
+            (dict(hgt=np.arange(10, dtype=np.int32)), 'hgt must be floating point, got int32'),
+            (dict(pressure=LEVELS[:1]), 'pressure must have shape (n_levels,) with n_levels >= 2, got shape (1,)'),
+            (dict(grid_lon=GRID_LON[:1]), 'grid_lon must have shape (n,) with n >= 2, got shape (1,)'),
+            (dict(grid_lat=GRID_LAT[:, None]), 'grid_lat must have shape (n,) with n >= 2, got shape (4, 1)'),
+            (dict(temperature=t[:, :3]), 'temperature must have shape (n_levels, n_lat, n_lon) = (37, 4, 4), got '
+                                         '(37, 3, 4)')]:
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mr.era5_zenith_delay(**{**zenith, **kw})
+    for kw, error in [
+            (dict(lon=lon + 1.0), '10 points are outside the grid'),
+            (dict(grid_lon=np.array([13.75, 14.0, 14.5, 14.75])), 'grid_lon must be equally spaced'),
+            (dict(pressure=-LEVELS), 'pressure must be (n_levels,) different positive pressures in pascals'),
+            (dict(pressure=np.full(LEVELS.size, 50000.0)), 'pressure must be (n_levels,) different positive'),
+            (dict(temperature=np.full_like(t, np.nan)), 'temperature has values that are not finite'),
+            (dict(temperature=-t), 'temperature must be in kelvin, positive')]:
+        with pytest.raises(ValueError, match=re.escape(error)) as e:
+            mr.era5_zenith_delay(**{**zenith, **kw})
+        assert type(e.value) is ValueError, error
+
+    times, hours = ['2019-01-02T05:00:00Z', '2019-01-14T05:00:00Z'], ['2019-01-02T05:00Z', '2019-01-14T05:00Z']
+    z, t, q = _hours_fields(hours, [101000., 100500.])
+    tropo = dict(lon=lon, lat=lat, hgt=h, theta=np.full(10, 0.9), times=times, geoid=0.0, era5_times=hours,
+                 pressure=LEVELS, grid_lon=GRID_LON, grid_lat=GRID_LAT, geopotential=z, temperature=t,
+                 specific_humidity=q)
+    for kw, error in [
+            (dict(times=[]), 'times must have the time of at least one image'),
+            (dict(times=['20190102', '20190114']), 'times must be date-times in UTC (ISO 8601, e.g. '
+                                                   "2019-01-02T05:06:07.123456Z), got '20190102'"),
+            (dict(ref=2), 'ref must be the index of one of the 2 images, got 2'),
+            (dict(ref=True), 'ref must be the index of one of the 2 images, got True'),
+            (dict(geoid=4600.0), 'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between '
+                                 '-150 and 150, got 4600.0'),
+            (dict(theta=np.full(5, 0.9)), 'theta must have the shape (n_points,) of lon, got shape (5,)'),
+            (dict(theta=np.ones(10, np.int32)), 'theta must be floating point, got int32'),
+            (dict(era5_times=[hours[0], hours[0]]), 'era5_times must be different hours'),
+            (dict(era5_times=['2019-01-02T05:30Z', hours[1]]), 'era5_times must be whole hours'),
+            (dict(geopotential=z[:1]), 'geopotential must have shape (n_hours, n_levels, n_lat, n_lon) = '
+                                       '(2, 37, 4, 4), got (1, 37, 4, 4)'),
+            (dict(lat=lat[:5]), 'lon, lat and hgt must have one shape (n_points,), got lat of shape (5,)')]:
+        with pytest.raises(ArgumentError, match=f'^{re.escape(error)}$'):
+            mr.pc_tropo_era5(**{**tropo, **kw})
+    for kw, error in [
+            (dict(theta=np.full(10, 50.0)), 'theta must be the elevation angle of the look vector in radians'),
+            (dict(times=[times[0], '2019-01-14T05:20:00Z']), 'no ERA5 fields of 1 hours that the images need')]:
+        with pytest.raises(ValueError, match=re.escape(error)) as e:
+            mr.pc_tropo_era5(**{**tropo, **kw})
+        assert type(e.value) is ValueError, error
+
+
 # ---------------------------------------------------------------- CLI
 
 def _write_era5_file(path, hour, lat, lon, z, t, q):
@@ -243,6 +307,66 @@ def test_cli_pc_tropo_era5(tmp_path):
     (era5 / f'era5_{hours[1]:%Y%m%d_%H}.nc').unlink()
     with pytest.raises(ValueError, match='download-era5'):
         mc.pc_tropo_era5(str(era5), paths['lon'], paths['lat'], paths['hgt'], paths['theta'], out, times, 46.0)
+
+
+def test_cli_argument_errors_are_usage_errors(tmp_path, capsys, monkeypatch):
+    """download-era5 and pc-tropo-era5 check their arguments, and the shapes and dtypes of their inputs, before they
+    download, read or write anything: a wrong one is an ArgumentError, on the command line a usage error (exit code 2,
+    the JSON error; decision 0052). They were processing errors (exit code 1, after `ValueError: `), and a `geoid` out
+    of range was found only by the tasks, after the output was created. ERA5 files that are missing stay a processing
+    error. Nothing is downloaded: the downloads of both sources fail in this test."""
+    pytest.importorskip('h5py')
+
+    def no_download(*args, **kwargs):
+        raise AssertionError('no download in this test')
+    monkeypatch.setattr(ctr, '_ncar_file', no_download)
+    monkeypatch.setitem(sys.modules, 'cdsapi', types.SimpleNamespace(Client=no_download))
+    monkeypatch.setenv('CDSAPI_KEY', 'test')
+    era5 = tmp_path / 'era5'
+    times, bbox = ['2019-01-02T05:06:07Z', '2019-01-14T05:00:00Z'], ['14.0', '40.7', '14.2', '40.9']
+    for args, error in [
+            (['--times', *times, '--bbox', *bbox[:3]], "bbox must be [west, south, east, north] in degrees, got "
+                                                       "['14.0', '40.7', '14.2']"),
+            (['--times', *times, '--bbox', '14.2', '40.7', '14.0', '40.9'],
+             'bbox must be [west, south, east, north] in degrees with west < east and south < north, got '
+             '[14.2, 40.7, 14.0, 40.9]'),
+            (['--times', *times, '--bbox', *bbox, '--source', 'aws'], "source must be 'ncar' or 'cds', not 'aws'"),
+            (['--times', '20190102', '--bbox', *bbox, '--source', 'cds'],
+             "times must be date-times in UTC (ISO 8601, e.g. 2019-01-02T05:06:07.123456Z), got '20190102'")]:
+        assert main(['download-era5', '--out_dir', str(era5), *args, '--json', '-q']) == 2, args
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not era5.exists()
+    with pytest.raises(ArgumentError, match='west < east'):
+        mc.download_era5(str(era5), times, [14.2, 40.7, 14.0, 40.9])
+
+    lon, lat, h = _points(n=10, seed=8, hmin=0, hmax=500)
+    paths = {name: write_zarr(tmp_path / f'{name}.zarr', a)
+             for name, a in (('lon', lon.astype(np.float32)), ('lat', lat.astype(np.float32)),
+                             ('hgt', h.astype(np.float32)), ('theta', np.full(10, 0.9, np.float32)),
+                             ('lat_int', lat.astype(np.int32)), ('hgt5', h[:5].astype(np.float32)))}
+    out = tmp_path / 'tropo.zarr'
+    inputs = dict(lon=paths['lon'], lat=paths['lat'], hgt=paths['hgt'], theta=paths['theta'])
+
+    def tropo(**kw):
+        kw = {'era5_dir': str(era5), **inputs, 'out': str(out), 'times': times, 'geoid': '46', **kw}
+        argv = [a for k, v in kw.items() for a in (f'--{k}', *(v if isinstance(v, list) else [v]))]
+        return main(['pc-tropo-era5', *argv, '--json', '-q'])
+    for kw, error in [
+            (dict(lat=paths['lat_int']), 'lat must be floating point, got int32'),
+            (dict(hgt=paths['hgt5']), 'hgt must have shape (10,), got shape (5,)'),
+            (dict(times=['20190102', '20190114']), "times must be date-times in UTC (ISO 8601, e.g. "
+                                                   "2019-01-02T05:06:07.123456Z), got '20190102'"),
+            (dict(ref='2'), 'ref must be the index of one of the 2 images, got 2'),
+            (dict(geoid='4600'), 'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between '
+                                 '-150 and 150, got 4600.0')]:
+        assert tropo(**kw) == 2, kw
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not out.exists() and not era5.exists()
+    with pytest.raises(ArgumentError, match='geoid must be'):
+        mc.pc_tropo_era5(str(era5), *inputs.values(), str(out), times, 4600.0)
+    assert tropo() == 1                                       # no ERA5 files: a processing error
+    assert json_out(capsys)['error'].startswith(f'ValueError: {era5}: no ERA5 file of 3 of the 3 hours')
+    assert not out.exists()
 
 
 class _FakeClient:

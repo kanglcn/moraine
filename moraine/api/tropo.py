@@ -8,6 +8,7 @@ import math
 import numpy as np
 from numba import prange
 
+from .utils_.errors import ArgumentError
 from .utils_.jit import ngjit, ngpjit
 
 # Refractivity 1e6 (n - 1) = k1 Pd / T + k2 e / T + k3 e / T^2 with the constants of PyAPS (Jolivet et al., 2011),
@@ -39,7 +40,8 @@ def _utc(t):
         except ValueError:
             t = None
     if not isinstance(t, datetime.datetime):
-        raise ValueError(f'times must be date-times in UTC (ISO 8601, e.g. 2019-01-02T05:06:07.123456Z), got {raw!r}')
+        raise ArgumentError(f'times must be date-times in UTC (ISO 8601, e.g. 2019-01-02T05:06:07.123456Z), '
+                            f'got {raw!r}')
     if t.tzinfo is not None:
         t = t.astimezone(datetime.timezone.utc).replace(tzinfo=None)
     return t
@@ -73,6 +75,15 @@ def _era5_hours(times)->list:
         if w > 0:
             hours.add(h0 + _HOUR)
     return sorted(hours)
+
+
+def _geoid(geoid)->float:
+    """the height of the geoid above the WGS84 ellipsoid in meters as a float, between -150 and 150"""
+    geoid = float(geoid)
+    if not -150 <= geoid <= 150:
+        raise ArgumentError(f'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between -150 '
+                            f'and 150, got {geoid}')
+    return geoid
 
 
 # ---------------------------------------------------------------- profiles of the grid nodes
@@ -187,7 +198,7 @@ def _grid_axis(values, name):
     """(first, step, flip) of equally spaced grid coordinates, increasing after the flip"""
     v = np.asarray(values, dtype=np.float64)
     if v.ndim != 1 or v.size < 2:
-        raise ValueError(f'{name} must have shape (n,) with n >= 2, got shape {v.shape}')
+        raise ArgumentError(f'{name} must have shape (n,) with n >= 2, got shape {v.shape}')
     flip = v[1] < v[0]
     if flip:
         v = v[::-1]
@@ -248,12 +259,14 @@ def era5_zenith_delay(
     pts = [np.asarray(a) for a in (lon, lat, hgt)]
     for name, a in zip(('lon', 'lat', 'hgt'), pts):
         if a.ndim != 1 or a.shape != pts[0].shape:
-            raise ValueError(f'lon, lat and hgt must have one shape (n_points,), got {name} of shape {a.shape}')
+            raise ArgumentError(f'lon, lat and hgt must have one shape (n_points,), got {name} of shape {a.shape}')
         if not np.issubdtype(a.dtype, np.floating):
-            raise ValueError(f'{name} must be floating point, got {a.dtype}')
+            raise ArgumentError(f'{name} must be floating point, got {a.dtype}')
     pressure = np.asarray(pressure, dtype=np.float64)
-    if pressure.ndim != 1 or pressure.size < 2 or not np.all(pressure > 0) or np.unique(pressure).size != pressure.size:
-        raise ValueError('pressure must be (n_levels,) different positive pressures in pascals, n_levels >= 2')
+    if pressure.ndim != 1 or pressure.size < 2:
+        raise ArgumentError(f'pressure must have shape (n_levels,) with n_levels >= 2, got shape {pressure.shape}')
+    if not np.all(pressure > 0) or np.unique(pressure).size != pressure.size:
+        raise ValueError('pressure must be (n_levels,) different positive pressures in pascals')
     lon0, dlon, flip_lon = _grid_axis(grid_lon, 'grid_lon')
     lat0, dlat, flip_lat = _grid_axis(grid_lat, 'grid_lat')
     shape = (pressure.size, len(grid_lat), len(grid_lon))
@@ -262,7 +275,7 @@ def era5_zenith_delay(
                     ('specific_humidity', specific_humidity)):
         a = np.asarray(a)
         if a.shape != shape:
-            raise ValueError(f'{name} must have shape (n_levels, n_lat, n_lon) = {shape}, got {a.shape}')
+            raise ArgumentError(f'{name} must have shape (n_levels, n_lat, n_lon) = {shape}, got {a.shape}')
         if not np.all(np.isfinite(a)):
             raise ValueError(f'{name} has values that are not finite')
         if flip_lat:
@@ -364,18 +377,15 @@ def pc_tropo_era5(
     t_img = _times(times)
     nimages = len(t_img)
     if nimages == 0:
-        raise ValueError('times must have the time of at least one image')
+        raise ArgumentError('times must have the time of at least one image')
     if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < nimages:
-        raise ValueError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
-    geoid = float(geoid)
-    if not -150 <= geoid <= 150:
-        raise ValueError(f'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between -150 '
-                         f'and 150, got {geoid}')
+        raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
+    geoid = _geoid(geoid)
     theta = np.asarray(theta)
     if theta.ndim != 1 or theta.shape != np.shape(lon):
-        raise ValueError(f'theta must have the shape (n_points,) of lon, got shape {theta.shape}')
+        raise ArgumentError(f'theta must have the shape (n_points,) of lon, got shape {theta.shape}')
     if not np.issubdtype(theta.dtype, np.floating):
-        raise ValueError(f'theta must be floating point, got {theta.dtype}')
+        raise ArgumentError(f'theta must be floating point, got {theta.dtype}')
     th = theta.astype(np.float64)
     with np.errstate(invalid='ignore'):
         bad = np.isfinite(th) & ~((th > 0) & (th <= np.pi / 2 + 1e-6))
@@ -385,15 +395,16 @@ def pc_tropo_era5(
 
     t_era = _times(era5_times)
     if len(set(t_era)) != len(t_era):
-        raise ValueError('era5_times must be different hours')
+        raise ArgumentError('era5_times must be different hours')
     if any(t != t.replace(minute=0, second=0, microsecond=0) for t in t_era):
-        raise ValueError('era5_times must be whole hours')
+        raise ArgumentError('era5_times must be whole hours')
     index = {t: i for i, t in enumerate(t_era)}
     shape = (len(t_era), np.size(pressure), np.size(grid_lat), np.size(grid_lon))
     for name, a in (('geopotential', geopotential), ('temperature', temperature),
                     ('specific_humidity', specific_humidity)):
         if np.shape(a) != shape:
-            raise ValueError(f'{name} must have shape (n_hours, n_levels, n_lat, n_lon) = {shape}, got {np.shape(a)}')
+            raise ArgumentError(f'{name} must have shape (n_hours, n_levels, n_lat, n_lon) = {shape}, '
+                                f'got {np.shape(a)}')
     plan, missing = [], []
     for h0, w in _hour_weights(t_img):
         need = [h0, h0 + _HOUR] if w > 0 else [h0]
