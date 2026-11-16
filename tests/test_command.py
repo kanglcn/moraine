@@ -359,8 +359,9 @@ def test_quicklook_command(tmp_path, capsys, rng):
 def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypatch):
     """Wrong inputs of `moraine quicklook` are usage errors (exit code 2) with the messages of their checks, before
     anything is drawn: a path that is not a pyramid or one to rebuild, an extent that is not (min, min, max, max), a
-    show that does not fit the data (they were processing errors, exit code 1; a show of the wrong data failed when it
-    was drawn). An error while drawing stays a processing error."""
+    show that does not fit the data, a stack without images (they were processing errors, exit code 1; a show of the
+    wrong data and a stack without images failed when they were drawn). An error while drawing stays a processing
+    error."""
     import moraine.cli as mc
     import moraine.cli.tiles as tiles
     write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
@@ -371,6 +372,11 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     mc.ras_pyramid(str(tmp_path / 'm5.zarr'), str(tmp_path / 'm5_pyr'))
     write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
     write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
+    # a stack without images: moraine does not build its pyramid (ras_pyramid fails), one made by hand
+    for level, (ny, nx) in enumerate([(30, 20), (15, 10), (8, 5), (4, 3), (2, 2)]):
+        write_zarr(tmp_path / 'e_pyr' / f'{level}.zarr', np.zeros((ny, nx, 0), np.float32), (ny, nx, 1))
+    zarr.open(str(tmp_path / 'e_pyr' / '0.zarr'), mode='r+').attrs['moraine_pyramid'] = \
+        zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r').attrs['moraine_pyramid']
     pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
     for args, error in [
             ([str(tmp_path / 'ts.zarr')], f"{tmp_path / 'ts.zarr'} is not a pyramid; build one first with `moraine "
@@ -396,7 +402,10 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
             ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
                                                          "shape (30, 20)"),
             ([str(tmp_path / 'm5_pyr')], 'data of shape (30, 20, 2, 2, 2): 3 stack dimensions, more than the shows of '
-                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; ")]:
+                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; "),
+            ([str(tmp_path / 'e_pyr')], 'data of shape (30, 20, 0): a stack without images or image pairs (a stack '
+                                        'dimension of length 0); there is nothing to show'),
+            ([str(tmp_path / 'e_pyr'), '--show', 'coh'], 'data of shape (30, 20, 0): a stack without images')]:
         capsys.readouterr()
         assert main(['quicklook', *args, '-o', str(out), '--json']) == 2, args
         result = json_out(capsys)
@@ -586,6 +595,83 @@ def test_quicklook_output_name(tmp_path, capsys, rng, monkeypatch):
     with pytest.raises(UsageError, match='must end with .png'):
         quicklook(pyr, str(tmp_path / 'x.svg'))
     assert drawn == []
+
+
+def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
+    """`moraine quicklook` and `moraine view` take `--image_pairs FILE`, the image pairs of the compressed coherence of
+    --show coh / coh_abs (they had none: the coherence of a network that is not all pairs of its images could not be
+    drawn from the command line). The file is read and checked like the image_pairs of the processing commands and its
+    errors are usage errors (exit code 2); quicklook draws `view(..., image_pairs=...)`, and the maps of the notebook of
+    view get the absolute path of a text file, the pairs themselves of a list or a .npy file."""
+    import moraine.cli as mc
+    from moraine.cli.tiles import _Shown
+    pairs = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]                    # (0, 3) is not in the network
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d', header='reference secondary')     # as `moraine image-pairs`
+    np.save(tmp_path / 'pairs.npy', np.array(pairs))
+    np.savetxt(tmp_path / 'three.txt', pairs[:3], fmt='%d')
+    np.savetxt(tmp_path / 'unsorted.txt', [(0, 2), (0, 1), (1, 2), (1, 3), (2, 3)], fmt='%d')
+    (tmp_path / 'words.txt').write_text('reference secondary\n0 1\n')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', (rng.uniform(0, 1, (12, 5)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (12, 5))))
+               .astype(np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
+    for show in ('coh', 'coh_abs'):
+        expected = Path(mc.view(pyr, show=show, image_pairs=str(tmp_path / 'pairs.txt')).png(
+            str(tmp_path / f'{show}.png'), width=300, index=(1, 3))).read_bytes()
+        for file in ('pairs.txt', 'pairs.npy'):
+            assert main(['quicklook', pyr, '-o', str(out), '--show', show, '--image_pairs', str(tmp_path / file),
+                         '--index', '1', '3', '--width', '300', '--json']) == 0, (show, file)
+            assert json_out(capsys)['png'] == str(out) and out.read_bytes() == expected, (show, file)
+            out.unlink()
+    assert quicklook(pyr, str(out), show='coh', width=300, index=(1, 3), image_pairs=pairs) == str(out)   # in Python
+    assert out.read_bytes() == Path(tmp_path / 'coh.png').read_bytes()
+    out.unlink()
+    nb = tmp_path / 'v.ipynb'
+    for args, error, commands in [
+            ([], "show='coh' needs compressed coherence (..., n_pairs), not shape (12, 5): one column per image pair, "
+                 'n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the number of the image pairs '
+                 'given (none are given)', ('quicklook',)),
+            (['--image_pairs', str(tmp_path / 'three.txt')], "show='coh' needs compressed coherence (..., n_pairs), not "
+                                                            'shape (12, 5): one column per image pair', ('quicklook',)),
+            (['--image_pairs', str(tmp_path / 'missing.txt')], f"image pairs '{tmp_path / 'missing.txt'}': not a file "
+                                                               'and not a list like [[0,1],[1,2]]; make a file with '
+                                                               '`moraine image-pairs`', ('quicklook', 'view')),
+            (['--image_pairs', str(tmp_path / 'unsorted.txt')], f"image pairs '{tmp_path / 'unsorted.txt'}': image "
+                                                                'pairs must be sorted by reference and then secondary '
+                                                                'index, without duplicates: pair 1 (0, 1) follows (0, 2)',
+             ('quicklook', 'view')),
+            (['--image_pairs', str(tmp_path / 'words.txt')], f"image pairs '{tmp_path / 'words.txt'}': could not "
+                                                             "convert string 'reference' to int64",
+             ('quicklook', 'view'))]:
+        for command in commands:
+            output = ['-o', str(out if command == 'quicklook' else nb)]
+            assert main([command, pyr, *output, '--show', 'coh', *args, '--json']) == 2, (command, args)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['error'].startswith(error), (command, result)
+    assert not out.exists() and not nb.exists()
+    with pytest.raises(UsageError, match='must be sorted'):
+        quicklook(pyr, str(out), show='coh', image_pairs=[(0, 2), (0, 1), (1, 2), (1, 3), (2, 3)])
+    # the notebook: the absolute path of a text file, the pairs of a .npy file or a list
+    monkeypatch.chdir(tmp_path)
+    listed = '[[0, 1], [0, 2], [1, 2], [1, 3], [2, 3]]'
+    for pairs_arg, written in [('pairs.txt', repr(str(tmp_path.resolve() / 'pairs.txt'))), ('pairs.npy', listed),
+                               ('[[0,1],[0,2],[1,2],[1,3],[2,3]]', listed)]:
+        assert main(['view', pyr, '-o', str(nb), '--show', 'coh', '--image_pairs', pairs_arg, '--overwrite',
+                     '--json']) == 0, pairs_arg
+        assert json_out(capsys)['notebook'] == str(nb)
+        code = [''.join(c['source']) for c in json.loads(nb.read_text())['cells'] if c['cell_type'] == 'code']
+        assert code[-1] == f"mc.view({str(Path(pyr).resolve())!r}, show='coh', image_pairs={written})", pairs_arg
+        ns = {}
+        exec(code[0], ns)
+        layer = eval(code[-1], ns)
+        assert isinstance(layer, _Shown) and [(k['name'], k['max']) for k in layer.kdims] == [('ref', 3), ('sec', 3)]
+    with pytest.raises(SystemExit):
+        main(['quicklook', '--help'])
+    assert '--image_pairs FILE' in capsys.readouterr().out
 
 
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):
@@ -852,7 +938,7 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
         result = eval(compile(src, 'cell', 'exec' if src is code[0] else 'eval'), ns)
     assert isinstance(result, _Shown) and result.widget.dates[1] == '20210113'
     assert 'moraine view' in repr(result)                              # a text description for readers
-    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 1   # no silent overwrite
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 2   # no silent overwrite
     assert 'exists' in json_out(capsys)['error']
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--show', 'phase',
                  '--json']) == 0
@@ -866,3 +952,37 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     ns = {}
     exec(code[0], ns)
     assert eval(code[-1], ns).widget.terrain['url'].endswith('{z}/{x}/{y}.png')
+
+
+def test_view_output_name(pyramids, capsys, tmp_path):
+    """`moraine view -o NAME` without a suffix writes and reports NAME.ipynb (it exited with 1: "the notebook name must
+    end with .ipynb"); another suffix and an existing notebook without --overwrite are usage errors (exit code 2; they
+    were processing errors, exit code 1) raised before anything is read: before the pyramid paths are checked."""
+    from moraine.command.summary import view as view_notebook
+    pyr = str(pyramids / 'stack_pyr')
+    assert main(['view', pyr, '-o', str(tmp_path / 'v'), '--json']) == 0
+    assert json_out(capsys)['notebook'] == str(tmp_path / 'v.ipynb')
+    assert (tmp_path / 'v.ipynb').exists() and not (tmp_path / 'v').exists()
+    assert main(['view', pyr, '-o', str(tmp_path / 'a.b' / 'nb')]) == 0                   # a dot in a directory
+    assert capsys.readouterr().out.startswith(f"saved {tmp_path / 'a.b' / 'nb.ipynb'}: open it in Jupyter")
+    assert view_notebook([pyr], str(tmp_path / 'p')) == str(tmp_path / 'p.ipynb') and (tmp_path / 'p.ipynb').exists()
+    (tmp_path / 'old.ipynb').write_text('{}')
+    for name, error in [
+            ('x.txt', f"{tmp_path / 'x.txt'}: the notebook name must end with .ipynb, or have no suffix (then .ipynb is "
+                      'appended)'),
+            ('X.IPYNB', f"{tmp_path / 'X.IPYNB'}: the notebook name must end with .ipynb, or have no suffix (then "
+                        '.ipynb is appended)'),
+            ('v1.2', f"{tmp_path / 'v1.2'}: the notebook name must end with .ipynb, or have no suffix (then .ipynb is "
+                     'appended)'),
+            ('old.ipynb', f"{tmp_path / 'old.ipynb'} exists; choose another name or overwrite it"),
+            ('old', f"{tmp_path / 'old.ipynb'} exists; choose another name or overwrite it")]:
+        for path in (pyr, str(tmp_path / 'missing')):          # the name first, then the pyramids
+            assert main(['view', path, '-o', str(tmp_path / name), '--json']) == 2, (name, path)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['error'] == error, (name, path)
+        with pytest.raises(UsageError, match='^' + re.escape(error) + '$'):
+            view_notebook([str(tmp_path / 'missing')], str(tmp_path / name))
+    assert not (tmp_path / 'x.txt').exists() and (tmp_path / 'old.ipynb').read_text() == '{}'
+    assert main(['view', pyr, '-o', str(tmp_path / 'old'), '--overwrite', '--json']) == 0
+    assert json_out(capsys)['notebook'] == str(tmp_path / 'old.ipynb')
+    assert json.loads((tmp_path / 'old.ipynb').read_text())['nbformat'] == 4

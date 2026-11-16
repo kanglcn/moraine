@@ -99,17 +99,42 @@ def test_raster_colours_and_value(ras):
     assert tuple(rgba[0, 0, :3]) == (0x44, 0x01, 0x54) and rgba[0, 0, 3] == 255
     assert tuple(rgba[0, 1, :3]) == (0xfd, 0xe7, 0x25)       # last viridis colour
     assert rgba[0, 2, 3] == 0                                # nan is transparent
-    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan), also when the limits are equal
+    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan)
     idx = layer.indices(np.array([[lo - 1, hi + 1, np.nan]]))
     assert idx.dtype == np.uint8 and idx.tolist() == [[0, 254, 255]]
     assert layer.palette.shape == (256, 4) and layer.palette[255, 3] == 0 and (layer.palette[:255, 3] == 255).all()
-    assert view(str(pyr), clim=(1, 1)).indices(np.array([3.0, np.nan])).tolist() == [0, 255]
     assert layer.value(7.2, 3.4, 1) == {'x': 7.0, 'y': 3.0, 'key': [3, 7], 'value': float(a[3, 7])}
     # zoomed out: the value of the cell drawn (level 2, every 4th pixel), the key of the pixel under the cursor
     assert layer.value(101.6, 100.0, 4) == {'x': 102.0, 'y': 100.0, 'key': [100, 102], 'value': float(a[100, 100])}
     assert layer.value(499.6, 0, 1) is None and layer.value(-0.6, 0, 1) is None
     custom = view(str(pyr), cmap='magma', clim=(0, 50))
     assert custom.clim == (0, 50) and custom.colors[0] == '#000004'
+
+
+def test_clim_is_checked_when_the_view_is_made(ras, grid_pc):
+    """`clim` that is not two finite numbers with low < high is an error of `view`, with the message of `moraine
+    quicklook --clim`, for rasters and points, pyramids and arrays, and for show functions: a reversed, empty, nan or
+    infinite range drew everything in the first colour, and a text of two digits was taken for two numbers ('15' for
+    (1, 5))."""
+    import re
+    a, pyr = ras
+    pts, pc_pyr = grid_pc
+    x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
+    layers = [(str(pyr), {}), (a[:30, :20], {}), (str(pc_pyr), {}), (np.ones(12, np.float32), dict(x=x, y=y)),
+              (np.ones((10, 10, 3), np.complex64), dict(show=lambda v, i: np.abs(v[..., i])))]
+    for clim in [(5, 1), (1, 1), (0.6, 0.4), (np.nan, 1), (0, np.inf), (-np.inf, 0), (1,), (1, 2, 3), (), 5, '15',
+                 '-11,6', ('a', 1), (1j, 2), (10**400, 1), [[0, 1]]]:
+        for data, kw in layers:
+            with pytest.raises(ValueError, match='^' + re.escape('clim must be two numbers LOW,HIGH with LOW < HIGH, '
+                                                                 'the values of the first and the last colour (e.g. '
+                                                                 f'-11,6), got {clim!r}') + '$'):
+                view(data, clim=clim, **kw)
+    for clim in [(0, 50), [0, 50], np.array([0.0, 50.0]), (np.float32(0), np.int64(50)), (-1e-9, 1e-9)]:
+        for data, kw in layers:
+            layer = view(data, clim=clim, **kw)
+            assert layer.clim == tuple(float(c) for c in clim) and layer.widget.panels[0]['layers'][0]['clim'] == \
+                [float(c) for c in clim]
+    assert all(type(c) is float for c in view(str(pyr), clim=(np.float32(0), np.int64(50))).clim)
 
 
 def test_raster_in_memory(tmp_path, ras, monkeypatch):
@@ -368,15 +393,14 @@ def test_coherence_of_data_that_are_not_compressed_coherence(tmp_path):
     """'coh' and 'coh_abs' of data that are not compressed coherence say what compressed coherence is, with the shape
     of the data (of the points for point data): one column per image pair, n (n - 1) / 2 for all pairs of n images or
     as many as the image pairs given. They said "input is not correct value of number of all pairs" (`nimage_from_npair`)
-    and "3 image pairs for data with 6 pairs", data without columns failed with a numpy error, and the shape of point
-    data was that of their raster."""
+    and "3 image pairs for data with 6 pairs", data without columns failed with a numpy error (they are a stack without
+    image pairs, `test_stack_without_images`), and the shape of point data was that of their raster."""
     import re
     x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
     rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
             'number of the image pairs given')
     for data, kw, error in [
             (np.ones((10, 10, 4), np.complex64), {}, f'not shape (10, 10, 4): {rule} (none are given)'),
-            (np.ones((10, 10, 0), np.complex64), {}, f'not shape (10, 10, 0): {rule} (none are given)'),
             (np.ones((12, 4), np.complex64), dict(x=x, y=y), f'not shape (12, 4): {rule} (none are given)'),
             (np.ones((10, 10, 6), np.complex64), dict(image_pairs=[[0, 1], [0, 2], [1, 2]]),
              f'not shape (10, 10, 6): {rule} (3)'),
@@ -555,6 +579,44 @@ def test_default_show_of_more_than_two_stack_dimensions(tmp_path, rng):
         np.testing.assert_array_equal(layer.raster_values(geom, {'i': 1, 'j': 2})[:10, :8], a[..., 1, 2, 0])
     _check_points([view(str(pyr), show=lambda v, i, j: v[..., i, j, 3], sliders={'i': 2, 'j': 3})], {'i': 0, 'j': 1},
                   p[:, 0, 1, 3])
+
+
+def test_stack_without_images(tmp_path):
+    """Data whose stack has no images or image pairs, e.g. (nlines, width, 0) or (n_points, 0), real and complex,
+    arrays, zarr paths and pyramids, are an error of `view` for every show, with their shape (of the points for point
+    data). The default show made a view with the slider i 0 .. -1 that failed with an IndexError when drawn; a
+    stack of one image is drawn."""
+    import re
+    x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
+    write_zarr(tmp_path / 'e.zarr', np.zeros((30, 20, 0), np.float32), (30, 20, 1))
+    write_zarr(tmp_path / 'one.zarr', np.ones((30, 20, 1), np.float32), (30, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'one.zarr'), str(tmp_path / 'one_pyr'))
+    # moraine does not build a pyramid of a stack without images (ras_pyramid fails): one made by hand
+    for level, (ny, nx) in enumerate([(30, 20), (15, 10), (8, 5), (4, 3), (2, 2)]):
+        write_zarr(tmp_path / 'e_pyr' / f'{level}.zarr', np.zeros((ny, nx, 0), np.float32), (ny, nx, 1))
+    marker = zarr.open(str(tmp_path / 'one_pyr' / '0.zarr'), mode='r').attrs['moraine_pyramid']
+    zarr.open(str(tmp_path / 'e_pyr' / '0.zarr'), mode='r+').attrs['moraine_pyramid'] = marker
+    shows = [None, 'phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs', lambda v, i: v[..., i],
+             lambda v: v[...].sum(axis=-1)]
+    for data, kw, shape in [
+            (np.zeros((30, 20, 0), np.float32), {}, (30, 20, 0)),
+            (np.zeros((30, 20, 0), np.complex64), {}, (30, 20, 0)),
+            (str(tmp_path / 'e.zarr'), {}, (30, 20, 0)),
+            (str(tmp_path / 'e_pyr'), {}, (30, 20, 0)),
+            (np.zeros((30, 20, 3, 0), np.complex64), {}, (30, 20, 3, 0)),
+            (np.zeros((30, 20, 0, 3), np.float32), {}, (30, 20, 0, 3)),
+            (np.zeros((12, 0), np.float32), dict(x=x, y=y), (12, 0)),
+            (np.zeros((12, 0), np.complex64), dict(x=x, y=y), (12, 0))]:
+        for show in shows:
+            with pytest.raises(ValueError, match='^' + re.escape(f'data of shape {shape}: a stack without images or '
+                                                                 'image pairs (a stack dimension of length 0); there is '
+                                                                 'nothing to show') + '$'):
+                view(data, show=show, **kw)
+        with pytest.raises(ValueError, match='a stack without images'):
+            view(data, show=lambda v, i: v[..., 0] * i, sliders={'i': 3}, **kw)
+    layer = view(str(tmp_path / 'one_pyr'))
+    assert layer.kdims == [{'name': 'i', 'max': 0}]
+    np.testing.assert_array_equal(layer.raster_values(grid_geom(0, 0, 0, RAS), {'i': 0})[:30, :20], np.ones((30, 20)))
 
 
 def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):

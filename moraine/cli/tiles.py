@@ -287,6 +287,9 @@ def _show(base, show, image_pairs, sliders, dates, shape):
     point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
     stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
+    if 0 in stack:                                   # its sliders would be 0 .. -1: every tile would fail
+        raise ValueError(f'data of shape {shape}: a stack without images or image pairs (a stack dimension of length '
+                         f'0); there is nothing to show')
     if show in ('coh', 'coh_abs'):
         wrong = f"show={show!r} needs compressed coherence (..., n_pairs), not shape {shape}"
         if len(stack) != 1:
@@ -344,6 +347,23 @@ def _show(base, show, image_pairs, sliders, dates, shape):
     colours = 'phase' if complex_data else \
         'differences' if show in ('intf_0', 'intf_seq', 'intf_all') and len(stack) == 1 else 'values'
     return show, fn, list(zip(names, counts)), colours, index
+
+
+def _clim(clim, given=None):
+    """(low, high) floats of a colour range `clim`: two finite numbers with low < high; None for None. A ValueError
+    that names `given` (by default `clim`) otherwise; `moraine quicklook --clim` gives its message."""
+    if clim is None:
+        return None
+    try:
+        if isinstance(clim, (str, bytes)):          # not two numbers, though '15' would give (1, 5)
+            raise TypeError
+        low, high = (float(v) for v in clim)
+    except (TypeError, ValueError, OverflowError):  # not two values, or not numbers
+        low = high = math.nan
+    if not (math.isfinite(low) and math.isfinite(high) and low < high):
+        raise ValueError(f'clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the first and the last '
+                         f'colour (e.g. -11,6), got {clim if given is None else given!r}')
+    return low, high
 
 
 def _colours(name, colours, stats, label, cmap, clim):
@@ -612,6 +632,7 @@ class _Layer(_Shown):
             if len(size) != 2 or min(size) <= 0:
                 raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
             self.size = size
+        clim = _clim(clim)          # a reversed range would draw everything in the first colour
         self.terrain = _terrain(terrain)
         if self.terrain and self.crs != 'web_mercator':
             raise ValueError(f'{self.label}: a 3D view over the terrain needs web mercator coordinates (e / n); the '
@@ -1175,7 +1196,7 @@ def view(
     data : str or np.ndarray
         a pyramid directory made by `ras_pyramid` or `pc_pyramid`; a raster, (nlines, width[, n[, m]]), as
         array or zarr path (read into memory, at most 512 MiB); or point data, (n_points[, n[, m]]), with `x`
-        and `y` and at least one point
+        and `y` and at least one point. A stack without images or image pairs (n or m 0) is a ValueError
     x : str or np.ndarray, optional
         x coordinate (range or web mercator x) of point data that is not a pyramid, (n_points,)
     y : str or np.ndarray, optional
@@ -1203,9 +1224,10 @@ def view(
         matplotlib colour map name or list of colours; cyclic for the phases of complex data, viridis
         otherwise by default
     clim : tuple, optional
-        (min, max) of the colours; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 %
-        range of the data (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a
-        real stack ('intf_0', 'intf_seq', 'intf_all')
+        (low, high), the values of the first and the last colour: two finite numbers with low < high, a ValueError
+        otherwise; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 % range of the data
+        (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a real stack ('intf_0',
+        'intf_seq', 'intf_all')
     opacity : float, default: 1.0
         opacity of the layer, 0 - 1
     label : str, optional
