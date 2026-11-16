@@ -100,5 +100,4 @@ the 3D view over the terrain is decision 0036.
   chart by date; colour bar ticks, a scale bar, keyboard stepping of the sliders; Leaflet and deck.gl shipped
   with the package for offline use and for China; a Tianditu base map with a key; quicklooks of `moraine run`
   with `show` / `index` per step.
-- Pyramids: level 0 as a symlink to the source array; the duplicated post processing functions of `plot.py`
-  and `tiles.py`; colorcet and pillow as dependencies.
+- Pyramids: level 0 as a symlink to the source array; colorcet and pillow as dependencies.

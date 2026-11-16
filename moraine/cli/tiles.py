@@ -8,12 +8,14 @@ import inspect
 import io
 import math
 from collections import namedtuple
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 import zarr
 
-from .plot import pyramid_levels, _pyramid_stats, _resolve_post_proc, _kdim_ranges, _stats, _cyclic_cmap
+from ..api.pc.rtree import HilbertRtree
+from .plot import pyramid_levels, _pyramid_stats, _stats, _cyclic_cmap, _RTREE_PAGE
 
 TILE = 256               # tile edge in screen pixels
 PROBE = 4                # the value under the cursor is of the nearest point within this many screen pixels
@@ -57,26 +59,6 @@ def mercator_geom(z, tx, ty):
 
 
 # ---------------------------------------------------------------- helpers
-
-def _ras_post_proc(post_proc):
-    """Raster post processing function of `post_proc` (None, a name or a function)."""
-    from . import plot
-    if callable(post_proc):
-        return post_proc
-    return {None: plot._default_ras_post_proc, 'phase': plot._ras_phase_post_proc,
-            'intf_0': plot._ras_inf_0_post_proc, 'intf_seq': plot._ras_inf_seq_post_proc,
-            'intf_all': plot._ras_inf_all_post_proc}[post_proc]
-
-
-def _pc_post_proc(post_proc):
-    """Point cloud post processing function of `post_proc` (None, a name or a function)."""
-    from . import plot
-    if callable(post_proc):
-        return post_proc
-    return {None: plot._default_pc_post_proc, 'phase': plot._pc_phase_post_proc,
-            'intf_0': plot._pc_inf_0_post_proc, 'intf_seq': plot._pc_inf_seq_post_proc,
-            'intf_all': plot._pc_inf_all_post_proc}[post_proc]
-
 
 def _lut(cmap):
     """(N_COLOURS, 4) uint8 RGBA table of a list of colours or a matplotlib colour map name: the colours of the
@@ -184,33 +166,65 @@ class _Visible:
         return a if dtype is None else a.astype(dtype)
 
 
-def _coh_post_procs(tnet, kind):
-    """Raster and point cloud post processing of compressed coherence (..., n_pairs) with image pairs `tnet`
-    for the sliders (reference i, secondary j): the phase (`kind` 'phase') or the magnitude ('abs') of
-    coherence (i, j), the conjugate for i > j, 0 phase / 1 magnitude on the diagonal, nan for pairs not in
-    `tnet`."""
-    def pick(read_first, read_pair, i, j):
+# The named `show` options and the defaults are functions f(v, *slider values) of the visible data v
+# (`_Visible`: the pixels of a level, or points), like the `show` functions of the users.
+
+def _stack_ndim(v):
+    """Number of stack dimensions (images, pairs) of the visible data `v`."""
+    return v.ndim - len(v._sel)
+
+
+def _show_values(v, *index):
+    """The values at the slider values `index`, one per stack dimension (the default)."""
+    if len(index) != _stack_ndim(v):
+        raise ValueError(f'{len(index)} indices given for data with {_stack_ndim(v)} index dimensions')
+    return v[(..., *index)]
+
+
+def _show_angle(v):
+    """The phase of complex data without a stack (the default)."""
+    return np.angle(v[...])
+
+
+def _show_named(name, v, *index):
+    """'phase' (of image i), 'intf_0' (interferogram of images 0 and i), 'intf_seq' (i and i + 1) or 'intf_all'
+    (i and j) at the slider values `index` (i[, j]): the phase of v_i * conj(v_j) of a complex stack (..., n),
+    v_i - v_j of a real one; element (i, j) of pairs (..., n, n), its phase for complex data."""
+    if len(index) != len(SLIDERS[name]):
+        raise ValueError(f"this show needs {'two indices' if name == 'intf_all' else 'one index'}, got {len(index)}")
+    n = _stack_ndim(v)
+    if name == 'phase':
+        if n != 1 or not np.iscomplexobj(v):
+            raise ValueError(f'phase needs complex data with one index dimension, got {v.dtype} with {n}')
+        return np.angle(v[..., index[0]])
+    i, j = (0, index[0]) if name == 'intf_0' else (index[0], index[0] + 1) if name == 'intf_seq' else index
+    if n == 1:
+        return np.angle(v[..., i] * v[..., j].conj()) if np.iscomplexobj(v) else v[..., i] - v[..., j]
+    if n != 2:
+        raise ValueError(f'the data must have one or two index dimensions, got {n}')
+    return np.angle(v[..., i, j]) if np.iscomplexobj(v) else v[..., i, j]
+
+
+def _show_coh(tnet, kind):
+    """`show` function of compressed coherence (..., n_pairs) with image pairs `tnet` for the sliders (reference
+    i, secondary j): the phase (`kind` 'phase') or the magnitude ('abs') of coherence (i, j), the conjugate for
+    i > j, 0 phase / 1 magnitude on the diagonal, nan for pairs not in `tnet`."""
+    def coh(v, i, j):
         i, j = int(i), int(j)
         if i == j:
-            first = np.asarray(read_first())
+            first = v[..., 0]
             out = np.full(first.shape, 0.0 if kind == 'phase' else 1.0)
             out[np.isnan(first)] = np.nan
             return out
         ref, sec = min(i, j), max(i, j)
         k = int(tnet.image_pairs_idx(ref=ref, sec=sec))
         if k == -1:
-            return np.full(np.asarray(read_first()).shape, np.nan)
-        d = np.asarray(read_pair(k))
+            return np.full(v[..., 0].shape, np.nan)
+        d = v[..., k]
         if kind == 'abs':
             return np.abs(d)
         return np.angle(d) if i < j else -np.angle(d)
-
-    def ras(data_zarr, xslice, yslice, i, j):
-        return pick(lambda: data_zarr[yslice, xslice, 0], lambda k: data_zarr[yslice, xslice, k], i, j)
-
-    def pc(data_zarr, idx_array, i, j):
-        return pick(lambda: data_zarr[idx_array, 0], lambda k: data_zarr[idx_array, k], i, j)
-    return ras, pc
+    return coh
 
 
 def _image_pairs(image_pairs, n_pairs):
@@ -258,18 +272,18 @@ def _crs(x0, y0, xm, ym, res, crs, what):
     return 'web_mercator'
 
 
-def _show(base, show, image_pairs, sliders, dates, is_pc):
-    """(name, raster function, point function, sliders [(name, count)], phase_like, default slider values)
-    of a `show` option."""
+def _show(base, show, image_pairs, sliders, dates):
+    """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
+    phase_like, default slider values) of a `show` option."""
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
         if len(stack) != 1:
             raise ValueError(f"show={show!r} needs compressed coherence (..., n_pairs), not shape {base.shape}")
         tnet = _image_pairs(image_pairs, stack[0])
-        ras, pc = _coh_post_procs(tnet, 'phase' if show == 'coh' else 'abs')
         n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
-        return show, ras, pc, list(zip(SLIDERS[show], counts)), show == 'coh', {'sec': min(1, n - 1)}
+        return show, _show_coh(tnet, 'phase' if show == 'coh' else 'abs'), list(zip(SLIDERS[show], counts)), \
+            show == 'coh', {'sec': min(1, n - 1)}
     if callable(show):
         names = list(inspect.signature(show).parameters)[1:]
         if len(names) > 2:
@@ -288,23 +302,20 @@ def _show(base, show, image_pairs, sliders, dates, is_pc):
         else:
             raise ValueError(f'give the slider ranges, e.g. sliders={dict.fromkeys(names, 10)}: they do not '
                              f'follow from the data shape {base.shape}')
-
-        def ras(data, xslice, yslice, *values):
-            return np.asarray(show(_Visible(data, (yslice, xslice)), *values))
-
-        def pc(data, idx_array, *values):
-            return np.asarray(show(_Visible(data, (idx_array,)), *values))
-        return None, ras, pc, list(zip(names, counts)), None, {}
+        return None, show, list(zip(names, counts)), None, {}
     if show is not None and show not in SLIDERS:
         raise ValueError(f"show must be None, a function or one of {sorted(SLIDERS)}, not {show!r}")
-    name, ras, pc, phase_like = _resolve_post_proc(base, show)
-    ranges = _kdim_ranges(base.shape, name if isinstance(name, str) else None)
-    names = SLIDERS.get(name, ('i', 'j')) if isinstance(name, str) else ('i', 'j')
-    counts = [hi + 1 for _, hi in ranges.values()]
+    complex_data = np.iscomplexobj(np.empty(0, base.dtype))
+    if show is None and complex_data and len(stack) == 1:
+        show = 'phase'                               # complex data show their phase by default
+    if show is None:                                 # sliders over the first two stack dimensions
+        fn, names, counts = (_show_angle if complex_data else _show_values), ('i', 'j'), list(stack)
+    else:
+        fn, names = partial(_show_named, show), SLIDERS[show]
+        counts = [] if not stack else [stack[0] - 1] if show == 'intf_seq' else [stack[0]] * len(names)
     # start on an interferogram, not on the zero phase of an image with itself
-    index = {'sec': 1} if name == 'intf_all' and counts[1] > 1 else {}
-    return name if isinstance(name, str) else None, _ras_post_proc(ras), \
-        (_pc_post_proc(pc) if is_pc else None), list(zip(names, counts)), phase_like, index
+    index = {'sec': 1} if show == 'intf_all' and counts[1] > 1 else {}
+    return show, fn, list(zip(names, counts)), complex_data or show is not None, index
 
 
 def _colours(name, phase_like, stats, label, cmap, clim):
@@ -537,8 +548,7 @@ class _Layer(_Shown):
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
         self.polygon_file = None if polygons is None else str(polygons)
-        name, self.post_proc, self.pc_post_proc, counts, phase_like, index = _show(
-            base, show, image_pairs, sliders, self.dates, is_pc)
+        name, self.show_fn, counts, phase_like, index = _show(base, show, image_pairs, sliders, self.dates)
         self.show_name = name if isinstance(name, str) else ('function' if callable(show) else None)
         self.kdims = [{'name': k, 'max': int(n) - 1} for k, n in counts]
         self.default_index = {k['name']: index.get(k['name'], 0) for k in self.kdims}
@@ -569,8 +579,8 @@ class _Layer(_Shown):
         level = next((lv for lv in range(self.max_level + 1)
                       if np.prod(self.levels(lv).shape[:2]) <= SAMPLE_CELLS), self.max_level)
         data = self.levels(level)
-        a = np.asarray(self.post_proc(data, slice(0, data.shape[1]), slice(0, data.shape[0]),
-                                      *self.default_index.values()), dtype=np.float64)
+        a = np.asarray(self._shown(data, (slice(0, data.shape[0]), slice(0, data.shape[1])), self.default_index),
+                       dtype=np.float64)
         finite = a[np.isfinite(a)]
         phase = np.iscomplexobj(np.empty(0, dtype)) and finite.size > 0 and \
             -np.pi - 1e-6 <= finite.min() < 0 and finite.max() <= np.pi + 1e-6
@@ -605,6 +615,11 @@ class _Layer(_Shown):
             return [int(index.get(k['name'], self.default_index[k['name']])) for k in self.kdims]
         return [int(i) for i in index]
 
+    def _shown(self, data, sel, index):
+        """Values shown of the pixels `sel` (line slice, column slice) of a level or of the points `sel`
+        (indices,) of the stack `data` for the slider values `index`."""
+        return np.asarray(self.show_fn(_Visible(data, sel), *self._slider_values(index)))
+
     def _cell_of(self, x, y, level=0):
         """Cell (i, j) of `level` at data coordinates, None outside the data."""
         j = math.floor(((x - self.cx0) / self.rx + 0.5) / 2 ** level)
@@ -629,7 +644,7 @@ class _Layer(_Shown):
         if not okj.any() or not oki.any():
             return out
         j0, j1, i0, i1 = j[okj].min(), j[okj].max(), i[oki].min(), i[oki].max()
-        a = np.asarray(self.post_proc(data, slice(j0, j1 + 1), slice(i0, i1 + 1), *self._slider_values(index)))
+        a = self._shown(data, (slice(i0, i1 + 1), slice(j0, j1 + 1)), index)
         out[np.ix_(oki, okj)] = a[np.ix_(i[oki] - i0, j[okj] - j0)]
         return out
 
@@ -723,7 +738,7 @@ class RasterLayer(_Layer):
             return None
         level = _level_of(self, s)
         i, j = self._cell_of(x, y, level)
-        a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+        a = self._shown(self.levels(level), (slice(i, i + 1), slice(j, j + 1)), index)
         return {**found, 'value': _scalar(a)}
 
     def _series_at(self, key):
@@ -831,13 +846,12 @@ class PointLayer(_Layer):
 
     def points_in(self, bounds):
         """Indices of the points within `bounds` (x0, y0, xm, ym) in data coordinates."""
-        if self._rtree is None:     # built on the first query: overviews do not read the coordinates
-            if self._rtree_dir is not None:
-                from .plot import _LazyRtree
-                self._rtree = _LazyRtree(self._rtree_dir)
-            else:
-                from ..api.pc.rtree import HilbertRtree
-                self._rtree = HilbertRtree.build(self._x, self._y, page_size=512)
+        if self._rtree is None:     # on the first query: overviews do not read the coordinates
+            saved = None if self._rtree_dir is None else self._rtree_dir / 'rtree.zarr'
+            if saved is not None and saved.exists():
+                self._rtree = HilbertRtree.load(str(saved))
+            else:                   # points in memory, or a pyramid made without the tree
+                self._rtree = HilbertRtree.build(self._x[:], self._y[:], page_size=_RTREE_PAGE)
         return self._rtree.bbox_query(bounds, self._x, self._y)
 
     def point_radius(self, s):
@@ -862,7 +876,7 @@ class PointLayer(_Layer):
         px, py = self._x[idx], self._y[idx]
         col = np.floor((px - ex[0]) / geom.sx).astype(np.int64)
         row = np.floor((py - ey[0]) / geom.sy).astype(np.int64)
-        values = self.pc_post_proc(self._pc, idx, *self._slider_values(index))
+        values = self._shown(self._pc, (idx,), index)
         return _stamp(img, row, col, self.indices(values), r)
 
     def locate(self, x, y, s):
@@ -897,9 +911,9 @@ class PointLayer(_Layer):
         if s >= self.cell:
             level = _level_of(self, s)
             i, j = self._cell_of(x, y, level)
-            a = self.post_proc(self.levels(level), slice(j, j + 1), slice(i, i + 1), *self._slider_values(index))
+            a = self._shown(self.levels(level), (slice(i, i + 1), slice(j, j + 1)), index)
         else:
-            a = self.pc_post_proc(self._pc, np.array([found['point']]), *self._slider_values(index))
+            a = self._shown(self._pc, (np.array([found['point']]),), index)
         return {**found, 'value': _scalar(a)}
 
     def series(self, x, y, s, ref=None):
