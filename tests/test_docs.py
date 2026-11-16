@@ -100,6 +100,28 @@ def test_tutorial_pages_are_the_notebooks():
     assert text.startswith('# PS Processing') and '```python' in text and '.ipynb)' not in text.split('!!! info')[1][300:]
 
 
+# decision records cited by a page: links to decisions/NNNN-... and mentions such as 'decisions 0021 and 0022' or
+# '决策 0033、0034' (the snippets AGENTS.md, ARCHITECTURE.md and CHANGELOG.md are the same in both languages)
+DECISION_LINK = re.compile(r'decisions/(\d{4})')
+DECISION_MENTION = re.compile(r'(?:[Dd]ecisions?(?: records?)?|决策(?:记录)?)((?:[\s,:：、]|and|or|和|或|与|及|0\d{3}(?!\d))+)')
+
+
+def _cited_decisions(text):
+    cited = set(DECISION_LINK.findall(text))
+    for numbers in DECISION_MENTION.findall(text):
+        cited |= set(re.findall(r'0\d{3}', numbers))
+    return cited
+
+
+@pytest.mark.parametrize('zh', [p for p in DOCS if p.name.endswith('.zh.md')],
+                         ids=lambda p: str(p.relative_to(REPO / 'docs')))
+def test_both_languages_cite_the_same_decisions(zh):
+    en = zh.with_name(zh.name.removesuffix('.zh.md') + '.md')
+    en_cited, zh_cited = _cited_decisions(en.read_text()), _cited_decisions(zh.read_text())
+    assert en_cited == zh_cited, (f'decisions cited only in {en.name}: {sorted(en_cited - zh_cited)}, '
+                                  f'only in {zh.name}: {sorted(zh_cited - en_cited)}')
+
+
 @pytest.mark.slow
 def test_manual_builds(tmp_path):
     if shutil.which('mkdocs') is None and importlib.util.find_spec('mkdocs') is None:
