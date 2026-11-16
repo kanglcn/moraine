@@ -501,7 +501,9 @@ def pc_tropo_era5(
             raise ArgumentError(f'{name} must have shape ({n_points},), got shape {z.shape}')
     t_img = _times(times)
     nimages = len(t_img)
-    if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < max(nimages, 1):
+    if nimages == 0:
+        raise ArgumentError('times must have the time of at least one image')
+    if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < nimages:
         raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
     geoid = _geoid(geoid)
     hours = _era5_hours(t_img)

@@ -312,9 +312,10 @@ def test_cli_pc_tropo_era5(tmp_path):
 def test_cli_argument_errors_are_usage_errors(tmp_path, capsys, monkeypatch):
     """download-era5 and pc-tropo-era5 check their arguments, and the shapes and dtypes of their inputs, before they
     download, read or write anything: a wrong one is an ArgumentError, on the command line a usage error (exit code 2,
-    the JSON error; decision 0052). They were processing errors (exit code 1, after `ValueError: `), and a `geoid` out
-    of range was found only by the tasks, after the output was created. ERA5 files that are missing stay a processing
-    error. Nothing is downloaded: the downloads of both sources fail in this test."""
+    the JSON error; decision 0052). They were processing errors (exit code 1, after `ValueError: `), a `geoid` out
+    of range was found only by the tasks, after the output was created, and `times` without a time failed with an
+    IndexError. ERA5 files that are missing stay a processing error. Nothing is downloaded: the downloads of both
+    sources fail in this test."""
     pytest.importorskip('h5py')
 
     def no_download(*args, **kwargs):
@@ -356,6 +357,7 @@ def test_cli_argument_errors_are_usage_errors(tmp_path, capsys, monkeypatch):
             (dict(hgt=paths['hgt5']), 'hgt must have shape (10,), got shape (5,)'),
             (dict(times=['20190102', '20190114']), "times must be date-times in UTC (ISO 8601, e.g. "
                                                    "2019-01-02T05:06:07.123456Z), got '20190102'"),
+            (dict(times=''), 'times must have the time of at least one image'),
             (dict(ref='2'), 'ref must be the index of one of the 2 images, got 2'),
             (dict(geoid='4600'), 'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between '
                                  '-150 and 150, got 4600.0')]:
