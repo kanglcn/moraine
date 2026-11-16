@@ -4,6 +4,7 @@ import tempfile
 import threading
 import tracemalloc
 import warnings
+import weakref
 
 import numpy as np
 import pytest
@@ -76,3 +77,48 @@ def test_raster_pyramid_memory_does_not_grow_with_the_bands(tmp_path, method):
         finally:
             tracemalloc.stop()
     assert peak(64) - peak(16) < 8 * band          # 48 more bands; c99c11b kept them all: 98 - 145 bands more
+
+
+@pytest.mark.parametrize('method', ['decimate', 'mean'])
+def test_raster_pyramid_holds_one_band_at_a_time(tmp_path, monkeypatch, method):
+    """A process renders a channel of a raster with one band in memory at a time: a band is released before the next
+    one is read. The previous band stayed alive while the next one was read (both methods) and, with decimate, while
+    its statistics were computed, as the decimated level of the band was a view of it: a band more at the peak.
+    Checked by the bands still alive when the next one is read and, with decimate, by the peak memory traced while a
+    channel of complex64 renders: a band and the working memory of its statistics, plus half a band for the chunks
+    read and written and the levels (without the sample of the statistics)."""
+    from moraine.cli import plot
+    rows, width, n_bands = 256, 1024, 8
+    rng = np.random.default_rng(0)
+    data = (rng.random((rows * n_bands, width), dtype=np.float32)
+            + 1j * rng.random((rows * n_bands, width), dtype=np.float32)).astype(np.complex64)
+    ras, pyr = tmp_path / 'ras.zarr', tmp_path / 'pyr'
+    write_zarr(ras, data, (rows, width))
+    mc.ras_pyramid(str(ras), str(pyr), rows=rows, method=method, n_workers=1)
+    step = rows * width                                        # one value of every band in the sample
+    plot._ras_pyramid_init(str(ras), str(pyr), len(pyramid_levels(pyr)) - 1, step, rows, method)
+    bands, alive = [], []
+    read = plot.parallel_read_zarr
+
+    def read_band(*args, **kwargs):
+        alive.append(sum(b() is not None for b in bands))     # the bands still in memory when the next one is read
+        band = read(*args, **kwargs)
+        bands.append(weakref.ref(band))
+        return band
+    monkeypatch.setattr(plot, 'parallel_read_zarr', read_band)
+    tracemalloc.start()
+    try:
+        plot._ras_pyramid_channel(())
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert alive == [0] * n_bands
+    if method == 'decimate':
+        band = data[:rows]
+        tracemalloc.start()
+        try:
+            plot._part_stats(band, step)
+            stats = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        assert peak < 1.5 * band.nbytes + stats, (peak / band.size, stats / band.size)   # bytes a pixel of a band

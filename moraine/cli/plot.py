@@ -74,6 +74,7 @@ def _ras_pyramid_channel(channel_idx):
             parallel_write_zarr(cur.astype(zarrs[level].dtype, copy=False), zarrs[level],
                                 (slice(r0 // f, r0 // f + cur.shape[0]), slice(None), *channel))
         tops.append(cur.copy()); counts.append(cnt)     # a copy: a decimated level is a view of the whole band
+        del band, cur, cnt      # one band in memory: released before the next one is read (cur may be a view of it)
     if band_levels < len(zarrs) - 1:
         cur = np.concatenate(tops, axis=0)
         cnt = np.concatenate(counts, axis=0) if mean else None
