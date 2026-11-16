@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The troposphere stratified with height from the displacement itself (decision 0053). New command `pc-tropo-powerlaw` (array function `moraine.pc_tropo_powerlaw`): in every image the displacement of the points of a mask (an area without deformation that varies with the height; all points by default) is fitted with a constant and K (h0 - h)^alpha, a power law of the height above the geoid (Bekaert et al., 2015; alpha 1 for a linear function of the height), and the troposphere K ((h0 - h)^alpha - (h0 - h_m)^alpha) of every point is written in millimeters with the sign of `pc-disp`, with K and its standard deviation per image. Defaults alpha 1.6, h0 10 000 m. One K per image for the whole scene; `docs/workflows/06_products.md` shows it as an optional step of example 06, before or after the correction with ERA5
+
 `moraine.cli.view` rejects an `opacity` outside 0 - 1, or nan, with a ValueError when the view is made, "opacity must be a number from 0 to 1, not 2.0"; it was taken, and `.png()` blended the colours out of their range (matplotlib clipped them with a warning) or drew nan
 
 `ras-pyramid` and `pc-pyramid` stop with an argument error (a usage error, exit code 2, on the command line) before they clean the output directory for chunk sizes and numbers of workers below 1 (`chunks`, `ras_chunks`, `pc_chunks`, `n_workers`), e.g. "n_workers must be 1 or more, not 0", and for a `ras_resolution` that is not a positive number; they cleaned the directory and failed later with processing errors ("Chunk size must be positive or -1, got 0", "max_workers must be greater than 0", "math domain error", "cannot convert float infinity to integer")

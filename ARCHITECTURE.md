@@ -88,7 +88,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of any network of interferograms | `emcf_pc` |
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
-| `moraine/api/tropo.py` | tropospheric delay of points from the ERA5 reanalysis on pressure levels (decision 0051) | `era5_zenith_delay`, `pc_tropo_era5` |
+| `moraine/api/tropo.py` | tropospheric delay of points from the ERA5 reanalysis on pressure levels (decision 0051); the troposphere stratified with height fitted to the displacement as a power law of the height (decision 0053) | `era5_zenith_delay`, `pc_tropo_era5`, `pc_tropo_powerlaw` |
 | `moraine/api/ts.py` | deformation products of point clouds (decision 0048): spatial reference, displacement, DEM error | `pc_reference`, `pc_disp`, `pc_sc_dem_error` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
@@ -113,7 +113,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
 | `moraine/cli/pqm.py` | temporal coherence, also with the DEM error relative to the neighbourhood fitted | `temp-coh`, `pc-su-dem-error` |
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
-| `moraine/cli/tropo.py` | tropospheric delay from ERA5 (decision 0051): download of the pressure levels from the NSF NCAR archive on AWS (HTTP range requests) or the Copernicus Climate Data Store (cdsapi), delay of point clouds (netCDF4 files read with h5py) | `download-era5`, `pc-tropo-era5` |
+| `moraine/cli/tropo.py` | tropospheric delay from ERA5 (decision 0051): download of the pressure levels from the NSF NCAR archive on AWS (HTTP range requests) or the Copernicus Climate Data Store (cdsapi), delay of point clouds (netCDF4 files read with h5py) ; the troposphere stratified with height from the displacement (decision 0053) | `download-era5`, `pc-tropo-era5`, `pc-tropo-powerlaw` |
 | `moraine/cli/ts.py` | deformation products of point clouds (decision 0048) | `pc-reference`, `pc-disp`, `pc-sc-dem-error` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |

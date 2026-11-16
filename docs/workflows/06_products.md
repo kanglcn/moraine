@@ -150,6 +150,75 @@ The points of the sample data cover 17 by 14 km, less than a cell of ERA5, with 
 atmosphere, which ERA5 does not resolve, dominates; scenes with more relief and larger extent gain more. The median
 displacement of Pozzuoli changes by up to 17 mm.
 
+## The troposphere from the displacement (optional)
+
+ERA5 is a model; the stratification of the lower troposphere at the time of an image is in the displacement itself.
+`pc-tropo-powerlaw` (decision 0053) fits it in every image: a constant and K (h0 - h)^alpha, a power law of the
+height above the geoid (Bekaert et al., 2015; defaults alpha 1.6, h0 10 km; `alpha = 1` for a linear function of the
+height), on the points of a mask, with one K per image for the whole scene. Deformation that varies with the height
+among these points is taken for troposphere: the mask must hold points without such deformation, over the range of
+heights and as much of the scene as possible. It is not in the example; to use it after ERA5, add these steps before
+`ref_mask` and give `reference` the new displacement (`pc = "disp/pc_disp_tropocor2.zarr"`):
+
+```toml
+[[step]]
+name = "stable_mask"              # points without deformation that varies with the height: 8 km from Rione Terra
+run = "math"
+output = "disp/pc_stable_mask.zarr"
+operation = "((lon - 14.1203) * 84.3) ** 2 + ((lat - 40.8197) * 110.5) ** 2 > 64"
+[step.kw]
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+
+[[step]]
+name = "tropo_powerlaw"           # the stratified troposphere left after ERA5, fitted on the stable points
+run = "pc-tropo-powerlaw"
+disp = "disp/pc_disp_tropocor.zarr"
+hgt = "pc/pc_hgt.zarr"
+mask = "disp/pc_stable_mask.zarr"
+geoid = "${geoid}"
+out = "disp/pc_tropo_powerlaw.zarr"
+k = "disp/powerlaw_k.zarr"
+
+[[step]]
+name = "tropocor_powerlaw"
+run = "math"
+output = "disp/pc_disp_tropocor2.zarr"
+operation = "disp - tropo"
+[step.kw]
+disp = "disp/pc_disp_tropocor.zarr"
+tropo = "disp/pc_tropo_powerlaw.zarr"
+```
+
+Instead of ERA5, give `disp = "disp/pc_disp_unref.zarr"` and subtract from it. A polygon drawn on a map
+(`polygon-mask`) works as the mask too. The log of `tropo_powerlaw` gives the points of the fit and the slope of the
+troposphere with height in every image.
+
+On the sample data (2026-11-16; the mask of the points 8 km or more from Rione Terra, 66 265 points from 2 to 388 m),
+with the 12 day differences of the displacement (mostly atmosphere) and the spatially correlated DEM error estimated
+from the odd and from the even dates:
+
+| correction | 12 day differences: std over the points (median of the pairs) | in / out of the mask | slope with height, RMS | pairs improved | Pozzuoli, last image | DEM error halves, 1 km correlation |
+|---|---|---|---|---|---|---|
+| none | 4.49 mm | 4.32 / 4.39 mm | 2.64 mm per 100 m | | 250.0 mm | 0.27 |
+| ERA5 | 4.40 mm | 3.95 / 4.31 mm | 2.04 mm per 100 m | 60 % | 253.1 mm | 0.42 |
+| power law (linear the same) | 4.17 mm | 3.31 / 4.19 mm | 0.93 mm per 100 m | 80 % | 260.6 mm | 0.28 |
+| ERA5, then power law | 4.29 mm | 3.44 / 4.19 mm | 1.07 mm per 100 m | 65 % | 260.4 mm | 0.42 |
+| power law without a mask | 4.09 mm | 3.47 / 4.10 mm | 0.00 mm per 100 m | 100 % | 245.4 mm | 0.30 |
+
+- Fitted to the displacement, the stratification goes much further than with ERA5, also outside the mask: the slope
+  of the troposphere with height relative to 2019-01-02 is 5.1 mm per 100 m in the median image (2.2 mm per 100 m are
+  left after ERA5), while ERA5 gives 1.6.
+- ERA5 removes what one K for the whole scene cannot, the horizontal part: only with ERA5 do the two halves of the DEM
+  error agree better. ERA5 followed by the power law keeps both.
+- With 400 m of relief the power law is a straight line: linear and power law give the same.
+- The mask decides: with the points 6 km or more from Rione Terra (183 851) 89 % of the pairs improve, the slope RMS is
+  0.56 mm per 100 m; with those 10 km or more (11 495 points, the east only) 64 % and 2.16 mm per 100 m.
+- Without a mask the uplift of Pozzuoli, larger at the low coast, is taken for troposphere: the slope in the median
+  image drops to 0.3 mm per 100 m, and the displacement of Pozzuoli moves the other way. The last image of Pozzuoli
+  differs by 10 mm between the corrections with a mask and without a correction: an uncertainty of the troposphere
+  that a GNSS station would settle.
+
 ## The DEM error
 
 A scatterer dh meters above the DEM of the processing (a roof on a terrain model, a wall above the ground) shifts the

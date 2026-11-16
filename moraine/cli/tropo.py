@@ -1,6 +1,7 @@
-"""Tropospheric delay from ERA5 (CLI): download of the ERA5 pressure levels, delay of point clouds (decision 0051)"""
+"""Tropospheric delay (CLI): from ERA5, download of its pressure levels and delay of point clouds (decision 0051); the
+part stratified with height from the displacement (decision 0053)"""
 
-__all__ = ['download_era5', 'pc_tropo_era5']
+__all__ = ['download_era5', 'pc_tropo_era5', 'pc_tropo_powerlaw']
 
 import datetime
 import io
@@ -17,7 +18,7 @@ import numpy as np
 import zarr
 
 import moraine as mr
-from ..api.tropo import _times, _era5_hours, _geoid
+from ..api.tropo import _times, _era5_hours, _geoid, _powerlaw_x, _estimation_points, _powerlaw_column
 from .logging import mc_logger
 from .utils_ import ArgumentError
 from .executor import Executor, Chunk
@@ -551,4 +552,102 @@ def pc_tropo_era5(
     if others.size and np.isfinite(others).any():
         logger.info(f'standard deviation of the troposphere over the points per image: median '
                     f'{np.nanmedian(others):.1f} mm, max {np.nanmax(others):.1f} mm (image {int(np.nanargmax(std))})')
+    logger.info('done.')
+
+
+@mc_logger
+def pc_tropo_powerlaw(
+    disp:str,
+    hgt:str,
+    out:str,
+    geoid:float,
+    mask:str=None,
+    k:str=None,
+    alpha:float=1.6,
+    h0:float=10000.0,
+    out_chunks:int=None,
+    processes=False,
+    n_workers=1,
+    threads_per_worker=4,
+):
+    """Line of sight displacement caused by the troposphere stratified with height, from the displacement itself.
+
+    In every image the displacement of the points of `mask` is fitted by least squares with c + K (h0 - h)^alpha, h the
+    height of the point above the geoid: a constant and a power law of the height (with alpha 1 a linear function of
+    the height, whatever h0). The troposphere of every point is K ((h0 - h)^alpha - (h0 - h_m)^alpha), h_m the median
+    height of the points of `mask`. Deformation that varies with the height among the points of `mask` gets into it:
+    give the points of an area without such deformation. The heights and `mask` stay in memory, about 15 bytes per
+    point.
+
+    Parameters
+    ----------
+    disp : str
+        input: line of sight displacement in millimeters, shape (n_points, nimages), floating point, chunks
+        (points_block, 1): of every image relative to a reference image (`pc-disp`), or corrected with
+        `pc-tropo-era5` (`math`)
+    hgt : str
+        input: height of the points in meters, shape (n_points,), floating point: above the WGS84 ellipsoid, or above
+        the geoid with `geoid` 0 (`load-gamma-lat-lon-hgt`, then `ras2pc`)
+    out : str
+        output: line of sight displacement in millimeters that the troposphere stratified with height causes, shape
+        (n_points, nimages), float32, chunks (out_chunks, 1); 0 at the median height of the points of `mask` and in
+        the reference image; the corrected displacement is `disp` - `out` (`math`); nan where `hgt` is nan
+    geoid : float
+        height of the geoid above the WGS84 ellipsoid at the points in meters, between -150 and 150; 0 when `hgt` is
+        the height above the geoid
+    mask : str, optional
+        input: the points of the fit, bool, shape (n_points,), at least 3 points at different heights with a value in
+        every image, e.g. an area without deformation that varies with the height (`polygon-mask`); all points by
+        default
+    k : str, optional
+        output: K and its standard deviation of every image in millimeters per meter^alpha, shape (nimages, 2), float64
+    alpha : float, default: 1.6
+        exponent of the power law, 0 < alpha <= 5; 1 for a linear function of the height
+    h0 : float, default: 10000.0
+        height above the geoid in meters above which the troposphere of the images does not differ, above the highest
+        point; not used with alpha 1
+    out_chunks : int, optional
+        point chunk size of `out`, that of `disp` by default
+    processes : default: False
+        use processes for the workers instead of threads
+    n_workers : default: 1
+        number of workers
+    threads_per_worker : default: 4
+        tasks (images) a worker processes at the same time; a task holds about 50 bytes per point
+    """
+    logger = logging.getLogger(__name__)
+    disp_zarr = zarr.open(disp, mode='r'); logger.zarr_info(disp, disp_zarr)
+    if disp_zarr.ndim != 2 or not np.issubdtype(disp_zarr.dtype, np.floating):
+        raise ArgumentError(f'disp must be floating point of shape (n_points, nimages), got {disp_zarr.dtype} '
+                            f'{disp_zarr.shape}')
+    n_points, nimages = disp_zarr.shape
+    hgt_zarr = zarr.open(hgt, mode='r'); logger.zarr_info(hgt, hgt_zarr)
+    if hgt_zarr.shape != (n_points,) or not np.issubdtype(hgt_zarr.dtype, np.floating):
+        raise ArgumentError(f'hgt must be floating point of shape ({n_points},), got {hgt_zarr.dtype} {hgt_zarr.shape}')
+    if mask is not None:
+        mask_zarr = zarr.open(mask, mode='r'); logger.zarr_info(mask, mask_zarr)
+        if mask_zarr.shape != (n_points,) or mask_zarr.dtype != bool:
+            raise ArgumentError(f'mask must be bool of shape ({n_points},), got {mask_zarr.dtype} {mask_zarr.shape}')
+    x = _powerlaw_x(hgt_zarr[:], geoid, alpha, h0)
+    est, x_m = _estimation_points(x, None if mask is None else mask_zarr[:])
+    h = hgt_zarr[:].astype(np.float64)[est] - float(geoid)
+    logger.info(f'{int(est.sum())} points of the fit, heights above the geoid {h.min():.0f} to {h.max():.0f} m '
+                f'(median {np.median(h):.0f} m); alpha {float(alpha)}' + (f', h0 {float(h0):.0f} m' if float(alpha) != 1 else ''))
+    if out_chunks is None:
+        out_chunks = disp_zarr.chunks[0]
+    out_zarr = zarr.open(out, mode='w', shape=(n_points, nimages), dtype=np.float32, chunks=(out_chunks, 1))
+    logger.zarr_info(out, out_zarr)
+    points = slice(0, n_points)
+    tasks = [([Chunk(disp, (points, slice(j, j + 1)))], [Chunk(out, (points, slice(j, j + 1)))]) for j in range(nimages)]
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+        res = ex.map_chunks(_powerlaw_column, tasks, desc='images', x=ex.put(x), est=ex.put(est), x_m=x_m)
+    kk = np.stack([r[0] for r in res])
+    # the slope at the median height: d/dh of K (h0 - h)^alpha, mm per 100 m
+    slope = -100 * kk[:, 0] * float(alpha) * (x_m ** ((float(alpha) - 1) / float(alpha)))
+    logger.info(f'slope of the troposphere with height at the median height per image: percentiles 5, 50, 95 '
+                f'{np.percentile(slope, 5):.2f}, {np.percentile(slope, 50):.2f}, {np.percentile(slope, 95):.2f} mm per 100 m')
+    if k is not None:
+        z = zarr.open(k, mode='w', shape=kk.shape, dtype=np.float64, chunks=kk.shape)
+        z[:] = kk
+        logger.zarr_info(k, z)
     logger.info('done.')
