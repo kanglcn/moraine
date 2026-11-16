@@ -477,7 +477,8 @@ class _Shown:
         Parameters
         ----------
         path : str
-            output PNG file; .png is appended to a name without a suffix
+            output PNG file; .png is appended to a name without a suffix, in place of the dots a name ends with (x
+            and x. are written as x.png)
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
@@ -492,7 +493,7 @@ class _Shown:
         Returns
         -------
         str
-            the output path, with .png appended to a name without a suffix
+            the output path, with .png appended to a name without a suffix or ending with a dot
         """
         return render_png(self._panels(), path, width=width, index=index, extent=extent)
 
@@ -1162,8 +1163,10 @@ def render_png(panels, path, width=1000, index=None, extent=None):
             fig.colorbar(ScalarMappable(Normalize(*layer.clim), cmap), ax=ax, label=layer.bar_label,
                          fraction=0.04, pad=0.02)
     fig.tight_layout()
-    if not os.path.splitext(str(path))[1]:      # matplotlib would add the suffix of its default format, not saying so
-        path = f'{path}.png'
+    # without a suffix (also x. or x..) matplotlib would write the name without its last dots and with the suffix of its
+    # default format, not saying so
+    if not os.path.splitext(str(path))[1].strip('.'):
+        path = f'{str(path).rstrip(".")}.png'
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, bbox_inches='tight')
     return str(path)

@@ -987,6 +987,18 @@ def test_png_of_a_name_without_a_suffix(tmp_path, monkeypatch):
     assert v.png(str(tmp_path / 'third.png')) == str(tmp_path / 'third.png')       # a name with a suffix as it is
 
 
+def test_png_of_a_name_ending_with_a_dot(tmp_path, monkeypatch):
+    """`.png(path)` of a name ending with a dot writes a PNG named without the dots and with .png, as matplotlib named
+    it, and returns that name; it returned the name given, a file that did not exist."""
+    import matplotlib
+    monkeypatch.setitem(matplotlib.rcParams, 'savefig.format', 'pdf')      # the PNG whatever the configuration
+    v = view(np.ones((10, 10), np.float32))
+    for name, written in (('x.', 'x.png'), ('y..', 'y.png'), ('z.png.', 'z.png.png')):
+        assert v.png(str(tmp_path / name)) == str(tmp_path / written), name
+        assert (tmp_path / written).read_bytes()[:4] == b'\x89PNG' and not (tmp_path / name).exists(), name
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['x.png', 'y.png', 'z.png.png']
+
+
 def test_png_extent(tmp_path, ras, mercator_pc):
     """A part of the scene is drawn from the finest level that fits, down to the data themselves; extents are
     pixels on the radar grid and degrees on web mercator; the view describes the extent and the finest cell."""
