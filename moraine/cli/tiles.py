@@ -228,15 +228,22 @@ def _show_coh(tnet, kind):
     return coh
 
 
-def _image_pairs(image_pairs, n_pairs):
-    """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs."""
-    from ..api.tnet import TempNet, check_image_pairs, nimage_from_npair
+def _image_pairs(image_pairs, n_pairs, wrong):
+    """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs; a ValueError
+    starting with the text `wrong` if `n_pairs` is neither the number of all pairs of n images, n (n - 1) / 2, nor
+    that of the image pairs given."""
+    from ..api.tnet import TempNet, check_image_pairs
+    rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
+            'number of the image pairs given')
     if image_pairs is None:
-        return TempNet.from_bandwidth(nimage_from_npair(n_pairs))
+        n = round((1 + math.sqrt(1 + 8 * n_pairs)) / 2)        # n (n - 1) / 2 = n_pairs
+        if n_pairs < 1 or n * (n - 1) // 2 != n_pairs:
+            raise ValueError(f'{wrong}: {rule} (none are given)')
+        return TempNet.from_bandwidth(n)
     pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
         else np.asarray(image_pairs, dtype=np.int32)
     if len(pairs) != n_pairs:
-        raise ValueError(f'{len(pairs)} image pairs for data with {n_pairs} pairs')
+        raise ValueError(f'{wrong}: {rule} ({len(pairs)})')
     check_image_pairs(pairs)        # the column of the pair of the sliders is searched in this order (decision 0047)
     return TempNet(pairs, check_if_valid=False)         # the network may leave out images
 
@@ -273,15 +280,17 @@ def _crs(x0, y0, xm, ym, res, crs, what):
     return 'web_mercator'
 
 
-def _show(base, show, image_pairs, sliders, dates):
+def _show(base, show, image_pairs, sliders, dates, shape):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
-    colours, default slider values) of a `show` option; colours of `_colours`: 'phase', 'values' or 'differences'
-    (of two images of a real stack), None for a function (guessed from its values)."""
+    colours, default slider values) of a `show` option for the level 0 `base` of data of `shape` (of the points for a
+    point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
+    stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
+        wrong = f"show={show!r} needs compressed coherence (..., n_pairs), not shape {shape}"
         if len(stack) != 1:
-            raise ValueError(f"show={show!r} needs compressed coherence (..., n_pairs), not shape {base.shape}")
-        tnet = _image_pairs(image_pairs, stack[0])
+            raise ValueError(wrong)
+        tnet = _image_pairs(image_pairs, stack[0], wrong)
         n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
         return show, _show_coh(tnet, 'phase' if show == 'coh' else 'abs'), list(zip(SLIDERS[show], counts)), \
@@ -604,7 +613,8 @@ class _Layer(_Shown):
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
         self.polygon_file = None if polygons is None else str(polygons)
-        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates)
+        shape = (self.n_points, *base.shape[2:]) if is_pc else tuple(base.shape)     # the data as the user gave them
+        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates, shape)
         self.show_name = name if isinstance(name, str) else ('function' if callable(show) else None)
         self.kdims = [{'name': k, 'max': int(n) - 1} for k, n in counts]
         self.default_index = {k['name']: index.get(k['name'], 0) for k in self.kdims}
@@ -1013,9 +1023,14 @@ def _merc_to_lonlat(x, y):
 def _data_extent(extent, crs):
     """(x0, y0, x1, y1) in data coordinates of a user extent: (west, south, east, north) degrees on web
     mercator, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid."""
-    e = [float(v) for v in extent]
+    what = '(west, south, east, north)' if crs == 'web_mercator' else '(range_min, azimuth_min, range_max, azimuth_max)'
+    try:
+        e = [float(v) for v in extent]
+    except (TypeError, ValueError):         # words, e.g. the names of the numbers typed for them
+        meaning = 'longitudes and latitudes in degrees' if crs == 'web_mercator' else 'pixels on the radar grid'
+        given = tuple(extent) if isinstance(extent, (list, tuple)) else repr(extent)
+        raise ValueError(f'extent must be four numbers {what}, {meaning}, got {given}') from None
     if len(e) != 4 or not (e[0] < e[2] and e[1] < e[3]):
-        what = '(west, south, east, north)' if crs == 'web_mercator' else '(range_min, azimuth_min, range_max, azimuth_max)'
         raise ValueError(f'extent must be {what} with the minimum before the maximum, got {tuple(extent)}')
     if crs == 'web_mercator':
         x0, y0 = _lonlat_to_merc(e[0], e[1])
@@ -1202,7 +1217,7 @@ def view(
     image_pairs : str, optional
         image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs', sorted by reference and then
         secondary index without duplicates, every reference index smaller than its secondary index, as made by
-        `moraine image-pairs`; all pairs by default
+        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2
     sliders : dict, optional
         number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
         shape or `dates` by default

@@ -360,9 +360,15 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
                                               'minimum before the maximum, got (30.0, 5.0, 10.0, 20.0)'),
             ([pyr, '--extent', '10,5,30'], 'extent must be (range_min, azimuth_min, range_max, azimuth_max) with the '
                                            'minimum before the maximum, got (10.0, 5.0, 30.0)'),
-            ([pyr, '--extent', 'west,5,30,20'], "could not convert string to float: 'west'"),
+            ([pyr, '--extent', 'west,5,30,20'], "extent must be four numbers (range_min, azimuth_min, range_max, "
+                                                "azimuth_max), pixels on the radar grid, got ('west', 5.0, 30.0, 20.0)"),
+            ([pyr, '--extent', 'west,south,east,north'], 'extent must be four numbers (range_min, azimuth_min, '
+                                                         'range_max, azimuth_max), pixels on the radar grid, got '
+                                                         "('west', 'south', 'east', 'north')"),
             ([pyr, '--show', 'phase'], 'phase needs complex data with one index dimension, got float32 with 1'),
-            ([pyr, '--show', 'coh'], 'input is not correct value of number of all pairs'),       # 4 is no n (n - 1) / 2
+            ([pyr, '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not shape (30, 20, 4): one "
+                                     'column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, '
+                                     '6, 10, ...) or the number of the image pairs given (none are given)'),
             ([str(tmp_path / 'r_pyr'), '--show', 'intf_seq'], 'the data must have one or two index dimensions, got 0'),
             ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
                                                          "shape (30, 20)")]:

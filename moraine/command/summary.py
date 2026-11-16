@@ -173,7 +173,7 @@ def quicklook(
     try:        # the inputs, before anything is drawn: their errors are a wrong command line, with their messages
         clim = _clim(clim)                          # UsageError
         if extent is not None and not isinstance(extent, (tuple, list)):
-            extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
+            extent = _numbers(extent)               # the words that are not numbers make the error of _data_extent
         layer = _view(str(pyramid), show=show, clim=clim)      # ValueError for a show that does not fit the data
         if extent is not None:
             _data_extent(extent, layer.crs)

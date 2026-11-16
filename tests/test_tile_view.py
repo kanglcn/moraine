@@ -348,6 +348,31 @@ def test_coherence_sliders(tmp_path):
         view(str(pyr), show='coh', image_pairs=str(tmp_path / 'pairs.txt'))
 
 
+def test_coherence_of_data_that_are_not_compressed_coherence(tmp_path):
+    """'coh' and 'coh_abs' of data that are not compressed coherence say what compressed coherence is, with the shape
+    of the data (of the points for point data): one column per image pair, n (n - 1) / 2 for all pairs of n images or
+    as many as the image pairs given. They said "input is not correct value of number of all pairs" (`nimage_from_npair`)
+    and "3 image pairs for data with 6 pairs", data without columns failed with a numpy error, and the shape of point
+    data was that of their raster."""
+    import re
+    x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
+    rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
+            'number of the image pairs given')
+    for data, kw, error in [
+            (np.ones((10, 10, 4), np.complex64), {}, f'not shape (10, 10, 4): {rule} (none are given)'),
+            (np.ones((10, 10, 0), np.complex64), {}, f'not shape (10, 10, 0): {rule} (none are given)'),
+            (np.ones((12, 4), np.complex64), dict(x=x, y=y), f'not shape (12, 4): {rule} (none are given)'),
+            (np.ones((10, 10, 6), np.complex64), dict(image_pairs=[[0, 1], [0, 2], [1, 2]]),
+             f'not shape (10, 10, 6): {rule} (3)'),
+            (np.ones(12, np.complex64), dict(x=x, y=y), 'not shape (12,)')]:
+        for show in ('coh', 'coh_abs'):
+            with pytest.raises(ValueError, match='^' + re.escape(f'show={show!r} needs compressed coherence (..., '
+                                                                 f'n_pairs), {error}') + '$'):
+                view(data, show=show, **kw)
+    assert [k['max'] for k in view(np.ones((10, 10, 6), np.complex64), show='coh').kdims] == [3, 3]    # 4 images
+    assert [k['max'] for k in view(np.ones((10, 10, 1), np.complex64), show='coh_abs').kdims] == [1, 1]
+
+
 def test_coherence_sliders_reach_the_last_image(tmp_path):
     pairs = np.array([(0, 1), (0, 3), (1, 2)])          # the last pair does not hold the last image
     np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
@@ -819,6 +844,21 @@ def test_png_extent(tmp_path, ras, mercator_pc):
     assert mlayer.png(str(tmp_path / 'mpart.png'), extent=(lon0, lat0, (lon0 + lon1) / 2, (lat0 + lat1) / 2))
     assert 'extent lon ' in repr(mlayer) and 'finest cell' in repr(mlayer) and 'levels 0..' in repr(mlayer)
     assert 'extent range -0.5 .. 499.5, azimuth -0.5 .. 299.5' in repr(layer)          # cell edges
+
+
+def test_png_extent_of_words(tmp_path, ras, mercator_pc):
+    """An extent of words (e.g. 'west' typed for its number) is an error that says that the extent is four numbers and
+    what they are, on the radar grid and on web mercator; it was "could not convert string to float: 'west'"."""
+    a, pyr = ras
+    out = tmp_path / 'e.png'
+    with pytest.raises(ValueError, match=r"^extent must be four numbers \(range_min, azimuth_min, range_max, "
+                                         r"azimuth_max\), pixels on the radar grid, got \('west', 'south', 'east', "
+                                         r"'north'\)$"):
+        view(str(pyr)).png(str(out), extent=('west', 'south', 'east', 'north'))
+    with pytest.raises(ValueError, match=r"^extent must be four numbers \(west, south, east, north\), longitudes and "
+                                         r"latitudes in degrees, got \(14.1, 'south', 14.2, None\)$"):
+        view(str(mercator_pc[-1])).png(str(out), extent=(14.1, 'south', 14.2, None))
+    assert not out.exists()
 
 
 def test_png_index_within_the_sliders(tmp_path, stack):
