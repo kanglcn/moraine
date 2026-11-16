@@ -15,7 +15,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 ```
 
 - **API** (`moraine/api/`): algorithms on arrays in memory, grouped by the stages of the processing chain
-  (`ps`, `ds`, `dl`, `pqm`, `unwrap`, `ts`) and the foundations they share (`pc`, `tnet`, `polygon`, `slc`), the
+  (`ps`, `ds`, `dl`, `pqm`, `unwrap`, `tropo`, `ts`) and the foundations they share (`pc`, `tnet`, `polygon`, `slc`), the
   internal utilities in `moraine/api/utils_/` (decisions 0015, 0041). A module is one method or one data structure,
   a topic of several modules is a subpackage. `import moraine` re-exports the public names as `moraine.*`. Most
   functions accept numpy (CPU, numba) or cupy (GPU) arrays and return the same kind
@@ -32,7 +32,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 - The CLI layer does not import `moraine.command`.
 - Inside the API (decision 0041): `moraine/api/utils_/` imports no other part of the API; a foundation (`pc`,
   `tnet`, `polygon`, `slc`) imports `utils_` and other foundations; a stage (`ps`, `ds`, `dl`, `pqm`, `unwrap`,
-  `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
+  `tropo`, `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
   never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
 - GPU packages: `cupy` is imported only by the GPU code paths, inside their functions or in a module only they import
@@ -87,6 +87,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of any network of interferograms | `emcf_pc` |
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
+| `moraine/api/tropo.py` | tropospheric delay of points from the ERA5 reanalysis on pressure levels (decision 0051) | `era5_zenith_delay`, `pc_tropo_era5` |
 | `moraine/api/ts.py` | deformation products of point clouds (decision 0048): spatial reference, displacement, DEM error | `pc_reference`, `pc_disp`, `pc_sc_dem_error` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
@@ -111,6 +112,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
 | `moraine/cli/pqm.py` | temporal coherence, also with the DEM error relative to the neighbourhood fitted | `temp-coh`, `pc-su-dem-error` |
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
+| `moraine/cli/tropo.py` | tropospheric delay from ERA5 (decision 0051): download of the pressure levels from the NSF NCAR archive on AWS (HTTP range requests) or the Copernicus Climate Data Store (cdsapi), delay of point clouds (netCDF4 files read with h5py) | `download-era5`, `pc-tropo-era5` |
 | `moraine/cli/ts.py` | deformation products of point clouds (decision 0048) | `pc-reference`, `pc-disp`, `pc-sc-dem-error` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |

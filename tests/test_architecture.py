@@ -107,7 +107,7 @@ def test_import_moraine_does_not_import_requests():
 # ---------------------------------------------------------------- inside the API (decision 0041)
 
 API_FOUNDATIONS = {'pc', 'tnet', 'polygon', 'slc'}
-API_STAGES = {'ps', 'ds', 'dl', 'pqm', 'unwrap', 'ts'}
+API_STAGES = {'ps', 'ds', 'dl', 'pqm', 'unwrap', 'tropo', 'ts'}
 
 
 def _api_part(name):
