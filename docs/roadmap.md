@@ -87,6 +87,15 @@ reuse one buffer for all batches of a task (the coherence kernel writes into a g
 which asks for huge pages (transparent huge pages are `madvise` on the development cluster, so the arrays of numba get
 4 KB pages). Measure on the Campi Flegrei example and on a 10 M point case, with the memory.
 
+## Latitudes and longitudes of exactly 0
+
+`load-gamma-lat-lon-hgt` sets every latitude, longitude and height with an absolute value below 1e-30 to NaN, each
+value on its own, as GAMMA writes 0 where it has no data (the rule of all readers of GAMMA files,
+`moraine/api/utils_/gamma_io.py`). A latitude or longitude of exactly 0, a pixel on the equator or on the prime
+meridian, becomes NaN this way, and so do the values computed from it, e.g. the perpendicular baselines of
+`load-gamma-bperp`. Idea: find out what `pt2geo` writes for a pixel without data (e.g. 0 for all three values) and
+take only such pixels as no data.
+
 ## Visualization
 
 Open items of the viewer (`moraine.cli.view`), with their reasons and the measurements in `docs/viewer.md`;
