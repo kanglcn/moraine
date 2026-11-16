@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+An image pair file that numpy cannot read, e.g. with a header line without `#`, or a `.npy` file that is text or empty, and lists of pairs of different lengths are usage errors (exit code 2) of the processing commands, with the message that `moraine quicklook` and `moraine view` give, "image pairs 'FILE': could not convert string 'reference' to float64 at row 0, column 1."; they were processing errors (exit code 1)
+
 Image pairs whose values are not integers, e.g. a file with the line "0.5 1", are an error that names the first such value, "image indices must be integers, got 0.5 in pair 0": a usage error (exit code 2) of the commands that take `image_pairs`, of `moraine quicklook` and `moraine view`, a ValueError of `moraine.cli.view(image_pairs=...)`. Image pair files were read as integers, which truncated 0.5 to 0 without a word. Floats of integer values, as `np.savetxt` writes them by default, are read as before
 
 Without h5py, `download-era5` and `pc-tropo-era5` report a wrong argument as such, a usage error (exit code 2), and only right arguments as the missing h5py (an ImportError, exit code 1): they checked for h5py first, so any call failed with "ImportError: ... needs h5py"

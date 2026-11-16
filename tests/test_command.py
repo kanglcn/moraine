@@ -87,6 +87,41 @@ def test_image_pairs_must_be_integers(tmp_path, capsys):
     assert not out.exists()
 
 
+def test_image_pairs_that_numpy_cannot_read_are_usage_errors(tmp_path, capsys, rng):
+    """An image pair file that numpy cannot read (a header line without #, a .npy file that is text or empty) and lists
+    of pairs of different lengths are usage errors (exit code 2) of the processing commands, with the message of
+    quicklook and view; they were processing errors (exit code 1, ValueError or EOFError) of the processing commands
+    and usage errors of quicklook and view."""
+    import moraine.cli as mc
+    (tmp_path / 'words.txt').write_text('reference secondary\n0 1\n')
+    (tmp_path / 'text.npy').write_text('0 1\n')
+    (tmp_path / 'empty.npy').write_bytes(b'')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', np.ones((12, 3), np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    out = tmp_path / 'unw.zarr'
+    capsys.readouterr()
+    for value, error in [
+            (str(tmp_path / 'words.txt'), f"image pairs '{tmp_path / 'words.txt'}': could not convert string "
+                                          "'reference' to float64 at row 0, column 1."),
+            (str(tmp_path / 'text.npy'), f"image pairs '{tmp_path / 'text.npy'}': This file contains pickled (object) "
+                                         'data.'),
+            (str(tmp_path / 'empty.npy'), f"image pairs '{tmp_path / 'empty.npy'}': No data left in file"),
+            ('[[0,1],[1]]', "image pairs '[[0,1],[1]]': setting an array element with a sequence.")]:
+        assert main(['mcf-pc', '--gix', 'gix.zarr', '--ph', 'ph.zarr', '--unw_ph', str(out), '--image_pairs', value,
+                     '--range_pixel_spacing', '1', '--azimuth_pixel_spacing', '1', '--json', '-q']) == 2, value
+        result = json_out(capsys)
+        assert set(result) == {'version', 'ok', 'error'} and result['error'].startswith(error), (value, result)
+        assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--show', 'coh',
+                     '--image_pairs', value, '--json']) == 2, value
+        assert json_out(capsys) == result
+        with pytest.raises(UsageError, match=re.escape(error)):
+            image_pairs(value)
+    assert not out.exists() and not (tmp_path / 'q.png').exists()
+
+
 def test_commands_registry():
     cmds = commands()
     assert {'amp-disp', 'shp-test', 'emi', 'n2f', 'mcf-pc', 'pc-concat', 'ras-pyramid'} <= set(cmds)

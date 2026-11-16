@@ -91,30 +91,28 @@ def literal(text):
 
 def image_pairs(value):
     """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec) of integers, checked
-    against the data conventions (sorted without duplicates, ref < sec); int64 (n_pairs, 2)."""
-    if isinstance(value, np.ndarray):
-        pairs = value
-    elif isinstance(value, (list, tuple)):
-        pairs = np.asarray(value)
-    else:
-        text = str(value)
-        if Path(text).is_file():
-            # as floats: values that are not integers are errors below, which reading as int64 truncated (0.5 to 0)
-            pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, ndmin=2)
-        else:
-            parsed = literal(text)
-            if isinstance(parsed, str):
-                raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
-                                 'make a file with `moraine image-pairs`')
-            pairs = np.asarray(parsed)
-    pairs = np.asarray(pairs)
-    if pairs.ndim != 2 or pairs.shape[1] != 2:
-        raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
+    against the data conventions (sorted without duplicates, ref < sec); int64 (n_pairs, 2). UsageError otherwise,
+    also for a file that numpy cannot read."""
+    where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
     try:
+        if isinstance(value, (np.ndarray, list, tuple)):
+            pairs = np.asarray(value)
+        else:
+            text = str(value)
+            if Path(text).is_file():
+                # as floats: values that are not integers are errors below, which reading as int64 truncated (0.5 to 0)
+                pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, ndmin=2)
+            else:
+                parsed = literal(text)
+                if isinstance(parsed, str):
+                    raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
+                                     'make a file with `moraine image-pairs`')
+                pairs = np.asarray(parsed)
+        if pairs.ndim != 2 or pairs.shape[1] != 2:
+            raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
         pairs = _integer_image_pairs(pairs)
         check_image_pairs(pairs)
-    except ValueError as e:
-        where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
+    except (ValueError, OSError, EOFError) as e:    # also a file numpy cannot read, lists of different lengths
         raise UsageError(f'image pairs{where}: {e}') from None
     return pairs
 

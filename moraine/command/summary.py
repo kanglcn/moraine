@@ -119,10 +119,7 @@ def _pairs_input(pairs):
     commands (`moraine.command.image_pairs`): a text or .npy file, or a list; UsageError otherwise, also for a file that
     is not two columns of integers."""
     from . import image_pairs
-    try:
-        return image_pairs(pairs)
-    except (ValueError, OSError) as e:          # numpy cannot read the file
-        raise UsageError(f'image pairs {str(pairs)!r}: {e}') from None
+    return image_pairs(pairs)
 
 
 def _notebook_name(out, overwrite:bool)->str:
