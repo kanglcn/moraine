@@ -27,7 +27,6 @@ dependencies = [
     "colorcet",
     "zarr>=3.4.1; python_version >= '3.12'",  # 2x faster chunk writes (decision 0039); zarr 3.2+ needs Python 3.12
     "zarr; python_version < '3.12'",
-    "numcodecs",
     "toml",
     "numba>=0.59",
     "anywidget",  # interactive maps in VS Code and Jupyter notebooks (moraine.cli.view)
