@@ -411,10 +411,11 @@ def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, case):
             z0 = zarr.open(str(pyr / '0.zarr'), mode='r+')
             z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != case[3:]}
     command = 'pc-pyramid' if case == 'no rtree' else 'ras-pyramid'
-    for read in (pyramid_levels, summarize, lambda p: quicklook(p, str(tmp_path / 'q.png')),
-                 lambda p: notebook([p], str(tmp_path / 'v.ipynb')), mc.view):
+    for read in (pyramid_levels, summarize, lambda p: notebook([p], str(tmp_path / 'v.ipynb')), mc.view):
         with pytest.raises(ValueError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):
             read(str(pyr))
+    with pytest.raises(UsageError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):    # a wrong input
+        quicklook(str(pyr), str(tmp_path / 'q.png'))
 
 
 # ---------------------------------------------------------------- data conventions

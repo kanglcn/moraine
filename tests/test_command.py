@@ -115,7 +115,7 @@ def test_summarize_is_metadata_only(tmp_path, rng):
 
 def test_quicklook_needs_a_pyramid(tmp_path, rng):
     write_zarr(tmp_path / 'f.zarr', rng.random((30, 20)).astype(np.float32))
-    with pytest.raises(ValueError, match='moraine ras-pyramid'):
+    with pytest.raises(UsageError, match='moraine ras-pyramid'):
         quicklook(str(tmp_path / 'f.zarr'), str(tmp_path / 'q.png'))
 
 
@@ -331,8 +331,56 @@ def test_quicklook_command(tmp_path, capsys, rng):
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'part.png'), '--extent', '10,5,30,20',
                  '--json']) == 0
     assert json_out(capsys)['png'] == str(tmp_path / 'part.png') and (tmp_path / 'part.png').stat().st_size > 1000
-    assert main(['quicklook', str(tmp_path / 'ras.zarr'), '--json']) == 1
+    assert main(['quicklook', str(tmp_path / 'ras.zarr'), '--json']) == 2          # a usage error
     assert 'not a pyramid' in json_out(capsys)['error']
+
+
+def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypatch):
+    """Wrong inputs of `moraine quicklook` are usage errors (exit code 2) with the messages of their checks, before
+    anything is drawn: a path that is not a pyramid or one to rebuild, an extent that is not (min, min, max, max), a
+    show that does not fit the data (they were processing errors, exit code 1; a show of the wrong data failed when it
+    was drawn). An error while drawing stays a processing error."""
+    import moraine.cli as mc
+    import moraine.cli.tiles as tiles
+    write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
+    write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
+    pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
+    for args, error in [
+            ([str(tmp_path / 'ts.zarr')], f"{tmp_path / 'ts.zarr'} is not a pyramid; build one first with `moraine "
+                                          f"ras-pyramid --ras {tmp_path / 'ts.zarr'} --out_dir <dir>` (rasters) or "
+                                          f"`moraine pc-pyramid` (point clouds)"),
+            ([str(tmp_path / 'missing')], f"{tmp_path / 'missing'} is not a pyramid; build one first with"),
+            ([str(tmp_path / 'old')], f"{tmp_path / 'old'}: a pyramid without its marker (the attribute moraine_pyramid "
+                                      f"of 0.zarr), made by moraine before 0.10.0"),
+            ([pyr, '--extent', '30,5,10,20'], 'extent must be (range_min, azimuth_min, range_max, azimuth_max) with the '
+                                              'minimum before the maximum, got (30.0, 5.0, 10.0, 20.0)'),
+            ([pyr, '--extent', '10,5,30'], 'extent must be (range_min, azimuth_min, range_max, azimuth_max) with the '
+                                           'minimum before the maximum, got (10.0, 5.0, 30.0)'),
+            ([pyr, '--extent', 'west,5,30,20'], "could not convert string to float: 'west'"),
+            ([pyr, '--show', 'phase'], 'phase needs complex data with one index dimension, got float32 with 1'),
+            ([pyr, '--show', 'coh'], 'input is not correct value of number of all pairs'),       # 4 is no n (n - 1) / 2
+            ([str(tmp_path / 'r_pyr'), '--show', 'intf_seq'], 'the data must have one or two index dimensions, got 0'),
+            ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
+                                                         "shape (30, 20)")]:
+        capsys.readouterr()
+        assert main(['quicklook', *args, '-o', str(out), '--json']) == 2, args
+        result = json_out(capsys)
+        assert result['ok'] is False and result['error'].startswith(error), (args, result)
+        assert not out.exists()
+    assert main(['quicklook', pyr, '-o', str(out)]) == 0 and out.stat().st_size > 1000
+    out.unlink()
+    # an error while drawing is a processing error
+
+    def render(*args, **kwargs):
+        raise ValueError('a chunk of the level cannot be read')
+    monkeypatch.setattr(tiles.RasterLayer, 'render', render)
+    capsys.readouterr()
+    assert main(['quicklook', pyr, '-o', str(out), '--json']) == 1
+    assert json_out(capsys)['error'] == 'ValueError: a chunk of the level cannot be read' and not out.exists()
 
 
 def test_quicklook_index_within_the_sliders(tmp_path, capsys, rng):

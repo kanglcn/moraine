@@ -451,6 +451,35 @@ def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
         view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
 
 
+def test_named_shows_that_do_not_fit_the_data(tmp_path, rng):
+    """A named show that does not fit the data is an error of `view`, before anything is drawn (`moraine quicklook`
+    makes it a usage error): 'phase' needs complex data with one stack dimension, 'intf_0', 'intf_seq' and 'intf_all'
+    one or two, 'intf_seq' two images. The views were made and failed in every tile, 'intf_all' of data without a
+    stack with an IndexError when it was made."""
+    ts = rng.normal(size=(30, 20, 3)).astype(np.float32)
+    write_zarr(tmp_path / 'ts.zarr', ts, (15, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'ts_pyr'))
+    pyr, x, y = _grid_points(tmp_path, ts[:3, :4].reshape(12, 3), 'pts')
+    for data, show, error in [
+            (ts, 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (str(tmp_path / 'ts_pyr'), 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (str(pyr), 'phase', 'phase needs complex data with one index dimension, got float32 with 1'),
+            (np.ones((10, 10, 3, 3), np.complex64), 'phase', 'phase needs complex data with one index dimension, got '
+                                                             'complex64 with 2'),
+            (np.ones((10, 10), np.complex64), 'phase', 'phase needs complex data with one index dimension, got '
+                                                       'complex64 with 0'),
+            (np.ones((10, 10), np.float32), 'intf_0', 'the data must have one or two index dimensions, got 0'),
+            (np.ones((10, 10), np.complex64), 'intf_all', 'the data must have one or two index dimensions, got 0'),
+            (np.ones((10, 10, 2, 2, 2), np.complex64), 'intf_seq', 'the data must have one or two index dimensions, '
+                                                                   'got 3'),
+            (np.ones((10, 10, 1), np.complex64), 'intf_seq', 'intf_seq needs at least two images, got 1')]:
+        with pytest.raises(ValueError, match=f'^{error}$'):
+            view(data, show=show)
+    with pytest.raises(ValueError, match='^phase needs complex data'):
+        view(ts[:3, :4].reshape(12, 3), x=x, y=y, show='phase')
+    assert view(np.ones((10, 10, 2), np.complex64), show='intf_seq').kdims == [{'name': 'image', 'max': 0}]
+
+
 def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):
     """'intf_0', 'intf_seq' and 'intf_all' of real data are coloured like other real values, viridis with the colour
     bar of the layer: the differences of two images of a stack over +-(p99 - p01) of the statistics of the data (the

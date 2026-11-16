@@ -310,6 +310,13 @@ def _show(base, show, image_pairs, sliders, dates):
     complex_data = np.iscomplexobj(np.empty(0, base.dtype))
     if show is None and complex_data and len(stack) == 1:
         show = 'phase'                               # complex data show their phase by default
+    # a named show that does not fit the data is an error of the view, before anything is drawn (`_show_named`)
+    if show == 'phase' and (len(stack) != 1 or not complex_data):
+        raise ValueError(f'phase needs complex data with one index dimension, got {base.dtype} with {len(stack)}')
+    if show in ('intf_0', 'intf_seq', 'intf_all') and len(stack) not in (1, 2):
+        raise ValueError(f'the data must have one or two index dimensions, got {len(stack)}')
+    if show == 'intf_seq' and stack[0] < 2:
+        raise ValueError(f'intf_seq needs at least two images, got {stack[0]}')
     if show is None:                                 # sliders over the first two stack dimensions
         fn, names, counts = (_show_angle if complex_data else _show_values), ('i', 'j'), list(stack)
     else:
@@ -1147,13 +1154,15 @@ def view(
     y : str or np.ndarray, optional
         y coordinate (azimuth or web mercator y) of point data that is not a pyramid, (n_points,)
     show : str or callable, optional
-        what to show of a stack: 'phase', 'intf_0' (interferograms with the first image), 'intf_seq'
-        (sequential interferograms), 'intf_all' (any pair, sliders ref and sec), the differences of the two
-        images for a real stack (e.g. of unwrapped phase or displacement), 'coh' / 'coh_abs' (phase /
-        magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function
-        ``f(v, *sliders)`` of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose
-        other arguments are sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] *
-        np.conj(v[..., sec]))``; the phase for complex data, the values otherwise by default
+        what to show of a stack: 'phase' (of complex images (..., n)), 'intf_0' (interferograms with the first
+        image), 'intf_seq' (sequential interferograms), 'intf_all' (any pair, sliders ref and sec) of images
+        (..., n), the differences of the two images for a real stack (e.g. of unwrapped phase or displacement),
+        or element (i, j) of matrices (..., n, n), its phase for complex data; 'coh' / 'coh_abs' (phase /
+        magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function ``f(v, *sliders)``
+        of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose other arguments are
+        sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] * np.conj(v[..., sec]))``; the
+        phase for complex data, the values otherwise by default. A named show that does not fit the data is a
+        ValueError
     dates : list or str, optional
         date of each image, or a toml file with ``dates`` (e.g. of `load_gamma_metadata`), shown with the
         sliders and on the time axis
