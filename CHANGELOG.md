@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+`read_gamma_pdata` (`moraine.api.utils_.gamma_io`), the reader of GAMMA point data, sets float and complex values with an absolute value below 1e-30 (GAMMA's no data) to nan, as `read_gamma_image` does; before, only exact zeros were nan. Its only user is `gamma_mcf_pt` (command `gamma-mcf-pt`), for the unwrapped phases of GAMMA `mcf_pt`, where a nonzero phase below 1e-30 rad does not occur in practice
+
+The package metadata give the license as `GPL-3.0-or-later`, the GNU General Public License version 3 or (at your option) any later version, as the LICENSE file has always said; 0.10.0 declared `GPL-3.0-only`. The README and the manual name it the same way
+
 `TempNet.image_pairs_idx` takes numpy integer scalars (e.g. `np.int64`, `np.int32`) as `ref` and `sec` like Python ints, and gives one np.int64 for them, and `image_pairs` as a list or tuple of pairs (e.g. `[(0, 1), (1, 2)]`, or empty) like an array, with the same results, -1 for the pairs not in the network. It raised a TypeError for them: "len() of unsized object" for numpy integers, "list indices must be integers or slices, not tuple" for a list of pairs. A sequence `ref` with an integer `sec` raises the TypeError "ref and sec must both be integers or both sequences", as an integer `ref` with a sequence `sec` did
 
 `pc_union` and `pc_intersect` with cupy arrays return the dtypes of the CPU. With int32 hilbert indices the positions of `pc_union` (the points of `idx1` and the new points of `idx2` in the union, the new points in `idx2`) are int32 on the GPU too, instead of int64: for hilbert indices those of the points of `idx1` have the dtype of `idx1`, the others that of `idx2`. `pc_intersect` of an int32 `idx1` and an int64 `idx2` gives an int64 intersection on the GPU too, instead of int32. The values, grid indices and `pc_diff` do not change; the docstrings give the dtypes

@@ -50,7 +50,7 @@ every image `pc_bperp.zarr` (n_points, nimages) float32 m, 0 for the reference i
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 675 687 | about PS + DS minus overlap |
+| merged candidates (run of 2026-11-15) | 675 689 | about PS + DS minus overlap |
 | log of `su_dem_error` | DEM error of 675 687 candidates: percentiles 5, 50, 95 -7.07, -0.04, 7.37 m; temporal coherence median 0.799, > 0.8 for 336 830 points | about 0 in the middle |
 | `pc_can_temp_coh_pyramid` | p50 0.80, p01 0.23, p99 0.995 | 0..1 |
 | refined points (`pc_hix`) | 336 830 (49.9 % of the candidates; 99.9 % of the DS, 33.4 % of the PS candidates that are not DS); 330 754 with the temporal coherence of `temp-coh`, without the DEM error relative to the neighbourhood (+1.8 %, none lost) | |

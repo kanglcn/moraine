@@ -119,7 +119,8 @@ def load_gamma_flatten_rslc(
 ):
     """Generate flatten rslc data from gamma command and convert them into zarr format.
     The shape of hgt should be same as one rslc image, i.e. the hgt file is generated with 1 by 1 look geocoding.
-    All data equal to 0 are replaced with nan.
+    The flattened rslc of an image is nan where its rslc or its simulated orbital phase has an absolute value below
+    1e-30 (GAMMA's no data).
 
     Parameters
     ----------
@@ -202,7 +203,8 @@ def load_gamma_lat_lon_hgt(diff_par:str,
                            chunks:tuple[int,int]=(1000,1000),
                           ):
     """Function to load longitude and latitude from gamma binary format to zarr.
-    All data equal to 0 are replaced with nan.
+    Values with an absolute value below 1e-30 (GAMMA's no data) are replaced with nan, so a latitude or longitude of
+    exactly 0 is nan too.
 
     Parameters
     ----------
@@ -281,7 +283,7 @@ def load_gamma_look_vector(theta:str,
     """Load look vector (elevation angle and orientation angle) in map geometry
     from gamma binary format to look vector in radar geometry zarr file.
     The two input data should be generated with the `look_vector` gamma command.
-    All data equal to 0 are replaced with nan.
+    Angles with an absolute value below 1e-30 (GAMMA's no data) are replaced with nan.
 
     Parameters
     ----------

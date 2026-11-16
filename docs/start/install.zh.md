@@ -52,7 +52,7 @@ pip install 'moraine[dl]'        # 或按 PyTorch 指南为你的 CUDA 版本安
 python -c "import moraine; moraine.download_dl_model()"
 ```
 
-模型只下载一次，放在包目录（`moraine/dl_model/`）里。模型的许可是 CC BY-NC-SA 4.0；代码是 GPL-3.0。
+模型只下载一次，放在包目录（`moraine/dl_model/`）里。模型的许可是 CC BY-NC-SA 4.0；代码是 GPL-3.0-or-later。
 
 ## GAMMA
 
