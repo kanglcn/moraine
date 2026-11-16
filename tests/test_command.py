@@ -383,6 +383,48 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     assert json_out(capsys)['error'] == 'ValueError: a chunk of the level cannot be read' and not out.exists()
 
 
+def test_view_and_info_reject_what_quicklook_rejects(tmp_path, capsys, rng):
+    """`moraine view` rejects a path that is not a pyramid, and `moraine view` and `moraine info` a pyramid to rebuild
+    or of a newer moraine, as `moraine quicklook` does: a usage error (exit code 2) with the same message (they
+    exited with 1, after "ValueError: "). info still summarizes what is not a pyramid, and a missing path stays a
+    processing error of info."""
+    import moraine.cli as mc
+    write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
+    write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
+    write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'new'))
+    z0 = zarr.open(str(tmp_path / 'new' / '0.zarr'), mode='r+')
+    z0.attrs['moraine_pyramid'] = {**z0.attrs['moraine_pyramid'], 'version': 99}       # of a newer moraine
+    for i, n in enumerate([50, 25]):         # per-chunk arrays (ras2pc_ras_chunk), not levels of a pyramid
+        write_zarr(tmp_path / 'chunks' / f'{i}.zarr', rng.random((n, 11, 11)).astype(np.float32))
+    capsys.readouterr()
+    png, nb = tmp_path / 'q.png', tmp_path / 'v.ipynb'
+    options = {'quicklook': ['-o', str(png)], 'view': ['-o', str(nb)], 'info': []}
+    for path, error, commands in [
+            ('ts.zarr', f"{tmp_path / 'ts.zarr'} is not a pyramid; build one first with `moraine ras-pyramid --ras "
+                        f"{tmp_path / 'ts.zarr'} --out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)",
+             ('quicklook', 'view')),
+            ('missing', f"{tmp_path / 'missing'} is not a pyramid; build one first with", ('quicklook', 'view')),
+            ('chunks', f"{tmp_path / 'chunks'} is not a pyramid; build one first with", ('quicklook', 'view')),
+            ('old', f"{tmp_path / 'old'}: a pyramid without its marker (the attribute moraine_pyramid of 0.zarr), made "
+                    "by moraine before 0.10.0 or by a ras-pyramid that did not finish; rebuild it with `moraine "
+                    "ras-pyramid`", ('quicklook', 'view', 'info')),
+            ('new', f"{tmp_path / 'new'}: pyramid layout version 99 is newer than this moraine supports (1); update "
+                    "moraine", ('quicklook', 'view', 'info'))]:
+        errors = []
+        for command in commands:
+            assert main([command, str(tmp_path / path), *options[command], '--json']) == 2, (command, path)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['ok'] is False, (command, path)
+            errors.append(result['error'])
+        assert errors[0].startswith(error) and errors == errors[:1] * len(commands), (path, errors)
+    assert not png.exists() and not nb.exists()
+    assert main(['info', str(tmp_path / 'ts.zarr'), str(tmp_path / 'chunks'), '--json']) == 0
+    assert [s['kind'] for s in json_out(capsys)['summaries']] == ['array', 'directory']
+    assert main(['info', str(tmp_path / 'missing'), '--json']) == 1
+    assert json_out(capsys)['error'] == f"FileNotFoundError: {tmp_path / 'missing'} does not exist"
+
+
 def test_quicklook_index_within_the_sliders(tmp_path, capsys, rng):
     """`moraine quicklook --index` outside the ranges of the sliders is a usage error that names them (beyond the
     last image it drew nan for coherence)."""

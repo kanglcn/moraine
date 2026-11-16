@@ -506,8 +506,12 @@ def _run(args):
             print('\nOther: info, quicklook, view, run, status.  `moraine COMMAND --help` for details.')
         return _emit(args, result, text)
     if sub == 'info':
-        from .summary import summarize
-        result = {'summaries': [summarize(p) for p in args.paths]}
+        from .summary import summarize, _pyramid_input
+        summaries = []
+        for path in args.paths:
+            _pyramid_input(path, pyramid=False)     # a pyramid to rebuild: a usage error, as for quicklook and view
+            summaries.append(summarize(path))
+        result = {'summaries': summaries}
         return _emit(args, result, lambda: [_print_summary(s) for s in result['summaries']])
     if sub == 'quicklook':
         from .summary import quicklook

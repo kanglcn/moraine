@@ -69,6 +69,19 @@ def summarize(
     return {'path': str(path), 'kind': 'file', 'bytes': p.stat().st_size}
 
 
+def _pyramid_input(path, pyramid:bool=True)->list:
+    """Levels of a pyramid given to quicklook, view or info: a UsageError for a pyramid to rebuild or of a newer
+    moraine (the ValueError of `pyramid_levels`) and, with `pyramid`, for a path that is not a pyramid."""
+    try:
+        levels = pyramid_levels(Path(path))
+    except ValueError as e:
+        raise UsageError(str(e)) from None
+    if pyramid and not levels:
+        raise UsageError(f'{path} is not a pyramid; build one first with `moraine ras-pyramid --ras {path} --out_dir '
+                         f'<dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
+    return levels
+
+
 def _numbers(text)->list:
     """The values of an option of numbers separated by commas or spaces, e.g. '-11,6' or '(-11, 6)': floats, and the
     words that are not numbers as they are written."""
@@ -156,10 +169,8 @@ def quicklook(
     """
     from ..cli.tiles import view as _view, view_index, _data_extent
     out = _png_name(out)                            # UsageError
+    _pyramid_input(pyramid)                         # UsageError
     try:        # the inputs, before anything is drawn: their errors are a wrong command line, with their messages
-        if not pyramid_levels(Path(pyramid)):       # ValueError for a pyramid to rebuild
-            raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras '
-                             f'{pyramid} --out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
         clim = _clim(clim)                          # UsageError
         if extent is not None and not isinstance(extent, (tuple, list)):
             extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
@@ -186,7 +197,8 @@ def view(
     """Write a Jupyter notebook with an interactive map of every pyramid (`moraine.cli.view`).
 
     Open it in Jupyter or VS Code, choose the python environment of moraine as kernel and run all cells.
-    No server or port forwarding is needed: the kernel reads the data on the machine that holds them.
+    No server or port forwarding is needed: the kernel reads the data on the machine that holds them. A path that is
+    not a pyramid, or a pyramid to rebuild, raises a UsageError (the command exits with 2), as for `quicklook`.
 
     Parameters
     ----------
@@ -210,9 +222,7 @@ def view(
     """
     import json
     for pyr in pyramids:
-        if not pyramid_levels(pyr):
-            raise ValueError(f'{pyr} is not a pyramid; build one first with `moraine ras-pyramid` (rasters) '
-                             f'or `moraine pc-pyramid` (point clouds)')
+        _pyramid_input(pyr)                         # UsageError
     out = Path(out)
     if out.suffix != '.ipynb':
         raise ValueError(f'{out}: the notebook name must end with .ipynb')
