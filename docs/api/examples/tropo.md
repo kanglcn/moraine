@@ -38,3 +38,25 @@ print(tropo.round(1))
 Image 0 at 05:30 takes the mean of the hours 05:00 and 06:00. The air of image 1 has a lower pressure and less water
 vapour: a smaller delay than in image 0, an apparent motion towards the satellite in millimeters, larger at sea level
 than at 1000 m. The displacement corrected for the troposphere is the displacement minus `tropo`.
+
+```python exec="true" source="above" result="text" session="tropo"
+rng = np.random.default_rng(0)
+h = rng.uniform(0, 1000, 2000)                                        # heights above the geoid, m
+stable = np.arange(2000) < 1000                                       # the first half: an area without deformation
+x = (10000.0 - h) ** 1.6                                              # the power law of the defaults
+k_true = np.array([0.0, 2e-5, -1e-5])                                 # mm per m^1.6, image 0 the reference
+uplift = np.where(stable, 0.0, 0.01 * h)[:, None] * np.arange(3)      # the other half rises with the height
+disp = (x[:, None] * k_true + uplift + rng.normal(0, 0.3, (2000, 3)) * [0, 1, 1]).astype(np.float32)
+tropo, k = mr.pc_tropo_powerlaw(disp, h.astype(np.float32), 0.0, mask=stable)
+print(k[:, 0])                                                         # close to k_true
+corrected = disp - tropo
+corrected -= np.median(corrected[stable], axis=0)                    # relative to the stable area
+print(np.abs(corrected[~stable, 2] - uplift[~stable, 2]).max().round(2))   # the uplift stays, mm
+k_all = mr.pc_tropo_powerlaw(disp, h.astype(np.float32), 0.0)[1]
+print(k_all[:, 0])                                                     # without the mask the uplift is in K
+```
+
+Fitted on the points of the stable area, K of the two images comes back, and the uplift of the other area, up to
+20 mm in image 2, stays in the corrected displacement relative to the stable area, within 1 mm (the noise of 0.3 mm
+and the error of K). Fitted on all points, the uplift, which grows with the height, is taken for
+troposphere: K of both images is far from the truth.

@@ -70,6 +70,14 @@ Steps, each its own change, in this order:
 3. Intermittent points: a validity mask of points per interferogram through selection, unwrapping, closure
    correction and inversion, with the spatial reference. Largest change, needs a decision record.
 
+## The troposphere from the displacement: bands and windows
+
+`pc-tropo-powerlaw` (decision 0053) fits one K per image for the whole scene on the points of a mask. The next steps
+of the method of Bekaert et al. (2015): the fit in spatial bands (2 to 128 km in TRAIN) with a consistency test that
+rejects the bands spoiled by deformation, which removes the need for a mask where deformation and topography differ
+in scale; overlapping windows with a K that varies over the scene, for scenes larger than the stratification; h0 and
+alpha from the profiles of ERA5 instead of the defaults. Points need a grid for the band filtering.
+
 ## Next stages of decision 0012
 
 Deformation products (stage 5): started, the steps and their order are decision 0048

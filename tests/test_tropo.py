@@ -570,3 +570,97 @@ def test_http_file_reads_hdf5_by_ranges(tmp_path, monkeypatch):
         np.testing.assert_array_equal(f['small'][:], np.arange(10))
         np.testing.assert_array_equal(f['a'][1, 100:110, 7:9], data[1, 100:110, 7:9])
     assert max(requests) > 4 << 12 and sum(r > 4 << 12 for r in requests) == 1    # the chunk in one request
+
+
+# ---------------------------------------------------------------- the troposphere stratified with height
+
+def _stratified(n=4000, nimages=6, seed=7, alpha=1.6, h0=10000.0, geoid=46.0):
+    """displacement of points: a constant and a power law of the height per image, noise, and outside the first half
+    of the points (the mask) a deformation growing with the height"""
+    rng = np.random.default_rng(seed)
+    h = rng.uniform(0, 1200, n)                                      # above the geoid
+    k = np.concatenate([[0.0], rng.normal(0, 2e-5, nimages - 1)])    # mm per m^alpha, image 0 the reference
+    c = np.concatenate([[0.0], rng.normal(0, 5, nimages - 1)])
+    x = (h0 - h) ** alpha
+    disp = c + np.outer(x, k)
+    disp[:, 1:] += rng.normal(0, 0.5, (n, nimages - 1))
+    mask = np.zeros(n, dtype=bool); mask[:n // 2] = True
+    defo = np.where(mask, 0.0, h / 100.0)[:, None] * np.arange(nimages)    # 1 mm per 100 m per image, outside the mask
+    return (disp + defo).astype(np.float32), (h + geoid).astype(np.float32), mask, k, x, defo
+
+
+def test_pc_tropo_powerlaw_recovers_k_with_the_mask():
+    disp, hgt, mask, k_true, x, defo = _stratified()
+    tropo, k = mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=mask)
+    assert tropo.dtype == np.float32 and tropo.shape == disp.shape and k.shape == (disp.shape[1], 2)
+    np.testing.assert_allclose(k[:, 0], k_true, rtol=0, atol=4 * k[:, 1].max() + 1e-12)
+    assert np.all(np.abs(k[1:, 0] - k_true[1:]) < 4 * k[1:, 1])           # within 4 standard deviations
+    np.testing.assert_array_equal(tropo[:, 0], 0)                         # the reference image
+    x_m = np.median(x[mask])
+    expect = np.outer(x - x_m, k[:, 0])
+    np.testing.assert_allclose(tropo, expect, rtol=1e-5, atol=1e-4)
+    # the deformation outside the mask stays in the corrected displacement
+    corrected = disp - tropo
+    true_tropo = np.outer(x - x_m, k_true)
+    resid = corrected - (disp - true_tropo)
+    assert np.abs(resid).max() < 1.5                                       # mm: only the error of K
+    # without the mask the deformation, which grows with the height, biases K
+    k_all = mr.pc_tropo_powerlaw(disp, hgt, 46.0)[1]
+    assert np.abs(k_all[-1, 0] - k_true[-1]) > 10 * k[-1, 1]
+
+
+def test_pc_tropo_powerlaw_linear_and_one_image():
+    disp, hgt, mask, k_true, x, defo = _stratified(alpha=1.0)
+    t1, k1 = mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=mask, alpha=1.0)
+    t2, k2 = mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=mask, alpha=1.0, h0=-5000.0)   # h0 is not used
+    np.testing.assert_allclose(t1, t2, rtol=0, atol=1e-4)
+    h = hgt.astype(np.float64) - 46.0
+    slope = np.polyfit(h[mask], disp[mask, 3].astype(np.float64), 1)[0]
+    np.testing.assert_allclose(-k1[3, 0], slope, rtol=1e-9)               # K (h0 - h): K = minus the slope
+    t, k = mr.pc_tropo_powerlaw(disp[:, 3], hgt, 46.0, mask=mask, alpha=1.0)
+    assert t.shape == (disp.shape[0],) and k.shape == (2,)
+    np.testing.assert_allclose(t, t1[:, 3], rtol=0, atol=1e-5)
+
+
+def test_pc_tropo_powerlaw_nan_and_errors():
+    disp, hgt, mask, k_true, x, defo = _stratified(n=300, nimages=3)
+    hgt_nan, disp_nan = hgt.copy(), disp.copy()
+    hgt_nan[5] = np.nan
+    disp_nan[7, 1] = np.nan
+    tropo = mr.pc_tropo_powerlaw(disp_nan, hgt_nan, 46.0, mask=mask)[0]
+    assert np.isnan(tropo[5]).all() and np.isfinite(np.delete(tropo, 5, axis=0)).all()
+    with pytest.raises(ArgumentError, match='h0'):
+        mr.pc_tropo_powerlaw(disp, hgt, 46.0, h0=1000.0)
+    with pytest.raises(ArgumentError, match='alpha'):
+        mr.pc_tropo_powerlaw(disp, hgt, 46.0, alpha=0.0)
+    with pytest.raises(ArgumentError, match='geoid'):
+        mr.pc_tropo_powerlaw(disp, hgt, 4600.0)
+    with pytest.raises(ArgumentError, match='mask'):
+        mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=mask.astype(np.int8))
+    with pytest.raises(ArgumentError, match='hgt'):
+        mr.pc_tropo_powerlaw(disp, hgt[:-1], 46.0)
+    few = np.zeros_like(mask); few[:2] = True
+    with pytest.raises(ValueError, match='at least 3 points'):
+        mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=few)
+    flat = np.full_like(hgt, 100.0)
+    with pytest.raises(ValueError, match='same height'):
+        mr.pc_tropo_powerlaw(disp, flat, 46.0)
+
+
+def test_cli_pc_tropo_powerlaw(tmp_path):
+    disp, hgt, mask, k_true, x, defo = _stratified(n=1000, nimages=5)
+    paths = {'disp': write_zarr(tmp_path / 'disp.zarr', disp, chunks=(256, 1)),
+             'hgt': write_zarr(tmp_path / 'hgt.zarr', hgt, chunks=(256,)),
+             'mask': write_zarr(tmp_path / 'mask.zarr', mask, chunks=(256,))}
+    out, k = str(tmp_path / 'tropo.zarr'), str(tmp_path / 'k.zarr')
+    mc.pc_tropo_powerlaw(paths['disp'], paths['hgt'], out, 46.0, mask=paths['mask'], k=k, out_chunks=512)
+    z = zarr.open(out, mode='r')
+    assert z.dtype == np.float32 and z.shape == disp.shape and z.chunks == (512, 1)
+    expect, k_expect = mr.pc_tropo_powerlaw(disp, hgt, 46.0, mask=mask)
+    np.testing.assert_allclose(z[:], expect, rtol=0, atol=1e-6)
+    np.testing.assert_allclose(zarr.open(k, mode='r')[:], k_expect, rtol=1e-12)
+    with pytest.raises(ArgumentError, match='h0'):
+        mc.pc_tropo_powerlaw(paths['disp'], paths['hgt'], out, 46.0, h0=500.0)
+    cmd = commands()['pc-tropo-powerlaw']
+    kinds = {p.name: (p.kind, p.required) for p in cmd.params}
+    assert cmd.module == 'tropo' and kinds['geoid'] == ('value', True) and kinds['mask'][1] is False

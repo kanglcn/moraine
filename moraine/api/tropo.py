@@ -1,6 +1,7 @@
-"""Tropospheric delay of points from the ERA5 reanalysis on pressure levels (decision 0051)"""
+"""Tropospheric delay of points: from the ERA5 reanalysis on pressure levels (decision 0051), and its part stratified
+with height from the displacement itself as a power law of the height (decision 0053)"""
 
-__all__ = ['era5_zenith_delay', 'pc_tropo_era5']
+__all__ = ['era5_zenith_delay', 'pc_tropo_era5', 'pc_tropo_powerlaw']
 
 import datetime
 import math
@@ -431,3 +432,123 @@ def pc_tropo_era5(
         d = d_ref if k == ref else delay(k)
         out[:, k] = (d - d_ref) * scale + 0.0          # + 0.0: 0 instead of -0 in the column of `ref`
     return out
+
+
+# ---------------------------------------------------------------- stratified troposphere from the displacement
+
+def _powerlaw_x(hgt, geoid, alpha, h0):
+    """(h0 - (hgt - geoid))^alpha of every point, float64, nan where hgt is nan"""
+    alpha, h0 = float(alpha), float(h0)
+    if not 0 < alpha <= 5:
+        raise ArgumentError(f'alpha must be the exponent of the power law, between 0 and 5, got {alpha}')
+    h = np.asarray(hgt, dtype=np.float64) - _geoid(geoid)
+    top = np.nanmax(h) if np.isfinite(h).any() else -np.inf
+    if alpha != 1 and not h0 > top:
+        raise ArgumentError(f'h0 must be above the highest point ({top:.1f} m above the geoid), got {h0}')
+    return (h0 - h) ** alpha
+
+
+def _estimation_points(x, mask):
+    """bool (n_points,) of the points of the estimation (in `mask` with a height) and the value of x at their median
+    height"""
+    est = np.isfinite(x)
+    if mask is not None:
+        est &= np.asarray(mask)
+    if est.sum() < 3:
+        raise ValueError(f'the power law needs at least 3 points with a height in the mask, got {int(est.sum())}')
+    return est, float(np.median(x[est]))
+
+
+def _powerlaw_column(d, x, est, x_m):
+    """the stratified troposphere of one image (n_points,) or (n_points, 1) float32, and (K, standard deviation of K)
+    float64 (2,): the least squares of d = c + K x over the points `est` with a value"""
+    d = np.asarray(d)
+    d1 = d.reshape(d.shape[0], -1)[:, 0].astype(np.float64)
+    sel = est & np.isfinite(d1)
+    n = int(sel.sum())
+    if n < 3:
+        raise ValueError(f'the power law needs at least 3 points of the mask with a value in every image, got {n}')
+    xs, ds = x[sel], d1[sel]
+    if not np.ptp(xs) > 1e-9 * np.abs(xs).max():         # a relative test: the mean of equal values may round
+        raise ValueError('the points of the mask all have the same height: the power law needs points at different '
+                         'heights')
+    xc = xs - xs.mean()
+    sxx = float(xc @ xc)
+    k = float(xc @ (ds - ds.mean())) / sxx
+    res = ds - ds.mean() - k * xc
+    std = float(np.sqrt((res @ res) / max(n - 2, 1) / sxx))
+    tropo = (k * (x - x_m)).astype(np.float32) + np.float32(0)
+    return tropo.reshape(d.shape), np.array([k, std])
+
+
+def pc_tropo_powerlaw(
+    disp,
+    hgt,
+    geoid:float,
+    mask=None,
+    alpha:float=1.6,
+    h0:float=10000.0,
+):
+    """Line of sight displacement caused by the troposphere stratified with height, from the displacement itself.
+
+    In every image the displacement of the points of `mask` is fitted by least squares with c + K (h0 - h)^alpha, h the
+    height of the point above the geoid: a constant and a power law of the height (with alpha 1 a linear function of
+    the height, whatever h0). The troposphere of every point is K ((h0 - h)^alpha - (h0 - h_m)^alpha), h_m the median
+    height of the points of `mask`. Deformation that varies with the height among the points of `mask` gets into it:
+    give the points of an area without such deformation.
+
+    Parameters
+    ----------
+    disp : np.ndarray
+        line of sight displacement in millimeters, shape (n_points,) or (n_points, n), floating point: of every image
+        relative to a reference image, e.g. `pc_disp`, or the displacement corrected with `pc_tropo_era5`
+    hgt : np.ndarray
+        height of the points in meters, shape (n_points,), floating point: above the WGS84 ellipsoid, or above the
+        geoid with `geoid` 0
+    geoid : float
+        height of the geoid above the WGS84 ellipsoid at the points in meters, between -150 and 150; 0 when `hgt` is
+        the height above the geoid
+    mask : np.ndarray, optional
+        the points of the fit, bool, shape (n_points,), at least 3 points at different heights; all points by default
+    alpha : float, default: 1.6
+        exponent of the power law, 0 < alpha <= 5; 1 for a linear function of the height
+    h0 : float, default: 10000.0
+        height above the geoid in meters above which the troposphere of the images does not differ, above the highest
+        point; not used with alpha 1
+
+    Returns
+    -------
+    tropo : np.ndarray
+        line of sight displacement in millimeters that the troposphere stratified with height causes, same shape as
+        `disp`, float32; 0 at the median height of the points of `mask` and 0 in an image that is 0 everywhere (the
+        reference image); the corrected displacement is `disp` - `tropo`; nan where `hgt` is nan
+    k : np.ndarray
+        K and its standard deviation of every image in millimeters per meter^alpha, shape (n, 2), or (2,) for `disp`
+        of shape (n_points,), float64
+
+    Raises
+    ------
+    ValueError
+        when the points of `mask` with a value are fewer than 3 or all at the same height
+    """
+    disp = np.asarray(disp)
+    if disp.ndim not in (1, 2):
+        raise ArgumentError(f'disp must have shape (n_points,) or (n_points, n), got shape {disp.shape}')
+    if not np.issubdtype(disp.dtype, np.floating):
+        raise ArgumentError(f'disp must be floating point, got {disp.dtype}')
+    hgt = np.asarray(hgt)
+    if hgt.shape != disp.shape[:1] or not np.issubdtype(hgt.dtype, np.floating):
+        raise ArgumentError(f'hgt must be floating point of shape ({disp.shape[0]},), got {hgt.dtype} {hgt.shape}')
+    if mask is not None:
+        mask = np.asarray(mask)
+        if mask.dtype != bool or mask.shape != hgt.shape:
+            raise ArgumentError(f'mask must be bool of shape ({disp.shape[0]},), got {mask.dtype} {mask.shape}')
+    x = _powerlaw_x(hgt, geoid, alpha, h0)
+    est, x_m = _estimation_points(x, mask)
+    if disp.ndim == 1:
+        return _powerlaw_column(disp, x, est, x_m)
+    tropo = np.empty(disp.shape, dtype=np.float32)
+    k = np.empty((disp.shape[1], 2))
+    for j in range(disp.shape[1]):
+        tropo[:, j], k[j] = _powerlaw_column(disp[:, j], x, est, x_m)
+    return tropo, k
