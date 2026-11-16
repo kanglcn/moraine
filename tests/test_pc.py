@@ -1,3 +1,4 @@
+import itertools
 import math
 
 import numpy as np
@@ -86,13 +87,43 @@ def test_pc_union_hix(gpu):
     np.testing.assert_equal(data, [3, 3, 6, 2, 5, 4, 1, 32])
 
 
+def test_pc_union_int32_int64(gpu):
+    """The union of int32 and int64 hilbert indices is int64 and holds the values of both: on the CPU it had the dtype
+    of idx1, int32, which cut the values of idx2 beyond the int32 range (2**33 became 0)."""
+    xp = _xp(gpu)
+    h32, h64 = np.array([1, 5], np.int32), np.array([3, 5, 2**33], np.int64)
+    hix, inv1, inv2, iidx2 = map(_get, pc_union(xp.asarray(h32), xp.asarray(h64)))
+    assert hix.dtype == np.int64
+    np.testing.assert_array_equal(hix, [1, 3, 5, 2**33])
+    np.testing.assert_array_equal(inv1, [0, 2]); np.testing.assert_array_equal(inv2, [1, 3])
+    np.testing.assert_array_equal(iidx2, [0, 2])
+    hix, inv1, inv2, iidx2 = map(_get, pc_union(xp.asarray(h64), xp.asarray(h32)))
+    assert hix.dtype == np.int64
+    np.testing.assert_array_equal(hix, [1, 3, 5, 2**33])
+    np.testing.assert_array_equal(inv1, [1, 2, 3]); np.testing.assert_array_equal(inv2, [0])
+    np.testing.assert_array_equal(iidx2, [0])
+
+
 @pytest.mark.gpu
-def test_pc_union_cpu_gpu_agree(rng):
+@pytest.mark.parametrize('fn', [pc_union, pc_intersect, pc_diff])
+def test_set_operations_cpu_gpu_agree(fn, rng):
+    """The GPU gives the outputs of the CPU, values and dtypes, for grid and hilbert indices of int32 and int64, empty
+    or not: with int32 hilbert indices pc_union gave int64 positions on the GPU (int32 on the CPU), and pc_intersect
+    of an int32 idx1 and an int64 idx2 an int32 intersection (int64 on the CPU)."""
     import cupy as cp
-    h1 = np.sort(rng.choice(100_000, size=1_000, replace=False))
-    h2 = np.sort(rng.choice(100_000, size=1_000, replace=False))
-    for a, b in zip(pc_union(h1, h2), pc_union(cp.asarray(h1), cp.asarray(h2))):
-        np.testing.assert_array_equal(a, b.get())
+    shape = (300, 400)
+    h1 = np.sort(rng.choice(shape[0] * shape[1], size=1_000, replace=False))
+    h2 = np.sort(rng.choice(shape[0] * shape[1], size=1_000, replace=False))
+    for kind, d1, d2, (n1, n2) in itertools.product(('hix', 'gix'), (np.int32, np.int64), (np.int32, np.int64),
+                                                   ((1000, 1000), (0, 1000), (1000, 0), (0, 0))):
+        a, b = h1[:n1], h2[:n2]
+        if kind == 'gix':
+            a, b = (np.stack(np.unravel_index(h, shape), axis=-1) for h in (a, b))
+        a, b = a.astype(d1), b.astype(d2)
+        kw = {'shape': shape} if kind == 'gix' else {}
+        for c, g in zip(fn(a, b, **kw), fn(cp.asarray(a), cp.asarray(b), **kw), strict=True):
+            assert isinstance(g, cp.ndarray) and g.dtype == c.dtype, (kind, d1, d2, n1, n2)
+            np.testing.assert_array_equal(g.get(), c)
 
 
 def test_pc_intersect(gpu):
@@ -111,6 +142,25 @@ def test_pc_intersect_empty(gpu):
     h, e = xp.asarray(HIX1), xp.asarray(HIX1[:0])
     for a, b in ((h, e), (e, h), (e, e)):
         assert [_get(x).shape for x in pc_intersect(a, b)] == [(0,)] * 3
+
+
+def test_empty_gix_needs_shape(gpu):
+    """Without `shape` the raster shape of grid indices cannot be inferred from an empty one: a ValueError asks for
+    `shape` (an IndexError before); with `shape` the empty point cloud is one without points."""
+    xp = _xp(gpu)
+    g, e = xp.asarray(GIX1), xp.asarray(GIX1[:0])
+    for fn in (pc_union, pc_intersect, pc_diff):
+        for a, b, which in ((g, e, 'second'), (e, g, 'first'), (e, e, 'first')):
+            with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+                                                 f'the {which} grid index has no points'):
+                fn(a, b)
+    gix, inv1, inv2, iidx2 = map(_get, pc_union(e, g, shape=(4, 4)))
+    np.testing.assert_array_equal(gix, GIX1); assert inv1.shape == (0,)
+    np.testing.assert_array_equal(inv2, np.arange(6)); np.testing.assert_array_equal(iidx2, np.arange(6))
+    gix, i1, i2 = map(_get, pc_intersect(g, e, shape=(4, 4)))
+    assert gix.shape == (0, 2) and i1.shape == i2.shape == (0,)
+    gix, i1 = map(_get, pc_diff(g, e, shape=(4, 4)))
+    np.testing.assert_array_equal(gix, GIX1); np.testing.assert_array_equal(i1, np.arange(6))
 
 
 def test_pc_diff(gpu):

@@ -24,7 +24,16 @@ def _ras_dims(
     -------
     tuple
         the shape of the original raster image
+
+    Raises
+    ------
+    ValueError
+        when a grid index is empty: the shape cannot be inferred then
     """
+    for which, gix in (('first', gix1), ('second', gix2)):
+        if gix.shape[0] == 0:
+            raise ValueError(f'shape (nlines, width) is needed when a grid index is empty: the {which} grid index '
+                             'has no points')
     xp = get_array_module(gix1)
     dims_az = max(int(gix1[-1,0]),int(gix2[-1,0]))+1
     dims_r = max(int(xp.max(gix1[:,1])),int(xp.max(gix2[:,1])))+1
@@ -44,11 +53,10 @@ def _flat_idx(idx1, idx2, shape):
     return idx1, idx2, dims
 
 @ngjit
-def _pc_union_numba(idx1, idx2):
-    # hand write merge sort
+def _pc_union_numba(idx1, idx2, idx):
+    # hand write merge sort into idx (size1+size2 elements), returns the size of the union first
     size1 = idx1.shape[0]
     size2 = idx2.shape[0]
-    idx = np.empty(size1+size2,dtype=idx1.dtype)
     inv_iidx1 = np.empty_like(idx1) # 0:size1 for inv_iidx1, size1: for inv_iidx2
     inv_iidx2 = np.empty_like(idx2)
     ninv_iidx2 = np.empty_like(idx2)
@@ -78,7 +86,7 @@ def _pc_union_numba(idx1, idx2):
             ninv_iidx2[ninv2_i] = i2
             i2 +=1; inv2_i += 1; ninv2_i += 1; i += 1
 
-    return idx[:i], inv_iidx1[:inv1_i], inv_iidx2[:inv2_i], ninv_iidx2[:ninv2_i]
+    return i, inv_iidx1[:inv1_i], inv_iidx2[:inv2_i], ninv_iidx2[:ninv2_i]
 
 def pc_union(idx1:np.ndarray,
              idx2:np.ndarray,
@@ -93,27 +101,38 @@ def pc_union(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------
     tuple
-        - the union index `idx`
+        - the union index `idx`, sorted: grid index (n, 2) int32, or hillbert index (n,) of the dtype of `idx1` and
+          `idx2` promoted (int64 for int32 and int64)
         - index of the point in output union index that originally in the first point cloud `inv_iidx`
         - index of the point in output union index that only exist in the second point cloud `inv_iidx2`
         - index of the point in the second input index that are not in the first input point cloud
+
+        These three are int64 for grid indices; for hillbert indices the first has the dtype of `idx1`, the others
+        that of `idx2` (int32 for int32 hillbert indices).
     """
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
     xp = get_array_module(idx1_1d)
     if xp is np:
-        # on cpu use handwrite merge sort
-        idx, inv_iidx1, inv_iidx2, ninv_iidx2 = _pc_union_numba(idx1_1d,idx2_1d)
+        # on cpu use handwrite merge sort; the union in the dtype of both inputs (as np.union1d), as that of idx1 may
+        # not hold the values of idx2
+        idx = np.empty(idx1_1d.shape[0]+idx2_1d.shape[0], dtype=np.result_type(idx1_1d.dtype, idx2_1d.dtype))
+        n, inv_iidx1, inv_iidx2, ninv_iidx2 = _pc_union_numba(idx1_1d,idx2_1d,idx)
+        idx = idx[:n]
     else:
         # both inputs are sorted and unique: every point of idx1 is in the union, the points of idx2 not in idx1 are added
         idx = xp.union1d(idx1_1d, idx2_1d)
         ninv_iidx2 = xp.flatnonzero(xp.isin(idx2_1d, idx1_1d, assume_unique=True, invert=True))
         inv_iidx1 = xp.searchsorted(idx, idx1_1d)
         inv_iidx2 = xp.searchsorted(idx, idx2_1d[ninv_iidx2])
+        # the dtypes of the cpu: the positions of the points of idx1 in that of idx1, the others in that of idx2
+        inv_iidx1 = inv_iidx1.astype(idx1_1d.dtype, copy=False)
+        inv_iidx2 = inv_iidx2.astype(idx2_1d.dtype, copy=False)
+        ninv_iidx2 = ninv_iidx2.astype(idx2_1d.dtype, copy=False)
     return (idx if dims is None else _unravel_gix(idx, dims)), inv_iidx1, inv_iidx2, ninv_iidx2
 
 def pc_intersect(idx1:np.ndarray,
@@ -129,14 +148,15 @@ def pc_intersect(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------
     tuple
-        - the intersect index `idx`
-        - index of the point in first point cloud index that also exist in the second point cloud
-        - index of the point in second point cloud index that also exist in the first point cloud
+        - the intersect index `idx`, sorted: grid index (n, 2) int32, or hillbert index (n,) of the dtype of `idx1`
+          and `idx2` promoted (int64 for int32 and int64)
+        - index of the point in first point cloud index that also exist in the second point cloud, int64
+        - index of the point in second point cloud index that also exist in the first point cloud, int64
     """
     # Here I do not write the core function by myself since cupy have a different implementation of intersect1d
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
@@ -144,6 +164,7 @@ def pc_intersect(idx1:np.ndarray,
     if idx2_1d.shape[0] == 0:
         idx1_1d = idx1_1d[:0] # cupy (13.6) intersect1d reads out of bounds when the second array is empty
     idx, iidx1, iidx2 = xp.intersect1d(idx1_1d,idx2_1d,assume_unique=True,return_indices=True)
+    idx = idx.astype(np.result_type(idx1_1d.dtype, idx2_1d.dtype), copy=False) # cupy (13.6) gives the dtype of idx1
     return (idx if dims is None else _unravel_gix(idx, dims)), iidx1, iidx2
 
 def pc_diff(idx1:np.ndarray,
@@ -159,13 +180,13 @@ def pc_diff(idx1:np.ndarray,
     idx2 : np.ndarray
         int array, grid index or hillbert index of the second point cloud, sorted, without duplicates
     shape : tuple, optional
-        image shape, faster if provided for grid index input
+        image shape (nlines, width) for grid index input: needed if `idx1` or `idx2` is empty, faster if provided
 
     Returns
     -------
     tuple
-        - the diff index `idx`
-        - index of the point in first point cloud index that do not exist in the second point cloud
+        - the diff index `idx`, sorted: grid index (n, 2) int32, or hillbert index (n,) of the dtype of `idx1`
+        - index of the point in first point cloud index that do not exist in the second point cloud, int64
     """
     idx1_1d, idx2_1d, dims = _flat_idx(idx1, idx2, shape)
     xp = get_array_module(idx1_1d)

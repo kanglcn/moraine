@@ -53,6 +53,24 @@ def test_image_pairs_idx_repeated_pairs():
                                   [-1, -1, 1, 1])
 
 
+def test_image_pairs_idx_numpy_integers_and_lists():
+    """numpy integer scalars are integers like Python ints, lists and tuples of pairs are pairs like arrays, with the
+    same results; they raised TypeError (len() of unsized object; list indices must be integers or slices)."""
+    tnet = TempNet([[0, 1], [0, 2], [1, 2]])
+    for ref, sec, expected in ((1, 2, 2), (0, 1, 0), (0, 5, -1), (2, 1, -1)):
+        for to_ref, to_sec in ((np.int64, np.int64), (np.int32, np.int32), (np.int32, int), (int, np.int64)):
+            k = tnet.image_pairs_idx(ref=to_ref(ref), sec=to_sec(sec))
+            assert np.ndim(k) == 0 and k == expected == tnet.image_pairs_idx(ref=ref, sec=sec)
+    pairs = [(1, 2), (0, 5), (0, 1), (2, 1), (1, 2)]
+    expected = [2, -1, 0, -1, 2]
+    np.testing.assert_array_equal(tnet.image_pairs_idx(image_pairs=np.array(pairs)), expected)
+    for image_pairs in (pairs, tuple(pairs), [list(p) for p in pairs], [tuple(np.int64(i) for i in p) for p in pairs]):
+        np.testing.assert_array_equal(tnet.image_pairs_idx(image_pairs=image_pairs), expected)
+    assert tnet.image_pairs_idx(image_pairs=[]).shape == (0,)
+    with pytest.raises(TypeError, match='ref and sec must both be integers or both sequences'):
+        tnet.image_pairs_idx(ref=[0, 1], sec=np.int64(1))
+
+
 def test_connected_networks_are_valid():
     """A network is valid when its pairs link all the images, whatever pairs it has: a reference image need not
     have a pair with the next image, and the last pair need not hold the last image."""
