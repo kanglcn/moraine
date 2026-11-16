@@ -206,6 +206,7 @@ nav:
       - dl: cli/dl.md
       - pqm: cli/pqm.md
       - pu: cli/pu.md
+      - tropo: cli/tropo.md
       - ts: cli/ts.md
       - plot: cli/plot.md
       - JSON output: contracts/json-output.md
@@ -220,6 +221,7 @@ nav:
       - dl: api/dl.md
       - pqm: api/pqm.md
       - unwrap: api/unwrap.md
+      - tropo: api/tropo.md
       - ts: api/ts.md
       - utils: api/utils.md
       - moraine.cli in python: api/cli.md

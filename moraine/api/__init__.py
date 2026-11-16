@@ -4,7 +4,7 @@ Grouped by the stages of the processing chain and the foundations they share (de
 utilities are in moraine.api.utils_.
 """
 
-from . import pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, ts
+from . import pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, tropo, ts
 
 # foundations: point clouds, image pairs, polygons, SLC basics
 from .pc import *
@@ -12,12 +12,13 @@ from .tnet import *
 from .polygon import *
 from .slc import *
 
-# stages: PS, DS, deep learning filters, pixel quality, phase unwrapping, deformation products
+# stages: PS, DS, deep learning filters, pixel quality, phase unwrapping, troposphere, deformation products
 from .ps import *
 from .ds import *
 from .dl import *
 from .pqm import *
 from .unwrap import *
+from .tropo import *
 from .ts import *
 
-__all__ = [n for m in (pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, ts) for n in m.__all__]
+__all__ = [n for m in (pc, tnet, polygon, slc, ps, ds, dl, pqm, unwrap, tropo, ts) for n in m.__all__]

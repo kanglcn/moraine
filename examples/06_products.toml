@@ -1,14 +1,17 @@
-# Deformation products of the refined points (decision 0048; tutorial: nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb).
-# Needs 04_refine.toml and 05_unwrap.toml. The unwrapped phase of every image relative to a reference area, then
-# the line of sight displacement in millimeters, positive towards the satellite, and the DEM error of every point.
+# Deformation products of the refined points (decisions 0048, 0051; tutorial:
+# nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb). Needs 04_refine.toml and 05_unwrap.toml, and the network for
+# ERA5 (from the NSF NCAR archive on AWS; source = "cds" in the era5 step for the Copernicus Climate Data Store, see
+# the guide). The line of sight displacement in millimeters, positive towards the satellite, corrected for the
+# troposphere with ERA5, relative to a reference area, and the DEM error of every point.
 #
 #   moraine run examples/06_products.toml --workdir WORK
 #
-# Outputs in WORK/disp/: pc_ref_mask (reference points), pc_ts_ref (phase relative to them, radians), ref_value
-# (the reference value of every image), pc_disp (displacement, mm, shape (n_points, nimages)), pc_sc_dem_error
-# (spatially correlated DEM error, m, shape (n_points,)), pc_dem_error (the whole DEM error: that relative to the
-# neighbourhood of 04_refine.toml plus the spatially correlated one, m), pc_disp_demcor (displacement without the
-# DEM error, mm).
+# Outputs in WORK/era5/: the ERA5 pressure levels, one file per hour. In WORK/disp/: pc_disp_unref (displacement
+# relative to the reference image, mm, shape (n_points, nimages)), pc_tropo (the displacement the troposphere causes,
+# mm), pc_disp_tropocor (pc_disp_unref - pc_tropo), pc_ref_mask (reference points), pc_disp (pc_disp_tropocor
+# relative to them, mm), ref_value (the reference value of every image, mm), pc_sc_dem_error (spatially correlated
+# DEM error, m, shape (n_points,)), pc_dem_error (the whole DEM error: that relative to the neighbourhood of
+# 04_refine.toml plus the spatially correlated one, m), pc_disp_demcor (displacement without the DEM error, mm).
 
 [vars]
 # reference area: a stable, coherent area in one region of the closure correction (`unw/pc_region.zarr`),
@@ -16,6 +19,46 @@
 ref_area = "(lon > 14.225) & (lat > 40.82) & (lat < 40.89)"
 wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }   # m, from the metadata of 01_load.toml
 dates = { file = "raw/meta.toml", key = "dates" }                   # YYYYMMDD of every image, from the metadata
+times = { file = "raw/meta.toml", key = "times" }                   # UTC time of every image
+bbox = { file = "raw/meta.toml", key = "lonlat_bbox" }              # [west, south, east, north] of the DEM, degrees
+# height of the geoid above the WGS84 ellipsoid at the scene, m: the heights of the Campi Flegrei DEM are ellipsoidal
+# (the sea is at 46 m); 0 for heights above the geoid
+geoid = 46.0
+
+[[step]]
+name = "disp"
+run = "pc-disp"
+pc = "unw/pc_ts.zarr"
+out = "disp/pc_disp_unref.zarr"
+wavelength = "${wavelength}"
+
+[[step]]
+name = "era5"                     # the ERA5 hours around the image times, from the NSF NCAR archive on AWS
+run = "download-era5"
+out_dir = "era5"
+times = "${times}"
+bbox = "${bbox}"
+
+[[step]]
+name = "tropo"                    # the displacement the troposphere causes, relative to the reference image
+run = "pc-tropo-era5"
+era5_dir = "era5"
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+hgt = "pc/pc_hgt.zarr"
+theta = "pc/pc_theta.zarr"
+out = "disp/pc_tropo.zarr"
+times = "${times}"
+geoid = "${geoid}"
+
+[[step]]
+name = "tropocor"
+run = "math"
+output = "disp/pc_disp_tropocor.zarr"
+operation = "disp - tropo"
+[step.kw]
+disp = "disp/pc_disp_unref.zarr"
+tropo = "disp/pc_tropo.zarr"
 
 [[step]]
 name = "ref_mask"
@@ -29,17 +72,10 @@ lat = "pc/pc_lat.zarr"
 [[step]]
 name = "reference"                # median of the reference points subtracted from every image
 run = "pc-reference"
-pc = "unw/pc_ts.zarr"
+pc = "disp/pc_disp_tropocor.zarr"
 ref_mask = "disp/pc_ref_mask.zarr"
-out = "disp/pc_ts_ref.zarr"
-ref_value = "disp/ref_value.zarr"
-
-[[step]]
-name = "disp"
-run = "pc-disp"
-pc = "disp/pc_ts_ref.zarr"
 out = "disp/pc_disp.zarr"
-wavelength = "${wavelength}"
+ref_value = "disp/ref_value.zarr"
 
 [[step]]
 name = "sc_dem_error"             # spatially correlated DEM error, from the differences of neighbouring dates
@@ -66,6 +102,16 @@ name = "disp_pyramid"
 run = "pc-pyramid"
 pc = "disp/pc_disp.zarr"
 out_dir = "disp/pc_disp_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "tropo_pyramid"
+run = "pc-pyramid"
+pc = "disp/pc_tropo.zarr"
+out_dir = "disp/pc_tropo_pyramid"
 method = "mean"
 x = "pc/pc_e.zarr"
 y = "pc/pc_n.zarr"

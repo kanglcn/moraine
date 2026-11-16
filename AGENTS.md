@@ -18,6 +18,10 @@ request before running anything.
   local CUDA version (see `docs/start/install.md`). moraine treats a GPU as available only when
   `CUDA_VISIBLE_DEVICES` is set to a non-empty value; without it, run with `cuda = false`. GPU commands use all
   GPUs listed there (one worker process per GPU) unless `n_workers` is given; list fewer GPUs to leave some free.
+- The troposphere of `examples/06_products.toml` downloads ERA5 (`download-era5`, `pip install -e '.[era5]'`): from the
+  NSF NCAR archive on AWS by default (no account, about 170 MB per hour over the network), or with `source = "cds"`
+  from the Copernicus Climate Data Store with the user's own account, its API key in `~/.cdsapirc`
+  (`docs/workflows/06_products.md`). The user sets the account up; never read or write the key.
 - Loading GAMMA results (`load-gamma-*`) runs GAMMA programs (`phase_sim_orb`, `create_offset`,
   `geocode`, `base_calc`); check with `which base_calc` first.
 - Everything else runs on CPU with numba.
@@ -35,7 +39,7 @@ request before running anything.
    | `examples/03_ds.toml` | `docs/workflows/03_ds.md` | SHP, DS candidates, phase linking, DS refinement |
    | `examples/04_refine.toml` | `docs/workflows/04_refine.md` | merge PS and DS, refine with n2ft and the DEM error relative to the neighbourhood |
    | `examples/05_unwrap.toml` | `docs/workflows/05_unwrap.md` | EMCF unwrapping, phase closure correction, phase of every image |
-   | `examples/06_products.toml` | `docs/workflows/06_products.md` | reference area, line of sight displacement (mm), DEM error |
+   | `examples/06_products.toml` | `docs/workflows/06_products.md` | line of sight displacement (mm), troposphere from ERA5, reference area, DEM error |
 
    They share one working directory and read each other's outputs, so run them in this order:
 
