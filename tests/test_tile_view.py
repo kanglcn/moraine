@@ -208,7 +208,8 @@ def test_show_function(stack, monkeypatch):
 
 def test_show_function_sliders_need_a_value():
     """The sliders of a show function need at least one value: sliders={'i': 0} (or less) is a ValueError when the view
-    is made; it made a slider 0 .. -1, which failed when drawn."""
+    is made; it made a slider 0 .. -1, outside whose range every value was, also its own 0 (`.png(index=...)`,
+    `.index = {...}`)."""
     import re
     for show, sliders, error in [
             (lambda v, i: v[...] * i, {'i': 0}, "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"),

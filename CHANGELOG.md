@@ -16,7 +16,7 @@ The help of `rows` of `ras-pyramid` estimates the memory of a process as 0.5 GB 
 
 `.png(path)` of the views of `moraine.cli.view` of a name ending with a dot, e.g. `x.`, writes x.png and returns that name, as for a name without a suffix: it returned `x.`, a file that did not exist, while matplotlib wrote x.png (or x.pdf, ... with another `savefig.format` of its configuration)
 
-`moraine.cli.view` rejects `sliders` of a show function with fewer than one value when the view is made, e.g. `sliders={'i': 0}`, with a ValueError "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"; it made a slider 0 .. -1, which failed when drawn
+`moraine.cli.view` rejects `sliders` of a show function with fewer than one value when the view is made, e.g. `sliders={'i': 0}`, with a ValueError "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"; it made a slider 0 .. -1, outside whose range every value was, also its own 0 ("slider 'i' = 0 is outside its range 0 .. -1" of `.png(index=...)` and `.index = {...}`)
 
 Image pairs given without a show that uses them are an error, "image_pairs is used only by show='coh' / 'coh_abs', not by the default show": a ValueError of `moraine.cli.view(image_pairs=...)` when the view is made, a usage error (exit code 2) of `moraine quicklook` and `moraine view` with `--image_pairs` and without `--show coh` / `coh_abs`, before they draw or write anything. They were ignored without a word (`moraine view` checks it, as the maps of its notebook would fail with this error when run)
 

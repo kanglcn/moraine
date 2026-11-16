@@ -324,7 +324,7 @@ def _show(base, show, image_pairs, sliders, dates, shape):
                 raise ValueError(f'sliders={sliders}: {unused} are not sliders of the show function, whose sliders are '
                                  f'{names}')
             counts = [int(sliders[n]) for n in names]
-            for n, c in zip(names, counts):           # a slider 0 .. -1 would fail when drawn
+            for n, c in zip(names, counts):           # a slider 0 .. -1 would have no value in its range
                 if c < 1:
                     raise ValueError(f'sliders={sliders}: slider {n!r} has {c} values; a slider needs at least one')
         elif not names or len(names) == len(stack):
