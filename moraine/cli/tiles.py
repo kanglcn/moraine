@@ -275,7 +275,8 @@ def _crs(x0, y0, xm, ym, res, crs, what):
 
 def _show(base, show, image_pairs, sliders, dates):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
-    phase_like, default slider values) of a `show` option."""
+    colours, default slider values) of a `show` option; colours of `_colours`: 'phase', 'values' or 'differences'
+    (of two images of a real stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
         if len(stack) != 1:
@@ -284,7 +285,7 @@ def _show(base, show, image_pairs, sliders, dates):
         n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
         return show, _show_coh(tnet, 'phase' if show == 'coh' else 'abs'), list(zip(SLIDERS[show], counts)), \
-            show == 'coh', {'sec': min(1, n - 1)}
+            'phase' if show == 'coh' else 'values', {'sec': min(1, n - 1)}
     if callable(show):
         names = list(inspect.signature(show).parameters)[1:]
         if len(names) > 2:
@@ -316,15 +317,20 @@ def _show(base, show, image_pairs, sliders, dates):
         counts = [] if not stack else [stack[0] - 1] if show == 'intf_seq' else [stack[0]] * len(names)
     # start on an interferogram, not on the zero phase of an image with itself
     index = {'sec': 1} if show == 'intf_all' and counts[1] > 1 else {}
-    return show, fn, list(zip(names, counts)), complex_data or show is not None, index
+    # the named shows of a real stack of images are the differences of two of its images (`_show_named`)
+    colours = 'phase' if complex_data else \
+        'differences' if show in ('intf_0', 'intf_seq', 'intf_all') and len(stack) == 1 else 'values'
+    return show, fn, list(zip(names, counts)), colours, index
 
 
-def _colours(name, phase_like, stats, label, cmap, clim):
-    """(lut, clim, colour bar label): cyclic over (-pi, pi] for phases, viridis over the 1 % - 99 % range of
-    `stats()` otherwise, (0, 1) for booleans and 'coh_abs'; `cmap`, `clim` override."""
+def _colours(name, colours, stats, label, cmap, clim):
+    """(lut, clim, colour bar label) of the `colours` of `_show`: cyclic over (-pi, pi] for 'phase', viridis
+    otherwise, over the 1 % - 99 % range of `stats()` for 'values' and over +-(p99 - p01), the differences of two
+    values within it, for 'differences'; (0, 1) for booleans (+-1 for their differences) and 'coh_abs'; `cmap`,
+    `clim` override."""
     if name == 'coh_abs':
         cmap_, clim_, label = 'viridis', (0, 1), 'coherence'
-    elif phase_like:
+    elif colours == 'phase':
         cmap_, clim_, label = _cyclic_cmap(), (-np.pi, np.pi), 'phase (rad)'
     else:
         st = stats()
@@ -335,6 +341,8 @@ def _colours(name, phase_like, stats, label, cmap, clim):
             clim_ = (st['p01'], st['p99'])
         else:
             clim_ = (0, 1)
+        if colours == 'differences':
+            clim_ = (clim_[0] - clim_[1], clim_[1] - clim_[0])
     cmap_ = cmap_ if cmap is None else cmap
     clim_ = clim_ if clim is None else clim
     return _lut(cmap_), tuple(float(c) for c in clim_), label
@@ -570,13 +578,13 @@ class _Layer(_Shown):
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
         self.polygon_file = None if polygons is None else str(polygons)
-        name, self.show_fn, counts, phase_like, index = _show(base, show, image_pairs, sliders, self.dates)
+        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates)
         self.show_name = name if isinstance(name, str) else ('function' if callable(show) else None)
         self.kdims = [{'name': k, 'max': int(n) - 1} for k, n in counts]
         self.default_index = {k['name']: index.get(k['name'], 0) for k in self.kdims}
-        if phase_like is None:       # a show function: colours from its values on a coarse level
-            phase_like, stats = self._guess(base.dtype)
-        self.lut, self.clim, self.bar_label = _colours(name, phase_like, stats, self.label, cmap, clim)
+        if colours is None:          # a show function: colours from its values on a coarse level
+            colours, stats = self._guess(base.dtype)
+        self.lut, self.clim, self.bar_label = _colours(name, colours, stats, self.label, cmap, clim)
         self.opacity = float(opacity)
         self.title = f'{self.label}  {self.data_shape} {base.dtype}' + \
             (f'  {self.show_name}' if self.show_name else '')
@@ -595,9 +603,9 @@ class _Layer(_Shown):
             self.ts = default_ts
 
     def _guess(self, dtype):
-        """(phase_like, stats) of a `show` function from its values on the finest level of at most
+        """(colours of `_colours`, stats) of a `show` function from its values on the finest level of at most
         SAMPLE_CELLS cells: phases for complex data shown within (-pi, pi] with negative values (magnitudes
-        are not negative)."""
+        are not negative), values otherwise."""
         level = next((lv for lv in range(self.max_level + 1)
                       if np.prod(self.levels(lv).shape[:2]) <= SAMPLE_CELLS), self.max_level)
         data = self.levels(level)
@@ -606,7 +614,7 @@ class _Layer(_Shown):
         finite = a[np.isfinite(a)]
         phase = np.iscomplexobj(np.empty(0, dtype)) and finite.size > 0 and \
             -np.pi - 1e-6 <= finite.min() < 0 and finite.max() <= np.pi + 1e-6
-        return phase, lambda: _stats(a.ravel())
+        return 'phase' if phase else 'values', lambda: _stats(a.ravel())
 
     def describe(self):
         return (f'{self.label}: {self.kind} {self.data_shape} {self.dtype}'
@@ -1120,7 +1128,8 @@ def view(
         y coordinate (azimuth or web mercator y) of point data that is not a pyramid, (n_points,)
     show : str or callable, optional
         what to show of a stack: 'phase', 'intf_0' (interferograms with the first image), 'intf_seq'
-        (sequential interferograms), 'intf_all' (any pair, sliders ref and sec), 'coh' / 'coh_abs' (phase /
+        (sequential interferograms), 'intf_all' (any pair, sliders ref and sec), the differences of the two
+        images for a real stack (e.g. of unwrapped phase or displacement), 'coh' / 'coh_abs' (phase /
         magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function
         ``f(v, *sliders)`` of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose
         other arguments are sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] *
@@ -1135,9 +1144,12 @@ def view(
         GeoJSON file of the polygons drawn on the map: read if it exists, written on every change; use it
         with `polygon_mask`
     cmap : str or list, optional
-        matplotlib colour map name or list of colours; cyclic for phases, viridis otherwise by default
+        matplotlib colour map name or list of colours; cyclic for the phases of complex data, viridis
+        otherwise by default
     clim : tuple, optional
-        (min, max) of the colours; (-pi, pi) for phases, the 1 % - 99 % range otherwise by default
+        (min, max) of the colours; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 %
+        range of the data (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a
+        real stack ('intf_0', 'intf_seq', 'intf_all')
     opacity : float, default: 1.0
         opacity of the layer, 0 - 1
     label : str, optional

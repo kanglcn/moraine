@@ -451,6 +451,45 @@ def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
         view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
 
 
+def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of real data are coloured like other real values, viridis with the colour
+    bar of the layer: the differences of two images of a stack over +-(p99 - p01) of the statistics of the data (the
+    differences of two values within the 1 % - 99 % range), the elements of matrices (..., n, n) over p01 .. p99.
+    They had the cyclic colours of phases over (-pi, pi] and the colour bar 'phase (rad)', so that differences beyond
+    pi saturated; complex data keep the colours of phases."""
+    import colorcet
+    from moraine.cli.plot import _stats
+    ts = np.cumsum(rng.normal(-5, 2, (30, 20, 4)), axis=-1).astype(np.float32)      # a time series, e.g. in mm
+    ts[..., 0] = 0
+    m = rng.normal(5, 2, (30, 20, 3, 3)).astype(np.float32)                           # matrices
+    for name, a in (('ts', ts), ('m', m)):
+        write_zarr(tmp_path / f'{name}.zarr', a, (15, 20) + (1,) * (a.ndim - 2))
+        mc.ras_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'))
+    pts = ts[:3, :4].reshape(12, 4)
+    pyr, x, y = _grid_points(tmp_path, pts, 'pts')
+    for show, _, _, (i, j) in NAMED_SHOWS:
+        for layer, data in [(view(str(tmp_path / 'ts_pyr'), show=show), ts), (view(ts, show=show), ts),
+                            (view(str(pyr), show=show), pts), (view(pts, x=x, y=y, show=show), pts),
+                            (view(str(tmp_path / 'm_pyr'), show=show), m), (view(m, show=show), m)]:
+            st = _stats(data.ravel())
+            assert layer.colors[0] == '#440154' and layer.colors[-1] == '#fde725'          # viridis
+            assert layer.bar_label == layer.label and 'phase (rad)' not in repr(layer)
+            if data is m:
+                assert layer.clim == pytest.approx((st['p01'], st['p99']), rel=1e-5)
+            else:
+                width = st['p99'] - st['p01']
+                assert layer.clim == pytest.approx((-width, width), rel=1e-5)
+                diff = data[..., i] - data[..., j]
+                assert np.abs(diff).max() > np.pi            # beyond the colours of phases, within these
+                inside = np.abs(diff) < width
+                assert inside.mean() > 0.9 and np.all(np.isin(layer.indices(diff[inside]), [0, 254], invert=True))
+    s = np.exp(1j * ts).astype(np.complex64)                  # complex data: the colours of phases
+    for show, *_ in NAMED_SHOWS:
+        layer = view(s, show=show)
+        assert layer.clim == pytest.approx((-np.pi, np.pi)) and layer.bar_label == 'phase (rad)'
+        assert layer.colors[0] == colorcet.colorwheel[0].lower()
+
+
 def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
     """By default complex data with two stack dimensions, e.g. coherence matrices (..., n, n), show the phase of
     element (i, j) of the sliders i and j in the colours of phases, as real ones show its value (it failed when

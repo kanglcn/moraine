@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+The named shows 'intf_0', 'intf_seq' and 'intf_all' of real data in `moraine.cli.view` and `moraine quicklook --show` are coloured like other real values: viridis, with the name of the layer on the colour bar; the differences of two images of a real stack (e.g. unwrapped phase in radians, a displacement time series in mm) over ±(p99 - p01) of the statistics of the data, the range of the differences of two values within its 1 % - 99 % range, and the elements (i, j) of real stacks of matrices (..., n, n) over p01 .. p99. They had the cyclic colours of phases over (-pi, pi] and the colour bar 'phase (rad)': differences beyond ±pi saturated, and a time series in mm was labelled in radians. Complex data keep the colours of phases; the views of complex data, and of real data with the other shows, are the same bit for bit
+
 `read_gamma_pdata` (`moraine.api.utils_.gamma_io`), the reader of GAMMA point data, sets float and complex values with an absolute value below 1e-30 (GAMMA's no data) to nan, as `read_gamma_image` does; before, only exact zeros were nan. Its only user is `gamma_mcf_pt` (command `gamma-mcf-pt`), for the unwrapped phases of GAMMA `mcf_pt`, where a nonzero phase below 1e-30 rad does not occur in practice
 
 The package metadata give the license as `GPL-3.0-or-later`, the GNU General Public License version 3 or (at your option) any later version, as the LICENSE file has always said; 0.10.0 declared `GPL-3.0-only`. The README and the manual name it the same way
