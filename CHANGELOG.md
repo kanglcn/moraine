@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`TempNet.image_pairs_idx` takes numpy integer scalars (e.g. `np.int64`, `np.int32`) as `ref` and `sec` like Python ints, and gives one np.int64 for them, and `image_pairs` as a list or tuple of pairs (e.g. `[(0, 1), (1, 2)]`, or empty) like an array, with the same results, -1 for the pairs not in the network. It raised a TypeError for them: "len() of unsized object" for numpy integers, "list indices must be integers or slices, not tuple" for a list of pairs. A sequence `ref` with an integer `sec` raises the TypeError "ref and sec must both be integers or both sequences", as an integer `ref` with a sequence `sec` did
+
 `pc_union` and `pc_intersect` with cupy arrays return the dtypes of the CPU. With int32 hilbert indices the positions of `pc_union` (the points of `idx1` and the new points of `idx2` in the union, the new points in `idx2`) are int32 on the GPU too, instead of int64: for hilbert indices those of the points of `idx1` have the dtype of `idx1`, the others that of `idx2`. `pc_intersect` of an int32 `idx1` and an int64 `idx2` gives an int64 intersection on the GPU too, instead of int32. The values, grid indices and `pc_diff` do not change; the docstrings give the dtypes
 
 `pc_union` and `pc-union` of an int32 hilbert index `idx1` and an int64 `idx2` give the union in int64 on the CPU, as on the GPU, numpy's promotion of the two dtypes. It had the dtype of `idx1`, which cut the values of `idx2` beyond the int32 range: the union of [1, 5] (int32) and [3, 2**33] was [1, 3, 5, 0]. The other dtypes, grid indices and the positions returned do not change

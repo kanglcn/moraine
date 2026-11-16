@@ -107,26 +107,32 @@ class TempNet(object):
 
         Parameters
         ----------
-        image_pairs : np.ndarray, optional
-            (n, 2) int: the reference and secondary image index of each pair to find
+        image_pairs : np.ndarray or sequence of pairs, optional
+            (n, 2) int: the reference and secondary image index of each pair to find, an array or a list / tuple of
+            pairs, e.g. [(0, 1), (1, 2)]
         ref : int or sequence of int, optional
-            (n,): the reference image index of each pair to find, if `image_pairs` is not given
+            (n,): the reference image index of each pair to find, if `image_pairs` is not given; an integer (Python
+            int or numpy integer such as np.int64) to find one pair
         sec : int or sequence of int, optional
-            (n,): the secondary image index of each pair to find; an int if `ref` is an int
+            (n,): the secondary image index of each pair to find; an integer if `ref` is an integer
 
         Returns
         -------
         np.ndarray or np.int64
             (n,) int64: the row of each pair in `TempNet.image_pairs`, -1 for a pair not in the network; a single
-            np.int64 for int `ref` and `sec`
+            np.int64 for integer `ref` and `sec`
         """
         single_input = False
         if image_pairs is not None:
+            image_pairs = np.asarray(image_pairs)
+            if image_pairs.size == 0:
+                image_pairs = image_pairs.reshape(0, 2)     # an empty list: no pairs
             ref = image_pairs[:,0]
             sec = image_pairs[:,1]
         else:
-            if isinstance(ref,int):
-                if not isinstance(sec,int):
+            ref_is_int, sec_is_int = isinstance(ref, (int, np.integer)), isinstance(sec, (int, np.integer))
+            if ref_is_int or sec_is_int:
+                if not (ref_is_int and sec_is_int):
                     raise TypeError('ref and sec must both be integers or both sequences')
                 single_input = True
                 ref = np.array([ref,]); sec = np.array([sec,])
