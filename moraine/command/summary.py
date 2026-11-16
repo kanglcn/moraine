@@ -88,8 +88,8 @@ def quicklook(
         output PNG file
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
-        (i, j) for 4D data, (ref, sec) for 'intf_all', each within the range of its slider; the first images by
-        default
+        (i, j) for 4D data, (ref, sec) for 'intf_all', at most one value per slider and each within the range of
+        its slider; the first images by default
     show : str, optional
         what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
     width : int, default: 1000
@@ -113,7 +113,7 @@ def quicklook(
     layer = _view(str(pyramid), show=show)
     try:
         view_index([[layer]], tuple(index))
-    except ValueError as e:         # values outside the ranges of the sliders: a wrong command line
+    except ValueError as e:         # more values than sliders, values outside their ranges: a wrong command line
         raise UsageError(f'--index {" ".join(str(i) for i in index)}: {e}') from None
     return layer.png(out, width=width, index=tuple(index), extent=extent)
 

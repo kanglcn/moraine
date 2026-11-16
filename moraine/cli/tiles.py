@@ -424,8 +424,9 @@ class _Shown:
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
-            slider values by name, or in the order of the sliders, each within the range of its slider (`repr`
-            of the view lists them); the first images by default
+            slider values by name, or in the order of the sliders (at most one value per slider), of sliders of
+            the view and each within the range of its slider (`repr` of the view lists them); the first images by
+            default
         extent : tuple, optional
             the part to draw: (west, south, east, north) longitudes and latitudes in degrees on a web mercator
             map, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid; the whole extent
@@ -493,15 +494,31 @@ def view_sliders(panels):
     return list(kdims.values()), index
 
 
+def _sliders_text(kdims)->str:
+    """The sliders of a view and their ranges, for the errors of `view_index`."""
+    if not kdims:
+        return 'the view has no sliders'
+    return f"the view has the slider{'s' if len(kdims) > 1 else ''} " + \
+        ', '.join(f"{k['name']} 0 .. {k['max']}" for k in kdims)
+
+
 def view_index(panels, index=None):
     """(sliders, values by name) of maps of layers: the sliders of `view_sliders`, the values of `index` (dict by
-    name, or values in the order of the sliders) and the default values of the others; ValueError for a value
-    outside the range of its slider."""
+    name, or values in the order of the sliders) and the default values of the others; ValueError for a name that is
+    not a slider, more values than sliders and a value outside the range of its slider."""
     kdims, values = view_sliders(panels)
+    names = [k['name'] for k in kdims]
     if isinstance(index, dict):
         given = dict(index)
+        unknown = [n for n in given if n not in names]
+        if unknown:
+            raise ValueError(f"no slider{'s' if len(unknown) > 1 else ''} {', '.join(repr(n) for n in unknown)}; "
+                             f'{_sliders_text(kdims)}')
     elif index:
-        given = dict(zip([k['name'] for k in kdims], index))
+        if len(index) > len(kdims):
+            raise ValueError(f"{len(index)} value{'s' if len(index) > 1 else ''} for {len(kdims)} "
+                             f"slider{'' if len(kdims) == 1 else 's'}; {_sliders_text(kdims)}")
+        given = dict(zip(names, index))
     else:
         given = {}
     for k in kdims:

@@ -358,6 +358,25 @@ def test_quicklook_index_within_the_sliders(tmp_path, capsys, rng):
         quicklook(str(tmp_path / 'pyr'), str(tmp_path / 'p.png'), index=(0, -1), show='coh')
 
 
+def test_quicklook_index_of_the_sliders(tmp_path, capsys, rng):
+    """`moraine quicklook --index` with more values than sliders is a usage error that names the sliders (the values
+    beyond the sliders were ignored: `--index 0 6` drew image 0 of a stack)."""
+    import moraine.cli as mc
+    write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    capsys.readouterr()
+    out = tmp_path / 'q.png'
+    assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(out), '--json', '--index', '0', '6']) == 2
+    assert json_out(capsys)['error'] == '--index 0 6: 2 values for 1 slider; the view has the slider i 0 .. 3'
+    assert main(['quicklook', str(tmp_path / 'r_pyr'), '-o', str(out), '--json', '--index', '0']) == 2
+    assert json_out(capsys)['error'] == '--index 0: 1 value for 0 sliders; the view has no sliders'
+    assert not out.exists()
+    assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(out), '--json', '--index', '3']) == 0
+    assert out.stat().st_size > 1000
+
+
 @pytest.mark.parametrize('data,warning', [
     (np.full((60, 40), np.nan, np.float32), 'all values are nan'),
     (np.where(np.arange(2400).reshape(60, 40) % 97 == 0, np.inf, 1.5).astype(np.float32), 'infinite values'),

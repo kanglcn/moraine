@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`png(index=...)` of the views of `moraine.cli.view` and `moraine quicklook --index` take the sliders of the view only, and name them otherwise: a name of a dict index that is not a slider ("no slider 'images'; the view has the slider image 0 .. 3") and more values than sliders ("--index 0 6: 2 values for 1 slider; the view has the slider i 0 .. 3" for the default show of a real stack) are errors, on the command line a usage error (exit code 2). They were ignored: `moraine quicklook --index 0 6` drew image 0 of a stack
+
 The named shows 'intf_0', 'intf_seq' and 'intf_all' of real data in `moraine.cli.view` and `moraine quicklook --show` are coloured like other real values: viridis, with the name of the layer on the colour bar; the differences of two images of a real stack (e.g. unwrapped phase in radians, a displacement time series in mm) over ±(p99 - p01) of the statistics of the data, the range of the differences of two values within its 1 % - 99 % range, and the elements (i, j) of real stacks of matrices (..., n, n) over p01 .. p99. They had the cyclic colours of phases over (-pi, pi] and the colour bar 'phase (rad)': differences beyond ±pi saturated, and a time series in mm was labelled in radians. Complex data keep the colours of phases; the views of complex data, and of real data with the other shows, are the same bit for bit
 
 `read_gamma_pdata` (`moraine.api.utils_.gamma_io`), the reader of GAMMA point data, sets float and complex values with an absolute value below 1e-30 (GAMMA's no data) to nan, as `read_gamma_image` does; before, only exact zeros were nan. Its only user is `gamma_mcf_pt` (command `gamma-mcf-pt`), for the unwrapped phases of GAMMA `mcf_pt`, where a nonzero phase below 1e-30 rad does not occur in practice

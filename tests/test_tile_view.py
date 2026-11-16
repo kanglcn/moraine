@@ -798,3 +798,28 @@ def test_png_index_within_the_sliders(tmp_path, stack):
         rows = np.floor(geom.y0 + np.arange(size[1]) * geom.sy + 0.5).astype(int)
         np.testing.assert_allclose(values, np.angle(s[..., i] * s[..., j].conj())[np.ix_(rows, cols)], rtol=1e-5,
                                    atol=1e-6)
+
+
+def test_png_index_of_the_sliders_of_the_view(tmp_path, stack):
+    """`png(index=...)` takes the sliders of the view only: a name that is not a slider and more values than sliders
+    are errors that name the sliders of the view (they were ignored and the default images drawn)."""
+    s, pyr = stack                                                      # 4 images
+    out = tmp_path / 'i.png'
+    for show, index, match in [
+            (None, {'images': 2}, r"^no slider 'images'; the view has the slider image 0 \.\. 3$"),
+            ('intf_all', {'ref': 1, 'sek': 2, 'i': 0}, r"^no sliders 'sek', 'i'; the view has the sliders ref 0 \.\. 3, "
+                                                      r"sec 0 \.\. 3$"),
+            (None, (0, 2), r"^2 values for 1 slider; the view has the slider image 0 \.\. 3$"),
+            ('intf_all', [1, 2, 3], r"^3 values for 2 sliders; the view has the sliders ref 0 \.\. 3, sec 0 \.\. 3$")]:
+        with pytest.raises(ValueError, match=match):
+            view(str(pyr), show=show).png(str(out), index=index)
+    with pytest.raises(ValueError, match=r'^1 value for 0 sliders; the view has no sliders$'):
+        view(np.ones((10, 10), np.float32)).png(str(out), index=(0,))
+    with pytest.raises(ValueError, match=r"^no slider 'image'; the view has no sliders$"):
+        view(np.ones((10, 10), np.float32)).png(str(out), index={'image': 0})
+    layout = view(str(pyr)) + view(np.ones((60, 40, 2), np.float32))     # sliders image and i, of different layers
+    with pytest.raises(ValueError, match=r"^3 values for 2 sliders; the view has the sliders image 0 \.\. 3, i 0 \.\. 1$"):
+        layout.png(str(out), index=(0, 1, 0))
+    assert not out.exists()
+    layout.png(str(out), width=200, index={'i': 1})                     # the sliders of any layer of the view
+    assert out.stat().st_size > 1000
