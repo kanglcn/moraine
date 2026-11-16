@@ -31,6 +31,12 @@ _SAMPLE_VALUES = 2**23   # values of the regular sample for the percentiles of t
 _STATS_COLUMNS = ('nan_fraction', 'min', 'max', 'mean', 'std', 'p01', 'p50', 'p99')   # per channel table
 _METHODS = {'raster': ('decimate', 'mean'), 'point cloud': ('first', 'mean')}   # how a level is made from the finer one
 
+def _check_sizes(**sizes):
+    """ArgumentError for chunk sizes (integers or tuples of them) and numbers of workers below 1; None is a default"""
+    for name, value in sizes.items():
+        if value is not None and min(value if isinstance(value, (tuple, list)) else (value,)) < 1:
+            raise ArgumentError(f'{name} must be 1 or more, not {value}')
+
 def _pyramid_workers(n_workers):
     return min(8, os.cpu_count() or 1) if n_workers is None else n_workers
 
@@ -248,7 +254,7 @@ def ras_pyramid(
     out_dir : str
         output directory to store rendered data
     chunks : tuple[int, int], default: (256, 256)
-        output raster tile size
+        output raster tile size, 1 or more
     rows : int, default: 1024
         lines of the raster a process reads at a time, a power of 2; a process needs about 0.5 GB plus
         B x rows x width bytes, B = 64 for complex64 and max(42, 6.25 x itemsize) otherwise (42 for float32, 50 for
@@ -260,13 +266,14 @@ def ras_pyramid(
         reference image (phase histories of phase linking, filtered interferograms), wrong for the SLC pixels
         of an rslc stack, whose scatterer phases differ from pixel to pixel
     n_workers : int, optional
-        processes rendering the channels at the same time, default: 8 or the number of cores if fewer; a process
-        renders one channel of the raster
+        processes rendering the channels at the same time, 1 or more, default: 8 or the number of cores if fewer; a
+        process renders one channel of the raster
     """
     if rows < 1 or rows & (rows - 1):
         raise ArgumentError(f'rows must be a power of 2, not {rows}')
     if method not in _METHODS['raster']:
         raise ArgumentError(f"method must be one of {_METHODS['raster']}, not {method!r}")
+    _check_sizes(chunks=chunks, n_workers=n_workers)
     logger = logging.getLogger(__name__)
     ras_zarr = zarr.open(ras,mode='r')
     logger.zarr_info(ras, ras_zarr)
@@ -401,22 +408,25 @@ def pc_pyramid(
         input: (y, x) coordinates of the points, shape (n_points, 2), e.g. gix; instead of `x` and `y`, not
         with them
     ras_resolution : float, default: 20
-        minimum resolution of rendered raster data,
+        minimum resolution of rendered raster data, positive
     ras_chunks : tuple[int, int], default: (256, 256)
-        output raster tile size
+        output raster tile size, 1 or more
     pc_chunks : int, default: 65536
-        output pc tile size
+        output pc tile size, 1 or more
     method : str, default: 'first'
         how each level is made from the finer one: 'first' keeps the first cell with a point of each 2 x 2
         block, 'mean' averages the cells with points (complex data as complex numbers). The mean is a multilook
         of the data: right for real values and for phase histories relative to a reference image (phase
         linking, filtered points)
     n_workers : int, optional
-        processes rendering the channels at the same time, default: 8 or the number of cores if fewer; a process
-        holds one channel: the data of the points and the finest raster of the channel (3 rasters with 'mean')
+        processes rendering the channels at the same time, 1 or more, default: 8 or the number of cores if fewer; a
+        process holds one channel: the data of the points and the finest raster of the channel (3 rasters with 'mean')
     """
     if method not in _METHODS['point cloud']:
         raise ArgumentError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
+    if not ras_resolution > 0 or not math.isfinite(ras_resolution):
+        raise ArgumentError(f'ras_resolution must be a positive number, not {ras_resolution}')
+    _check_sizes(ras_chunks=ras_chunks, pc_chunks=pc_chunks, n_workers=n_workers)
     logger = logging.getLogger(__name__)
     pc_zarr = zarr.open(pc,mode='r')
     logger.zarr_info(pc, pc_zarr)

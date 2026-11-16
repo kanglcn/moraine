@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`ras-pyramid` and `pc-pyramid` stop with an argument error (a usage error, exit code 2, on the command line) before they clean the output directory for chunk sizes and numbers of workers below 1 (`chunks`, `ras_chunks`, `pc_chunks`, `n_workers`), e.g. "n_workers must be 1 or more, not 0", and for a `ras_resolution` that is not a positive number; they cleaned the directory and failed later with processing errors ("Chunk size must be positive or -1, got 0", "max_workers must be greater than 0", "math domain error", "cannot convert float infinity to integer")
+
 `moraine image-pairs` of fewer than 2 images (`--nimages 1`, an rslc stack of one image) or with `--bandwidth` below 1 stops with an argument error (a usage error, exit code 2) before it writes the file, e.g. "image pairs need 2 or more images, got 1"; it wrote a file without pairs, which every command rejects
 
 `moraine.cli.view` rejects `sliders`, the ranges of the sliders of a show function, given with another show ("sliders is used only by a show function, not by the default show") and names in them that are not sliders of the function, with a ValueError when the view is made; they were ignored without a word, as `image_pairs` without a coherence show were
