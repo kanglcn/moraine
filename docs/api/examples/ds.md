@@ -36,6 +36,26 @@ The compressed layout is the upper triangle in the order of `numpy.triu_indices(
 `emperical_co_pc(..., return_n_looks=True)` also gives the effective number of independent looks of each SHP set,
 the input of the weighted DS temporal coherence.
 
+```python exec="true" source="above" result="text" session="co_raster"
+import numpy as np
+import moraine as mr
+
+rng = np.random.default_rng(0)
+nlines, width, nimages = 20, 30, 10
+rslc = (rng.standard_normal((nlines, width, nimages)) + 1j * rng.standard_normal((nlines, width, nimages))).astype(np.complex64)
+is_shp = np.ones((nlines, width, 5, 5), dtype=bool)             # SHPs of every pixel in a 5 x 5 window (all here)
+
+cov, coh = mr.emperical_co(rslc, is_shp)                         # full matrices, (nlines, width, nimages, nimages)
+print(cov.shape, coh.shape, coh.dtype)
+idx = np.array([[5, 5], [10, 15]], dtype=np.int32)              # two of the pixels as points, with their SHPs
+coh_pc = mr.uncompress_coh(mr.emperical_co_pc(rslc, idx, is_shp[idx[:, 0], idx[:, 1]]))
+print('coherence of emperical_co_pc:', np.allclose(coh[idx[:, 0], idx[:, 1]], coh_pc, atol=1e-6))
+```
+
+`emperical_co` gives the covariance and coherence matrices of every pixel of a raster, both triangles: 16 x nimages²
+bytes per pixel for `cov` and `coh` (135 kB for 92 images), so it is for small rasters; the DS step of the pipelines
+estimates the coherence of the candidates as point clouds (`emperical_co_pc`, `emperical_co_emi_temp_coh_pc`).
+
 ```python exec="true" source="above" result="text" session="pl"
 import numpy as np
 import moraine as mr
