@@ -461,6 +461,10 @@ def _build_parser(with_commands=True):
                    help='colour range, the values of the first and the last colour, LOW < HIGH, e.g. --clim -11,6 '
                         'for differences of a few millimetres (default: (-pi, pi) for phases, the 1 - 99 %% range of '
                         'the data otherwise, +-(p99 - p01) for the differences of two images of a real stack)')
+    p.add_argument('--image_pairs', metavar='FILE',
+                   help='image pairs of the compressed coherence shown with --show coh / coh_abs, a text file of two '
+                        'columns, reference and secondary image index, as made by `moraine image-pairs` (default: all '
+                        'pairs of the images)')
     _add_global(p)
     p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
@@ -474,6 +478,10 @@ def _build_parser(with_commands=True):
     p.add_argument('--terrain', action='store_true',
                    help='3D maps over the terrain (public elevation tiles); web mercator pyramids only')
     p.add_argument('--overwrite', action='store_true', help='replace an existing notebook')
+    p.add_argument('--image_pairs', metavar='FILE',
+                   help='image pairs of the compressed coherence shown with --show coh / coh_abs, a text file of two '
+                        'columns, reference and secondary image index, as made by `moraine image-pairs` (default: all '
+                        'pairs of the images)')
     _add_global(p)
     p = sub.add_parser('run', help='run or resume a pipeline file (TOML)')
     p.add_argument('pipeline')
@@ -519,12 +527,13 @@ def _run(args):
     if sub == 'quicklook':
         from .summary import quicklook
         out = quicklook(args.pyramid, args.out or Path(args.pyramid.rstrip('/')).name + '.png', index=tuple(args.index),
-                        show=args.show, width=args.width, extent=args.extent, clim=args.clim)
+                        show=args.show, width=args.width, extent=args.extent, clim=args.clim,
+                        image_pairs=args.image_pairs)
         return _emit(args, {'png': out}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
         out = view(args.pyramids, args.out, show=args.show, dates=args.dates, terrain=args.terrain,
-                   overwrite=args.overwrite)
+                   overwrite=args.overwrite, image_pairs=args.image_pairs)
         return _emit(args, {'notebook': out, 'pyramids': args.pyramids},
                      lambda: print(f'saved {out}: open it in Jupyter or VS Code and run all cells'))
     if sub in ('run', 'status'):

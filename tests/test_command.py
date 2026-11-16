@@ -588,6 +588,83 @@ def test_quicklook_output_name(tmp_path, capsys, rng, monkeypatch):
     assert drawn == []
 
 
+def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
+    """`moraine quicklook` and `moraine view` take `--image_pairs FILE`, the image pairs of the compressed coherence of
+    --show coh / coh_abs (they had none: the coherence of a network that is not all pairs of its images could not be
+    drawn from the command line). The file is read and checked like the image_pairs of the processing commands and its
+    errors are usage errors (exit code 2); quicklook draws `view(..., image_pairs=...)`, and the maps of the notebook of
+    view get the absolute path of a text file, the pairs themselves of a list or a .npy file."""
+    import moraine.cli as mc
+    from moraine.cli.tiles import _Shown
+    pairs = [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3)]                    # (0, 3) is not in the network
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d', header='reference secondary')     # as `moraine image-pairs`
+    np.save(tmp_path / 'pairs.npy', np.array(pairs))
+    np.savetxt(tmp_path / 'three.txt', pairs[:3], fmt='%d')
+    np.savetxt(tmp_path / 'unsorted.txt', [(0, 2), (0, 1), (1, 2), (1, 3), (2, 3)], fmt='%d')
+    (tmp_path / 'words.txt').write_text('reference secondary\n0 1\n')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', (rng.uniform(0, 1, (12, 5)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (12, 5))))
+               .astype(np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
+    for show in ('coh', 'coh_abs'):
+        expected = Path(mc.view(pyr, show=show, image_pairs=str(tmp_path / 'pairs.txt')).png(
+            str(tmp_path / f'{show}.png'), width=300, index=(1, 3))).read_bytes()
+        for file in ('pairs.txt', 'pairs.npy'):
+            assert main(['quicklook', pyr, '-o', str(out), '--show', show, '--image_pairs', str(tmp_path / file),
+                         '--index', '1', '3', '--width', '300', '--json']) == 0, (show, file)
+            assert json_out(capsys)['png'] == str(out) and out.read_bytes() == expected, (show, file)
+            out.unlink()
+    assert quicklook(pyr, str(out), show='coh', width=300, index=(1, 3), image_pairs=pairs) == str(out)   # in Python
+    assert out.read_bytes() == Path(tmp_path / 'coh.png').read_bytes()
+    out.unlink()
+    nb = tmp_path / 'v.ipynb'
+    for args, error, commands in [
+            ([], "show='coh' needs compressed coherence (..., n_pairs), not shape (12, 5): one column per image pair, "
+                 'n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the number of the image pairs '
+                 'given (none are given)', ('quicklook',)),
+            (['--image_pairs', str(tmp_path / 'three.txt')], "show='coh' needs compressed coherence (..., n_pairs), not "
+                                                            'shape (12, 5): one column per image pair', ('quicklook',)),
+            (['--image_pairs', str(tmp_path / 'missing.txt')], f"image pairs '{tmp_path / 'missing.txt'}': not a file "
+                                                               'and not a list like [[0,1],[1,2]]; make a file with '
+                                                               '`moraine image-pairs`', ('quicklook', 'view')),
+            (['--image_pairs', str(tmp_path / 'unsorted.txt')], f"image pairs '{tmp_path / 'unsorted.txt'}': image "
+                                                                'pairs must be sorted by reference and then secondary '
+                                                                'index, without duplicates: pair 1 (0, 1) follows (0, 2)',
+             ('quicklook', 'view')),
+            (['--image_pairs', str(tmp_path / 'words.txt')], f"image pairs '{tmp_path / 'words.txt'}': could not "
+                                                             "convert string 'reference' to int64",
+             ('quicklook', 'view'))]:
+        for command in commands:
+            output = ['-o', str(out if command == 'quicklook' else nb)]
+            assert main([command, pyr, *output, '--show', 'coh', *args, '--json']) == 2, (command, args)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['error'].startswith(error), (command, result)
+    assert not out.exists() and not nb.exists()
+    with pytest.raises(UsageError, match='must be sorted'):
+        quicklook(pyr, str(out), show='coh', image_pairs=[(0, 2), (0, 1), (1, 2), (1, 3), (2, 3)])
+    # the notebook: the absolute path of a text file, the pairs of a .npy file or a list
+    monkeypatch.chdir(tmp_path)
+    listed = '[[0, 1], [0, 2], [1, 2], [1, 3], [2, 3]]'
+    for pairs_arg, written in [('pairs.txt', repr(str(tmp_path.resolve() / 'pairs.txt'))), ('pairs.npy', listed),
+                               ('[[0,1],[0,2],[1,2],[1,3],[2,3]]', listed)]:
+        assert main(['view', pyr, '-o', str(nb), '--show', 'coh', '--image_pairs', pairs_arg, '--overwrite',
+                     '--json']) == 0, pairs_arg
+        assert json_out(capsys)['notebook'] == str(nb)
+        code = [''.join(c['source']) for c in json.loads(nb.read_text())['cells'] if c['cell_type'] == 'code']
+        assert code[-1] == f"mc.view({str(Path(pyr).resolve())!r}, show='coh', image_pairs={written})", pairs_arg
+        ns = {}
+        exec(code[0], ns)
+        layer = eval(code[-1], ns)
+        assert isinstance(layer, _Shown) and [(k['name'], k['max']) for k in layer.kdims] == [('ref', 3), ('sec', 3)]
+    with pytest.raises(SystemExit):
+        main(['quicklook', '--help'])
+    assert '--image_pairs FILE' in capsys.readouterr().out
+
+
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):
     """The help of `moraine quicklook` and `moraine view`, which the manual shows, says what the docstrings of the
     functions say: the default of --show, and the sliders of --index, also i j of 4D data (it did not say that)."""

@@ -114,6 +114,17 @@ def _png_name(out)->str:
     return str(out)
 
 
+def _pairs_input(pairs):
+    """(n_pairs, 2) int64 image pairs of `pairs`, read and checked as the `image_pairs` arguments of the processing
+    commands (`moraine.command.image_pairs`): a text or .npy file, or a list; UsageError otherwise, also for a file that
+    is not two columns of integers."""
+    from . import image_pairs
+    try:
+        return image_pairs(pairs)
+    except (ValueError, OSError) as e:          # numpy cannot read the file
+        raise UsageError(f'image pairs {str(pairs)!r}: {e}') from None
+
+
 def _notebook_name(out, overwrite:bool)->str:
     """The notebook file of view: `out` ending with .ipynb, or with .ipynb appended without a suffix; UsageError for
     another suffix and for an existing file without `overwrite`."""
@@ -137,14 +148,15 @@ def quicklook(
     width:int=1000,
     extent:str=None,
     clim:str=None,
+    image_pairs:str=None,
 )->str:
     """Save a PNG of a pyramid, drawn like `moraine.cli.view` (``view(pyramid).png(out)``).
 
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
     first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds). Wrong inputs raise a UsageError (the
     command exits with 2) before anything is drawn: a path that is not a pyramid or one to rebuild, a `show` that
-    does not fit the data (the default fits data with at most two stack dimensions), a wrong `extent` or `clim`, an
-    `index` beyond the sliders, an `out` that is not a PNG.
+    does not fit the data (the default fits data with at most two stack dimensions), a wrong `extent`, `clim` or
+    `image_pairs`, an `index` beyond the sliders, an `out` that is not a PNG.
 
     Parameters
     ----------
@@ -171,6 +183,10 @@ def quicklook(
         last colour, as `clim` of `moraine.cli.view` (e.g. "-11,6" for differences of a few millimetres); by default
         (-pi, pi) for phases, the 1 % - 99 % range of the data otherwise and +-(p99 - p01) for the differences of two
         images of a real stack
+    image_pairs : str, optional
+        image pairs of the compressed coherence shown with 'coh' / 'coh_abs', one column per pair: a text file of two
+        columns, reference and secondary image index, as made by `moraine image-pairs`, read and checked like the
+        `image_pairs` of the processing commands; all pairs of the images by default
 
     Returns
     -------
@@ -180,11 +196,13 @@ def quicklook(
     from ..cli.tiles import view as _view, view_index, _data_extent
     out = _png_name(out)                            # UsageError
     _pyramid_input(pyramid)                         # UsageError
+    pairs = None if image_pairs is None else _pairs_input(image_pairs)     # UsageError
     try:        # the inputs, before anything is drawn: their errors are a wrong command line, with their messages
         clim = _clim(clim)                          # UsageError
         if extent is not None and not isinstance(extent, (tuple, list)):
             extent = _numbers(extent)               # the words that are not numbers make the error of _data_extent
-        layer = _view(str(pyramid), show=show, clim=clim)      # ValueError for a show that does not fit the data
+        # ValueError for a show that does not fit the data, e.g. image pairs that are not its columns
+        layer = _view(str(pyramid), show=show, clim=clim, image_pairs=pairs)
         if extent is not None:
             _data_extent(extent, layer.crs)
     except ValueError as e:
@@ -203,13 +221,15 @@ def view(
     dates:str=None,
     terrain:bool=False,
     overwrite:bool=False,
+    image_pairs:str=None,
 )->str:
     """Write a Jupyter notebook with an interactive map of every pyramid (`moraine.cli.view`).
 
     Open it in Jupyter or VS Code, choose the python environment of moraine as kernel and run all cells.
     No server or port forwarding is needed: the kernel reads the data on the machine that holds them. Wrong inputs
     raise a UsageError (the command exits with 2), as for `quicklook`: an `out` that is not a notebook name or that
-    exists without `overwrite` (before anything is read), a path that is not a pyramid or a pyramid to rebuild.
+    exists without `overwrite` (before anything is read), a path that is not a pyramid or a pyramid to rebuild, an
+    `image_pairs` that cannot be read or breaks the data conventions.
 
     Parameters
     ----------
@@ -226,6 +246,9 @@ def view(
         3D maps over the terrain (public elevation tiles, see `moraine.cli.view`); web mercator pyramids only
     overwrite : bool, default: False
         replace an existing notebook; an existing notebook is a UsageError without it
+    image_pairs : str, optional
+        image pairs of the compressed coherence shown with 'coh' / 'coh_abs', a text file as for `quicklook`, given
+        to the maps by its absolute path; all pairs of the images by default
 
     Returns
     -------
@@ -236,6 +259,7 @@ def view(
     out = Path(_notebook_name(out, overwrite))      # UsageError, before anything is read
     for pyr in pyramids:
         _pyramid_input(pyr)                         # UsageError
+    pairs = None if image_pairs is None else _pairs_input(image_pairs)     # UsageError
 
     def cell(kind, text):
         c = {'cell_type': kind, 'metadata': {}, 'source': text.splitlines(True)}
@@ -245,6 +269,10 @@ def view(
 
     arg = (f', show={show!r}' if show else '') + (f', dates={str(Path(dates).resolve())!r}' if dates else '') + \
         (', terrain=True' if terrain else '')
+    if pairs is not None:       # the maps read a text file; the pairs of a list or of a .npy file are written out
+        text = isinstance(image_pairs, (str, Path)) and Path(image_pairs).is_file() and \
+            not str(image_pairs).endswith('.npy')
+        arg += f', image_pairs={str(Path(image_pairs).resolve()) if text else pairs.tolist()!r}'
     cells = [cell('markdown', 'Interactive maps of moraine pyramids: zoom and pan to load details, use the sliders '
                               'to change the image of a stack, click a pixel / point for its time series (double '
                               'click: reference). Combine views with `*` (overlay) and `+` (side by side).'),
