@@ -852,7 +852,7 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
         result = eval(compile(src, 'cell', 'exec' if src is code[0] else 'eval'), ns)
     assert isinstance(result, _Shown) and result.widget.dates[1] == '20210113'
     assert 'moraine view' in repr(result)                              # a text description for readers
-    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 1   # no silent overwrite
+    assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--json']) == 2   # no silent overwrite
     assert 'exists' in json_out(capsys)['error']
     assert main(['view', str(d / 'stack_pyr'), '-o', str(nb_path), '--overwrite', '--show', 'phase',
                  '--json']) == 0
@@ -866,3 +866,37 @@ def test_view_command_writes_a_runnable_notebook(pyramids, capsys, tmp_path):
     ns = {}
     exec(code[0], ns)
     assert eval(code[-1], ns).widget.terrain['url'].endswith('{z}/{x}/{y}.png')
+
+
+def test_view_output_name(pyramids, capsys, tmp_path):
+    """`moraine view -o NAME` without a suffix writes and reports NAME.ipynb (it exited with 1: "the notebook name must
+    end with .ipynb"); another suffix and an existing notebook without --overwrite are usage errors (exit code 2; they
+    were processing errors, exit code 1) raised before anything is read: before the pyramid paths are checked."""
+    from moraine.command.summary import view as view_notebook
+    pyr = str(pyramids / 'stack_pyr')
+    assert main(['view', pyr, '-o', str(tmp_path / 'v'), '--json']) == 0
+    assert json_out(capsys)['notebook'] == str(tmp_path / 'v.ipynb')
+    assert (tmp_path / 'v.ipynb').exists() and not (tmp_path / 'v').exists()
+    assert main(['view', pyr, '-o', str(tmp_path / 'a.b' / 'nb')]) == 0                   # a dot in a directory
+    assert capsys.readouterr().out.startswith(f"saved {tmp_path / 'a.b' / 'nb.ipynb'}: open it in Jupyter")
+    assert view_notebook([pyr], str(tmp_path / 'p')) == str(tmp_path / 'p.ipynb') and (tmp_path / 'p.ipynb').exists()
+    (tmp_path / 'old.ipynb').write_text('{}')
+    for name, error in [
+            ('x.txt', f"{tmp_path / 'x.txt'}: the notebook name must end with .ipynb, or have no suffix (then .ipynb is "
+                      'appended)'),
+            ('X.IPYNB', f"{tmp_path / 'X.IPYNB'}: the notebook name must end with .ipynb, or have no suffix (then "
+                        '.ipynb is appended)'),
+            ('v1.2', f"{tmp_path / 'v1.2'}: the notebook name must end with .ipynb, or have no suffix (then .ipynb is "
+                     'appended)'),
+            ('old.ipynb', f"{tmp_path / 'old.ipynb'} exists; choose another name or overwrite it"),
+            ('old', f"{tmp_path / 'old.ipynb'} exists; choose another name or overwrite it")]:
+        for path in (pyr, str(tmp_path / 'missing')):          # the name first, then the pyramids
+            assert main(['view', path, '-o', str(tmp_path / name), '--json']) == 2, (name, path)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['error'] == error, (name, path)
+        with pytest.raises(UsageError, match='^' + re.escape(error) + '$'):
+            view_notebook([str(tmp_path / 'missing')], str(tmp_path / name))
+    assert not (tmp_path / 'x.txt').exists() and (tmp_path / 'old.ipynb').read_text() == '{}'
+    assert main(['view', pyr, '-o', str(tmp_path / 'old'), '--overwrite', '--json']) == 0
+    assert json_out(capsys)['notebook'] == str(tmp_path / 'old.ipynb')
+    assert json.loads((tmp_path / 'old.ipynb').read_text())['nbformat'] == 4

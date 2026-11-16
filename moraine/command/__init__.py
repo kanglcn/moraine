@@ -464,7 +464,9 @@ def _build_parser(with_commands=True):
     _add_global(p)
     p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
-    p.add_argument('-o', '--out', default='view.ipynb', help='notebook to write (default: view.ipynb)')
+    p.add_argument('-o', '--out', default='view.ipynb',
+                   help='notebook to write, a name ending with .ipynb; .ipynb is appended to a name without a suffix '
+                        '(default: view.ipynb)')
     p.add_argument('--show', dest='show', choices=['phase', 'intf_0', 'intf_seq', 'intf_all', 'coh', 'coh_abs'],
                    help='what to show of stacks, see moraine.cli.view (default: the phase for complex data, the values '
                         'otherwise)')

@@ -120,6 +120,21 @@ def _png_name(out)->str:
     return str(out)
 
 
+def _notebook_name(out, overwrite:bool)->str:
+    """The notebook file of view: `out` ending with .ipynb, or with .ipynb appended without a suffix; UsageError for
+    another suffix and for an existing file without `overwrite`."""
+    out = str(out)
+    suffix = os.path.splitext(out)[1]
+    if not suffix:          # Jupyter and VS Code open a file as a notebook by its suffix
+        out = f'{out}.ipynb'
+    elif suffix != '.ipynb':
+        raise UsageError(f'{out}: the notebook name must end with .ipynb, or have no suffix (then .ipynb is '
+                         f'appended)')
+    if Path(out).exists() and not overwrite:
+        raise UsageError(f'{out} exists; choose another name or overwrite it')
+    return out
+
+
 def quicklook(
     pyramid:str,
     out:str,
@@ -198,15 +213,17 @@ def view(
     """Write a Jupyter notebook with an interactive map of every pyramid (`moraine.cli.view`).
 
     Open it in Jupyter or VS Code, choose the python environment of moraine as kernel and run all cells.
-    No server or port forwarding is needed: the kernel reads the data on the machine that holds them. A path that is
-    not a pyramid, or a pyramid to rebuild, raises a UsageError (the command exits with 2), as for `quicklook`.
+    No server or port forwarding is needed: the kernel reads the data on the machine that holds them. Wrong inputs
+    raise a UsageError (the command exits with 2), as for `quicklook`: an `out` that is not a notebook name or that
+    exists without `overwrite` (before anything is read), a path that is not a pyramid or a pyramid to rebuild.
 
     Parameters
     ----------
     pyramids : list
         pyramid directories made by `ras_pyramid` / `pc_pyramid`
     out : str
-        notebook to write (.ipynb)
+        notebook to write, a name ending with .ipynb; .ipynb is appended to a name without a suffix, another suffix is
+        a UsageError
     show : str, optional
         what to show of stacks, see `moraine.cli.view`; the phase for complex data, the values otherwise by default
     dates : str, optional
@@ -214,21 +231,17 @@ def view(
     terrain : bool, default: False
         3D maps over the terrain (public elevation tiles, see `moraine.cli.view`); web mercator pyramids only
     overwrite : bool, default: False
-        replace an existing notebook
+        replace an existing notebook; an existing notebook is a UsageError without it
 
     Returns
     -------
     str
-        the notebook path
+        the notebook written: `out`, with .ipynb appended to a name without a suffix
     """
     import json
+    out = Path(_notebook_name(out, overwrite))      # UsageError, before anything is read
     for pyr in pyramids:
         _pyramid_input(pyr)                         # UsageError
-    out = Path(out)
-    if out.suffix != '.ipynb':
-        raise ValueError(f'{out}: the notebook name must end with .ipynb')
-    if out.exists() and not overwrite:
-        raise FileExistsError(f'{out} exists; choose another name or overwrite it')
 
     def cell(kind, text):
         c = {'cell_type': kind, 'metadata': {}, 'source': text.splitlines(True)}
