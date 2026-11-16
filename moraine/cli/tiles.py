@@ -415,7 +415,8 @@ class _Shown:
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
-            slider values by name, or in the order of the sliders; the first images by default
+            slider values by name, or in the order of the sliders, each within the range of its slider (`repr`
+            of the view lists them); the first images by default
         extent : tuple, optional
             the part to draw: (west, south, east, north) longitudes and latitudes in degrees on a web mercator
             map, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid; the whole extent
@@ -481,6 +482,26 @@ def view_sliders(panels):
                 kdims[k['name']] = dict(k)
                 index[k['name']] = layer.default_index[k['name']]
     return list(kdims.values()), index
+
+
+def view_index(panels, index=None):
+    """(sliders, values by name) of maps of layers: the sliders of `view_sliders`, the values of `index` (dict by
+    name, or values in the order of the sliders) and the default values of the others; ValueError for a value
+    outside the range of its slider."""
+    kdims, values = view_sliders(panels)
+    if isinstance(index, dict):
+        given = dict(index)
+    elif index:
+        given = dict(zip([k['name'] for k in kdims], index))
+    else:
+        given = {}
+    for k in kdims:
+        if k['name'] in given and not 0 <= given[k['name']] <= k['max']:
+            ranges = ', '.join(f"{s['name']} 0 .. {s['max']}" for s in kdims)
+            raise ValueError(f"slider {k['name']!r} = {given[k['name']]} is outside its range 0 .. {k['max']}"
+                             + (f'; the sliders are {ranges}' if len(kdims) > 1 else ''))
+    values.update(given)
+    return kdims, values
 
 
 def view_dates(panels):
@@ -1002,11 +1023,7 @@ def render_png(panels, path, width=1000, index=None, extent=None):
     if len(crs) > 1:
         raise ValueError(f'layers in different coordinates {sorted(crs)} cannot be shown together')
     crs = crs.pop()
-    kdims, values = view_sliders(panels)
-    if isinstance(index, dict):
-        values.update(index)
-    elif index:
-        values.update(dict(zip([k['name'] for k in kdims], index)))
+    kdims, values = view_index(panels, index)
     dates = view_dates(panels)
     if extent is None:
         ext = np.array([layer.extent for layer in layers])

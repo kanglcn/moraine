@@ -720,3 +720,39 @@ def test_png_extent(tmp_path, ras, mercator_pc):
     assert mlayer.png(str(tmp_path / 'mpart.png'), extent=(lon0, lat0, (lon0 + lon1) / 2, (lat0 + lat1) / 2))
     assert 'extent lon ' in repr(mlayer) and 'finest cell' in repr(mlayer) and 'levels 0..' in repr(mlayer)
     assert 'extent range -0.5 .. 499.5, azimuth -0.5 .. 299.5' in repr(layer)          # cell edges
+
+
+def test_png_index_within_the_sliders(tmp_path, stack):
+    """`png(index=...)` draws the slider values given, by name or in the order of the sliders, within the ranges of
+    the sliders only: values beyond the images (they drew nan for coherence or failed with an IndexError) and
+    negative ones (they failed or drew an image counted from the end) are errors that name the ranges."""
+    from moraine.cli.tiles import TILE
+    s, pyr = stack                                                      # 4 images
+    out = tmp_path / 'i.png'
+    for show, index, match in [
+            ('intf_all', (0, 6), r"slider 'sec' = 6 is outside its range 0 \.\. 3; the sliders are ref 0 \.\. 3, "
+                                 r"sec 0 \.\. 3$"),
+            ('intf_all', {'ref': -1}, r"slider 'ref' = -1 is outside its range 0 \.\. 3;"),
+            ('phase', {'image': 4}, r"slider 'image' = 4 is outside its range 0 \.\. 3$"),
+            ('intf_seq', (3,), r"slider 'image' = 3 is outside its range 0 \.\. 2$")]:
+        with pytest.raises(ValueError, match=match):
+            view(str(pyr), show=show).png(str(out), index=index)
+    _, coh_pyr = _coh_pc(tmp_path, np.array([(i, j) for i in range(4) for j in range(i + 1, 4)]))
+    with pytest.raises(ValueError, match=r"slider 'sec' = 6 is outside its range 0 \.\. 3"):
+        view(str(coh_pyr), show='coh').png(str(out), index=(0, 6))
+    with pytest.raises(ValueError, match=r"slider 'image' = 5 is outside its range 0 \.\. 3$"):   # the merged slider
+        (view(str(pyr)) + view(np.ones((60, 40, 6), np.complex64))).png(str(out), index={'image': 5})
+    assert not out.exists()
+    # the values given are drawn, the last ones of the sliders too
+    layer = view(str(pyr), show='intf_all')
+    drawn = []
+    raster_values = layer.raster_values
+    layer.raster_values = lambda geom, index=(), size=(TILE, TILE): \
+        drawn.append((geom, size, raster_values(geom, index, size))) or drawn[-1][2]
+    for index, (i, j) in [((3, 0), (3, 0)), ({'sec': 3}, (0, 3))]:
+        layer.png(str(out), width=200, index=index)
+        geom, size, values = drawn[-1]
+        cols = np.floor(geom.x0 + np.arange(size[0]) * geom.sx + 0.5).astype(int)
+        rows = np.floor(geom.y0 + np.arange(size[1]) * geom.sy + 0.5).astype(int)
+        np.testing.assert_allclose(values, np.angle(s[..., i] * s[..., j].conj())[np.ix_(rows, cols)], rtol=1e-5,
+                                   atol=1e-6)

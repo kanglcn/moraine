@@ -7,6 +7,7 @@ from pathlib import Path
 
 import zarr
 
+from . import UsageError
 # pyramid reading lives in the CLI layer, next to the pyramids and the views
 from ..cli.plot import pyramid_levels, _pyramid_stats, _channel_warnings
 
@@ -93,7 +94,8 @@ def quicklook(
         output PNG file
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
-        (i, j) for 4D data, (ref, sec) for 'intf_all'; the first images by default
+        (i, j) for 4D data, (ref, sec) for 'intf_all', each within the range of its slider; the first images by
+        default
     show : str, optional
         what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
     width : int, default: 1000
@@ -108,13 +110,18 @@ def quicklook(
     str
         the output path
     """
-    from ..cli.tiles import view as _view
+    from ..cli.tiles import view as _view, view_index
     if not pyramid_levels(Path(pyramid)):
         raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras {pyramid} '
                          f'--out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
     if extent is not None and not isinstance(extent, (tuple, list)):
         extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
-    return _view(str(pyramid), show=show).png(out, width=width, index=tuple(index), extent=extent)
+    layer = _view(str(pyramid), show=show)
+    try:
+        view_index([[layer]], tuple(index))
+    except ValueError as e:         # values outside the ranges of the sliders: a wrong command line
+        raise UsageError(f'--index {" ".join(str(i) for i in index)}: {e}') from None
+    return layer.png(out, width=width, index=tuple(index), extent=extent)
 
 
 def view(
