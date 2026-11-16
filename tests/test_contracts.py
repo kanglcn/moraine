@@ -336,6 +336,35 @@ def test_point_cloud_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp
     assert (out / 'pc.zarr').exists() and not (out / 'old').exists()
 
 
+def test_pyramid_sizes_and_workers_are_checked_before_the_output_is_cleaned(tmp_path, capsys, rng):
+    """Chunk sizes and numbers of workers below 1 and a ras_resolution that is not a positive number are argument
+    errors of ras-pyramid and pc-pyramid before the output directory is cleaned, usage errors on the command line
+    (exit code 2); the directory was cleaned and they failed later, processing errors ("Chunk size must be positive
+    or -1, got 0", "max_workers must be greater than 0", a grid of a negative resolution)."""
+    ras = write_zarr(tmp_path / 'ras.zarr', rng.random((20, 30)).astype(np.float32))
+    pc, x, y = (write_zarr(tmp_path / f'{n}.zarr', rng.random(10).astype(np.float32)) for n in ('pc', 'x', 'y'))
+    out = tmp_path / 'pyr'
+    out.mkdir(); (out / 'old').write_text('')
+    for command, args, error in [
+            ('ras-pyramid', ['--chunks', '0', '256'], 'chunks must be 1 or more, not (0, 256)'),
+            ('ras-pyramid', ['--n_workers', '0'], 'n_workers must be 1 or more, not 0'),
+            ('pc-pyramid', ['--ras_chunks', '256', '-1'], 'ras_chunks must be 1 or more, not (256, -1)'),
+            ('pc-pyramid', ['--pc_chunks', '0'], 'pc_chunks must be 1 or more, not 0'),
+            ('pc-pyramid', ['--n_workers', '0'], 'n_workers must be 1 or more, not 0'),
+            ('pc-pyramid', ['--ras_resolution', '0'], 'ras_resolution must be a positive number, not 0'),
+            ('pc-pyramid', ['--ras_resolution=-20'], 'ras_resolution must be a positive number, not -20')]:
+        inputs = ['--ras', ras] if command == 'ras-pyramid' else ['--pc', pc, '--x', x, '--y', y]
+        capsys.readouterr()
+        assert main([command, *inputs, '--out_dir', str(out), *args, '--json', '-q']) == 2, args
+        assert json_out(capsys)['error'] == error and [p.name for p in out.iterdir()] == ['old'], args
+    with pytest.raises(ArgumentError, match=re.escape('chunks must be 1 or more, not [0, 256]')):
+        mc.ras_pyramid(ras, str(out), chunks=[0, 256])
+    for resolution in (float('nan'), float('inf')):
+        with pytest.raises(ArgumentError, match=f'ras_resolution must be a positive number, not {resolution}'):
+            mc.pc_pyramid(pc, str(out), x=x, y=y, ras_resolution=resolution)
+    assert [p.name for p in out.iterdir()] == ['old']
+
+
 def _block_means(a, f):
     """Expected means of the f x f blocks of `a` (h, w) over its finite values, nan where none."""
     h, w = a.shape

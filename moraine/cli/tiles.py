@@ -233,7 +233,7 @@ def _image_pairs(image_pairs, n_pairs, wrong):
     """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs; a ValueError
     starting with the text `wrong` if `n_pairs` is neither the number of all pairs of n images, n (n - 1) / 2, nor
     that of the image pairs given."""
-    from ..api.tnet import TempNet, check_image_pairs
+    from ..api.tnet import TempNet, check_image_pairs, _integer_image_pairs
     rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
             'number of the image pairs given')
     if image_pairs is None:
@@ -241,10 +241,11 @@ def _image_pairs(image_pairs, n_pairs, wrong):
         if n_pairs < 1 or n * (n - 1) // 2 != n_pairs:
             raise ValueError(f'{wrong}: {rule} (none are given)')
         return TempNet.from_bandwidth(n)
-    pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
-        else np.asarray(image_pairs, dtype=np.int32)
+    # as floats: values that are not integers are errors, which reading as integers truncated (0.5 to 0)
+    pairs = np.loadtxt(image_pairs, ndmin=2) if isinstance(image_pairs, (str, Path)) else np.asarray(image_pairs)
     if len(pairs) != n_pairs:
         raise ValueError(f'{wrong}: {rule} ({len(pairs)})')
+    pairs = _integer_image_pairs(pairs)
     check_image_pairs(pairs)        # the column of the pair of the sliders is searched in this order (decision 0047)
     return TempNet(pairs, check_if_valid=False)         # the network may leave out images
 
@@ -281,11 +282,22 @@ def _crs(x0, y0, xm, ym, res, crs, what):
     return 'web_mercator'
 
 
+def _image_pairs_show(show, image_pairs):
+    """ValueError for `image_pairs` given with a `show` other than 'coh' / 'coh_abs', the only ones that use them."""
+    if image_pairs is not None and show not in ('coh', 'coh_abs'):
+        given = 'the default show' if show is None else 'a show function' if callable(show) else f'show={show!r}'
+        raise ValueError(f"image_pairs is used only by show='coh' / 'coh_abs', not by {given}")
+
+
 def _show(base, show, image_pairs, sliders, dates, shape):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
     colours, default slider values) of a `show` option for the level 0 `base` of data of `shape` (of the points for a
     point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
     stack), None for a function (guessed from its values)."""
+    _image_pairs_show(show, image_pairs)
+    if sliders is not None and not callable(show):  # the sliders of the other shows follow from the data
+        raise ValueError(f"sliders is used only by a show function, not by "
+                         f"{'the default show' if show is None else f'show={show!r}'}")
     stack = tuple(base.shape[2:])
     if 0 in stack:                                   # its sliders would be 0 .. -1: every tile would fail
         raise ValueError(f'data of shape {shape}: a stack without images or image pairs (a stack dimension of length '
@@ -307,7 +319,14 @@ def _show(base, show, image_pairs, sliders, dates, shape):
             missing = [n for n in names if n not in sliders]
             if missing:
                 raise ValueError(f'sliders={sliders} misses {missing}')
+            unused = [n for n in sliders if n not in names]
+            if unused:
+                raise ValueError(f'sliders={sliders}: {unused} are not sliders of the show function, whose sliders are '
+                                 f'{names}')
             counts = [int(sliders[n]) for n in names]
+            for n, c in zip(names, counts):           # a slider 0 .. -1 would have no value in its range
+                if c < 1:
+                    raise ValueError(f'sliders={sliders}: slider {n!r} has {c} values; a slider needs at least one')
         elif not names or len(names) == len(stack):
             counts = list(stack)
         elif len(stack) == 1 and len(names) == 2:          # e.g. two images of a stack
@@ -465,7 +484,8 @@ class _Shown:
         Parameters
         ----------
         path : str
-            output PNG file; .png is appended to a name without a suffix
+            output PNG file; .png is appended to a name without a suffix, in place of the dots a name ends with (x
+            and x. are written as x.png)
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
@@ -480,7 +500,7 @@ class _Shown:
         Returns
         -------
         str
-            the output path, with .png appended to a name without a suffix
+            the output path, with .png appended to a name without a suffix or ending with a dot
         """
         return render_png(self._panels(), path, width=width, index=index, extent=extent)
 
@@ -632,6 +652,8 @@ class _Layer(_Shown):
             if len(size) != 2 or min(size) <= 0:
                 raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
             self.size = size
+        if not 0 <= float(opacity) <= 1:    # the colours of a PNG would leave their range (nan: all nan)
+            raise ValueError(f'opacity must be a number from 0 to 1, not {opacity!r}')
         clim = _clim(clim)          # a reversed range would draw everything in the first colour
         self.terrain = _terrain(terrain)
         if self.terrain and self.crs != 'web_mercator':
@@ -1150,8 +1172,10 @@ def render_png(panels, path, width=1000, index=None, extent=None):
             fig.colorbar(ScalarMappable(Normalize(*layer.clim), cmap), ax=ax, label=layer.bar_label,
                          fraction=0.04, pad=0.02)
     fig.tight_layout()
-    if not os.path.splitext(str(path))[1]:      # matplotlib would add the suffix of its default format, not saying so
-        path = f'{path}.png'
+    # without a suffix (also x. or x..) matplotlib would write the name without its last dots and with the suffix of its
+    # default format, not saying so
+    if not os.path.splitext(str(path))[1].strip('.'):
+        path = f'{str(path).rstrip(".")}.png'
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, bbox_inches='tight')
     return str(path)
@@ -1229,7 +1253,7 @@ def view(
         (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a real stack ('intf_0',
         'intf_seq', 'intf_all')
     opacity : float, default: 1.0
-        opacity of the layer, 0 - 1
+        opacity of the layer, 0 - 1; another value is a ValueError
     label : str, optional
         name of the layer; the pyramid directory name by default
     size : tuple, optional
@@ -1251,10 +1275,12 @@ def view(
     image_pairs : str, optional
         image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs', sorted by reference and then
         secondary index without duplicates, every reference index smaller than its secondary index, as made by
-        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2
+        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2. Given with another show, a
+        ValueError
     sliders : dict, optional
-        number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
-        shape or `dates` by default
+        number of values of each slider of a `show` function, 1 or more, e.g. {'ref': 17, 'sec': 17}; from the stack
+        shape or `dates` by default. Given with another show or with names that are not sliders of the function, a
+        ValueError
     crs : str, optional
         'grid' (radar grid, azimuth down) or 'web_mercator' (metres, north up); from the coordinates by default
 

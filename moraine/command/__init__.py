@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..api.tnet import check_image_pairs
+from ..api.tnet import check_image_pairs, _integer_image_pairs
 from ..api.utils_.errors import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
@@ -90,29 +90,29 @@ def literal(text):
 
 
 def image_pairs(value):
-    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec), checked against
-    the data conventions (sorted without duplicates, ref < sec)."""
-    if isinstance(value, np.ndarray):
-        pairs = value
-    elif isinstance(value, (list, tuple)):
-        pairs = np.asarray(value)
-    else:
-        text = str(value)
-        if Path(text).is_file():
-            pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, dtype=np.int64, ndmin=2)
-        else:
-            parsed = literal(text)
-            if isinstance(parsed, str):
-                raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
-                                 'make a file with `moraine image-pairs`')
-            pairs = np.asarray(parsed)
-    pairs = np.asarray(pairs, dtype=np.int64)
-    if pairs.ndim != 2 or pairs.shape[1] != 2:
-        raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
+    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec) of integers, checked
+    against the data conventions (sorted without duplicates, ref < sec); int64 (n_pairs, 2). UsageError otherwise,
+    also for a file that numpy cannot read."""
+    where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
     try:
+        if isinstance(value, (np.ndarray, list, tuple)):
+            pairs = np.asarray(value)
+        else:
+            text = str(value)
+            if Path(text).is_file():
+                # as floats: values that are not integers are errors below, which reading as int64 truncated (0.5 to 0)
+                pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, ndmin=2)
+            else:
+                parsed = literal(text)
+                if isinstance(parsed, str):
+                    raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
+                                     'make a file with `moraine image-pairs`')
+                pairs = np.asarray(parsed)
+        if pairs.ndim != 2 or pairs.shape[1] != 2:
+            raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
+        pairs = _integer_image_pairs(pairs)
         check_image_pairs(pairs)
-    except ValueError as e:
-        where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
+    except (ValueError, OSError, EOFError) as e:    # also a file numpy cannot read, lists of different lengths
         raise UsageError(f'image pairs{where}: {e}') from None
     return pairs
 
@@ -185,7 +185,8 @@ class Command:
 
     def convert(self, name, value):
         """Convert a value from the command line or a pipeline file to what the function expects; the text None is
-        None, the default of an optional argument, and a UsageError for a required one."""
+        None, the default of an optional argument, and a UsageError for a required one, as is an empty list for a
+        required list argument."""
         p = next(q for q in self.params if q.name == name)
         if value is None:
             return None             # from Python, or a pipeline variable of a file not made yet
@@ -197,6 +198,11 @@ class Command:
             return image_pairs(value)
         if p.kind == 'list':
             if isinstance(value, (list, tuple)):
+                if not value:           # e.g. times = [] in a pipeline file
+                    if p.required:
+                        raise UsageError(f'{self.name}: argument {name} needs at least one value, got an empty '
+                                         f'list: {p.help}')
+                    return []           # the command decides, e.g. pc-sort with pc_in = [] and pc = []: no data
                 return list(value) if len(value) > 1 else value[0]
             return value
         if p.kind == 'str':
@@ -336,7 +342,8 @@ def _strings(values):
 def execute(cmd:Command, kwargs:dict, summarize_outputs:bool=True)->dict:
     """Run `cmd` and return a record with the outputs it created or modified and their summaries."""
     from .summary import summarize
-    candidates = list(dict.fromkeys(_strings(kwargs.values())))   # any string may be a path, e.g. out_dir='pyr'
+    # any string may be a path, e.g. out_dir='pyr'; but not '', which pathlib takes for the working directory
+    candidates = list(dict.fromkeys(s for s in _strings(kwargs.values()) if s))
     before = {s: _mtime(s) for s in candidates}
     call = dict(kwargs)
     for p in cmd.params:              # image pair files are read now, relative to the working directory

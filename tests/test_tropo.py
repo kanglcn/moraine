@@ -371,6 +371,61 @@ def test_cli_argument_errors_are_usage_errors(tmp_path, capsys, monkeypatch):
     assert not out.exists()
 
 
+def test_download_era5_without_times_is_a_usage_error(tmp_path, capsys, monkeypatch):
+    """download-era5 without a time (`--times ''`, times = [] in Python) stops with an ArgumentError, a usage error
+    (exit code 2) on the command line, before it makes the output directory, as pc-tropo-era5 does; it made an empty
+    directory and succeeded. Nothing is downloaded: the downloads fail in this test."""
+    pytest.importorskip('h5py')
+
+    def no_download(*args, **kwargs):
+        raise AssertionError('no download in this test')
+    monkeypatch.setattr(ctr, '_ncar_file', no_download)
+    monkeypatch.setitem(sys.modules, 'cdsapi', types.SimpleNamespace(Client=no_download))
+    era5, bbox = tmp_path / 'era5', ['14.0', '40.7', '14.2', '40.9']
+    for times in ([''], [' ']):
+        assert main(['download-era5', '--out_dir', str(era5), '--times', *times, '--bbox', *bbox, '--json', '-q']) == 2
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': 'times must have the time of at least one image'}
+        assert not era5.exists()
+    for times in ([], ''):
+        with pytest.raises(ArgumentError, match='^times must have the time of at least one image$'):
+            mc.download_era5(str(era5), times, bbox, source='cds')
+        assert not era5.exists()
+
+
+def test_argument_errors_before_the_h5py_check(tmp_path, capsys, monkeypatch):
+    """Without h5py, download-era5 and pc-tropo-era5 report a wrong argument as such, a usage error (exit code 2),
+    and only right arguments as the missing h5py (an ImportError, exit code 1); the wrong argument was reported as the
+    missing h5py. Nothing is downloaded: the downloads fail in this test, and h5py cannot be imported."""
+    def no_download(*args, **kwargs):
+        raise AssertionError('no download in this test')
+    monkeypatch.setattr(ctr, '_ncar_file', no_download)
+    monkeypatch.setitem(sys.modules, 'cdsapi', types.SimpleNamespace(Client=no_download))
+    monkeypatch.setitem(sys.modules, 'h5py', None)                    # import h5py raises an ImportError
+    era5, times, bbox = tmp_path / 'era5', ['2019-01-02T05:06:07Z'], ['14.0', '40.7', '14.2', '40.9']
+    for args, code, error in [
+            (['--bbox', '14.2', '40.7', '14.0', '40.9'], 2, 'bbox must be [west, south, east, north] in degrees with '
+                                                            'west < east and south < north, got [14.2, 40.7, 14.0, 40.9]'),
+            (['--bbox', *bbox, '--times', ''], 2, 'times must have the time of at least one image'),
+            (['--bbox', *bbox], 1, "ImportError: download-era5 needs cdsapi and h5py: pip install 'moraine[era5]'")]:
+        argv = ['download-era5', '--out_dir', str(era5), '--times', *times, *args, '--json', '-q']
+        assert main(argv) == code, args
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not era5.exists()
+    lon, lat, h = _points(n=10, seed=8, hmin=0, hmax=500)
+    inputs = [write_zarr(tmp_path / f'{name}.zarr', a.astype(np.float32))
+              for name, a in (('lon', lon), ('lat', lat), ('hgt', h), ('theta', np.full(10, 0.9)))]
+    argv = ['pc-tropo-era5', '--era5_dir', str(era5), *[a for name, path in zip(('lon', 'lat', 'hgt', 'theta'), inputs)
+                                                         for a in (f'--{name}', path)],
+            '--out', str(tmp_path / 'tropo.zarr'), '--times', *times, '--json', '-q']
+    for geoid, code, error in [
+            ('4600', 2, 'geoid must be the height of the geoid above the WGS84 ellipsoid in meters, between -150 and '
+                        '150, got 4600.0'),
+            ('46', 1, "ImportError: pc-tropo-era5 needs h5py: pip install 'moraine[era5]'")]:
+        assert main([*argv, '--geoid', geoid]) == code, geoid
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not (tmp_path / 'tropo.zarr').exists()
+
+
 class _FakeClient:
     """cdsapi.Client of the tests: writes the file of the requested hour and area"""
     requests = []

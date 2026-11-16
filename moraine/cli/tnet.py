@@ -27,18 +27,23 @@ def image_pairs(
     out : str
         output: text file with two columns, reference and secondary image index
     rslc : str, optional
-        input: rslc stack (..., nimages), used to get the number of images; alternative to `nimages`
+        input: rslc stack (..., nimages), used to get the number of images, 2 or more; alternative to `nimages`
     nimages : int, optional
-        number of images; alternative to `rslc`
+        number of images, 2 or more; alternative to `rslc`
     bandwidth : int, optional
-        connect every image with the next `bandwidth` images (1: sequential interferograms); all image pairs
-        by default
+        connect every image with the next `bandwidth` images (1: sequential interferograms), 1 to nimages; all image
+        pairs by default
     """
     logger = logging.getLogger(__name__)
     if (rslc is None) == (nimages is None):
         raise ArgumentError('give either `rslc` or `nimages`')
+    if bandwidth is not None and bandwidth < 1:     # no pair: a file that every command rejects
+        raise ArgumentError(f'bandwidth must be 1 or more, got {bandwidth}')
     if rslc is not None:
         nimages = zarr.open(rslc, mode='r').shape[-1]
+    if nimages < 2:
+        raise ArgumentError(f'image pairs need 2 or more images, got {nimages}'
+                            + (f': {rslc} has shape {zarr.open(rslc, mode="r").shape}' if rslc is not None else ''))
     pairs = TempNet.from_bandwidth(nimages, bandwidth).image_pairs
     Path(out).parent.mkdir(parents=True, exist_ok=True)
     np.savetxt(out, pairs, fmt='%d', header='reference secondary')

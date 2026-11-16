@@ -206,6 +206,37 @@ def test_show_function(stack, monkeypatch):
         view(str(pyr), show=lambda v, a, b, c: v[..., a])
 
 
+def test_show_function_sliders_need_a_value():
+    """The sliders of a show function need at least one value: sliders={'i': 0} (or less) is a ValueError when the view
+    is made; it made a slider 0 .. -1, outside whose range every value was, also its own 0 (`.png(index=...)`,
+    `.index = {...}`)."""
+    import re
+    for show, sliders, error in [
+            (lambda v, i: v[...] * i, {'i': 0}, "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"),
+            (lambda v, i, j: v[...] * i * j, {'i': 3, 'j': -1}, "sliders={'i': 3, 'j': -1}: slider 'j' has -1 values; a "
+                                                                'slider needs at least one')]:
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(np.ones((20, 30), np.float32), show=show, sliders=sliders)
+    assert view(np.ones((20, 30), np.float32), show=lambda v, i: v[...] * i, sliders={'i': 1}).kdims == \
+        [{'name': 'i', 'max': 0}]
+
+
+def test_sliders_need_a_show_function_that_takes_them():
+    """sliders, the ranges of the sliders of a show function, are a ValueError when the view is made with another show
+    (whose sliders follow from the data) and for names that are not sliders of the function; they were ignored
+    without a word, as image_pairs without a coherence show were."""
+    import re
+    a = np.ones((20, 30, 4), np.float32)
+    for kw, error in [
+            (dict(sliders={'i': 2}), 'sliders is used only by a show function, not by the default show'),
+            (dict(show='intf_seq', sliders={'i': 2}), "sliders is used only by a show function, not by show='intf_seq'"),
+            (dict(show=lambda v, i: v[..., i], sliders={'i': 2, 'k': 3}),
+             "sliders={'i': 2, 'k': 3}: ['k'] are not sliders of the show function, whose sliders are ['i']")]:
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(a, **kw)
+    assert view(a, show=lambda v, i: v[..., i], sliders={'i': 2}).kdims == [{'name': 'i', 'max': 1}]
+
+
 # ---------------------------------------------------------------- point clouds
 
 def test_point_cloud_raster_zoom(grid_pc):
@@ -437,6 +468,37 @@ def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
     layer = view(str(pyr), show='coh_abs', image_pairs=np.array([(1, 2), (1, 3), (2, 3)]))     # no image 0
     geom = grid_geom(0, 0, 0, layer.edge_origin)
     assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
+
+
+def test_image_pairs_need_a_coherence_show(tmp_path):
+    """image_pairs, used only by show='coh' / 'coh_abs', are a ValueError with another show when the view is made, the
+    default show, a named show or a function; they were ignored without a word."""
+    import re
+    pairs = np.array([(0, 1), (0, 2), (1, 2)])
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    _, pyr = _coh_pc(tmp_path, pairs)
+    for show, given in [(None, 'the default show'), ('phase', "show='phase'"), ('intf_all', "show='intf_all'"),
+                        (lambda v, i: np.abs(v[..., i]), 'a show function')]:
+        for image_pairs in (str(tmp_path / 'pairs.txt'), pairs):
+            with pytest.raises(ValueError, match=re.escape(f"image_pairs is used only by show='coh' / 'coh_abs', not by "
+                                                           f'{given}') + '$'):
+                view(str(pyr), show=show, image_pairs=image_pairs)
+    assert [k['max'] for k in view(str(pyr), show='coh_abs', image_pairs=pairs).kdims] == [2, 2]
+
+
+def test_coherence_image_pairs_must_be_integers(tmp_path):
+    """Image pairs whose values are not integers, in a file or an array, are a ValueError that names the first such
+    value; they were read as int32, which truncated 0.5 to 0 without a word. Floats of integer values, as `np.savetxt`
+    writes them by default, are read as before."""
+    pairs = np.array([(0, 1), (0, 2), (1, 2)])
+    _, pyr = _coh_pc(tmp_path, pairs)
+    (tmp_path / 'half.txt').write_text('0 1\n0.5 2\n1 2\n')
+    np.savetxt(tmp_path / 'floats.txt', pairs)
+    with pytest.raises(ValueError, match=r'^image indices must be integers, got 0\.5 in pair 1$'):
+        view(str(pyr), show='coh', image_pairs=str(tmp_path / 'half.txt'))
+    with pytest.raises(ValueError, match=r'^image indices must be integers, got 1\.5 in pair 2$'):
+        view(str(pyr), show='coh_abs', image_pairs=[[0, 1], [0, 2], [1.5, 2]])
+    assert [k['max'] for k in view(str(pyr), show='coh', image_pairs=str(tmp_path / 'floats.txt')).kdims] == [2, 2]
 
 
 # ---------------------------------------------------------------- named shows of real stacks and of matrices
@@ -865,6 +927,18 @@ def test_map_size(ras, grid_pc):
     assert w.pixel_size(2.5) == 2 ** -2.5                    # the zoom is continuous
 
 
+def test_opacity_from_0_to_1(tmp_path):
+    """An opacity outside 0 - 1 (or nan) is a ValueError when the view is made; it was taken, and a PNG blended its
+    colours out of their range (matplotlib clipped them with a warning) or drew nan."""
+    import re
+    a = np.random.default_rng(0).random((10, 10)).astype(np.float32)
+    for opacity in (2.0, -0.5, float('nan')):
+        error = f'opacity must be a number from 0 to 1, not {opacity!r}'
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(a, opacity=opacity)
+    for opacity in (0, 0.5, 1):
+        assert view(a, opacity=opacity).opacity == opacity
+
 def test_terrain(mercator_pc, grid_pc):
     """3D views: the `terrain` of the layers reaches the widget; web mercator layers only."""
     from moraine.cli.tiles import TERRAIN_TILES
@@ -940,6 +1014,18 @@ def test_png_of_a_name_without_a_suffix(tmp_path, monkeypatch):
     assert v.png(str(tmp_path / 'other')) == str(tmp_path / 'other.png')
     assert (tmp_path / 'other.png').read_bytes()[:4] == b'\x89PNG' and not (tmp_path / 'other.pdf').exists()
     assert v.png(str(tmp_path / 'third.png')) == str(tmp_path / 'third.png')       # a name with a suffix as it is
+
+
+def test_png_of_a_name_ending_with_a_dot(tmp_path, monkeypatch):
+    """`.png(path)` of a name ending with a dot writes a PNG named without the dots and with .png, as matplotlib named
+    it, and returns that name; it returned the name given, a file that did not exist."""
+    import matplotlib
+    monkeypatch.setitem(matplotlib.rcParams, 'savefig.format', 'pdf')      # the PNG whatever the configuration
+    v = view(np.ones((10, 10), np.float32))
+    for name, written in (('x.', 'x.png'), ('y..', 'y.png'), ('z.png.', 'z.png.png')):
+        assert v.png(str(tmp_path / name)) == str(tmp_path / written), name
+        assert (tmp_path / written).read_bytes()[:4] == b'\x89PNG' and not (tmp_path / name).exists(), name
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['x.png', 'y.png', 'z.png.png']
 
 
 def test_png_extent(tmp_path, ras, mercator_pc):

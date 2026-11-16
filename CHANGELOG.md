@@ -4,6 +4,34 @@
 
 ## Unreleased
 
+`moraine.cli.view` rejects an `opacity` outside 0 - 1, or nan, with a ValueError when the view is made, "opacity must be a number from 0 to 1, not 2.0"; it was taken, and `.png()` blended the colours out of their range (matplotlib clipped them with a warning) or drew nan
+
+`ras-pyramid` and `pc-pyramid` stop with an argument error (a usage error, exit code 2, on the command line) before they clean the output directory for chunk sizes and numbers of workers below 1 (`chunks`, `ras_chunks`, `pc_chunks`, `n_workers`), e.g. "n_workers must be 1 or more, not 0", and for a `ras_resolution` that is not a positive number; they cleaned the directory and failed later with processing errors ("Chunk size must be positive or -1, got 0", "max_workers must be greater than 0", "math domain error", "cannot convert float infinity to integer")
+
+`moraine image-pairs` of fewer than 2 images (`--nimages 1`, an rslc stack of one image) or with `--bandwidth` below 1 stops with an argument error (a usage error, exit code 2) before it writes the file, e.g. "image pairs need 2 or more images, got 1"; it wrote a file without pairs, which every command rejects
+
+`moraine.cli.view` rejects `sliders`, the ranges of the sliders of a show function, given with another show ("sliders is used only by a show function, not by the default show") and names in them that are not sliders of the function, with a ValueError when the view is made; they were ignored without a word, as `image_pairs` without a coherence show were
+
+The help of `rows` of `ras-pyramid` estimates the memory of a process as 0.5 GB plus B x rows x width bytes with B = 64 for complex64 and max(42, 6.25 x itemsize) otherwise (42 for float32, 50 for float64), the larger of the two methods as measured; it said max(40, 8 x itemsize), 64 for float64, which needs 49.6 since a band is released before the next one is read
+
+`.png(path)` of the views of `moraine.cli.view` of a name ending with a dot, e.g. `x.`, writes x.png and returns that name, as for a name without a suffix: it returned `x.`, a file that did not exist, while matplotlib wrote x.png (or x.pdf, ... with another `savefig.format` of its configuration)
+
+`moraine.cli.view` rejects `sliders` of a show function with fewer than one value when the view is made, e.g. `sliders={'i': 0}`, with a ValueError "sliders={'i': 0}: slider 'i' has 0 values; a slider needs at least one"; it made a slider 0 .. -1, outside whose range every value was, also its own 0 ("slider 'i' = 0 is outside its range 0 .. -1" of `.png(index=...)` and `.index = {...}`)
+
+Image pairs given without a show that uses them are an error, "image_pairs is used only by show='coh' / 'coh_abs', not by the default show": a ValueError of `moraine.cli.view(image_pairs=...)` when the view is made, a usage error (exit code 2) of `moraine quicklook` and `moraine view` with `--image_pairs` and without `--show coh` / `coh_abs`, before they draw or write anything. They were ignored without a word (`moraine view` checks it, as the maps of its notebook would fail with this error when run)
+
+An image pair file that numpy cannot read, e.g. with a header line without `#`, or a `.npy` file that is text or empty, and lists of pairs of different lengths are usage errors (exit code 2) of the processing commands, with the message that `moraine quicklook` and `moraine view` give, "image pairs 'FILE': could not convert string 'reference' to float64 at row 0, column 1."; they were processing errors (exit code 1)
+
+Image pairs whose values are not integers, e.g. a file with the line "0.5 1", are an error that names the first such value, "image indices must be integers, got 0.5 in pair 0": a usage error (exit code 2) of the commands that take `image_pairs`, of `moraine quicklook` and `moraine view`, a ValueError of `moraine.cli.view(image_pairs=...)`. Image pair files were read as integers, which truncated 0.5 to 0 without a word. Floats of integer values, as `np.savetxt` writes them by default, are read as before
+
+Without h5py, `download-era5` and `pc-tropo-era5` report a wrong argument as such, a usage error (exit code 2), and only right arguments as the missing h5py (an ImportError, exit code 1): they checked for h5py first, so any call failed with "ImportError: ... needs h5py"
+
+The `outputs` and `inputs` of a command (`--json`, the state of a pipeline step) leave out arguments that are empty strings, which are not paths: as the working directory they were listed as an output when the command made a file in it (`"outputs": ["era5", ""]` of `download-era5 --out_dir era5 --times ''`), otherwise as an input
+
+`download-era5` without a time, e.g. `--times ''`, stops with "times must have the time of at least one image", an argument error (a usage error, exit code 2, on the command line), before it makes the output directory, as `pc-tropo-era5` does; it made an empty directory and succeeded
+
+An empty list for a required list argument of a command, e.g. `times = []` of `download-era5` in a pipeline file, is a usage error (exit code 2) before anything runs: "download-era5: argument times needs at least one value, got an empty list: ..."; it failed with "IndexError: list index out of range" (exit code 1). An optional list argument passes an empty list to the command, which decides: `pc-sort` with `pc_in = []` and `pc = []` sorts the index and has no data to sort
+
 `moraine quicklook` and `moraine view` accept their options with a dash for an underscore, `--image-pairs` for `--image_pairs`, as the processing commands accept `--a-b` for `--a_b`; argparse stopped with "unrecognized arguments: --image-pairs" (exit code 2). The help shows `--image_pairs`, as that of the processing commands shows their options with underscores
 
 `emcf-pc` checks `dates` as `pc-sc-dem-error` does, before it reads the points or writes anything: nimages dates YYYYMMDD in increasing order (a list, or text with commas or spaces); anything else is an argument error, a usage error (exit code 2) on the command line, e.g. "dates must be YYYYMMDD, got '2021-01-01'" or "dates must increase (the images in date order): 20210525 is followed by 20210113". A date that is not YYYYMMDD failed with "ValueError: time data '2021-01-01' does not match format '%Y%m%d'" (exit code 1), and dates out of order were taken. `load-gamma-flatten-rslc` and `load-gamma-metadata` check that `reference` is a date of the images in `rslc_dir`, as `load-gamma-bperp` does, before they read the par files, run GAMMA or write anything: "reference 2020-01-13 is not a date of RSLC_DIR", a usage error (exit code 2); they failed with "ValueError: '2020-01-13' is not in list" and with a FileNotFoundError of the par file of the reference (exit code 1)

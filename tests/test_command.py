@@ -59,6 +59,69 @@ def test_literal_and_image_pairs(tmp_path):
         image_pairs('not/a/file.txt')
 
 
+def test_image_pairs_must_be_integers(tmp_path, capsys):
+    """Image pairs whose values are not integers, e.g. a file with "0.5 1", are a usage error that names the first such
+    value; the file was read as int64, which truncated 0.5 to 0 without a word. Floats of integer values, as
+    `np.savetxt` writes them by default, are read as before."""
+    (tmp_path / 'half.txt').write_text('0.5 1\n1 2\n')
+    np.savetxt(tmp_path / 'floats.txt', [[0, 1], [1, 2]])                    # 0.000000000000000000e+00 ...
+    np.save(tmp_path / 'half.npy', np.array([[0, 1], [1, 2.5]]))
+    np.testing.assert_array_equal(image_pairs(str(tmp_path / 'floats.txt')), [[0, 1], [1, 2]])
+    assert image_pairs(str(tmp_path / 'floats.txt')).dtype == np.int64
+    for value, error in [(str(tmp_path / 'half.txt'), f"image pairs '{tmp_path / 'half.txt'}': image indices must be "
+                                                      'integers, got 0.5 in pair 0'),
+                         (str(tmp_path / 'half.npy'), f"image pairs '{tmp_path / 'half.npy'}': image indices must be "
+                                                      'integers, got 2.5 in pair 1'),
+                         ('[[0, 1], [1, 2.5]]', "image pairs '[[0, 1], [1, 2.5]]': image indices must be integers, "
+                                                'got 2.5 in pair 1'),
+                         ([[0, 1], [1, np.nan]], 'image pairs: image indices must be integers, got nan in pair 1')]:
+        with pytest.raises(UsageError, match='^' + re.escape(error) + '$'):
+            image_pairs(value)
+    out = tmp_path / 'unw.zarr'          # a processing command stops before it runs
+    capsys.readouterr()
+    assert main(['mcf-pc', '--gix', 'gix.zarr', '--ph', 'ph.zarr', '--unw_ph', str(out), '--image_pairs',
+                 str(tmp_path / 'half.txt'), '--range_pixel_spacing', '1', '--azimuth_pixel_spacing', '1', '--json',
+                 '-q']) == 2
+    assert json_out(capsys)['error'] == (f"image pairs '{tmp_path / 'half.txt'}': image indices must be integers, got "
+                                         '0.5 in pair 0')
+    assert not out.exists()
+
+
+def test_image_pairs_that_numpy_cannot_read_are_usage_errors(tmp_path, capsys, rng):
+    """An image pair file that numpy cannot read (a header line without #, a .npy file that is text or empty) and lists
+    of pairs of different lengths are usage errors (exit code 2) of the processing commands, with the message of
+    quicklook and view; they were processing errors (exit code 1, ValueError or EOFError) of the processing commands
+    and usage errors of quicklook and view."""
+    import moraine.cli as mc
+    (tmp_path / 'words.txt').write_text('reference secondary\n0 1\n')
+    (tmp_path / 'text.npy').write_text('0 1\n')
+    (tmp_path / 'empty.npy').write_bytes(b'')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', np.ones((12, 3), np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    out = tmp_path / 'unw.zarr'
+    capsys.readouterr()
+    for value, error in [
+            (str(tmp_path / 'words.txt'), f"image pairs '{tmp_path / 'words.txt'}': could not convert string "
+                                          "'reference' to float64 at row 0, column 1."),
+            (str(tmp_path / 'text.npy'), f"image pairs '{tmp_path / 'text.npy'}': This file contains pickled (object) "
+                                         'data.'),
+            (str(tmp_path / 'empty.npy'), f"image pairs '{tmp_path / 'empty.npy'}': No data left in file"),
+            ('[[0,1],[1]]', "image pairs '[[0,1],[1]]': setting an array element with a sequence.")]:
+        assert main(['mcf-pc', '--gix', 'gix.zarr', '--ph', 'ph.zarr', '--unw_ph', str(out), '--image_pairs', value,
+                     '--range_pixel_spacing', '1', '--azimuth_pixel_spacing', '1', '--json', '-q']) == 2, value
+        result = json_out(capsys)
+        assert set(result) == {'version', 'ok', 'error'} and result['error'].startswith(error), (value, result)
+        assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(tmp_path / 'q.png'), '--show', 'coh',
+                     '--image_pairs', value, '--json']) == 2, value
+        assert json_out(capsys) == result
+        with pytest.raises(UsageError, match=re.escape(error)):
+            image_pairs(value)
+    assert not out.exists() and not (tmp_path / 'q.png').exists()
+
+
 def test_commands_registry():
     cmds = commands()
     assert {'amp-disp', 'shp-test', 'emi', 'n2f', 'mcf-pc', 'pc-concat', 'ras-pyramid'} <= set(cmds)
@@ -267,6 +330,28 @@ def test_none_for_an_optional_argument_is_its_default(tmp_path, capsys):
     assert main(['run', str(tmp_path / 'p.toml'), '--json', '-q']) == 2
     assert json_out(capsys)['error'] == (f"{tmp_path / 'p.toml'}: step 'r': --shape is required: it needs 2 integers "
                                          "(shape of one image (nlines,width)), got 'None'; write e.g. --shape 1000 1000")
+
+
+def test_an_empty_list_of_a_required_argument_is_a_usage_error(tmp_path, capsys, rng):
+    """An empty list for a required list argument, e.g. times = [] in a pipeline file, is a usage error (exit code 2)
+    that names the argument, before anything runs; it failed with "IndexError: list index out of range" (exit code
+    1). An optional list argument passes an empty list to the command: pc-sort with pc_in = [] and pc = [] sorts the
+    index and has no data to sort."""
+    (tmp_path / 'p.toml').write_text('[[step]]\nname = "d"\nrun = "download-era5"\nout_dir = "era5"\ntimes = []\n'
+                                     'bbox = [14.0, 40.7, 14.3, 40.9]\n')
+    capsys.readouterr()
+    assert main(['run', str(tmp_path / 'p.toml'), '--workdir', str(tmp_path), '--json', '-q']) == 2
+    assert json_out(capsys)['error'] == (f"{tmp_path / 'p.toml'}: step 'd': download-era5: argument times needs at "
+                                         f"least one value, got an empty list: {_help('download-era5', 'times')}")
+    assert not (tmp_path / 'era5').exists()
+    with pytest.raises(UsageError, match='argument dates needs at least one value'):
+        get_command('pc-sc-dem-error').convert('dates', [])
+    hix = rng.permutation(50).astype(np.int64)
+    write_zarr(tmp_path / 'hix.zarr', hix)
+    (tmp_path / 'q.toml').write_text('[[step]]\nname = "s"\nrun = "pc-sort"\nidx_in = "hix.zarr"\nidx = "sorted.zarr"\n'
+                                     'pc_in = []\npc = []\n')
+    assert main(['run', str(tmp_path / 'q.toml'), '--workdir', str(tmp_path), '--json', '-q']) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'sorted.zarr'), mode='r')[:], np.arange(50))
 
 
 # ---------------------------------------------------------------- pipeline
@@ -753,7 +838,7 @@ def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
                                                                 'index, without duplicates: pair 1 (0, 1) follows (0, 2)',
              ('quicklook', 'view')),
             (['--image_pairs', str(tmp_path / 'words.txt')], f"image pairs '{tmp_path / 'words.txt'}': could not "
-                                                             "convert string 'reference' to int64",
+                                                             "convert string 'reference' to float64",
              ('quicklook', 'view'))]:
         for command in commands:
             output = ['-o', str(out if command == 'quicklook' else nb)]
@@ -780,6 +865,32 @@ def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
     with pytest.raises(SystemExit):
         main(['quicklook', '--help'])
     assert '--image_pairs FILE' in capsys.readouterr().out
+
+
+def test_quicklook_and_view_image_pairs_need_a_coherence_show(tmp_path, capsys):
+    """`moraine quicklook` and `moraine view` with `--image_pairs` and without `--show coh` / `coh_abs` stop with a usage
+    error (exit code 2) that says that only these shows use them, before they draw or write anything; they ignored the
+    image pairs, and the maps of the notebook would have failed with this error when run."""
+    import moraine.cli as mc
+    pairs = [(0, 1), (0, 2), (1, 2)]
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', np.ones((12, 3), np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    for command, out in (('quicklook', tmp_path / 'q.png'), ('view', tmp_path / 'v.ipynb')):
+        for show, given in (([], 'the default show'), (['--show', 'phase'], "show='phase'")):
+            assert main([command, str(tmp_path / 'pyr'), '-o', str(out), *show, '--image_pairs',
+                         str(tmp_path / 'pairs.txt'), '--json']) == 2, (command, show)
+            assert json_out(capsys) == {'version': 1, 'ok': False, 'error': "image_pairs is used only by show='coh' / "
+                                                                           f"'coh_abs', not by {given}"}
+            assert not out.exists()
+        assert main([command, str(tmp_path / 'pyr'), '-o', str(out), '--show', 'coh', '--image_pairs',
+                     str(tmp_path / 'pairs.txt'), '--json']) == 0
+        assert out.exists()
+        capsys.readouterr()
 
 
 def test_quicklook_and_view_accept_options_with_dashes(tmp_path, capsys, rng):
@@ -965,6 +1076,24 @@ def test_pipeline_variable_from_a_file_made_later(tmp_path, monkeypatch):
     assert res['ok'] and res['steps'][0]['args']['nimages'] == 6
 
 
+def test_an_empty_string_is_not_a_path(tmp_path, capsys, monkeypatch):
+    """The `outputs` and `inputs` of a command (JSON output, pipeline state) leave out the arguments that are empty
+    strings: pathlib takes '' for the working directory, which a command making a file in it modifies, so '' was
+    listed as an output (as `download-era5 --times ''` did), or as an input that changes."""
+    def write_note(out:str, note:str):
+        Path(out).write_text(note)
+    monkeypatch.setitem(commands(), 'write-note', Command(
+        'write-note', write_note, 'test', 'Write a text file.',
+        [Param('out', 'str', True, None, 'str', 'output'), Param('note', 'str', True, None, 'str', 'its text')]))
+    monkeypatch.chdir(tmp_path)
+    capsys.readouterr()
+    for run in ('new file', 'file rewritten'):          # the working directory changes, then it does not
+        assert main(['write-note', '--out', 'note.txt', '--note', '', '--json', '-q']) == 0
+        result = json_out(capsys)
+        assert result['outputs'] == ['note.txt'] and result['inputs'] == {}, (run, result)
+        assert [s['path'] for s in result['summaries']] == ['note.txt'] and (tmp_path / 'note.txt').read_text() == ''
+
+
 def test_image_pairs_command(tmp_path, capsys):
     write_zarr(tmp_path / 'rslc.zarr', np.zeros((4, 5, 6), np.complex64))
     assert main(['image-pairs', '--rslc', str(tmp_path / 'rslc.zarr'), '--bandwidth', '2', '--out',
@@ -972,6 +1101,23 @@ def test_image_pairs_command(tmp_path, capsys):
     capsys.readouterr()
     np.testing.assert_array_equal(image_pairs(str(tmp_path / 'p.txt')), [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]])
 
+
+def test_image_pairs_command_without_pairs_is_a_usage_error(tmp_path, capsys):
+    """`moraine image-pairs` of fewer than 2 images or with a bandwidth below 1 stops with a usage error (exit code 2)
+    before it writes the file; it wrote a file without pairs, which every command rejects ("no image pairs")."""
+    write_zarr(tmp_path / 'rslc.zarr', np.zeros((4, 5, 1), np.complex64))
+    out = tmp_path / 'p.txt'
+    capsys.readouterr()
+    for args, error in [(['--nimages', '1'], 'image pairs need 2 or more images, got 1'),
+                        (['--nimages', '0'], 'image pairs need 2 or more images, got 0'),
+                        (['--rslc', str(tmp_path / 'rslc.zarr')], f'image pairs need 2 or more images, got 1: '
+                                                                  f'{tmp_path / "rslc.zarr"} has shape (4, 5, 1)'),
+                        (['--nimages', '4', '--bandwidth', '0'], 'bandwidth must be 1 or more, got 0')]:
+        assert main(['image-pairs', '--out', str(out), *args, '--json', '-q']) == 2, args
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not out.exists()
+    assert main(['image-pairs', '--out', str(out), '--nimages', '2', '--bandwidth', '1', '--json', '-q']) == 0
+    np.testing.assert_array_equal(image_pairs(str(out)), [[0, 1]])
 
 def test_chunk_directories_are_not_pyramids(tmp_path, rng):
     from moraine.command.summary import pyramid_levels
