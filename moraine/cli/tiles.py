@@ -346,6 +346,23 @@ def _show(base, show, image_pairs, sliders, dates, shape):
     return show, fn, list(zip(names, counts)), colours, index
 
 
+def _clim(clim, given=None):
+    """(low, high) floats of a colour range `clim`: two finite numbers with low < high; None for None. A ValueError
+    that names `given` (by default `clim`) otherwise; `moraine quicklook --clim` gives its message."""
+    if clim is None:
+        return None
+    try:
+        if isinstance(clim, (str, bytes)):          # not two numbers, though '15' would give (1, 5)
+            raise TypeError
+        low, high = (float(v) for v in clim)
+    except (TypeError, ValueError, OverflowError):  # not two values, or not numbers
+        low = high = math.nan
+    if not (math.isfinite(low) and math.isfinite(high) and low < high):
+        raise ValueError(f'clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the first and the last '
+                         f'colour (e.g. -11,6), got {clim if given is None else given!r}')
+    return low, high
+
+
 def _colours(name, colours, stats, label, cmap, clim):
     """(lut, clim, colour bar label) of the `colours` of `_show`: cyclic over (-pi, pi] for 'phase', viridis
     otherwise, over the 1 % - 99 % range of `stats()` for 'values' and over +-(p99 - p01), the differences of two
@@ -612,6 +629,7 @@ class _Layer(_Shown):
             if len(size) != 2 or min(size) <= 0:
                 raise ValueError(f'size must be (width, height) in screen pixels, not {size!r}')
             self.size = size
+        clim = _clim(clim)          # a reversed range would draw everything in the first colour
         self.terrain = _terrain(terrain)
         if self.terrain and self.crs != 'web_mercator':
             raise ValueError(f'{self.label}: a 3D view over the terrain needs web mercator coordinates (e / n); the '
@@ -1203,9 +1221,10 @@ def view(
         matplotlib colour map name or list of colours; cyclic for the phases of complex data, viridis
         otherwise by default
     clim : tuple, optional
-        (min, max) of the colours; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 %
-        range of the data (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a
-        real stack ('intf_0', 'intf_seq', 'intf_all')
+        (low, high), the values of the first and the last colour: two finite numbers with low < high, a ValueError
+        otherwise; by default (-pi, pi) for the phases of complex data, otherwise the 1 % - 99 % range of the data
+        (p01, p99 of their statistics), +-(p99 - p01) for the differences of two images of a real stack ('intf_0',
+        'intf_seq', 'intf_all')
     opacity : float, default: 1.0
         opacity of the layer, 0 - 1
     label : str, optional

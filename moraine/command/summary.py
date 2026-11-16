@@ -3,7 +3,6 @@ with `moraine.cli.view`)."""
 
 __all__ = ['summarize', 'quicklook', 'view', 'pyramid_levels']
 
-import math
 import os
 from pathlib import Path
 
@@ -96,17 +95,12 @@ def _numbers(text)->list:
 
 def _clim(clim):
     """(low, high) floats of a colour range: a text 'LOW,HIGH' or two numbers, finite and LOW < HIGH; None for None.
-    UsageError otherwise."""
-    if clim is None:
-        return None
+    UsageError otherwise, with the message of `clim` of the views."""
+    from ..cli.tiles import _clim as _view_clim
     try:
-        low, high = (float(v) for v in (_numbers(clim) if isinstance(clim, str) else clim))
-    except (TypeError, ValueError):         # not two values, or not numbers
-        low = high = math.nan
-    if not (math.isfinite(low) and math.isfinite(high) and low < high):
-        raise UsageError(f'clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the first and the last '
-                         f'colour (e.g. -11,6), got {clim!r}')
-    return low, high
+        return _view_clim(_numbers(clim) if isinstance(clim, str) else clim, clim)
+    except ValueError as e:
+        raise UsageError(str(e)) from None
 
 
 def _png_name(out)->str:

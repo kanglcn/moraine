@@ -99,17 +99,42 @@ def test_raster_colours_and_value(ras):
     assert tuple(rgba[0, 0, :3]) == (0x44, 0x01, 0x54) and rgba[0, 0, 3] == 255
     assert tuple(rgba[0, 1, :3]) == (0xfd, 0xe7, 0x25)       # last viridis colour
     assert rgba[0, 2, 3] == 0                                # nan is transparent
-    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan), also when the limits are equal
+    # palette indices: 0 .. 254 over the colour limits, 255 transparent (nan)
     idx = layer.indices(np.array([[lo - 1, hi + 1, np.nan]]))
     assert idx.dtype == np.uint8 and idx.tolist() == [[0, 254, 255]]
     assert layer.palette.shape == (256, 4) and layer.palette[255, 3] == 0 and (layer.palette[:255, 3] == 255).all()
-    assert view(str(pyr), clim=(1, 1)).indices(np.array([3.0, np.nan])).tolist() == [0, 255]
     assert layer.value(7.2, 3.4, 1) == {'x': 7.0, 'y': 3.0, 'key': [3, 7], 'value': float(a[3, 7])}
     # zoomed out: the value of the cell drawn (level 2, every 4th pixel), the key of the pixel under the cursor
     assert layer.value(101.6, 100.0, 4) == {'x': 102.0, 'y': 100.0, 'key': [100, 102], 'value': float(a[100, 100])}
     assert layer.value(499.6, 0, 1) is None and layer.value(-0.6, 0, 1) is None
     custom = view(str(pyr), cmap='magma', clim=(0, 50))
     assert custom.clim == (0, 50) and custom.colors[0] == '#000004'
+
+
+def test_clim_is_checked_when_the_view_is_made(ras, grid_pc):
+    """`clim` that is not two finite numbers with low < high is an error of `view`, with the message of `moraine
+    quicklook --clim`, for rasters and points, pyramids and arrays, and for show functions: a reversed, empty, nan or
+    infinite range drew everything in the first colour, and a text of two digits was taken for two numbers ('15' for
+    (1, 5))."""
+    import re
+    a, pyr = ras
+    pts, pc_pyr = grid_pc
+    x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
+    layers = [(str(pyr), {}), (a[:30, :20], {}), (str(pc_pyr), {}), (np.ones(12, np.float32), dict(x=x, y=y)),
+              (np.ones((10, 10, 3), np.complex64), dict(show=lambda v, i: np.abs(v[..., i])))]
+    for clim in [(5, 1), (1, 1), (0.6, 0.4), (np.nan, 1), (0, np.inf), (-np.inf, 0), (1,), (1, 2, 3), (), 5, '15',
+                 '-11,6', ('a', 1), (1j, 2), (10**400, 1), [[0, 1]]]:
+        for data, kw in layers:
+            with pytest.raises(ValueError, match='^' + re.escape('clim must be two numbers LOW,HIGH with LOW < HIGH, '
+                                                                 'the values of the first and the last colour (e.g. '
+                                                                 f'-11,6), got {clim!r}') + '$'):
+                view(data, clim=clim, **kw)
+    for clim in [(0, 50), [0, 50], np.array([0.0, 50.0]), (np.float32(0), np.int64(50)), (-1e-9, 1e-9)]:
+        for data, kw in layers:
+            layer = view(data, clim=clim, **kw)
+            assert layer.clim == tuple(float(c) for c in clim) and layer.widget.panels[0]['layers'][0]['clim'] == \
+                [float(c) for c in clim]
+    assert all(type(c) is float for c in view(str(pyr), clim=(np.float32(0), np.int64(50))).clim)
 
 
 def test_raster_in_memory(tmp_path, ras, monkeypatch):
