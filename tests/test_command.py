@@ -359,8 +359,9 @@ def test_quicklook_command(tmp_path, capsys, rng):
 def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypatch):
     """Wrong inputs of `moraine quicklook` are usage errors (exit code 2) with the messages of their checks, before
     anything is drawn: a path that is not a pyramid or one to rebuild, an extent that is not (min, min, max, max), a
-    show that does not fit the data (they were processing errors, exit code 1; a show of the wrong data failed when it
-    was drawn). An error while drawing stays a processing error."""
+    show that does not fit the data, a stack without images (they were processing errors, exit code 1; a show of the
+    wrong data and a stack without images failed when they were drawn). An error while drawing stays a processing
+    error."""
     import moraine.cli as mc
     import moraine.cli.tiles as tiles
     write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
@@ -371,6 +372,11 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     mc.ras_pyramid(str(tmp_path / 'm5.zarr'), str(tmp_path / 'm5_pyr'))
     write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
     write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
+    # a stack without images: moraine does not build its pyramid (ras_pyramid fails), one made by hand
+    for level, (ny, nx) in enumerate([(30, 20), (15, 10), (8, 5), (4, 3), (2, 2)]):
+        write_zarr(tmp_path / 'e_pyr' / f'{level}.zarr', np.zeros((ny, nx, 0), np.float32), (ny, nx, 1))
+    zarr.open(str(tmp_path / 'e_pyr' / '0.zarr'), mode='r+').attrs['moraine_pyramid'] = \
+        zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r').attrs['moraine_pyramid']
     pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
     for args, error in [
             ([str(tmp_path / 'ts.zarr')], f"{tmp_path / 'ts.zarr'} is not a pyramid; build one first with `moraine "
@@ -396,7 +402,10 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
             ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
                                                          "shape (30, 20)"),
             ([str(tmp_path / 'm5_pyr')], 'data of shape (30, 20, 2, 2, 2): 3 stack dimensions, more than the shows of '
-                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; ")]:
+                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; "),
+            ([str(tmp_path / 'e_pyr')], 'data of shape (30, 20, 0): a stack without images or image pairs (a stack '
+                                        'dimension of length 0); there is nothing to show'),
+            ([str(tmp_path / 'e_pyr'), '--show', 'coh'], 'data of shape (30, 20, 0): a stack without images')]:
         capsys.readouterr()
         assert main(['quicklook', *args, '-o', str(out), '--json']) == 2, args
         result = json_out(capsys)

@@ -287,6 +287,9 @@ def _show(base, show, image_pairs, sliders, dates, shape):
     point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
     stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
+    if 0 in stack:                                   # its sliders would be 0 .. -1: every tile would fail
+        raise ValueError(f'data of shape {shape}: a stack without images or image pairs (a stack dimension of length '
+                         f'0); there is nothing to show')
     if show in ('coh', 'coh_abs'):
         wrong = f"show={show!r} needs compressed coherence (..., n_pairs), not shape {shape}"
         if len(stack) != 1:
@@ -1193,7 +1196,7 @@ def view(
     data : str or np.ndarray
         a pyramid directory made by `ras_pyramid` or `pc_pyramid`; a raster, (nlines, width[, n[, m]]), as
         array or zarr path (read into memory, at most 512 MiB); or point data, (n_points[, n[, m]]), with `x`
-        and `y` and at least one point
+        and `y` and at least one point. A stack without images or image pairs (n or m 0) is a ValueError
     x : str or np.ndarray, optional
         x coordinate (range or web mercator x) of point data that is not a pyramid, (n_points,)
     y : str or np.ndarray, optional
