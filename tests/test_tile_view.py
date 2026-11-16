@@ -439,6 +439,21 @@ def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
     assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
 
 
+def test_coherence_image_pairs_must_be_integers(tmp_path):
+    """Image pairs whose values are not integers, in a file or an array, are a ValueError that names the first such
+    value; they were read as int32, which truncated 0.5 to 0 without a word. Floats of integer values, as `np.savetxt`
+    writes them by default, are read as before."""
+    pairs = np.array([(0, 1), (0, 2), (1, 2)])
+    _, pyr = _coh_pc(tmp_path, pairs)
+    (tmp_path / 'half.txt').write_text('0 1\n0.5 2\n1 2\n')
+    np.savetxt(tmp_path / 'floats.txt', pairs)
+    with pytest.raises(ValueError, match=r'^image indices must be integers, got 0\.5 in pair 1$'):
+        view(str(pyr), show='coh', image_pairs=str(tmp_path / 'half.txt'))
+    with pytest.raises(ValueError, match=r'^image indices must be integers, got 1\.5 in pair 2$'):
+        view(str(pyr), show='coh_abs', image_pairs=[[0, 1], [0, 2], [1.5, 2]])
+    assert [k['max'] for k in view(str(pyr), show='coh', image_pairs=str(tmp_path / 'floats.txt')).kdims] == [2, 2]
+
+
 # ---------------------------------------------------------------- named shows of real stacks and of matrices
 
 def _grid_points(tmp_path, data, name):

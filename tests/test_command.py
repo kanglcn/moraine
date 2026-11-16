@@ -59,6 +59,34 @@ def test_literal_and_image_pairs(tmp_path):
         image_pairs('not/a/file.txt')
 
 
+def test_image_pairs_must_be_integers(tmp_path, capsys):
+    """Image pairs whose values are not integers, e.g. a file with "0.5 1", are a usage error that names the first such
+    value; the file was read as int64, which truncated 0.5 to 0 without a word. Floats of integer values, as
+    `np.savetxt` writes them by default, are read as before."""
+    (tmp_path / 'half.txt').write_text('0.5 1\n1 2\n')
+    np.savetxt(tmp_path / 'floats.txt', [[0, 1], [1, 2]])                    # 0.000000000000000000e+00 ...
+    np.save(tmp_path / 'half.npy', np.array([[0, 1], [1, 2.5]]))
+    np.testing.assert_array_equal(image_pairs(str(tmp_path / 'floats.txt')), [[0, 1], [1, 2]])
+    assert image_pairs(str(tmp_path / 'floats.txt')).dtype == np.int64
+    for value, error in [(str(tmp_path / 'half.txt'), f"image pairs '{tmp_path / 'half.txt'}': image indices must be "
+                                                      'integers, got 0.5 in pair 0'),
+                         (str(tmp_path / 'half.npy'), f"image pairs '{tmp_path / 'half.npy'}': image indices must be "
+                                                      'integers, got 2.5 in pair 1'),
+                         ('[[0, 1], [1, 2.5]]', "image pairs '[[0, 1], [1, 2.5]]': image indices must be integers, "
+                                                'got 2.5 in pair 1'),
+                         ([[0, 1], [1, np.nan]], 'image pairs: image indices must be integers, got nan in pair 1')]:
+        with pytest.raises(UsageError, match='^' + re.escape(error) + '$'):
+            image_pairs(value)
+    out = tmp_path / 'unw.zarr'          # a processing command stops before it runs
+    capsys.readouterr()
+    assert main(['mcf-pc', '--gix', 'gix.zarr', '--ph', 'ph.zarr', '--unw_ph', str(out), '--image_pairs',
+                 str(tmp_path / 'half.txt'), '--range_pixel_spacing', '1', '--azimuth_pixel_spacing', '1', '--json',
+                 '-q']) == 2
+    assert json_out(capsys)['error'] == (f"image pairs '{tmp_path / 'half.txt'}': image indices must be integers, got "
+                                         '0.5 in pair 0')
+    assert not out.exists()
+
+
 def test_commands_registry():
     cmds = commands()
     assert {'amp-disp', 'shp-test', 'emi', 'n2f', 'mcf-pc', 'pc-concat', 'ras-pyramid'} <= set(cmds)
@@ -775,7 +803,7 @@ def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
                                                                 'index, without duplicates: pair 1 (0, 1) follows (0, 2)',
              ('quicklook', 'view')),
             (['--image_pairs', str(tmp_path / 'words.txt')], f"image pairs '{tmp_path / 'words.txt'}': could not "
-                                                             "convert string 'reference' to int64",
+                                                             "convert string 'reference' to float64",
              ('quicklook', 'view'))]:
         for command in commands:
             output = ['-o', str(out if command == 'quicklook' else nb)]

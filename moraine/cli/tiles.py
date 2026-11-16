@@ -233,7 +233,7 @@ def _image_pairs(image_pairs, n_pairs, wrong):
     """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs; a ValueError
     starting with the text `wrong` if `n_pairs` is neither the number of all pairs of n images, n (n - 1) / 2, nor
     that of the image pairs given."""
-    from ..api.tnet import TempNet, check_image_pairs
+    from ..api.tnet import TempNet, check_image_pairs, _integer_image_pairs
     rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
             'number of the image pairs given')
     if image_pairs is None:
@@ -241,10 +241,11 @@ def _image_pairs(image_pairs, n_pairs, wrong):
         if n_pairs < 1 or n * (n - 1) // 2 != n_pairs:
             raise ValueError(f'{wrong}: {rule} (none are given)')
         return TempNet.from_bandwidth(n)
-    pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
-        else np.asarray(image_pairs, dtype=np.int32)
+    # as floats: values that are not integers are errors, which reading as integers truncated (0.5 to 0)
+    pairs = np.loadtxt(image_pairs, ndmin=2) if isinstance(image_pairs, (str, Path)) else np.asarray(image_pairs)
     if len(pairs) != n_pairs:
         raise ValueError(f'{wrong}: {rule} ({len(pairs)})')
+    pairs = _integer_image_pairs(pairs)
     check_image_pairs(pairs)        # the column of the pair of the sliders is searched in this order (decision 0047)
     return TempNet(pairs, check_if_valid=False)         # the network may leave out images
 

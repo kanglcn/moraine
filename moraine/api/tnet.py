@@ -49,6 +49,22 @@ def check_image_pairs(image_pairs):
         raise ArgumentError(f'image pairs must be sorted by reference and then secondary index, without duplicates: '
                          f'pair {k} ({ref[k]}, {sec[k]}) follows ({ref[k - 1]}, {sec[k - 1]})')
 
+def _integer_image_pairs(image_pairs)->np.ndarray:
+    """int64 of image pairs (n_pairs, 2) given as integers or as floats of integer values (a text file read by numpy);
+    ArgumentError naming the first value that is not an integer, which a cast would truncate."""
+    a = np.asarray(image_pairs)
+    if a.dtype.kind in 'biu':
+        return a.astype(np.int64)
+    try:
+        f = a.astype(np.float64)
+    except (TypeError, ValueError):
+        raise ArgumentError(f'image indices must be integers, got {a.dtype} values') from None
+    bad = np.argwhere(~(np.isfinite(f) & (f == np.trunc(f))))
+    if len(bad):
+        where = f' in pair {bad[0][0]}' if f.ndim == 2 else ''
+        raise ArgumentError(f'image indices must be integers, got {float(f[tuple(bad[0])])}{where}')
+    return f.astype(np.int64)
+
 def _check_linked(image_pairs):
     """ValueError unless the image pairs (n_pairs, 2), checked by `check_image_pairs`, link all the images 0 to the
     largest index."""

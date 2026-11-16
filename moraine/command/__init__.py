@@ -36,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..api.tnet import check_image_pairs
+from ..api.tnet import check_image_pairs, _integer_image_pairs
 from ..api.utils_.errors import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
@@ -90,8 +90,8 @@ def literal(text):
 
 
 def image_pairs(value):
-    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec), checked against
-    the data conventions (sorted without duplicates, ref < sec)."""
+    """Image pairs from a list, a python literal, or a text/.npy file with two columns (ref, sec) of integers, checked
+    against the data conventions (sorted without duplicates, ref < sec); int64 (n_pairs, 2)."""
     if isinstance(value, np.ndarray):
         pairs = value
     elif isinstance(value, (list, tuple)):
@@ -99,17 +99,19 @@ def image_pairs(value):
     else:
         text = str(value)
         if Path(text).is_file():
-            pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, dtype=np.int64, ndmin=2)
+            # as floats: values that are not integers are errors below, which reading as int64 truncated (0.5 to 0)
+            pairs = np.load(text) if text.endswith('.npy') else np.loadtxt(text, ndmin=2)
         else:
             parsed = literal(text)
             if isinstance(parsed, str):
                 raise UsageError(f'image pairs {text!r}: not a file and not a list like [[0,1],[1,2]]; '
                                  'make a file with `moraine image-pairs`')
             pairs = np.asarray(parsed)
-    pairs = np.asarray(pairs, dtype=np.int64)
+    pairs = np.asarray(pairs)
     if pairs.ndim != 2 or pairs.shape[1] != 2:
         raise UsageError(f'image pairs must have shape (n, 2), got {pairs.shape}')
     try:
+        pairs = _integer_image_pairs(pairs)
         check_image_pairs(pairs)
     except ValueError as e:
         where = '' if isinstance(value, (np.ndarray, list, tuple)) else f' {str(value)!r}'
