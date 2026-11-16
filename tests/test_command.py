@@ -1102,6 +1102,23 @@ def test_image_pairs_command(tmp_path, capsys):
     np.testing.assert_array_equal(image_pairs(str(tmp_path / 'p.txt')), [[0, 1], [0, 2], [1, 2], [1, 3], [2, 3], [2, 4], [3, 4], [3, 5], [4, 5]])
 
 
+def test_image_pairs_command_without_pairs_is_a_usage_error(tmp_path, capsys):
+    """`moraine image-pairs` of fewer than 2 images or with a bandwidth below 1 stops with a usage error (exit code 2)
+    before it writes the file; it wrote a file without pairs, which every command rejects ("no image pairs")."""
+    write_zarr(tmp_path / 'rslc.zarr', np.zeros((4, 5, 1), np.complex64))
+    out = tmp_path / 'p.txt'
+    capsys.readouterr()
+    for args, error in [(['--nimages', '1'], 'image pairs need 2 or more images, got 1'),
+                        (['--nimages', '0'], 'image pairs need 2 or more images, got 0'),
+                        (['--rslc', str(tmp_path / 'rslc.zarr')], f'image pairs need 2 or more images, got 1: '
+                                                                  f'{tmp_path / "rslc.zarr"} has shape (4, 5, 1)'),
+                        (['--nimages', '4', '--bandwidth', '0'], 'bandwidth must be 1 or more, got 0')]:
+        assert main(['image-pairs', '--out', str(out), *args, '--json', '-q']) == 2, args
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': error}
+        assert not out.exists()
+    assert main(['image-pairs', '--out', str(out), '--nimages', '2', '--bandwidth', '1', '--json', '-q']) == 0
+    np.testing.assert_array_equal(image_pairs(str(out)), [[0, 1]])
+
 def test_chunk_directories_are_not_pyramids(tmp_path, rng):
     from moraine.command.summary import pyramid_levels
     for i, n in enumerate([500, 320, 410]):      # per-chunk arrays of ras2pc_ras_chunk: 0.zarr, 1.zarr, ...
