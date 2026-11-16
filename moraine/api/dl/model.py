@@ -6,6 +6,18 @@ import functools
 import importlib
 from pathlib import Path
 
+def _https_context():
+    """The SSL context of the downloads: one with the CA bundle of certifi where the package certifi can be imported,
+    else None, the default context of urllib with the certificates of the Python installation."""
+    # python.org builds of Python on macOS have no certificates of their own until "Install Certificates" is run;
+    # certifi is not a dependency of moraine
+    try:
+        import certifi
+    except ImportError:
+        return None
+    import ssl
+    return ssl.create_default_context(cafile=certifi.where())
+
 def _fetch_github_file(
     gid:str,
     repo:str,
@@ -31,8 +43,9 @@ def _fetch_github_file(
     url = '/'.join(['https://raw.githubusercontent.com', gid, repo, 'refs','heads', branch, file_path])
     print(' '.join(['Downloading', url,'to',out_path]))
     try:
-        # an HTTPError for bad status codes (4xx or 5xx); read() raises IncompleteRead for a file cut short
-        with urllib.request.urlopen(url) as response:
+        # an HTTPError for bad status codes (4xx or 5xx); read() raises IncompleteRead for a file cut short; a CA
+        # bundle of certifi that cannot be loaded (an OSError) is a failed download too
+        with urllib.request.urlopen(url, context=_https_context()) as response:
             content = response.read()
     except (OSError, http.client.HTTPException) as e:   # URLError, connection and read errors: printed, not raised
         print(f"Error downloading file: {e}")
