@@ -512,6 +512,29 @@ def test_quicklook_clim(tmp_path, capsys, rng):
     assert '--clim LOW,HIGH' in ' '.join(capsys.readouterr().out.split())
 
 
+def test_quicklook_extent_starting_with_a_minus_sign(tmp_path, capsys, rng):
+    """`moraine quicklook --extent` takes a first number with a minus sign, a longitude west of Greenwich or the edge
+    -0.5 of the first pixel that the views give, as `--clim` does; argparse took the value for an unknown option
+    ("argument --extent: expected one argument")."""
+    import moraine.cli as mc
+    from moraine.cli.tiles import _lonlat_to_merc
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    gy, gx = np.divmod(np.arange(100), 10)
+    x0, y0 = _lonlat_to_merc(-122.42, 37.77)                                       # points in San Francisco
+    write_zarr(tmp_path / 'mx.zarr', x0 + 30.0 * gx); write_zarr(tmp_path / 'my.zarr', y0 + 30.0 * gy)
+    write_zarr(tmp_path / 'v.zarr', rng.random(100).astype(np.float32))
+    mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'm_pyr'), x=str(tmp_path / 'mx.zarr'),
+                  y=str(tmp_path / 'my.zarr'), ras_resolution=30)
+    capsys.readouterr()
+    for pyr, extent in [('r_pyr', '-0.5,-0.5,10,15'), ('m_pyr', '-122.42,37.77,-122.418,37.772')]:
+        out = tmp_path / f'{pyr}.png'
+        for args in (['--extent', extent], [f'--extent={extent}']):
+            assert main(['quicklook', str(tmp_path / pyr), '-o', str(out), *args, '--json']) == 0, args
+            assert json_out(capsys)['png'] == str(out) and out.stat().st_size > 1000
+            out.unlink()
+
+
 def test_quicklook_output_name(tmp_path, capsys, rng, monkeypatch):
     """`moraine quicklook -o NAME` without a suffix writes and reports NAME.png (matplotlib wrote NAME.png while the
     command reported NAME, also as `png` of the JSON output); another suffix than .png is a usage error before

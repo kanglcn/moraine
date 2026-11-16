@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`moraine quicklook --extent` takes a value whose first number has a minus sign, e.g. `--extent -122.5,37.5,-122,38` west of Greenwich or `--extent -0.5,-0.5,100,100` from the edge of the first pixel, as the views give extents; argparse took the value for an unknown option and stopped with "argument --extent: expected one argument" (`--extent=-122.5,...` worked)
+
 `moraine.cli.view` of point data without points (`x`, `y` and the data of length 0, arrays or zarr paths) raises a ValueError that says so when the view is made: "the point data have no points: x (0,), y (0,) and data (0, 3); there is nothing to view". It was numpy's "zero-size array to reduction operation minimum which has no identity"
 
 `moraine.cli.view` rejects data with three or more stack dimensions, e.g. (nlines, width, 2, 3, 4) or (n_points, 2, 3, 4), without a `show` function when the view is made, with a ValueError that names their shape, the shows that exist and the stack dimensions they take, and gives a show function for them, e.g. `show=lambda v, i, j: v[..., i, j, 0], sliders={'i': 2, 'j': 3}`; `moraine quicklook` makes it a usage error (exit code 2). The default show has the two sliders i and j: such a view was made and failed in every tile of the map, `.png()` and `quicklook` (exit code 1) with "2 indices given for data with 3 index dimensions". The named shows did not fit such data before either, and show functions draw them as before
