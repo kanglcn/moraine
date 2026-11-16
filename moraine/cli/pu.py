@@ -12,6 +12,7 @@ import moraine as mr
 from .logging import mc_logger
 from .zarr_ import parallel_read_zarr
 from .executor import Executor, Chunk
+from .utils_ import ArgumentError
 
 
 def _thread_map(fn, items, n_workers):
@@ -148,7 +149,7 @@ def mcf_pc(
     logger.zarr_info(ph, ph_zarr)
     n_points, nimages = ph_zarr.shape
     if ph_zarr.chunks[1] != 1:
-        raise ValueError(f'{ph}: chunks {ph_zarr.chunks}; stacks are chunked one image per chunk, '
+        raise ArgumentError(f'{ph}: chunks {ph_zarr.chunks}; stacks are chunked one image per chunk, '
                          f'(points_block, 1) (docs/contracts/data.md)')
     pairs = _image_pairs(image_pairs, nimages)
     n_pairs = pairs.shape[0]
@@ -156,7 +157,7 @@ def mcf_pc(
         out_chunks = ph_zarr.chunks[0]
     gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
     if gix_data.shape != (n_points, 2):
-        raise ValueError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
+        raise ArgumentError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
     x = gix_data[:, 1] * float(range_pixel_spacing)
     y = gix_data[:, 0] * float(azimuth_pixel_spacing)
     del gix_data
@@ -256,7 +257,7 @@ def emcf_pc(
     logger.zarr_info(ph, ph_zarr)
     n_points, nimages = ph_zarr.shape
     if ph_zarr.chunks[1] != 1:
-        raise ValueError(f'{ph}: chunks {ph_zarr.chunks}; stacks are chunked one image per chunk, '
+        raise ArgumentError(f'{ph}: chunks {ph_zarr.chunks}; stacks are chunked one image per chunk, '
                          f'(points_block, 1) (docs/contracts/data.md)')
     pairs = _emcf._image_pairs(image_pairs, nimages)
     n_pairs = pairs.shape[0]
@@ -264,7 +265,7 @@ def emcf_pc(
     if dates is not None:
         dates = [dates] if isinstance(dates, (str, int)) else list(dates)
         if len(dates) != nimages:
-            raise ValueError(f'dates: {len(dates)} dates for {nimages} images')
+            raise ArgumentError(f'dates: {len(dates)} dates for {nimages} images')
         days = [datetime.datetime.strptime(str(d), '%Y%m%d') for d in dates]
         t = np.array([(d - days[0]).days for d in days], dtype=np.float64)
     pair_cost = _emcf._pair_costs(t, pairs, temporal_cost)
@@ -277,7 +278,7 @@ def emcf_pc(
 
     gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
     if gix_data.shape != (n_points, 2):
-        raise ValueError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
+        raise ArgumentError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
     x = gix_data[:, 1] * float(range_pixel_spacing)
     y = gix_data[:, 0] * float(azimuth_pixel_spacing)
     del gix_data
@@ -440,19 +441,19 @@ def unwrap_correct_closure_pc(
     n_pairs = unw_zarr.shape[1]
     for path, z in ((ph, ph_zarr), (unw_ph, unw_zarr)):
         if z.chunks[1] != 1:
-            raise ValueError(f'{path}: chunks {z.chunks}; stacks are chunked one image (pair) per chunk, '
+            raise ArgumentError(f'{path}: chunks {z.chunks}; stacks are chunked one image (pair) per chunk, '
                              f'(points_block, 1) (docs/contracts/data.md)')
     if unw_zarr.shape[0] != n_points:
-        raise ValueError(f'ph {ph_zarr.shape} and unw_ph {unw_zarr.shape} have different points')
+        raise ArgumentError(f'ph {ph_zarr.shape} and unw_ph {unw_zarr.shape} have different points')
     pairs = _image_pairs(image_pairs, nimages)
     if pairs.shape[0] != n_pairs:
-        raise ValueError(f'image_pairs: {pairs.shape[0]} pairs for {n_pairs} columns of unw_ph')
+        raise ArgumentError(f'image_pairs: {pairs.shape[0]} pairs for {n_pairs} columns of unw_ph')
     if not 0 <= int(ref) < nimages:
-        raise ValueError(f'ref must be an image index of 0 .. {nimages - 1}, got {ref}')
+        raise ArgumentError(f'ref must be an image index of 0 .. {nimages - 1}, got {ref}')
     if not max_edge_factor > 1:
-        raise ValueError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
+        raise ArgumentError(f'max_edge_factor must be larger than 1, got {max_edge_factor}')
     if int(min_region_points) < 1:
-        raise ValueError(f'min_region_points must be at least 1, got {min_region_points}')
+        raise ArgumentError(f'min_region_points must be at least 1, got {min_region_points}')
     if out_chunks is None:
         out_chunks = unw_zarr.chunks[0]
     order, parent, n_loops = _closure._pair_forest(pairs, nimages)
@@ -460,7 +461,7 @@ def unwrap_correct_closure_pc(
 
     gix_data = parallel_read_zarr(zarr.open(gix, mode='r'), (slice(None), slice(None)))
     if gix_data.shape != (n_points, 2):
-        raise ValueError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
+        raise ArgumentError(f'gix must have shape ({n_points}, 2), got {gix_data.shape}')
     x = gix_data[:, 1] * float(range_pixel_spacing)
     y = gix_data[:, 0] * float(azimuth_pixel_spacing)
     del gix_data

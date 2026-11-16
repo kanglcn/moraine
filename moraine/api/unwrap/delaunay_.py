@@ -35,6 +35,7 @@ __all__ = ['delaunay_halfedges', 'delaunay']
 
 import numpy as np
 from ..utils_.jit import mjit
+from ..utils_.errors import ArgumentError
 
 
 @mjit(nopython=True, inline='always')
@@ -372,9 +373,9 @@ def delaunay_halfedges(x, y):
     yf = np.ascontiguousarray(y, dtype=np.float64)
     n = xf.shape[0]
     if n < 3:
-        raise ValueError('need at least 3 points')
+        raise ArgumentError('need at least 3 points')
     if 6 * n >= 2 ** 31:
-        raise ValueError(f'{n} points: too many for the int32 half-edge indices')
+        raise ArgumentError(f'{n} points: too many for the int32 half-edge indices')
     integer, X, Y = _coordinates(xf, yf)
     if not integer:
         X, Y = xf, yf

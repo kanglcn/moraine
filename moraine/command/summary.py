@@ -199,7 +199,8 @@ def view(
 
     Open it in Jupyter or VS Code, choose the python environment of moraine as kernel and run all cells.
     No server or port forwarding is needed: the kernel reads the data on the machine that holds them. A path that is
-    not a pyramid, or a pyramid to rebuild, raises a UsageError (the command exits with 2), as for `quicklook`.
+    not a pyramid, a pyramid to rebuild and a notebook name without .ipynb raise a UsageError (the command exits with
+    2), as for `quicklook`.
 
     Parameters
     ----------
@@ -226,7 +227,7 @@ def view(
         _pyramid_input(pyr)                         # UsageError
     out = Path(out)
     if out.suffix != '.ipynb':
-        raise ValueError(f'{out}: the notebook name must end with .ipynb')
+        raise UsageError(f'{out}: the notebook name must end with .ipynb')
     if out.exists() and not overwrite:
         raise FileExistsError(f'{out} exists; choose another name or overwrite it')
 

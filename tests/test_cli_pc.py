@@ -4,6 +4,7 @@ import zarr
 
 import moraine as mr
 import moraine.cli as mc
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr, read_zarr as r, random_gix
 
 
@@ -115,7 +116,7 @@ def test_pc_sort_empty_gix_needs_shape(w, tmp_path):
     """pc-sort of an empty grid index without `shape` asks for it (numpy's "zero-size array to reduction operation
     maximum which has no identity" before) and writes no output; with `shape` its outputs have no points."""
     w('e.zarr', np.zeros((0, 2), np.int32), (200, 1)); w('pc_in.zarr', np.zeros((0, 3), np.float32), (200, 1))
-    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
+    with pytest.raises(ArgumentError, match=r'shape \(nlines, width\) is needed when a grid index is empty: '
                                          'the grid index has no points'):
         mc.pc_sort(w('e.zarr'), w('gix.zarr'), w('pc_in.zarr'), w('pc.zarr'), key=w('key.zarr'))
     assert not any((tmp_path / name).exists() for name in ('gix.zarr', 'pc.zarr', 'key.zarr'))
@@ -176,10 +177,10 @@ def test_set_commands_empty_gix_need_shape(w, rng, tmp_path):
     w('e.zarr', gix[:0], (200, 1)); w('g.zarr', gix, (200, 1)); w('pc_in.zarr', pc_in, (200, 1))
     match = r'shape \(nlines, width\) is needed when a grid index is empty: the second grid index has no points'
     for fn in (mc.pc_union, mc.pc_intersect, mc.pc_diff):
-        with pytest.raises(ValueError, match=match):
+        with pytest.raises(ArgumentError, match=match):
             fn(w('g.zarr'), w('e.zarr'), w('i.zarr'))
         assert not (tmp_path / 'i.zarr').exists()
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         mc.pc_select_data(w('g.zarr'), w('e.zarr'), w('pc_in.zarr'), w('pc.zarr'))
     assert not (tmp_path / 'pc.zarr').exists()
     mc.pc_union(w('e.zarr'), w('g.zarr'), w('i.zarr'), shape=(100, 100))
@@ -232,7 +233,7 @@ def test_pc_select_data_grid_index_by_hilbert_index_needs_shape(w, rng, tmp_path
     iidx = rng.choice(1000, size=300, replace=False)
     iidx = iidx[np.argsort(hix_in[iidx])]                     # the points to select, in hilbert order
     w('gix_in.zarr', gix_in, (200, 1)); w('hix.zarr', hix_in[iidx], (200,)); w('pc_in.zarr', pc_in, (200, 1))
-    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index and a hilbert index '
+    with pytest.raises(ArgumentError, match=r'shape \(nlines, width\) is needed when a grid index and a hilbert index '
                                          r'are mixed: idx_in is a grid index, idx a hilbert index'):
         mc.pc_select_data(w('gix_in.zarr'), w('hix.zarr'), w('pc_in.zarr'), w('pc.zarr'))
     assert not (tmp_path / 'pc.zarr').exists()

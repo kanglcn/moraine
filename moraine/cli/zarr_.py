@@ -10,6 +10,7 @@ from pathlib import Path
 import zarr
 import numpy as np
 from ..api.utils_.chunk import fill_slice as _fill_slice
+from .utils_ import ArgumentError
 
 
 def _one_chunk_slices_and_out_shape(data_zarr,slices):
@@ -76,11 +77,11 @@ class ZarrDir():
         for zarr_path in self.zarr_path_list:
             data_zarr = zarr.open(zarr_path,mode='r')
             if data_zarr.chunks[0] != data_zarr.shape[0]:
-                raise ValueError(f'{zarr_path}: the points of a chunk array must be in one chunk, '
+                raise ArgumentError(f'{zarr_path}: the points of a chunk array must be in one chunk, '
                                  f'got chunks {data_zarr.chunks} for shape {data_zarr.shape}')
             # one image per chunk (stacks) or the whole window of a point in one chunk (window arrays, decision 0032)
             if data_zarr.chunks[1:] not in ((1,)*(data_zarr.ndim-1), data_zarr.shape[1:]):
-                raise ValueError(f'{zarr_path}: a chunk array must have one image or the whole window per chunk, '
+                raise ArgumentError(f'{zarr_path}: a chunk array must have one image or the whole window per chunk, '
                                  f'got chunks {data_zarr.chunks} for shape {data_zarr.shape}')
             dim0_shape += data_zarr.shape[0]
             dim0_chunks.append(data_zarr.chunks[0])
@@ -98,7 +99,7 @@ def check_ndim(name, z, ndim, layout):
     """raise a ValueError when the array `z` (zarr or numpy) of the argument `name` does not have `ndim` dimensions,
     `layout` describes the expected shape, e.g. '(nlines, width, nimages)'"""
     if z.ndim != ndim:
-        raise ValueError(f'{name} must have {ndim} dimensions {layout}, got shape {tuple(z.shape)}')
+        raise ArgumentError(f'{name} must have {ndim} dimensions {layout}, got shape {tuple(z.shape)}')
 
 def whole_trailing(z):
     """True for a window array: the trailing dimensions of `z` in one chunk, i.e. the whole window of a point or

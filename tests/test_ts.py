@@ -5,6 +5,7 @@ import zarr
 import moraine as mr
 import moraine.cli as mc
 from moraine.command import main
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr
 
 
@@ -52,8 +53,9 @@ def test_pc_reference_api_nan_and_1d():
     assert out1.shape == (ts.shape[0],) and value1.shape == ()
     np.testing.assert_allclose(out1, out[:, 2])
     ts[:30, 3] = np.nan
-    with pytest.raises(ValueError, match=r'all nan\) in column\(s\) \[3\]'):
+    with pytest.raises(ValueError, match=r'all nan\) in column\(s\) \[3\]') as e:
         mr.pc_reference(ts, stable)
+    assert not isinstance(e.value, ArgumentError)          # a problem of the data, not of the arguments (0051)
 
 
 @pytest.mark.parametrize('ref, method, match', [
@@ -66,13 +68,16 @@ def test_pc_reference_api_nan_and_1d():
     (np.ones(50, dtype=bool), 'mode', "'median' or 'mean'"),
 ])
 def test_pc_reference_api_errors(ref, method, match):
+    """wrong arguments are ArgumentErrors; a mask without points is a problem of the data, a ValueError (decision
+    0051)"""
     ts = _ts()[0]
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=match) as e:
         mr.pc_reference(ts, ref, method=method)
+    assert isinstance(e.value, ArgumentError) == (match != 'no point')
 
 
 def test_pc_reference_api_integer_data():
-    with pytest.raises(ValueError, match='floating point'):
+    with pytest.raises(ArgumentError, match='floating point'):
         mr.pc_reference(np.zeros((5, 2), dtype=np.int32), 0)
 
 
@@ -118,20 +123,21 @@ def test_pc_reference_argument_errors(tmp_path):
     ts, offset, stable = _ts()
     pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
     mask = write_zarr(tmp_path / 'mask.zarr', stable, (20,))
-    with pytest.raises(ValueError, match='exactly one'):
+    with pytest.raises(ArgumentError, match='exactly one'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'))
-    with pytest.raises(ValueError, match='exactly one'):
+    with pytest.raises(ArgumentError, match='exactly one'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=mask, ref_point=1)
-    with pytest.raises(ValueError, match='not one of the 50 points'):
+    with pytest.raises(ArgumentError, match='not one of the 50 points'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_point=50)
     short = write_zarr(tmp_path / 'short.zarr', stable[:40], (20,))
-    with pytest.raises(ValueError, match=r'bool of shape \(50,\)'):
+    with pytest.raises(ArgumentError, match=r'bool of shape \(50,\)'):
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=short)
     empty = write_zarr(tmp_path / 'empty.zarr', np.zeros(50, dtype=bool), (20,))
-    with pytest.raises(ValueError, match='no reference point'):
+    with pytest.raises(ValueError, match='no reference point') as e:
         mc.pc_reference(pc, str(tmp_path / 'o.zarr'), ref_mask=empty)
+    assert not isinstance(e.value, ArgumentError)          # the values of the mask: a problem of the data
     complex_pc = write_zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
-    with pytest.raises(ValueError, match='floating point'):
+    with pytest.raises(ArgumentError, match='floating point'):
         mc.pc_reference(complex_pc, str(tmp_path / 'o.zarr'), ref_point=1)
 
 
@@ -160,7 +166,7 @@ def test_pc_disp_api():
     (np.ones(3, dtype=np.float32), np.nan, 'between 0 and 1'),
 ])
 def test_pc_disp_api_errors(phase, wavelength, match):
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         mr.pc_disp(phase, wavelength)
 
 
@@ -201,13 +207,13 @@ def test_pc_disp_1d_and_command_line(tmp_path):
 def test_pc_disp_argument_errors(tmp_path):
     ts = _ts()[0]
     pc = write_zarr(tmp_path / 'ts.zarr', ts, (20, 1))
-    with pytest.raises(ValueError, match='between 0 and 1'):
+    with pytest.raises(ArgumentError, match='between 0 and 1'):
         mc.pc_disp(pc, str(tmp_path / 'o.zarr'), wavelength=5.55)
     complex_pc = write_zarr(tmp_path / 'c.zarr', ts.astype(np.complex64), (20, 1))
-    with pytest.raises(ValueError, match='floating point'):
+    with pytest.raises(ArgumentError, match='floating point'):
         mc.pc_disp(complex_pc, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)
     cube = write_zarr(tmp_path / 'cube.zarr', np.zeros((4, 3, 2), dtype=np.float32), (4, 3, 1))
-    with pytest.raises(ValueError, match='shape'):
+    with pytest.raises(ArgumentError, match='shape'):
         mc.pc_disp(cube, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)
 
 
@@ -328,13 +334,13 @@ def test_pc_sc_dem_error_api_errors(change, match):
     args = dict(disp=np.zeros((10, 6), np.float32), bperp=bperp, slant_range=slant_range, theta=theta,
                 dates=_dates(6)[0], ref=0)
     args.update(change)
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         mr.pc_sc_dem_error(**args)
 
 
 def test_pc_sc_dem_error_api_needs_4_images():
     bperp, slant_range, theta, c = _geometry(10, 4)
-    with pytest.raises(ValueError, match='at least 4 images, got 3'):
+    with pytest.raises(ArgumentError, match='at least 4 images, got 3'):
         mr.pc_sc_dem_error(np.zeros((10, 3), np.float32), bperp[:, :3], slant_range, theta, _dates(3)[0])
     dates = ' 20190102,20190114 20190126,20190207 '                # text with commas or spaces
     assert mr.pc_sc_dem_error(((c - c[:, :1]) * 3).astype(np.float32), bperp, slant_range, theta, dates)[0].shape == (10,)
@@ -402,15 +408,15 @@ def test_pc_sc_dem_error_command_line_and_pipeline(tmp_path):
 def test_pc_sc_dem_error_argument_errors(tmp_path):
     paths, dates, _ = _dem_error_inputs(tmp_path)
     outputs = dict(dh=str(tmp_path / 'dh.zarr'), out=str(tmp_path / 'o.zarr'))
-    with pytest.raises(ValueError, match='8 dates for 9 images'):
+    with pytest.raises(ArgumentError, match='8 dates for 9 images'):
         mc.pc_sc_dem_error(**paths, **outputs, dates=dates[:-1])
-    with pytest.raises(ValueError, match='one of the 9 images'):
+    with pytest.raises(ArgumentError, match='one of the 9 images'):
         mc.pc_sc_dem_error(**paths, **outputs, dates=dates, ref=9)
     short = write_zarr(tmp_path / 'short.zarr', np.zeros(49, np.float32), (20,))
-    with pytest.raises(ValueError, match=r'theta must have shape \(50,\)'):
+    with pytest.raises(ArgumentError, match=r'theta must have shape \(50,\)'):
         mc.pc_sc_dem_error(**{**paths, 'theta': short}, **outputs, dates=dates)
     three = write_zarr(tmp_path / 'three.zarr', np.zeros((50, 3), np.float32), (20, 1))
-    with pytest.raises(ValueError, match=r'bperp must have shape \(50, 3\)'):
+    with pytest.raises(ArgumentError, match=r'bperp must have shape \(50, 3\)'):
         mc.pc_sc_dem_error(**{**paths, 'disp': three}, **outputs, dates=dates[:3])
-    with pytest.raises(ValueError, match='at least 4 images'):
+    with pytest.raises(ArgumentError, match='at least 4 images'):
         mc.pc_sc_dem_error(**{**paths, 'disp': three, 'bperp': three}, **outputs, dates=dates[:3])

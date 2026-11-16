@@ -23,7 +23,7 @@ from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.orbit import bperp as _bperp
 from .logging import mc_logger
 from .executor import Executor, Chunk
-from .utils_ import write_toml
+from .utils_ import ArgumentError, write_toml
 
 def _read_gamma_par(par):
     """Keys and values of a GAMMA parameter file (image, DEM, ...).
@@ -526,7 +526,7 @@ def load_gamma_bperp(rslc_dir:str,
     logger = logging.getLogger(__name__)
     dates, _, pars = _fetch_slc_par_date(rslc_dir)
     if reference not in dates:
-        raise ValueError(f'reference {reference} is not a date of {rslc_dir}')
+        raise ArgumentError(f'reference {reference} is not a date of {rslc_dir}')
     ref = dates.index(reference)
     orbits = [_read_gamma_orbit(par) for par in pars]
     n_sv = {date: len(t) for date, (t, _, _) in zip(dates, orbits)}
@@ -541,7 +541,7 @@ def load_gamma_bperp(rslc_dir:str,
     for name, path in (('lat_zarr', lat_zarr), ('lon_zarr', lon_zarr), ('hgt_zarr', hgt_zarr)):
         shape = zarr.open(path, mode='r').shape
         if shape != (nlines, width):
-            raise ValueError(f'{name} {path} has the shape {shape}, the images ({nlines}, {width})')
+            raise ArgumentError(f'{name} {path} has the shape {shape}, the images ({nlines}, {width})')
     if chunks is None: chunks = lat.chunks
     chunks = tuple(chunks)
     out = zarr.open(bperp_zarr, mode='w', shape=(nlines, width, nimages), dtype=np.float32, chunks=(*chunks, 1))

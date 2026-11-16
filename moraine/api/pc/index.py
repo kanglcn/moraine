@@ -7,6 +7,7 @@ from numba import prange
 import math
 from ..utils_.device import get_array_module
 from ..utils_.jit import ngjit, ngpjit
+from ..utils_.errors import ArgumentError
 
 def _ravel_gix(gix,dims):
     xp = get_array_module(gix)
@@ -288,7 +289,7 @@ def pc_sort(idx:np.ndarray,
         if shape is not None:
             dims_az, dims_r = shape
         elif idx.shape[0] == 0:
-            raise ValueError('shape (nlines, width) is needed when a grid index is empty: '
+            raise ArgumentError('shape (nlines, width) is needed when a grid index is empty: '
                              'the grid index has no points')
         else:
             dims_az = int(xp.max(idx[:,0]))+1

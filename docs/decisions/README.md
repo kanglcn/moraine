@@ -58,6 +58,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0048](0048-dem-error-in-two-parts.md) | Deformation products, with the DEM error in two parts | Accepted |
 | [0049](0049-pyramids-of-moraine-0-10-or-later-only.md) | Only complete pyramids of moraine 0.10.0 or later are read; their statistics are the stored ones | Accepted |
 | [0050](0050-zarr-imported-with-cupy-hidden.md) | zarr is imported with cupy hidden | Accepted |
+| [0051](0051-argument-errors-are-usage-errors.md) | Errors in the arguments of a command are usage errors, raised as ArgumentError in any layer | Accepted |
 
 ## Writing a record
 

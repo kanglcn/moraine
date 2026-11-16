@@ -4,6 +4,7 @@ import pytest
 import moraine as mr
 from moraine.api.ds.co import emperical_co, emperical_co_pc, uncompress_coh
 from moraine.api.ds.co import _slc_correlation, _rslc_rho2, _shp_n_looks, _normalize_local_power
+from moraine.api.utils_ import ArgumentError
 from conftest import REPO, synthetic_shp
 
 
@@ -249,7 +250,7 @@ def test_shp_n_looks_asymmetric_table(rng):
         v = np.where(inside, rho2[np.clip(d[..., 0] + 4, 0, 8), np.clip(d[..., 1] + 6, 0, 12)], 0)
         expected = len(p) ** 2 / np.maximum(v, 0).sum() if len(p) else 0
         assert n_looks[k] == pytest.approx(expected, rel=1e-5)
-    with pytest.raises(ValueError, match='64'):
+    with pytest.raises(ArgumentError, match='64'):
         _shp_n_looks(np.ones((2, 3, 65), bool), rho2)
 
 

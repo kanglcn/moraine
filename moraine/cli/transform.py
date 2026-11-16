@@ -14,6 +14,7 @@ from pyproj import Transformer
 from ..api.utils_.chunk import all_chunk_slices
 from .executor import Chunk, Executor
 from .logging import mc_logger
+from .utils_ import ArgumentError
 
 
 @functools.lru_cache(maxsize=None)
@@ -71,11 +72,11 @@ def transform(xx_in,
     xx_in_zarr = zarr.open(xx_in, mode='r'); yy_in_zarr = zarr.open(yy_in, mode='r')
     logger.zarr_info('xx_in', xx_in_zarr); logger.zarr_info('yy_in', yy_in_zarr)
     if yy_in_zarr.shape != xx_in_zarr.shape:
-        raise ValueError(f'yy_in: shape {yy_in_zarr.shape} differs from xx_in: {xx_in_zarr.shape}')
+        raise ArgumentError(f'yy_in: shape {yy_in_zarr.shape} differs from xx_in: {xx_in_zarr.shape}')
     # the outputs are created (emptied) before any input is read
     ins, outs = {Path(p).resolve() for p in (xx_in, yy_in)}, {Path(p).resolve() for p in (xx_out, yy_out)}
     if len(outs) < 2 or ins & outs:
-        raise ValueError('xx_out and yy_out must be two arrays other than the inputs')
+        raise ArgumentError('xx_out and yy_out must be two arrays other than the inputs')
     transformer = _transformer(epsg_in, epsg_out)   # fails here for an unknown EPSG code
     logger.info(f'EPSG:{epsg_in} -> EPSG:{epsg_out}: {transformer.description}')
 

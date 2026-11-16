@@ -109,11 +109,11 @@ def _path_lists(**paths):
     """the path arguments as lists: every argument one path (a string) or every argument a list of paths of the same length"""
     kinds = {name: 'list' if isinstance(value, (list, tuple)) else 'path' for name, value in paths.items()}
     if len(set(kinds.values())) > 1:
-        raise ValueError('give one path or a list of paths for all of ' + ', '.join(paths) + ': '
+        raise ArgumentError('give one path or a list of paths for all of ' + ', '.join(paths) + ': '
                          + ', '.join(f'{name} is a {kind}' for name, kind in kinds.items()))
     lists = [list(value) if kinds[name] == 'list' else [value] for name, value in paths.items()]
     if len({len(l) for l in lists}) > 1:
-        raise ValueError(', '.join(paths) + ' must have the same number of paths, got '
+        raise ArgumentError(', '.join(paths) + ' must have the same number of paths, got '
                          + ', '.join(f'{len(l)} for {name}' for name, l in zip(paths, lists)))
     return lists
 
@@ -143,7 +143,7 @@ def gix2bool(gix:str,
     gix_zarr = zarr.open(gix,mode='r')
     logger.zarr_info('gix',gix_zarr)
     if gix_zarr.ndim != 2 or gix_zarr.shape[1] != 2:
-        raise ValueError(f'gix must have shape (n_points, 2), got {gix_zarr.shape}')
+        raise ArgumentError(f'gix must have shape (n_points, 2), got {gix_zarr.shape}')
     logger.info('loading gix into memory.')
     gix = zarr.open(gix,mode='r')[:]
 
@@ -287,7 +287,7 @@ def pc_concat(
         pcs_path = [pcs_path,]
     elif isinstance(pc_path,list):
         if not isinstance(pcs_path, list):
-            raise ValueError('pcs must be a list of paths when pc is a list of paths')
+            raise ArgumentError('pcs must be a list of paths when pc is a list of paths')
         pcs_path_ = []
         for one_pcs_path in pcs_path:
             if isinstance(one_pcs_path,str):
@@ -296,7 +296,7 @@ def pc_concat(
             pcs_path_.append(one_pcs_path)
         pcs_path = pcs_path_
     else:
-        raise ValueError("wrong input")
+        raise ArgumentError("wrong input")
     logger.info(f'input pcs: {pcs_path}')
     logger.info(f'output pc: {pc_path}')
     if key_path is not None:
@@ -446,7 +446,7 @@ def pc2ras(
     else:
         logger.info('loading hix into memory and convert to gix')
         if shape is None:
-            raise ValueError('shape is needed with a hilbert index input (idx with one column)')
+            raise ArgumentError('shape is needed with a hilbert index input (idx with one column)')
         gix = mr.pc_gix(idx_zarr[:],shape=shape)
     n_pc = gix.shape[0]
     shape = tuple(shape); chunks = tuple(chunks)

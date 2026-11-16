@@ -9,6 +9,7 @@ import numpy as np
 from numba import prange
 
 from .jit import ngjit, ngpjit
+from .errors import ArgumentError
 
 # WGS84 ellipsoid
 _A = 6378137.0
@@ -232,18 +233,18 @@ def bperp(
     lat = np.asarray(lat, dtype=np.float64)
     hgt = np.asarray(hgt)
     if lat.shape != lon.shape or hgt.shape != lon.shape:
-        raise ValueError(f'lon, lat and hgt must have the same shape, not {lon.shape}, {lat.shape}, {hgt.shape}')
+        raise ArgumentError(f'lon, lat and hgt must have the same shape, not {lon.shape}, {lat.shape}, {hgt.shape}')
     orbit_time = np.ascontiguousarray(orbit_time, dtype=np.float64)
     orbit_pos = np.ascontiguousarray(orbit_pos, dtype=np.float64)
     orbit_vel = np.ascontiguousarray(orbit_vel, dtype=np.float64)
     nimages, nsv = orbit_time.shape
     if orbit_pos.shape != (nimages, nsv, 3) or orbit_vel.shape != (nimages, nsv, 3):
-        raise ValueError(f'orbit_pos and orbit_vel must have the shape {(nimages, nsv, 3)}, '
+        raise ArgumentError(f'orbit_pos and orbit_vel must have the shape {(nimages, nsv, 3)}, '
                          f'not {orbit_pos.shape} and {orbit_vel.shape}')
     if nsv < 4 or not (np.diff(orbit_time, axis=1) > 0).all():
         raise ValueError('every orbit needs at least 4 state vectors at increasing times')
     if not 0 <= ref < nimages:
-        raise ValueError(f'ref must be in 0 .. {nimages - 1}, not {ref}')
+        raise ArgumentError(f'ref must be in 0 .. {nimages - 1}, not {ref}')
     n_out = int(np.ceil((orbit_time[:, -1] - orbit_time[:, 0]).max()/_STEP)) + 1
     orbit_time, orbit_pos, orbit_vel = (np.ascontiguousarray(np.stack(a)) for a in
                                         zip(*(_resample(*o, n_out) for o in zip(orbit_time, orbit_pos, orbit_vel))))

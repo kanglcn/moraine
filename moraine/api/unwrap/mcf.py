@@ -4,6 +4,7 @@ __all__ = ['mcf_pc']
 
 import numpy as np
 from ..utils_.jit import mjit
+from ..utils_.errors import ArgumentError
 
 from .delaunay_ import delaunay_halfedges
 
@@ -287,7 +288,7 @@ def _mcf_cost_network(x, y, spatial_cost):
     if spatial_cost == 'constant':
         return (*_mcf_network(x, y), None)
     if spatial_cost != 'length':
-        raise ValueError(f'unknown spatial_cost {spatial_cost!r}: constant or length')
+        raise ArgumentError(f'unknown spatial_cost {spatial_cost!r}: constant or length')
     tri, half, hull, edges, edge_of_half, _ = _mcf_edges(x, y)
     cost = (1 + np.rint(_SPATIAL_COST_RANGE * _edge_length(x, y, edges))).astype(np.int32)
     return tri, half, hull, np.ascontiguousarray(cost[edge_of_half])

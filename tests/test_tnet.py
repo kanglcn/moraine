@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from moraine.api.tnet import TempNet, check_image_pairs, nimage_from_npair
+from moraine.api.utils_ import ArgumentError
 
 # image pairs against the data conventions: sorted without duplicates, every reference index smaller
 AGAINST_CONVENTIONS = [
@@ -91,13 +92,13 @@ def test_bandwidth_networks_are_valid(nimages):
     ([[0, 2]], 'not linked'),                               # image 1 has no pair
 ] + AGAINST_CONVENTIONS)
 def test_invalid_networks(pairs, match):
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         TempNet(np.asarray(pairs))
 
 
 @pytest.mark.parametrize('pairs, match', AGAINST_CONVENTIONS)
 def test_check_image_pairs(pairs, match):
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         check_image_pairs(pairs)
 
 
@@ -105,7 +106,7 @@ def test_conventions_do_not_need_linked_images():
     """A network may leave out images or have parts: the conventions hold, only `TempNet` needs all images linked."""
     for pairs in ([[0, 1], [2, 3]], [[1, 2], [1, 3], [2, 3]]):
         check_image_pairs(pairs)
-        with pytest.raises(ValueError, match='not linked'):
+        with pytest.raises(ArgumentError, match='not linked'):
             TempNet(pairs)
 
 

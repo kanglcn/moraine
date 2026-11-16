@@ -7,11 +7,12 @@ import math
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
+from .utils_.errors import ArgumentError
 
 def _imagepair_from_bandwidth(nimages,bandwidth=None):
     if bandwidth is None: bandwidth = nimages
     if bandwidth > nimages:
-        raise ValueError(f'bandwidth {bandwidth} is larger than the number of images {nimages}')
+        raise ArgumentError(f'bandwidth {bandwidth} is larger than the number of images {nimages}')
     ref, sec = np.triu_indices(nimages, 1)
     idx = np.where((sec-ref)<=bandwidth)
     return np.stack((ref[idx], sec[idx]),axis=-1).astype(np.int32)
@@ -30,22 +31,22 @@ def check_image_pairs(image_pairs):
     """
     image_pairs = np.asarray(image_pairs)
     if image_pairs.ndim != 2 or image_pairs.shape[1] != 2:
-        raise ValueError(f'image pairs must have shape (n_pairs, 2), got {image_pairs.shape}')
+        raise ArgumentError(f'image pairs must have shape (n_pairs, 2), got {image_pairs.shape}')
     if len(image_pairs) == 0:
-        raise ValueError('no image pairs')
+        raise ArgumentError('no image pairs')
     if image_pairs.min() < 0:
-        raise ValueError(f'image indices must be 0 or larger, got {image_pairs.min()}')
+        raise ArgumentError(f'image indices must be 0 or larger, got {image_pairs.min()}')
     ref, sec = image_pairs[:, 0].astype(np.int64), image_pairs[:, 1].astype(np.int64)
     bad = np.flatnonzero(ref >= sec)
     if len(bad):
         k = bad[0]
-        raise ValueError(f'the reference index must be smaller than the secondary index: pair {k} is '
+        raise ArgumentError(f'the reference index must be smaller than the secondary index: pair {k} is '
                          f'({ref[k]}, {sec[k]})')
     n_images = int(sec.max()) + 1
     bad = np.flatnonzero(np.diff(ref * n_images + sec) <= 0) + 1
     if len(bad):
         k = bad[0]
-        raise ValueError(f'image pairs must be sorted by reference and then secondary index, without duplicates: '
+        raise ArgumentError(f'image pairs must be sorted by reference and then secondary index, without duplicates: '
                          f'pair {k} ({ref[k]}, {sec[k]}) follows ({ref[k - 1]}, {sec[k - 1]})')
 
 def _check_linked(image_pairs):
@@ -58,7 +59,7 @@ def _check_linked(image_pairs):
     apart = np.flatnonzero(component != component[0])
     if len(apart):
         listed = ', '.join(str(i) for i in apart[:10]) + (', ...' if len(apart) > 10 else '')
-        raise ValueError(f'the image pairs do not link all the images 0 to {n_images - 1}: {len(apart)} images are not '
+        raise ArgumentError(f'the image pairs do not link all the images 0 to {n_images - 1}: {len(apart)} images are not '
                          f'linked to image 0: {listed}')
 
 class TempNet(object):
@@ -139,7 +140,7 @@ class TempNet(object):
             else:
                 ref = np.array(ref); sec = np.array(sec)
             if len(ref) != len(sec):
-                raise ValueError(f'ref and sec must have the same length, got {len(ref)} and {len(sec)}')
+                raise ArgumentError(f'ref and sec must have the same length, got {len(ref)} and {len(sec)}')
 
         query_1d = ref*self._n_images+sec
         mask = np.isin(query_1d,self._image_pairs_1d,invert=True)     # not assume_unique: queries may repeat pairs
@@ -159,4 +160,4 @@ def nimage_from_npair(npair):
         possible_nimage = possible_nimage+i
         if possible_nimage*(possible_nimage-1) == 2*npair:
             return possible_nimage
-    raise ValueError('input is not correct value of number of all pairs')
+    raise ArgumentError('input is not correct value of number of all pairs')

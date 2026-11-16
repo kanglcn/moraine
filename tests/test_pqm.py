@@ -3,6 +3,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.pqm import temp_coh
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr
 
 
@@ -150,7 +151,7 @@ def test_pc_su_dem_error_nan():
 def test_pc_su_dem_error_errors(change, match):
     args = _su_points(n=10, nimages=6)[0]
     args.update(change)
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ArgumentError, match=match):
         mr.pc_su_dem_error(**args)
 
 
@@ -184,5 +185,5 @@ def test_pc_su_dem_error_command(tmp_path):
                  '--wavelength', str(S1_WAVELENGTH), '--image_pairs', str(tmp_path / 'pairs.txt'),
                  '--max_dh', '30', '-q']) == 0
     np.testing.assert_array_equal(zarr.open(str(tmp_path / 't_c.zarr'), mode='r')[:], t_coh)
-    with pytest.raises(ValueError, match='between 0 and 1'):
+    with pytest.raises(ArgumentError, match='between 0 and 1'):
         mc.pc_su_dem_error(**paths, **out, wavelength=5.55, image_pairs=pairs)

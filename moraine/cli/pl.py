@@ -13,7 +13,7 @@ from ..api.utils_.chunk import all_chunk_slices, all_chunk_slices_with_overlap
 from .logging import mc_logger
 from .zarr_ import parallel_read_zarr, check_ndim
 from .executor import Executor, Chunk, Device, chunk_task
-from .utils_ import mk_clean_dir
+from .utils_ import ArgumentError, mk_clean_dir
 
 
 def _pc_by_ras_chunk(gix, chunks, shape, overlap):
@@ -187,7 +187,7 @@ def ds_temp_coh(
     logger = logging.getLogger(__name__)
     weighted = (t_coh_w is not None) or (eff_n_pairs is not None) or (n_components is not None)
     if weighted and n_looks is None:
-        raise ValueError('t_coh_w, eff_n_pairs and n_components need n_looks')
+        raise ArgumentError('t_coh_w, eff_n_pairs and n_components need n_looks')
     coh_zarr = zarr.open(coh, mode='r'); logger.zarr_info(coh, coh_zarr)
     ph_zarr = zarr.open(ph, mode='r'); logger.zarr_info(ph, ph_zarr)
     n_points, n_pairs = coh_zarr.shape

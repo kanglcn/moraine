@@ -5,6 +5,7 @@ import pytest
 
 import moraine as mr
 from moraine.api.ds.pl import emi, _emi, ds_temp_coh, emperical_co_emi_temp_coh_pc, _edge_pfa
+from moraine.api.utils_ import ArgumentError
 from conftest import REPO
 
 
@@ -458,7 +459,7 @@ def test_edge_pfa():
 @pytest.mark.parametrize('alpha', [0.0, 1e-7, 0.6])
 def test_ds_temp_coh_alpha(intermittent, alpha):
     coh, ph = intermittent
-    with pytest.raises(ValueError, match='alpha'):
+    with pytest.raises(ArgumentError, match='alpha'):
         ds_temp_coh(coh, ph, n_looks=60.0, alpha=alpha)
 
 

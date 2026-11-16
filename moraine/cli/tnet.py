@@ -10,6 +10,7 @@ import zarr
 
 from ..api.tnet import TempNet
 from .logging import mc_logger
+from .utils_ import ArgumentError
 
 
 @mc_logger
@@ -35,7 +36,7 @@ def image_pairs(
     """
     logger = logging.getLogger(__name__)
     if (rslc is None) == (nimages is None):
-        raise ValueError('give either `rslc` or `nimages`')
+        raise ArgumentError('give either `rslc` or `nimages`')
     if rslc is not None:
         nimages = zarr.open(rslc, mode='r').shape[-1]
     pairs = TempNet.from_bandwidth(nimages, bandwidth).image_pairs

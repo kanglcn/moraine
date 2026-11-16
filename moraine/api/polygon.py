@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+from .utils_.errors import ArgumentError
 
 # coordinates of the polygon vertices: longitude / latitude (GeoJSON default) or the radar grid (range, azimuth)
 COORDINATES = ('lonlat', 'radar_grid')
@@ -29,12 +30,12 @@ def write_polygons(
         pixel coordinates, stored as ``moraine_coordinates`` in the file)
     """
     if coordinates not in COORDINATES:
-        raise ValueError(f'coordinates must be one of {COORDINATES}, not {coordinates!r}')
+        raise ArgumentError(f'coordinates must be one of {COORDINATES}, not {coordinates!r}')
     features = []
     for poly in polygons:
         ring = [[float(x), float(y)] for x, y in poly]
         if len(ring) < 3:
-            raise ValueError(f'a polygon needs at least 3 vertices, got {len(ring)}')
+            raise ArgumentError(f'a polygon needs at least 3 vertices, got {len(ring)}')
         if ring[0] != ring[-1]:
             ring.append(ring[0])
         features.append({'type': 'Feature', 'properties': {},

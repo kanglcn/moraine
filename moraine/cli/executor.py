@@ -31,6 +31,7 @@ import numpy as np
 import zarr
 
 from .zarr_ import parallel_read_zarr, parallel_write_zarr
+from .utils_ import ArgumentError
 
 
 # ---------------------------------------------------------------- tasks
@@ -393,7 +394,7 @@ class Executor:
                 raise RuntimeError('cuda: CUDA_VISIBLE_DEVICES names no GPU')
             n = self.n_workers or len(gpus)
             if n > len(gpus):
-                raise ValueError(f'n_workers {n} GPU workers for {len(gpus)} GPUs in CUDA_VISIBLE_DEVICES')
+                raise ArgumentError(f'n_workers {n} GPU workers for {len(gpus)} GPUs in CUDA_VISIBLE_DEVICES')
             self._workers = _Processes(n, self.threads_per_worker, gpus[:n])
         elif self.processes:
             self._workers = _Processes(self.n_workers or 1, self.threads_per_worker, None)

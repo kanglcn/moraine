@@ -12,6 +12,7 @@ import numpy as np
 from numba import prange
 import math
 from ..utils_.jit import ngjit, ngpjit
+from ..utils_.errors import ArgumentError
 import zarr
 
 @ngjit
@@ -201,7 +202,7 @@ def _query_bounds(bounds):
     """query box as a tuple of 4 floats"""
     bounds = tuple(float(b) for b in bounds)
     if len(bounds) != 4:
-        raise ValueError(f'bounds must be [x0, y0, xm, ym], got {len(bounds)} values')
+        raise ArgumentError(f'bounds must be [x0, y0, xm, ym], got {len(bounds)} values')
     return bounds
 
 @ngjit
@@ -274,7 +275,7 @@ class HilbertRtree:
             number of points in every leaf node. should be same as pc_chunk_size.
         """
         if x.shape != y.shape:
-            raise ValueError(f'x and y must have the same shape, got {x.shape} and {y.shape}')
+            raise ArgumentError(f'x and y must have the same shape, got {x.shape} and {y.shape}')
         page_size = max(1, page_size)
         bounds_tree = _build_hillbert_rtree(x.astype(np.float64), y.astype(np.float64), page_size)
         return cls(bounds_tree,x.shape[0], page_size)

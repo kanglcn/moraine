@@ -1,7 +1,10 @@
 # Contract: JSON output
 
 Version 1. With `--json`, every `moraine` command prints exactly one JSON object on stdout (logs and
-progress bars go to stderr) and exits with 0 on success, 1 on a processing error and 2 on a usage error.
+progress bars go to stderr) and exits with 0 on success, 1 on a processing error and 2 on a usage error. A usage
+error is a wrong command line or pipeline file, or arguments that the command does not accept, wherever moraine finds
+them (decision 0051): values outside their allowed values, arguments missing or excluding each other, inputs whose
+shape, dtype or number of points do not fit. Problems found in the values of the data are processing errors.
 
 `tests/test_contracts.py` compares the fields listed here with the real output: required fields must be
 present, fields marked *optional* may be missing, other fields must not appear.

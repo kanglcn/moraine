@@ -10,6 +10,7 @@ from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.expr import evaluate
 from .logging import mc_logger
 from .executor import Executor, Chunk
+from .utils_ import ArgumentError
 
 
 def _math(*arrays, names, operation):
@@ -44,7 +45,7 @@ def math(output:str,
     z0 = zarrs[0]
     for name, z in zip(names, zarrs):
         if z.shape != z0.shape:
-            raise ValueError(f'{name}: shape {z.shape} differs from {names[0]}: {z0.shape}')
+            raise ArgumentError(f'{name}: shape {z.shape} differs from {names[0]}: {z0.shape}')
     # the dtype of the result from the expression on one element of every input
     dtype = evaluate(operation, {n: z[(0,) * z.ndim][None] for n, z in zip(names, zarrs)}).dtype
     out_zarr = zarr.open(output, mode='w', shape=z0.shape, dtype=dtype, chunks=z0.chunks)

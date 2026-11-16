@@ -9,6 +9,7 @@ import zarr
 
 import moraine as mr
 import moraine.cli as mc
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr, read_zarr as r
 
 pytestmark = pytest.mark.slow
@@ -166,7 +167,7 @@ def test_weighted_temp_coh(pl):
     for a, b in zip(mr.ds_temp_coh(coh, r(d / 'ds_can_ph.zarr'), n_looks=n_looks),
                     (r(d / 't_coh_s.zarr'), r(d / 't_coh_w_s.zarr'), r(d / 'eff_n_pairs_s.zarr'), r(d / 'n_components_s.zarr'))):
         np.testing.assert_array_equal(a, b)
-    with pytest.raises(ValueError, match='need n_looks'):
+    with pytest.raises(ArgumentError, match='need n_looks'):
         mc.ds_temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), t_coh_w=str(d / 'x.zarr'))
 
 
@@ -207,7 +208,7 @@ def test_temp_coh(pl, gpu):
     mc.temp_coh(str(d / 'ds_can_coh.zarr'), str(d / 'ds_can_ph.zarr'), str(d / f'pqm_t_coh_{gpu}.zarr'), cuda=gpu)
     np.testing.assert_array_almost_equal(r(d / f'pqm_t_coh_{gpu}.zarr'),
                                          mr.temp_coh(r(d / 'ds_can_coh.zarr'), r(d / 'ds_can_ph.zarr')))
-    with pytest.raises(ValueError, match='swapped'):      # intf and rslc swapped: reported before any task runs
+    with pytest.raises(ArgumentError, match='swapped'):      # intf and rslc swapped: reported before any task runs
         mc.temp_coh(str(d / 'ds_can_ph.zarr'), str(d / 'ds_can_coh.zarr'), str(d / 'pqm_swapped.zarr'), cuda=gpu)
 
 

@@ -7,6 +7,7 @@ from pyproj import Transformer
 
 from moraine.api.utils_ import orbit
 from moraine.api.utils_.orbit import bperp
+from moraine.api.utils_ import ArgumentError
 
 A, H, V = 6378137.0, 700e3, 7000.0     # WGS84 semi-major axis, orbit height, speed
 
@@ -140,11 +141,11 @@ def test_bperp_nan_and_points_not_seen():
 def test_bperp_input_errors():
     otime, opos, ovel = _stack(_line(A + H, 0.0), _line(A + H + 40.0, 150.0))
     lon, lat, hgt = _points(5)
-    with pytest.raises(ValueError, match='same shape'):
+    with pytest.raises(ArgumentError, match='same shape'):
         bperp(lon, lat[:4], hgt, otime, opos, ovel)
-    with pytest.raises(ValueError, match='ref'):
+    with pytest.raises(ArgumentError, match='ref'):
         bperp(lon, lat, hgt, otime, opos, ovel, ref=2)
     with pytest.raises(ValueError, match='increasing'):
         bperp(lon, lat, hgt, otime[:, ::-1], opos, ovel)
-    with pytest.raises(ValueError, match='shape'):
+    with pytest.raises(ArgumentError, match='shape'):
         bperp(lon, lat, hgt, otime, opos[:, :, :2], ovel)

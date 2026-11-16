@@ -37,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 from ..api.tnet import check_image_pairs
-from ..cli.utils_ import ArgumentError
+from ..api.utils_.errors import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'ts', 'plot']

@@ -14,6 +14,7 @@ from numba import njit
 import moraine as mr
 from moraine.api.unwrap.mcf import mcf_pc, _mcf_network, _mcf_residues, _mcf_ssp, _mcf_integrate
 from moraine.api.unwrap.gamma import gamma_mcf_pt
+from moraine.api.utils_ import ArgumentError
 from conftest import write_zarr, need_gamma
 
 
@@ -241,7 +242,7 @@ def test_mcf_pc_length_cost():
                                np.stack((x, y))[:, _mcf_edges(x, y)[3][:, 0]])))
     np.testing.assert_array_equal(cost, 1 + np.rint(99 * np.minimum(med / length, 1)).astype(np.int32))
     assert _mcf_cost_network(x, y, 'constant')[3] is None
-    with pytest.raises(ValueError, match='spatial_cost'):
+    with pytest.raises(ArgumentError, match='spatial_cost'):
         mcf_pc(x, y, intf, spatial_cost='weight')
 
 
@@ -436,20 +437,20 @@ def test_emcf_spatial_costs(spatial_cost):
 
 def test_emcf_errors():
     x, y, t, b, true, ph = emcf_synthetic(noise=0.0, n=300)
-    with pytest.raises(ValueError, match='temporal_cost'):
+    with pytest.raises(ArgumentError, match='temporal_cost'):
         mr.emcf_pc(x, y, ph, t, temporal_cost='cheap')
-    with pytest.raises(ValueError, match='acquisition times'):
+    with pytest.raises(ArgumentError, match='acquisition times'):
         mr.emcf_pc(x, y, ph, temporal_cost='length')
     mr.emcf_pc(x, y, ph)                                                      # t only for 'length'
-    with pytest.raises(ValueError, match='temporal_cost'):
+    with pytest.raises(ArgumentError, match='temporal_cost'):
         mr.emcf_pc(x, y, ph, t, temporal_cost='length+gradient')              # removed (decision 0020)
-    with pytest.raises(ValueError, match='spatial_cost'):
+    with pytest.raises(ArgumentError, match='spatial_cost'):
         mr.emcf_pc(x, y, ph, t, spatial_cost='gradient+length')               # removed (decision 0020)
-    with pytest.raises(ValueError, match='weights'):
+    with pytest.raises(ArgumentError, match='weights'):
         mr.emcf_pc(x, y, ph, t, spatial_cost='weight')
-    with pytest.raises(ValueError, match='two different images'):
+    with pytest.raises(ArgumentError, match='two different images'):
         mr.emcf_pc(x, y, ph, t, image_pairs=np.array([[0, 0], [0, 1]]))
-    with pytest.raises(ValueError, match='shape'):
+    with pytest.raises(ArgumentError, match='shape'):
         mr.emcf_pc(x, y, ph, t[:-1])
 
 
@@ -570,18 +571,18 @@ def test_closure_without_loops_and_errors():
         mr.unwrap_correct_closure_pc(x, y, ph, exact + 1.0, pairs)
     with pytest.warns(UserWarning, match='no loop'), pytest.raises(ValueError, match='rewrap'):
         mr.unwrap_correct_closure_pc(x, y, ph, unw + 1.0, seq)
-    with pytest.raises(ValueError, match='image_pairs'):
+    with pytest.raises(ArgumentError, match='image_pairs'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact[:, :-1], pairs)
-    with pytest.raises(ValueError, match='two different images'):
+    with pytest.raises(ArgumentError, match='two different images'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, np.where(pairs == 11, 12, pairs))
     two = np.r_[hop3(6), hop3(6) + 6]                                      # images 0..5 and 6..11 not linked
-    with pytest.raises(ValueError, match='connect all images'):
+    with pytest.raises(ArgumentError, match='connect all images'):
         mr.unwrap_correct_closure_pc(x, y, ph, (d['true'][:, two[:, 0]] - d['true'][:, two[:, 1]]), two)
-    with pytest.raises(ValueError, match='ref'):
+    with pytest.raises(ArgumentError, match='ref'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, ref=12)
-    with pytest.raises(ValueError, match='max_edge_factor'):
+    with pytest.raises(ArgumentError, match='max_edge_factor'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, max_edge_factor=1.0)
-    with pytest.raises(ValueError, match='min_region_points'):
+    with pytest.raises(ArgumentError, match='min_region_points'):
         mr.unwrap_correct_closure_pc(x, y, ph, exact, pairs, min_region_points=0)
 
 
@@ -620,14 +621,14 @@ def test_cli_emcf_pc_errors(tmp_path):
     pairs = hop3(len(t))
     args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
     by_point = write_zarr(tmp_path / 'ph_rows.zarr', ph, (100, len(t)))
-    with pytest.raises(ValueError, match='one image per chunk'):
+    with pytest.raises(ArgumentError, match='one image per chunk'):
         mc.emcf_pc(gix, by_point, pairs, str(tmp_path / 'u.zarr'), **args)
     ph_path = write_zarr(tmp_path / 'ph.zarr', ph, (100, 1))
-    with pytest.raises(ValueError, match='acquisition times'):
+    with pytest.raises(ArgumentError, match='acquisition times'):
         mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), temporal_cost='length', **args)
-    with pytest.raises(ValueError, match='dates'):
+    with pytest.raises(ArgumentError, match='dates'):
         mc.emcf_pc(gix, ph_path, pairs, str(tmp_path / 'u.zarr'), dates=['20210101', '20210113'], **args)
-    with pytest.raises(ValueError, match='two different images'):
+    with pytest.raises(ArgumentError, match='two different images'):
         mc.emcf_pc(gix, ph_path, np.array([[0, 0]]), str(tmp_path / 'u.zarr'), **args)
 
 
@@ -674,19 +675,19 @@ def test_cli_unwrap_correct_closure_pc_errors(tmp_path):
     args = dict(range_pixel_spacing=1.0, azimuth_pixel_spacing=1.0)
     out = str(tmp_path / 'ts.zarr')
     rows = write_zarr(tmp_path / 'unw_rows.zarr', unw, (500, unw.shape[1]))
-    with pytest.raises(ValueError, match='one image'):
+    with pytest.raises(ArgumentError, match='one image'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], rows, pairs, out, **args)
     shifted = write_zarr(tmp_path / 'unw_shifted.zarr', unw + 1.0, (500, 1))
     with pytest.raises(ValueError, match='rewrap'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], shifted, pairs, out, **args)
     assert (tmp_path / 'ts.zarr.tmp').exists()                            # kept when the command fails
-    with pytest.raises(ValueError, match='columns'):
+    with pytest.raises(ArgumentError, match='columns'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs[:-1], out, **args)
-    with pytest.raises(ValueError, match='ref'):
+    with pytest.raises(ArgumentError, match='ref'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], paths['unw'], pairs, out, ref=-1, **args)
     two = np.r_[hop3(6), hop3(6) + 6]
     two_unw = write_zarr(tmp_path / 'unw_two.zarr', unw[:, :len(two)].copy(), (500, 1))
-    with pytest.raises(ValueError, match='connect all images'):
+    with pytest.raises(ArgumentError, match='connect all images'):
         mc.unwrap_correct_closure_pc(paths['gix'], paths['ph'], two_unw, two, out, **args)
     seq = np.c_[np.arange(11), np.arange(1, 12)]
     seq_unw = (d['true'][:, seq[:, 0]] - d['true'][:, seq[:, 1]]).astype(np.float32)
@@ -716,7 +717,7 @@ def test_cli_mcf_pc(tmp_path, chunk):
             ref = mcf_pc(gix[:, 1] * 4.0, gix[:, 0] * 3.0, ph[:, a] * ph[:, b_].conj(), spatial_cost=sc)
             np.testing.assert_array_equal(z[:, k], ref.astype(np.float32))
     rows = write_zarr(tmp_path / 'ph_rows.zarr', ph, (chunk, len(t)))
-    with pytest.raises(ValueError, match='one image per chunk'):
+    with pytest.raises(ArgumentError, match='one image per chunk'):
         mc.mcf_pc(paths['gix'], rows, str(tmp_path / 'u.zarr'), pairs, range_pixel_spacing=1.0,
                   azimuth_pixel_spacing=1.0)
 

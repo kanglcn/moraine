@@ -6,6 +6,7 @@ __all__ = ['evaluate']
 import ast
 
 import numpy as np
+from .errors import ArgumentError
 
 _BINARY = {ast.Add: np.add, ast.Sub: np.subtract, ast.Mult: np.multiply, ast.Div: np.true_divide, ast.Pow: np.power,
            ast.Mod: np.remainder, ast.LShift: np.left_shift, ast.RShift: np.right_shift, ast.BitAnd: np.bitwise_and,
@@ -68,7 +69,7 @@ def _eval(node, arrays, expression):
         return node.value
     if isinstance(node, ast.Name):
         if node.id not in arrays:
-            raise ValueError(f'expression {expression!r}: unknown name {node.id!r}; the arrays are '
+            raise ArgumentError(f'expression {expression!r}: unknown name {node.id!r}; the arrays are '
                              f'{", ".join(arrays) or "none"}')
         return arrays[node.id]
     if isinstance(node, ast.BinOp) and type(node.op) in _BINARY:
@@ -80,7 +81,7 @@ def _eval(node, arrays, expression):
     if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in _FUNCTIONS
             and not node.keywords):
         return _apply(_FUNCTIONS[node.func.id], *[ev(a) for a in node.args])
-    raise ValueError(f'expression {expression!r}: not supported: {_unsupported(node)}')
+    raise ArgumentError(f'expression {expression!r}: not supported: {_unsupported(node)}')
 
 
 def evaluate(expression:str, arrays:dict)->np.ndarray:
@@ -110,6 +111,6 @@ def evaluate(expression:str, arrays:dict)->np.ndarray:
     try:
         tree = ast.parse(expression, mode='eval')
     except SyntaxError as e:
-        raise ValueError(f'expression {expression!r}: invalid syntax ({e.msg})') from None
+        raise ArgumentError(f'expression {expression!r}: invalid syntax ({e.msg})') from None
     with np.errstate(all='ignore'):
         return np.asarray(_eval(tree.body, arrays, expression))

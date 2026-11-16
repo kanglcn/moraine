@@ -22,7 +22,7 @@ from ..api.pc.rtree import HilbertRtree
 from .logging import mc_logger
 from ..api.utils_.coord import Coord
 from . import mk_clean_dir, parallel_write_zarr, parallel_read_zarr
-from .utils_ import write_toml
+from .utils_ import ArgumentError, write_toml
 
 # layout version of the pyramids, see docs/contracts/pyramid.md
 PYRAMID_VERSION = 1
@@ -263,9 +263,9 @@ def ras_pyramid(
         renders one channel of the raster
     """
     if rows < 1 or rows & (rows - 1):
-        raise ValueError(f'rows must be a power of 2, not {rows}')
+        raise ArgumentError(f'rows must be a power of 2, not {rows}')
     if method not in _METHODS['raster']:
-        raise ValueError(f"method must be one of {_METHODS['raster']}, not {method!r}")
+        raise ArgumentError(f"method must be one of {_METHODS['raster']}, not {method!r}")
     logger = logging.getLogger(__name__)
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)
@@ -410,12 +410,12 @@ def pc_pyramid(
         holds one channel: the data of the points and the finest raster of the channel (3 rasters with 'mean')
     """
     if method not in _METHODS['point cloud']:
-        raise ValueError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
+        raise ArgumentError(f"method must be one of {_METHODS['point cloud']}, not {method!r}")
     logger = logging.getLogger(__name__)
     pc_zarr = zarr.open(pc,mode='r')
     logger.zarr_info(pc, pc_zarr)
     if pc_zarr.shape[0] == 0:       # the grid of the levels is placed on the points (docs/contracts/pyramid.md)
-        raise ValueError(f'the point cloud is empty: {pc} has no points; a point cloud pyramid needs at least one')
+        raise ArgumentError(f'the point cloud is empty: {pc} has no points; a point cloud pyramid needs at least one')
     logger.info('clean out dir')
     out_dir = Path(out_dir); mk_clean_dir(out_dir)
 
@@ -424,7 +424,7 @@ def pc_pyramid(
     if x is None and y is None:
         yx_zarr = zarr.open(yx,mode='r')
         if yx_zarr.ndim != 2 or yx_zarr.shape[1] != 2:
-            raise ValueError(f'yx must have shape (n_points, 2), got {yx_zarr.shape}')
+            raise ArgumentError(f'yx must have shape (n_points, 2), got {yx_zarr.shape}')
         yx = parallel_read_zarr(yx_zarr,(slice(None),slice(0,2)))
     else:
         y_zarr = zarr.open(y,mode='r')

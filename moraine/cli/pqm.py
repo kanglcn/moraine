@@ -12,6 +12,7 @@ from ..api.pqm import _check_su_inputs, _remove_su_dem_error
 from ..api.utils_.chunk import all_chunk_slices
 from .logging import mc_logger
 from .executor import Executor, Chunk
+from .utils_ import ArgumentError
 
 @mc_logger
 def temp_coh(
@@ -63,9 +64,9 @@ def temp_coh(
         image_pairs = mr.TempNet.from_bandwidth(nimage).image_pairs
     image_pairs = np.asarray(image_pairs).astype(np.int32)
     if intf_zarr.shape[:-1] != rslc_zarr.shape[:-1]:
-        raise ValueError(f'temp-coh: intf {intf_zarr.shape} and rslc {rslc_zarr.shape} do not have the same points or pixels')
+        raise ArgumentError(f'temp-coh: intf {intf_zarr.shape} and rslc {rslc_zarr.shape} do not have the same points or pixels')
     if image_pairs.shape[0] != n_pairs or (image_pairs.size and image_pairs.max() >= nimage):
-        raise ValueError(f'temp-coh: intf has {n_pairs} interferograms and rslc {nimage} images, but image_pairs has '
+        raise ArgumentError(f'temp-coh: intf has {n_pairs} interferograms and rslc {nimage} images, but image_pairs has '
                          f'{image_pairs.shape[0]} pairs of images up to {image_pairs.max() if image_pairs.size else "-"}; '
                          'are intf and rslc swapped?')
     t_coh_zarr = zarr.open(t_coh, mode='w', shape=shape, dtype=np.float32, chunks=chunks)
