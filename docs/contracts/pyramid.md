@@ -59,6 +59,8 @@ attribute `columns` (nan_fraction, min, max, mean, std, p01, p50, p99), has the 
   point is in the cell of its nearest centre and the grid reaches the cells of the largest coordinates, so
   `bounds` = [min x, min y, x0 + (width - 1) * ras_resolution, y0 + (nlines - 1) * ras_resolution] and points
   in different cells never share one.
+- A point cloud pyramid has at least one point: the grid is placed on the points, and `pc-pyramid` rejects a point
+  cloud without points.
 - Cells without points are nan in `l.zarr` and -1 in `idx_l.zarr`; the cells have the dtype of the points for
   floating point and complex data and are float32 for integer and boolean data.
 - `idx_l` keeps the first non empty cell of each 2 x 2 block for the next level. With `method` first, `l.zarr`

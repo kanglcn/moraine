@@ -145,6 +145,27 @@ def test_main_error(tmp_path, capsys):
     assert json_out(capsys)['ok'] is False
 
 
+def test_arguments_a_command_rejects_are_usage_errors(tmp_path, capsys, rng):
+    """Arguments that a command rejects as not fitting together (an ArgumentError) are a usage error, exit code 2,
+    with the message of the command: pc-select-data of a grid index by a hilbert index without --shape (a processing
+    error before, exit code 1: "TypeError: cannot unpack non-iterable NoneType object"). With --shape it runs."""
+    import moraine as mr
+    gix = random_gix(rng, (40, 30), 50)
+    write_zarr(tmp_path / 'gix.zarr', gix); write_zarr(tmp_path / 'hix.zarr', np.sort(mr.pc_hix(gix, (40, 30))))
+    write_zarr(tmp_path / 'pc.zarr', rng.random(50).astype(np.float32))
+    args = ['pc-select-data', '--idx_in', str(tmp_path / 'gix.zarr'), '--idx', str(tmp_path / 'hix.zarr'),
+            '--pc_in', str(tmp_path / 'pc.zarr'), '--pc', str(tmp_path / 'out.zarr'), '--json', '-q']
+    capsys.readouterr()
+    assert main(args) == 2
+    captured = capsys.readouterr()
+    error = ('shape (nlines, width) is needed when a grid index and a hilbert index are mixed: idx_in is a grid index, '
+             'idx a hilbert index')
+    assert json.loads(captured.out) == {'version': 1, 'ok': False, 'error': error}
+    assert f'moraine: error: {error}' in captured.err and '--traceback' not in captured.err
+    assert not (tmp_path / 'out.zarr').exists()
+    assert main(args + ['--shape', '40', '30']) == 0 and json_out(capsys)['ok']
+
+
 # ---------------------------------------------------------------- pipeline
 
 PIPELINE = '''

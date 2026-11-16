@@ -16,7 +16,7 @@ from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.expr import evaluate
 from .zarr_ import ZarrDir, _parallel_read_pc_dir, whole_trailing, _parallel_read_pc_dir_whole
 from .executor import Executor, Chunk
-from .utils_ import mk_clean_dir
+from .utils_ import ArgumentError, mk_clean_dir
 
 
 def _channels(extra):
@@ -897,8 +897,8 @@ def pc_select_data(
     pc : str | list
         output, path (in string) or list of path for the output point cloud data
     shape : tuple[int, int], optional
-        shape of the raster data the point cloud from, must be provided if `idx` is hix, or if `idx_in` and `idx`
-        are grid indices and one of them is empty
+        image shape (nlines, width): needed if `idx_in` is a grid index and `idx` a hilbert index, or if both are
+        grid indices and one of them is empty
     chunks : int, optional
         point chunk size of the output data, same as `idx` by default
     processes : default: False
@@ -912,6 +912,9 @@ def pc_select_data(
     logger = logging.getLogger(__name__)
     idx_in_zarr = zarr.open(idx_in_path,mode='r'); logger.zarr_info(idx_in_path,idx_in_zarr)
     idx_zarr = zarr.open(idx_path,mode='r'); logger.zarr_info(idx_path,idx_zarr)
+    if (idx_in_zarr.ndim == 2) and (idx_zarr.ndim == 1) and shape is None:
+        raise ArgumentError('shape (nlines, width) is needed when a grid index and a hilbert index are mixed: '
+                            'idx_in is a grid index, idx a hilbert index')
     logger.info('loading idx_in and idx into memory.')
     idx_in = idx_in_zarr[:]; idx = idx_zarr[:]
     if idx_in.ndim == idx.ndim:

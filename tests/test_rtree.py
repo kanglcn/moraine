@@ -77,6 +77,20 @@ def test_empty_query(big):
     assert rtree.bbox_query([2, 2, 3, 3], x, y).size == 0
 
 
+def test_tree_of_no_points(tmp_path):
+    """A tree of no points (build raised an OverflowError) finds no points in any box, also once saved and loaded."""
+    x, y = np.zeros(0), np.zeros(0)
+    rtree = HilbertRtree.build(x, y)
+    rtree.save(str(tmp_path / 'rtree.zarr'))
+    loaded = HilbertRtree.load(str(tmp_path / 'rtree.zarr'))
+    for tree in (rtree, loaded):
+        for bounds in ([-1e300, -1e300, 1e300, 1e300], [0, 0, 1, 1]):
+            ranges, is_covered = tree.maybe_covered_ranges(bounds)
+            assert ranges.shape == (0, 2) and is_covered.shape == (0,)
+            idx = tree.bbox_query(bounds, x, y)
+            assert idx.shape == (0,) and idx.dtype == np.int64
+
+
 def test_pickle(big):
     # pickling (e.g. to send the tree to a worker process) leaves both the tree and its copy usable
     x, y, rtree = big
