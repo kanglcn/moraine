@@ -181,9 +181,10 @@ def quicklook(
         (-pi, pi) for phases, the 1 % - 99 % range of the data otherwise and +-(p99 - p01) for the differences of two
         images of a real stack
     image_pairs : str, optional
-        image pairs of the compressed coherence shown with 'coh' / 'coh_abs', one column per pair: a text file of two
-        columns, reference and secondary image index, as made by `moraine image-pairs`, read and checked like the
-        `image_pairs` of the processing commands; all pairs of the images by default
+        image pairs of the compressed coherence shown with 'coh' / 'coh_abs' (a UsageError with another show), one
+        column per pair: a text file of two columns, reference and secondary image index, as made by `moraine
+        image-pairs`, read and checked like the `image_pairs` of the processing commands; all pairs of the images by
+        default
 
     Returns
     -------
@@ -226,7 +227,7 @@ def view(
     No server or port forwarding is needed: the kernel reads the data on the machine that holds them. Wrong inputs
     raise a UsageError (the command exits with 2), as for `quicklook`: an `out` that is not a notebook name or that
     exists without `overwrite` (before anything is read), a path that is not a pyramid or a pyramid to rebuild, an
-    `image_pairs` that cannot be read or breaks the data conventions.
+    `image_pairs` without the show 'coh' / 'coh_abs', that cannot be read or that breaks the data conventions.
 
     Parameters
     ----------
@@ -244,8 +245,8 @@ def view(
     overwrite : bool, default: False
         replace an existing notebook; an existing notebook is a UsageError without it
     image_pairs : str, optional
-        image pairs of the compressed coherence shown with 'coh' / 'coh_abs', a text file as for `quicklook`, given
-        to the maps by its absolute path; all pairs of the images by default
+        image pairs of the compressed coherence shown with 'coh' / 'coh_abs' (a UsageError with another show), a text
+        file as for `quicklook`, given to the maps by its absolute path; all pairs of the images by default
 
     Returns
     -------
@@ -253,9 +254,14 @@ def view(
         the notebook written: `out`, with .ipynb appended to a name without a suffix
     """
     import json
+    from ..cli.tiles import _image_pairs_show
     out = Path(_notebook_name(out, overwrite))      # UsageError, before anything is read
     for pyr in pyramids:
         _pyramid_input(pyr)                         # UsageError
+    try:        # the maps would raise it when the notebook runs
+        _image_pairs_show(show, image_pairs)
+    except ValueError as e:
+        raise UsageError(str(e)) from None
     pairs = None if image_pairs is None else _pairs_input(image_pairs)     # UsageError
 
     def cell(kind, text):

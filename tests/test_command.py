@@ -867,6 +867,32 @@ def test_quicklook_and_view_image_pairs(tmp_path, capsys, rng, monkeypatch):
     assert '--image_pairs FILE' in capsys.readouterr().out
 
 
+def test_quicklook_and_view_image_pairs_need_a_coherence_show(tmp_path, capsys):
+    """`moraine quicklook` and `moraine view` with `--image_pairs` and without `--show coh` / `coh_abs` stop with a usage
+    error (exit code 2) that says that only these shows use them, before they draw or write anything; they ignored the
+    image pairs, and the maps of the notebook would have failed with this error when run."""
+    import moraine.cli as mc
+    pairs = [(0, 1), (0, 2), (1, 2)]
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    write_zarr(tmp_path / 'coh.zarr', np.ones((12, 3), np.complex64), (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    for command, out in (('quicklook', tmp_path / 'q.png'), ('view', tmp_path / 'v.ipynb')):
+        for show, given in (([], 'the default show'), (['--show', 'phase'], "show='phase'")):
+            assert main([command, str(tmp_path / 'pyr'), '-o', str(out), *show, '--image_pairs',
+                         str(tmp_path / 'pairs.txt'), '--json']) == 2, (command, show)
+            assert json_out(capsys) == {'version': 1, 'ok': False, 'error': "image_pairs is used only by show='coh' / "
+                                                                           f"'coh_abs', not by {given}"}
+            assert not out.exists()
+        assert main([command, str(tmp_path / 'pyr'), '-o', str(out), '--show', 'coh', '--image_pairs',
+                     str(tmp_path / 'pairs.txt'), '--json']) == 0
+        assert out.exists()
+        capsys.readouterr()
+
+
 def test_quicklook_and_view_accept_options_with_dashes(tmp_path, capsys, rng):
     """`moraine quicklook` and `moraine view` accept `--image-pairs` for `--image_pairs`, as the processing commands
     accept `--a-b` for `--a_b`; argparse stopped with "unrecognized arguments: --image-pairs" (exit code 2). Their help

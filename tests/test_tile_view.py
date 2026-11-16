@@ -439,6 +439,22 @@ def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
     assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
 
 
+def test_image_pairs_need_a_coherence_show(tmp_path):
+    """image_pairs, used only by show='coh' / 'coh_abs', are a ValueError with another show when the view is made, the
+    default show, a named show or a function; they were ignored without a word."""
+    import re
+    pairs = np.array([(0, 1), (0, 2), (1, 2)])
+    np.savetxt(tmp_path / 'pairs.txt', pairs, fmt='%d')
+    _, pyr = _coh_pc(tmp_path, pairs)
+    for show, given in [(None, 'the default show'), ('phase', "show='phase'"), ('intf_all', "show='intf_all'"),
+                        (lambda v, i: np.abs(v[..., i]), 'a show function')]:
+        for image_pairs in (str(tmp_path / 'pairs.txt'), pairs):
+            with pytest.raises(ValueError, match=re.escape(f"image_pairs is used only by show='coh' / 'coh_abs', not by "
+                                                           f'{given}') + '$'):
+                view(str(pyr), show=show, image_pairs=image_pairs)
+    assert [k['max'] for k in view(str(pyr), show='coh_abs', image_pairs=pairs).kdims] == [2, 2]
+
+
 def test_coherence_image_pairs_must_be_integers(tmp_path):
     """Image pairs whose values are not integers, in a file or an array, are a ValueError that names the first such
     value; they were read as int32, which truncated 0.5 to 0 without a word. Floats of integer values, as `np.savetxt`

@@ -282,11 +282,19 @@ def _crs(x0, y0, xm, ym, res, crs, what):
     return 'web_mercator'
 
 
+def _image_pairs_show(show, image_pairs):
+    """ValueError for `image_pairs` given with a `show` other than 'coh' / 'coh_abs', the only ones that use them."""
+    if image_pairs is not None and show not in ('coh', 'coh_abs'):
+        given = 'the default show' if show is None else 'a show function' if callable(show) else f'show={show!r}'
+        raise ValueError(f"image_pairs is used only by show='coh' / 'coh_abs', not by {given}")
+
+
 def _show(base, show, image_pairs, sliders, dates, shape):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
     colours, default slider values) of a `show` option for the level 0 `base` of data of `shape` (of the points for a
     point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
     stack), None for a function (guessed from its values)."""
+    _image_pairs_show(show, image_pairs)
     stack = tuple(base.shape[2:])
     if 0 in stack:                                   # its sliders would be 0 .. -1: every tile would fail
         raise ValueError(f'data of shape {shape}: a stack without images or image pairs (a stack dimension of length '
@@ -1252,7 +1260,8 @@ def view(
     image_pairs : str, optional
         image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs', sorted by reference and then
         secondary index without duplicates, every reference index smaller than its secondary index, as made by
-        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2
+        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2. Given with another show, a
+        ValueError
     sliders : dict, optional
         number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
         shape or `dates` by default
