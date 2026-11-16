@@ -20,9 +20,9 @@ moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...)
 | `examples/01_load.toml` | [01 载入 GAMMA 结果](01_load.md) | GAMMA 结果转 zarr，坐标，web mercator | `WORK/raw/` |
 | `examples/02_ps.toml` | [02 PS 候选点](02_ps.md) | 幅度离差 + Noise2Fringe 时间相干性 | `WORK/ps/` |
 | `examples/03_ds.toml` | [03 DS 处理](03_ds.md) | SHP、DS 候选点、相干性、相位连接、DS 筛选 | `WORK/ds/` |
-| `examples/04_refine.toml` | [04 合并与精化](04_refine.md) | PS + DS，Noise2Fringe Transformer，时间相干性 | `WORK/pc/` |
+| `examples/04_refine.toml` | [04 合并与精化](04_refine.md) | PS + DS，Noise2Fringe Transformer，拟合相对邻域 DEM 误差后的时间相干性 | `WORK/pc/` |
 | `examples/05_unwrap.toml` | [05 相位解缠](05_unwrap.md) | 像对网络上的 EMCF、相位闭合校正、每景的解缠相位 | `WORK/unw/` |
-| `examples/06_products.toml` | [06 形变产品](06_products.md) | 参考区、视线向位移（毫米） | `WORK/disp/` |
+| `examples/06_products.toml` | [06 形变产品](06_products.md) | 参考区、视线向位移（毫米）、DEM 误差 | `WORK/disp/` |
 
 要改参数，把文件复制到工作目录再改副本，或者用 `--var name=value` 覆盖 `[vars]` 里的值。再次运行时，参数和输入都没变
 的步骤会被跳过，改动下游的步骤重跑；`moraine run FILE --dry-run` 显示计划，`moraine status FILE` 显示状态。失败的

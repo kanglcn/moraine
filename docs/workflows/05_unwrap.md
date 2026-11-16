@@ -9,7 +9,9 @@ moraine run examples/05_unwrap.toml --workdir WORK
 
 Set `[vars] shape` to the (nlines, width) of `raw/rslc.zarr`; the default is the one of the sample data set
 (981 x 4160). The pixel spacings (`range_pixel_spacing`, `azimuth_pixel_spacing` in meters, 2.329562 m and 13.9516 m
-for the sample data) are read from `raw/meta.toml` of `01_load`; they convert the grid index to meters.
+for the sample data) are read from `raw/meta.toml` of `01_load`; they convert the grid index to meters. The phase
+unwrapped is that of the refined points without their DEM error relative to the neighbourhood, `pc/pc_ph_demcor.zarr`
+of `04_refine` (decision 0048): a point on a roof does not differ from the ground around it by the baselines.
 
 ## Steps
 
@@ -44,20 +46,20 @@ Outputs in `WORK/unw/`:
   changed.
 - `pc_region.zarr` (n_points,) int32: the region of every point, -1 for points of small regions.
 
-## Expected results (sample data, Campi Flegrei, 330 754 points, 270 interferograms of 92 images)
+## Expected results (sample data, Campi Flegrei, 336 830 points, 270 interferograms of 92 images)
 
 | result | sample value | sane range |
 |---|---|---|
-| log of `closure` | loops do not close at 1.1 % of the points; 87 regions, 0.41 % of the points in smaller ones; the unwrapped phase changed at 1.1 % of the points, on average in 0.01 % of their interferograms | a few % of the points |
-| `unw/pc_ts_pyramid` | p01 -6.7, p50 0.76, p99 43.1, min -28.1, max 84.3 (radians); warning "constant values: image 0" | image 0 is 0 everywhere (the reference image); a smooth uplift of tens of radians at Pozzuoli |
-| `unw/pc_change_fraction_pyramid` | p50 0, p99 0.0037, max 0.074 | mostly 0; large values mark points whose unwrapping was poor |
+| log of `closure` | loops do not close at 1.1 % of the points; 86 regions, 0.41 % of the points in smaller ones; the unwrapped phase changed at 1.1 % of the points, on average in 0.01 % of their interferograms | a few % of the points |
+| `unw/pc_ts_pyramid` | p01 -6.8, p50 0.57, p99 42.7, min -23.3, max 84.2 (radians); warning "constant values: image 0" | image 0 is 0 everywhere (the reference image); a smooth uplift of tens of radians at Pozzuoli |
+| `unw/pc_change_fraction_pyramid` | p50 0, p99 0.0037, max 0.070 | mostly 0; large values mark points whose unwrapping was poor |
 
-Run time (CPU, 64 cores): `emcf-pc` 18.6 s, `unwrap-correct-closure-pc` 9.6 s, the two pyramids 9.3 s; 45 s and
-3.8 GB peak memory for the pipeline.
+Run time (CPU, 128 cores): `emcf-pc` 7.5 s, `unwrap-correct-closure-pc` 5.9 s, the two pyramids 8.6 s; 26 s and
+6.1 GB peak memory for the pipeline.
 
-Correctness check (in python): rewrapping gives the input phase, `np.angle(np.exp(1j * ts[:, j]) * np.conj(ph[:, j]
-* np.conj(ph[:, 0])))` near 0 (sample: max 3.9e-06 rad), and the same for `pc_unw` and its image pairs (max
-1.8e-06 rad).
+Correctness check (in python): rewrapping gives the input phase `ph` (`pc/pc_ph_demcor.zarr`),
+`np.angle(np.exp(1j * ts[:, j]) * np.conj(ph[:, j] * np.conj(ph[:, 0])))` near 0 (sample: max 4.0e-06 rad), and the
+same for `pc_unw` and its image pairs (max 2.6e-06 rad).
 
 Large data: 10 million points, 100 images, 294 interferograms: `emcf-pc` takes 13 min with 4 interferograms at
 the same time (8.2 GB peak memory) and 6 min with 32 (51 GB; the default on a 32 core machine is bounded by the
@@ -66,7 +68,8 @@ one image per chunk (`docs/contracts/data.md`).
 
 ## Figures
 
-Quicklooks of the sample data run of 2026-10-19 (the numbers above are from the same run):
+Quicklooks of the sample data run of 2026-10-19 (the numbers above are of the run of 2026-11-15, with 1.8 % more
+points and the phase without the DEM error relative to the neighbourhood; the maps look the same):
 
 ![Unwrapped phase of the last image](../assets/campi/05_ts_91.webp)
 
@@ -106,7 +109,7 @@ results to get the phase of every image; without loops it only adds up the inter
 [[step]]
 name = "pairs_seq"
 run = "image-pairs"
-rslc = "pc/pc_ph.zarr"
+rslc = "pc/pc_ph_demcor.zarr"
 bandwidth = 1
 out = "unw/pairs_seq.txt"
 
@@ -114,7 +117,7 @@ out = "unw/pairs_seq.txt"
 name = "unwrap_mcf"
 run = "mcf-pc"
 gix = "unw/pc_gix.zarr"
-ph = "pc/pc_ph.zarr"
+ph = "pc/pc_ph_demcor.zarr"
 unw_ph = "unw/pc_unw_seq.zarr"
 image_pairs = "unw/pairs_seq.txt"
 range_pixel_spacing = "${range_pixel_spacing}"

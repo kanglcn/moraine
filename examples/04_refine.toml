@@ -4,8 +4,12 @@
 #   moraine run examples/04_refine.toml --workdir WORK
 #
 # Outputs in WORK/pc/: pc_can_* (merged candidates) and the refined points: pc_hix, pc_ph, pc_e, pc_n, pc_lon,
-# pc_lat, pc_temp_coh, and their height, look vector, slant range and perpendicular baselines pc_hgt, pc_theta,
-# pc_phi, pc_range, pc_bperp.
+# pc_lat, pc_temp_coh, the DEM error relative to the neighbourhood pc_su_dem_error (m), the phase without it
+# pc_ph_demcor (the input of 05_unwrap.toml), and the height, look vector, slant range and perpendicular baselines
+# pc_hgt, pc_theta, pc_phi, pc_range, pc_bperp.
+
+[vars]
+wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }   # m, from the metadata of 01_load.toml
 
 [defaults]
 cuda = true                       # set to false without a GPU
@@ -45,13 +49,26 @@ image_pairs = "pc/pairs_seq.txt"
 chunks = 20000
 
 [[step]]
-name = "temp_coh"
-run = "temp-coh"
+name = "geometry"                 # height, look vector, slant range and perpendicular baselines of the candidates
+run = "ras2pc"
+idx = "pc/pc_can_hix.zarr"
+ras = ["raw/hgt.zarr", "raw/theta.zarr", "raw/phi.zarr", "raw/range.zarr", "raw/bperp.zarr"]
+pc = ["pc/pc_can_hgt.zarr", "pc/pc_can_theta.zarr", "pc/pc_can_phi.zarr", "pc/pc_can_range.zarr", "pc/pc_can_bperp.zarr"]
+
+[[step]]
+name = "su_dem_error"             # DEM error relative to the n2ft neighbourhood, temporal coherence without it
+run = "pc-su-dem-error"
 intf = "pc/pc_can_n2ft_intf.zarr"
 rslc = "pc/pc_can_ph.zarr"
-t_coh = "pc/pc_can_temp_coh.zarr"
+bperp = "pc/pc_can_bperp.zarr"
+slant_range = "pc/pc_can_range.zarr"
+theta = "pc/pc_can_theta.zarr"
 image_pairs = "pc/pairs_seq.txt"
-cuda = false                      # reads the stack once and reduces it: the CPU is faster than starting a GPU worker
+wavelength = "${wavelength}"
+max_dh = 100                      # m; 20 by default, buildings of Naples up to about 100 m above their surroundings
+dh = "pc/pc_can_su_dem_error.zarr"
+t_coh = "pc/pc_can_temp_coh.zarr"
+out = "pc/pc_can_ph_demcor.zarr"
 
 [[step]]
 name = "temp_coh_pyramid"
@@ -76,21 +93,28 @@ name = "select_data"
 run = "pc-select-data"
 idx_in = "pc/pc_can_hix.zarr"
 idx = "pc/pc_hix.zarr"
-pc_in = ["pc/pc_can_ph.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr", "pc/pc_can_lon.zarr", "pc/pc_can_lat.zarr", "pc/pc_can_temp_coh.zarr"]
-pc = ["pc/pc_ph.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr", "pc/pc_lon.zarr", "pc/pc_lat.zarr", "pc/pc_temp_coh.zarr"]
-
-[[step]]
-name = "geometry"                 # height, look vector and slant range of the refined points, for the deformation products
-run = "ras2pc"
-idx = "pc/pc_hix.zarr"
-ras = ["raw/hgt.zarr", "raw/theta.zarr", "raw/phi.zarr", "raw/range.zarr", "raw/bperp.zarr"]
-pc = ["pc/pc_hgt.zarr", "pc/pc_theta.zarr", "pc/pc_phi.zarr", "pc/pc_range.zarr", "pc/pc_bperp.zarr"]
+pc_in = ["pc/pc_can_ph.zarr", "pc/pc_can_ph_demcor.zarr", "pc/pc_can_e.zarr", "pc/pc_can_n.zarr", "pc/pc_can_lon.zarr",
+         "pc/pc_can_lat.zarr", "pc/pc_can_temp_coh.zarr", "pc/pc_can_su_dem_error.zarr", "pc/pc_can_hgt.zarr",
+         "pc/pc_can_theta.zarr", "pc/pc_can_phi.zarr", "pc/pc_can_range.zarr", "pc/pc_can_bperp.zarr"]
+pc = ["pc/pc_ph.zarr", "pc/pc_ph_demcor.zarr", "pc/pc_e.zarr", "pc/pc_n.zarr", "pc/pc_lon.zarr", "pc/pc_lat.zarr",
+      "pc/pc_temp_coh.zarr", "pc/pc_su_dem_error.zarr", "pc/pc_hgt.zarr", "pc/pc_theta.zarr", "pc/pc_phi.zarr",
+      "pc/pc_range.zarr", "pc/pc_bperp.zarr"]
 
 [[step]]
 name = "pc_ph_pyramid"
 run = "pc-pyramid"
 pc = "pc/pc_ph.zarr"
 out_dir = "pc/pc_ph_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "su_dem_error_pyramid"
+run = "pc-pyramid"
+pc = "pc/pc_su_dem_error.zarr"
+out_dir = "pc/pc_su_dem_error_pyramid"
 method = "mean"
 x = "pc/pc_e.zarr"
 y = "pc/pc_n.zarr"

@@ -3,6 +3,7 @@ import datetime
 import os
 import shutil
 import tomllib
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -202,19 +203,16 @@ def test_load_gamma_bperp(gamma, tmp_path, monkeypatch):
     np.testing.assert_allclose(centre, base, rtol=0, atol=0.2)
 
 
-@pytest.mark.slow
-def test_load_gamma_bperp_phase_sim_orb(gamma, tmp_path):
-    """The perpendicular baseline is the height sensitivity of GAMMA's simulated phase (phase_sim_orb at the heights
-    -+ 500 m): dphi/dh = -4 pi / lambda bperp / (rho_j up.n), rho_j the range of the satellite of the image, up.n the
-    change of height per length on the range circle of the reference. phase_sim_orb places a pixel at the range and
-    time of the reference par at zero Doppler, as pt2geo does with a diff_par without offsets; there they agree to
-    3e-6, the error of the finite difference over 1000 m. At the positions of the 01 step, shifted by the offsets of
-    the geocoding (-3.15 range pixels, -2.04 lines), they differ by 9e-5; a wrong sign, image or reference gives
-    errors of order 1."""
+@pytest.fixture(scope='module')
+def sim_500(gamma, tmp_path_factory):
+    """GAMMA's simulated phase (phase_sim_orb) of the image with the longest baseline at the heights of the DEM -+ 500
+    m, with the lat / lon / hgt rasters and the perpendicular baselines of the 01 step at the pixel positions of
+    phase_sim_orb: the range and time of the reference par at zero Doppler, as pt2geo places them with a diff_par
+    without offsets"""
     from scipy.constants import speed_of_light
-    from moraine.api.utils_ import orbit
     from moraine.api.utils_.gamma_io import read_gamma_image, write_gamma_image
-    from moraine.cli.load import _fetch_slc_par_date, _read_gamma_orbit
+    from moraine.cli.load import _fetch_slc_par_date
+    tmp_path = tmp_path_factory.mktemp('sim_500')
     g, rslc = gamma / 'geocoding', gamma / 'rslc'
     ref_par = rslc / f'{REF}.rslc.par'
     diff_par = tmp_path / 'diff_par'                  # the geocoding diff_par without its offsets
@@ -242,15 +240,32 @@ def test_load_gamma_bperp_phase_sim_orb(gamma, tmp_path):
                          f'- - 1 1 >> {tmp_path}/gamma.log 2>&1') == 0
         sims.append(read_gamma_image(str(tmp_path / 'sim'), WIDTH, dtype='float').astype(np.float64))
     lam = speed_of_light/float(next(l.split()[1] for l in open(ref_par) if l.startswith('radar_frequency')))
-    lat, lon, h = (zarr.open(x, mode='r')[:] for x in rasters)
     bj = b[:, :, j]
     iy, ix = np.nonzero(np.isfinite(bj) & np.isfinite(sims[0]) & np.isfinite(sims[1]))
     pick = np.random.default_rng(0).choice(len(iy), 300, replace=False)
-    t, p, v = (np.stack(a) for a in zip(*(_read_gamma_orbit(x) for x in pars)))
+    return SimpleNamespace(tmp=tmp_path, ref_par=ref_par, rasters=rasters, pars=pars, kr=kr, j=j, bj=bj, sims=sims,
+                           lam=lam, pixels=(iy[pick], ix[pick]))
+
+
+@pytest.mark.slow
+def test_load_gamma_bperp_phase_sim_orb(sim_500):
+    """The perpendicular baseline is the height sensitivity of GAMMA's simulated phase (phase_sim_orb at the heights
+    -+ 500 m): dphi/dh = -4 pi / lambda bperp / (rho_j up.n), rho_j the range of the satellite of the image, up.n the
+    change of height per length on the range circle of the reference. phase_sim_orb places a pixel at the range and
+    time of the reference par at zero Doppler, as pt2geo does with a diff_par without offsets; there they agree to
+    3e-6, the error of the finite difference over 1000 m. At the positions of the 01 step, shifted by the offsets of
+    the geocoding (-3.15 range pixels, -2.04 lines), they differ by 9e-5; a wrong sign, image or reference gives
+    errors of order 1."""
+    from moraine.api.utils_ import orbit
+    from moraine.cli.load import _read_gamma_orbit
+    s = sim_500
+    lam, kr, j, bj, sims = s.lam, s.kr, s.j, s.bj, s.sims
+    lat, lon, h = (zarr.open(x, mode='r')[:] for x in s.rasters)
+    t, p, v = (np.stack(a) for a in zip(*(_read_gamma_orbit(x) for x in s.pars)))
     n_out = int(np.ceil((t[:, -1] - t[:, 0]).max()/orbit._STEP)) + 1
     t, p, v = (np.stack(a) for a in zip(*(orbit._resample(*o, n_out) for o in zip(t, p, v))))
     rel = []
-    for y, x in zip(iy[pick], ix[pick]):
+    for y, x in zip(*s.pixels):
         P = np.array(orbit._geodetic_to_ecef(lon[y, x], lat[y, x], np.float64(h[y, x])))
         up, P = P[3:], P[:3]
         zr = orbit._zero_doppler(t[kr], p[kr], v[kr], *P)
@@ -261,3 +276,29 @@ def test_load_gamma_bperp_phase_sim_orb(gamma, tmp_path):
         k = -4*np.pi/lam*bj[y, x]/(rho_j*(up @ n))
         rel.append(((sims[1][y, x] - sims[0][y, x])/1000 - k)/abs(k))
     assert np.abs(rel).max() < 5e-6, (np.median(rel), np.abs(rel).max())
+
+
+@pytest.mark.slow
+def test_dem_error_phase_sim_orb(gamma, sim_500):
+    """The DEM error term of `pc_sc_dem_error` is that of GAMMA's simulated phase. The flattened rslc of image j is
+    rslc_j exp(i sim_j), sim_j by phase_sim_orb from the DEM (`load-gamma-flatten-rslc`), so a scatterer dh above the
+    DEM shifts the phase of image j relative to the reference of the co-registration by -(sim_j(h + dh) - sim_j(h)).
+    `pc_disp` of that phase must be c_j dh, c_j = 1000 B_perp / (R cos(theta)) mm per m (0 for the reference) with
+    the slant range R of the reference and the elevation theta of the look vector of the 01 step. They agree to 6e-5
+    (median; R is the range of the reference, not of image j) and 1.3e-3 at most (theta interpolated from the map
+    geometry); a wrong sign gives -2."""
+    import moraine as mr
+    from moraine.api.ts import _mm_per_m
+    s, g = sim_500, gamma / 'geocoding'
+    mc.load_gamma_range(str(s.ref_par), str(s.tmp / 'range.zarr'))
+    mc.load_gamma_look_vector(str(g / '20210802.lv_theta'), str(g / '20210802.lv_phi'), str(g / '20210802.lt_fine'),
+                              str(s.ref_par), str(gamma / 'DEM' / 'dem_seg_par'), str(s.tmp / 'scratch_lv'),
+                              str(s.tmp / 'theta.zarr'), str(s.tmp / 'phi.zarr'))
+    slant_range, theta = (zarr.open(str(s.tmp / f), mode='r')[:][s.pixels] for f in ('range.zarr', 'theta.zarr'))
+    ok = np.isfinite(theta)                       # nan outside the lookup table (3 % of the image)
+    assert ok.sum() > 250
+    shift = -(s.sims[1] - s.sims[0])[s.pixels] / 1000               # radians per meter above the DEM
+    disp = mr.pc_disp(shift, s.lam).astype(np.float64)               # mm per meter
+    c = _mm_per_m(s.bj[s.pixels], slant_range, theta)
+    rel = ((disp - c) / np.abs(c))[ok]
+    assert abs(np.median(rel)) < 2e-4 and np.abs(rel).max() < 5e-3, (np.median(rel), np.abs(rel).max())

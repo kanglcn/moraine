@@ -214,3 +214,208 @@ def test_pc_disp_argument_errors(tmp_path):
     cube = _zarr(tmp_path / 'cube.zarr', np.zeros((4, 3, 2), dtype=np.float32), (4, 3, 1))
     with pytest.raises(ValueError, match='shape'):
         mc.pc_disp(cube, str(tmp_path / 'o.zarr'), wavelength=S1_WAVELENGTH)
+
+
+# ---------------------------------------------------------------- DEM error
+
+def _dates(nimages, step=12, gaps=False, seed=0):
+    """YYYYMMDD dates `step` days apart, with some steps of 2 to 5 times `step` with `gaps`"""
+    steps = np.full(nimages - 1, step)
+    if gaps:
+        rng = np.random.default_rng(seed)
+        steps[rng.choice(nimages - 1, nimages // 4, replace=False)] *= rng.integers(2, 6, nimages // 4)
+    days = np.concatenate([[0], np.cumsum(steps)])
+    return [str(d).replace('-', '') for d in np.datetime64('2019-01-02') + days], days
+
+
+def _geometry(n_points, nimages, seed=0):
+    """perpendicular baselines (m, relative to image 3), slant range (m), look vector elevation (rad), mm per m"""
+    rng = np.random.default_rng(seed)
+    bperp = (rng.normal(0, 60, (1, nimages)) + rng.normal(0, 3, (n_points, nimages))).astype(np.float32)
+    bperp -= bperp[:, 3:4]
+    slant_range = rng.uniform(800e3, 900e3, n_points).astype(np.float32)
+    theta = rng.uniform(0.85, 1.1, n_points).astype(np.float32)
+    c = 1000 * bperp.astype(np.float64) / (slant_range.astype(np.float64) * np.cos(theta.astype(np.float64)))[:, None]
+    return bperp, slant_range, theta, c
+
+
+@pytest.mark.parametrize('gaps', [False, True])
+@pytest.mark.parametrize('ref', [0, 5])
+def test_pc_sc_dem_error_api_exact(gaps, ref):
+    # a constant velocity and the DEM error, no noise: dh exact, the velocity left
+    n_points, nimages = 300, 25
+    dates, days = _dates(nimages, gaps=gaps)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages)
+    rng = np.random.default_rng(1)
+    dh_true = rng.normal(0, 20, n_points)
+    v = rng.normal(0, 0.1, (n_points, 1))                     # mm / day
+    motion = v * (days - days[ref])
+    disp = (motion + (c - c[:, ref:ref + 1]) * dh_true[:, None]).astype(np.float32)
+    dh, out = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates, ref=ref)
+    assert dh.shape == (n_points,) and dh.dtype == np.float32 and out.shape == disp.shape and out.dtype == np.float32
+    np.testing.assert_allclose(dh, dh_true, atol=2e-3)       # float32 input: 1e-6 of about 100 mm
+    np.testing.assert_allclose(out, motion, atol=1e-4)
+    np.testing.assert_array_equal(out[:, ref], disp[:, ref])  # 0: the reference image keeps its value
+
+
+@pytest.mark.parametrize('gaps', [False, True])
+def test_pc_sc_dem_error_api_is_the_least_squares_of_the_differences(gaps):
+    n_points, nimages = 50, 20
+    dates, days = _dates(nimages, gaps=gaps)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages)
+    rng = np.random.default_rng(2)
+    disp = np.cumsum(rng.normal(0, 2, (n_points, nimages)), axis=1).astype(np.float32)
+    disp -= disp[:, :1]
+    dh = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)[0]
+    dt = np.diff(days).astype(np.float64)
+    for i in range(n_points):      # [1, dt, dc] is rank deficient for equal steps: dh is still determined
+        G = np.stack([np.ones(nimages - 1), dt, np.diff(c[i])], axis=1)
+        x = np.linalg.lstsq(G, np.diff(disp[i].astype(np.float64)), rcond=None)[0]
+        assert abs(dh[i] - x[2]) <= 1e-5 * max(1, abs(x[2])), (i, dh[i], x[2])
+
+
+def test_pc_sc_dem_error_api_errors_follow_the_noise_model():
+    # white noise of the displacement and a random walk (deformation): dh is unbiased and its error has the
+    # covariance of its least squares estimate of the differences
+    n_points, nimages = 4000, 40
+    dates, days = _dates(nimages, gaps=True, seed=3)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages, seed=3)
+    rng = np.random.default_rng(4)
+    dt = np.diff(days).astype(np.float64)
+    sw, srw = 2.0, 0.5                                          # mm, mm per sqrt(day)
+    walk = np.concatenate([np.zeros((n_points, 1)), np.cumsum(rng.normal(0, 1, (n_points, nimages - 1)) * srw * np.sqrt(dt), axis=1)], axis=1)
+    disp = walk + rng.normal(0, sw, (n_points, nimages)) + (c - c[:, :1]) * 10.0
+    disp = (disp - disp[:, :1]).astype(np.float32)
+    dh = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)[0].astype(np.float64)
+    D = np.diff(np.eye(nimages), axis=0)
+    cov = sw**2 * D @ D.T + srw**2 * np.diag(dt)               # covariance of the differences
+    A = np.stack([np.ones(nimages - 1), dt], axis=1)
+    dc = np.diff(c, axis=1)
+    dc_rest = dc - (A @ np.linalg.lstsq(A, dc.T, rcond=None)[0]).T
+    std = np.sqrt(np.einsum('ij,jk,ik->i', dc_rest, cov, dc_rest)) / np.einsum('ij,ij->i', dc_rest, dc_rest)
+    z = (dh - 10.0) / std
+    assert abs(z.mean()) < 0.06 and 0.95 < z.std() < 1.05, (z.mean(), z.std())
+
+
+def test_pc_sc_dem_error_api_nan():
+    n_points, nimages = 40, 12
+    dates, days = _dates(nimages)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages)
+    disp = ((c - c[:, :1]) * 5.0).astype(np.float32)
+    disp[3, 7] = np.nan
+    bperp = bperp.copy(); bperp[8, 2] = np.nan
+    dh, out = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)
+    assert np.isnan(dh[[3, 8]]).all() and np.isnan(out[[3, 8]]).all()
+    keep = np.setdiff1d(np.arange(n_points), [3, 8])
+    np.testing.assert_allclose(dh[keep], 5.0, atol=1e-3)
+    dh_keep, out_keep = mr.pc_sc_dem_error(disp[keep], bperp[keep], slant_range[keep], theta[keep], dates)
+    np.testing.assert_array_equal(dh[keep], dh_keep)
+    np.testing.assert_array_equal(out[keep], out_keep)
+
+
+@pytest.mark.parametrize('change, match', [
+    (dict(disp=np.zeros(10, np.float32)), r'disp must have shape \(n_points, nimages\)'),
+    (dict(disp=np.zeros((10, 6), np.int32)), 'disp must be floating point'),
+    (dict(bperp=np.zeros((10, 5), np.float32)), r'bperp must have shape \(10, 6\)'),
+    (dict(slant_range=np.zeros(9, np.float32)), r'slant_range must have shape \(10,\)'),
+    (dict(theta=np.zeros(10, np.int16)), 'theta must be floating point'),
+    (dict(dates=['20190102', '20190114']), '2 dates for 6 images'),
+    (dict(dates=['20190102', '20190126', '20190114', '20190207', '20190219', '20190303']), '20190126 is followed by 20190114'),
+    (dict(dates=['20190102', '20190102', '20190114', '20190207', '20190219', '20190303']), '20190102 is followed by 20190102'),
+    (dict(dates=['2019-01-02', '20190114', '20190126', '20190207', '20190219', '20190303']), "YYYYMMDD, got '2019-01-02'"),
+    (dict(dates=['20190132', '20190214', '20190226', '20190307', '20190319', '20190331']), "YYYYMMDD, got '20190132'"),
+    (dict(ref=6), 'one of the 6 images'),
+    (dict(ref=-1), 'one of the 6 images'),
+    (dict(ref=True), 'one of the 6 images'),
+])
+def test_pc_sc_dem_error_api_errors(change, match):
+    bperp, slant_range, theta, c = _geometry(10, 6)
+    args = dict(disp=np.zeros((10, 6), np.float32), bperp=bperp, slant_range=slant_range, theta=theta,
+                dates=_dates(6)[0], ref=0)
+    args.update(change)
+    with pytest.raises(ValueError, match=match):
+        mr.pc_sc_dem_error(**args)
+
+
+def test_pc_sc_dem_error_api_needs_4_images():
+    bperp, slant_range, theta, c = _geometry(10, 4)
+    with pytest.raises(ValueError, match='at least 4 images, got 3'):
+        mr.pc_sc_dem_error(np.zeros((10, 3), np.float32), bperp[:, :3], slant_range, theta, _dates(3)[0])
+    dates = ' 20190102,20190114 20190126,20190207 '                # text with commas or spaces
+    assert mr.pc_sc_dem_error(((c - c[:, :1]) * 3).astype(np.float32), bperp, slant_range, theta, dates)[0].shape == (10,)
+
+
+@pytest.mark.gpu
+def test_pc_sc_dem_error_api_gpu():
+    import cupy as cp
+    n_points, nimages = 200, 15
+    dates, days = _dates(nimages, gaps=True)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages)
+    disp = (np.random.default_rng(5).normal(0, 2, (n_points, nimages)) + (c - c[:, :1]) * 7).astype(np.float32)
+    dh, out = mr.pc_sc_dem_error(*(cp.asarray(a) for a in (disp, bperp, slant_range, theta)), dates)
+    assert isinstance(dh, cp.ndarray) and isinstance(out, cp.ndarray)
+    dh_cpu, out_cpu = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)
+    np.testing.assert_allclose(cp.asnumpy(dh), dh_cpu, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(cp.asnumpy(out), out_cpu, rtol=1e-5, atol=1e-4)
+
+
+def _dem_error_inputs(tmp_path, n_points=50, nimages=9):
+    dates, days = _dates(nimages, gaps=True)
+    bperp, slant_range, theta, c = _geometry(n_points, nimages)
+    rng = np.random.default_rng(6)
+    disp = (0.03 * days + rng.normal(0, 1, (n_points, nimages)) + (c - c[:, :1]) * rng.normal(0, 15, (n_points, 1)))
+    disp = (disp - disp[:, :1]).astype(np.float32)
+    disp[7, 4] = np.nan
+    paths = dict(disp=_zarr(tmp_path / 'disp.zarr', disp, (20, 1)), bperp=_zarr(tmp_path / 'bperp.zarr', bperp, (20, 1)),
+                 slant_range=_zarr(tmp_path / 'range.zarr', slant_range, (20,)),
+                 theta=_zarr(tmp_path / 'theta.zarr', theta, (20,)))
+    return paths, dates, mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)
+
+
+def test_pc_sc_dem_error(tmp_path):
+    paths, dates, (dh, out) = _dem_error_inputs(tmp_path)
+    mc.pc_sc_dem_error(**paths, dh=str(tmp_path / 'dh.zarr'), out=str(tmp_path / 'out.zarr'), dates=dates, out_chunks=10)
+    dh_z, out_z = (zarr.open(str(tmp_path / f), mode='r') for f in ('dh.zarr', 'out.zarr'))
+    assert dh_z.shape == dh.shape and dh_z.dtype == np.float32 and dh_z.chunks == (10,)
+    assert out_z.shape == out.shape and out_z.dtype == np.float32 and out_z.chunks == (10, 1)
+    np.testing.assert_array_equal(dh_z[:], dh)
+    np.testing.assert_array_equal(out_z[:], out)
+    assert np.isnan(dh_z[7]) and np.isnan(out_z[7]).all()
+    mc.pc_sc_dem_error(**paths, dh=str(tmp_path / 'dh_p.zarr'), out=str(tmp_path / 'out_p.zarr'), dates=dates,
+                    processes=True, n_workers=2)
+    assert zarr.open(str(tmp_path / 'out_p.zarr'), mode='r').chunks == (20, 1)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'dh_p.zarr'), mode='r')[:], dh)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'out_p.zarr'), mode='r')[:], out)
+
+
+def test_pc_sc_dem_error_command_line_and_pipeline(tmp_path):
+    paths, dates, (dh, out) = _dem_error_inputs(tmp_path)
+    args = [a for k, v in paths.items() for a in (f'--{k}', v)]
+    assert main(['pc-sc-dem-error', *args, '--dh', str(tmp_path / 'dh.zarr'), '--out', str(tmp_path / 'out.zarr'),
+                 '--dates', *dates]) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'dh.zarr'), mode='r')[:], dh)
+    # the dates of a pipeline from the metadata: a list of a TOML file
+    (tmp_path / 'meta.toml').write_text(f'dates = {dates}\n'.replace("'", '"'))
+    lines = ['[vars]', 'dates = { file = "meta.toml", key = "dates" }', '', '[[step]]', 'name = "dem_error"',
+             'run = "pc-sc-dem-error"', *(f'{k} = "{v}"' for k, v in paths.items()), 'dh = "dh2.zarr"',
+             'out = "out2.zarr"', 'dates = "${dates}"']
+    (tmp_path / 'p.toml').write_text('\n'.join(lines) + '\n')
+    assert main(['run', str(tmp_path / 'p.toml'), '-q']) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'out2.zarr'), mode='r')[:], out)
+
+
+def test_pc_sc_dem_error_argument_errors(tmp_path):
+    paths, dates, _ = _dem_error_inputs(tmp_path)
+    outputs = dict(dh=str(tmp_path / 'dh.zarr'), out=str(tmp_path / 'o.zarr'))
+    with pytest.raises(ValueError, match='8 dates for 9 images'):
+        mc.pc_sc_dem_error(**paths, **outputs, dates=dates[:-1])
+    with pytest.raises(ValueError, match='one of the 9 images'):
+        mc.pc_sc_dem_error(**paths, **outputs, dates=dates, ref=9)
+    short = _zarr(tmp_path / 'short.zarr', np.zeros(49, np.float32), (20,))
+    with pytest.raises(ValueError, match=r'theta must have shape \(50,\)'):
+        mc.pc_sc_dem_error(**{**paths, 'theta': short}, **outputs, dates=dates)
+    three = _zarr(tmp_path / 'three.zarr', np.zeros((50, 3), np.float32), (20, 1))
+    with pytest.raises(ValueError, match=r'bperp must have shape \(50, 3\)'):
+        mc.pc_sc_dem_error(**{**paths, 'disp': three}, **outputs, dates=dates[:3])
+    with pytest.raises(ValueError, match='at least 4 images'):
+        mc.pc_sc_dem_error(**{**paths, 'disp': three, 'bperp': three}, **outputs, dates=dates[:3])

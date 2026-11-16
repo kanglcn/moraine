@@ -72,9 +72,10 @@ Steps, each its own change, in this order:
 
 ## Next stages of decision 0012
 
-Deformation products (stage 5): started, the steps and their order are decision 0040
-(`docs/decisions/0040-deformation-products.md`), beginning with the spatial reference of the image phases of
-`unwrap-correct-closure-pc`. Stage 4 (time series inversion) is replaced by those image phases (decision 0022).
+Deformation products (stage 5): started, the steps and their order are decision 0048
+(`docs/decisions/0048-dem-error-in-two-parts.md`): the spatial reference of the image phases of
+`unwrap-correct-closure-pc`, the displacement and the DEM error (relative to the neighbourhood in 04, spatially
+correlated in 06) are done; the residual of every image and the velocity follow. Stage 4 (time series inversion) is replaced by those image phases (decision 0022).
 
 ## New pages of the coherence batches on the CPU
 
