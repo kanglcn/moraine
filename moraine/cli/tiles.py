@@ -404,11 +404,13 @@ class _Shown:
 
     @property
     def index(self):
-        """Slider values by name; set it to change the images shown."""
+        """Slider values by name; set some of them to change the images shown: sliders of the view, each within
+        its range (`repr` lists them), a ValueError otherwise."""
         return dict(self.widget.index)
 
     @index.setter
     def index(self, value):
+        view_index(self._panels(), value)       # checked before the maps draw anything
         self.widget.index = {**self.widget.index, **value}
 
     def png(self, path, width:int=1000, index=None, extent:tuple=None)->str:
@@ -1129,7 +1131,8 @@ def view(
     On the map: zoom and pan read only what is on screen; sliders choose the image of a stack; the cursor shows
     the values of all layers; click a pixel or point to plot its time series, double click one to make it the
     reference of the time series; draw polygons with the polygon button. In Python, ``.selected``,
-    ``.reference``, ``.polygons`` and ``.index`` (slider values) follow the map. Point clouds are drawn as
+    ``.reference``, ``.polygons`` and ``.index`` (slider values; set it to move the sliders, within their ranges)
+    follow the map. Point clouds are drawn as
     individual points when zoomed in; web mercator coordinates are drawn north up over a base map, or over the
     terrain in 3D with `terrain`.
 

@@ -611,6 +611,34 @@ def test_state_in_python(grid_pc):
     assert layer.widget.polygons == [[[5, 5], [20, 5], [20, 30]]]
 
 
+def test_index_set_in_python_within_the_sliders(tmp_path, stack):
+    """`.index = {...}` takes the sliders of the view within their ranges, as `png(index=...)` does: other values are a
+    ValueError and the sliders of the map do not move, so nothing is drawn with them (an image beyond the stack
+    reached the tiles: an IndexError for stacks, nan for coherence)."""
+    s, pyr = stack                                                      # 4 images
+    _, coh_pyr = _coh_pc(tmp_path, np.array([(i, j) for i in range(4) for j in range(i + 1, 4)]))
+    for v in (view(str(pyr), show='intf_all'), view(str(coh_pyr), show='coh')):
+        moved = []
+        v.widget.observe(moved.append, names='index')
+        for value, match in [
+                ({'sec': 6}, r"^slider 'sec' = 6 is outside its range 0 \.\. 3; the sliders are ref 0 \.\. 3, "
+                             r"sec 0 \.\. 3$"),
+                ({'ref': 2, 'sec': -1}, r"^slider 'sec' = -1 is outside its range 0 \.\. 3;"),
+                ({'image': 1}, r"^no slider 'image'; the view has the sliders ref 0 \.\. 3, sec 0 \.\. 3$")]:
+            with pytest.raises(ValueError, match=match):
+                v.index = value
+            assert v.index == {'ref': 0, 'sec': 1} and moved == []
+        v.index = {'ref': 3, 'sec': 0}                                  # the last image too
+        assert v.index == {'ref': 3, 'sec': 0} and len(moved) == 1
+        v.index = {'sec': 2}                                            # some of the sliders
+        assert v.index == {'ref': 3, 'sec': 2}
+    layout = view(str(pyr)) + view(np.ones((60, 40, 6), np.complex64))   # the merged slider: image 0 .. 3
+    with pytest.raises(ValueError, match=r"^slider 'image' = 5 is outside its range 0 \.\. 3$"):
+        layout.index = {'image': 5}
+    layout.index = {'image': 3}
+    assert layout.index == {'image': 3}
+
+
 def test_view_messages(grid_pc, monkeypatch):
     from PIL import Image
     pts, pyr = grid_pc
