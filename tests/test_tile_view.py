@@ -390,14 +390,15 @@ def _grid_points(tmp_path, data, name):
 
 def _check_points(layers, index, expected):
     """The values (12,) `expected` of the points of `_grid_points` in each of `layers` for the slider values
-    `index`: rasterized (one cell per point) and drawn one by one (the value of the point itself)."""
+    `index`, to float32 rounding (numpy may compute the phases of contiguous arrays with other SIMD code):
+    rasterized (one cell per point) and drawn one by one (the value of the point itself)."""
     for layer in layers:
         geom = grid_geom(0, 0, 0, layer.edge_origin)
-        np.testing.assert_array_equal(layer.raster_values(geom, index)[:3, :4].ravel(), expected)
+        np.testing.assert_allclose(layer.raster_values(geom, index)[:3, :4].ravel(), expected, rtol=1e-6, atol=1e-6)
         for k in (0, 6, 11):
             line, col = divmod(k, 4)
             found = layer.value(col + 0.1, line - 0.1, 0.25, index)
-            assert found['point'] == k and found['value'] == float(expected[k])
+            assert found['point'] == k and found['value'] == pytest.approx(float(expected[k]), rel=1e-6, abs=1e-6)
 
 
 # (show, sliders [(name, max)], slider values, the two images (i, j) of the slider values)
@@ -442,7 +443,8 @@ def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
         for show, sliders, index, (i, j) in NAMED_SHOWS:
             for layer in (view(str(tmp_path / f'{name}_pyr'), show=show), view(m, show=show)):
                 assert [(k['name'], k['max']) for k in layer.kdims] == sliders
-                np.testing.assert_array_equal(layer.raster_values(geom, index)[:30, :20], element(m[..., i, j]))
+                np.testing.assert_allclose(layer.raster_values(geom, index)[:30, :20], element(m[..., i, j]),
+                                           rtol=1e-6, atol=1e-6)
             _check_points([view(str(pyr), show=show), view(p, x=x, y=y, show=show)], index, element(p[:, i, j]))
         with pytest.raises(ValueError, match='phase needs complex data with one index dimension'):
             view(m, show='phase').raster_values(geom, {'image': 0})
@@ -468,8 +470,10 @@ def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
         assert layer.clim == pytest.approx((-np.pi, np.pi)) and layer.bar_label == 'phase (rad)'
     geom = grid_geom(0, 0, 0, RAS)
     for layer in rasters:
-        np.testing.assert_array_equal(layer.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], np.angle(c[..., 1, 2]))
-        assert layer.value(7, 3, 1, {'i': 2, 'j': 0})['value'] == float(np.angle(c[3, 7, 2, 0]))
+        np.testing.assert_allclose(layer.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], np.angle(c[..., 1, 2]),
+                                   rtol=1e-6, atol=1e-6)
+        assert layer.value(7, 3, 1, {'i': 2, 'j': 0})['value'] == pytest.approx(float(np.angle(c[3, 7, 2, 0])),
+                                                                                rel=1e-6, abs=1e-6)
     _check_points(points, {'i': 2, 'j': 0}, np.angle(p[:, 2, 0]))
     view(str(tmp_path / 'c_pyr')).png(str(tmp_path / 'c.png'), index=(1, 2))
     assert (tmp_path / 'c.png').stat().st_size > 1000
@@ -478,7 +482,7 @@ def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
     np.testing.assert_array_equal(real.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], c.real[..., 1, 2])
     flat = view(c[..., 0, 1])
     assert flat.kdims == [] and flat.clim == pytest.approx((-np.pi, np.pi))
-    np.testing.assert_array_equal(flat.raster_values(geom)[:30, :20], np.angle(c[..., 0, 1]))
+    np.testing.assert_allclose(flat.raster_values(geom)[:30, :20], np.angle(c[..., 0, 1]), rtol=1e-6, atol=1e-6)
 
 
 # ---------------------------------------------------------------- time series
