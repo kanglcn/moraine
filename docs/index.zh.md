@@ -25,11 +25,11 @@ moraine 自带给编程 agent 看的说明（[`AGENTS.md`](dev/agents.md)），�
 <i>rslc</i> load-gamma-flatten-rslc ... done (125.8 s)
 <i>rslc_pyramid</i> ras-pyramid ... done (20.9 s)
 <span class="mo-ok">pipeline finished: 7 steps, 161.8 s</span></div>
-    <p>影像堆栈是 (981, 4160, 92) 的 complex64；40 % 的像元是 nan，那是配准时被掩掉的 Pozzuoli 海湾，与数据集说明一致。
+    <p>影像堆栈是 (981, 4160, 92) 的 complex64；41 % 的像元是 nan，那是配准时被掩掉的 Pozzuoli 海湾，与数据集说明一致。
     下一步：PS 候选点。</p>
   </div></div>
   <div class="mo-msg mo-msg--agent"><div class="mo-avatar">AI</div><div class="mo-bubble">
-    <p>…… 四条 pipeline、500 秒计算之后：223 875 个精化点，已解缠。首尾两景之间的干涉图显示出火山口的隆升，
+    <p>…… 四条 pipeline、380 秒计算之后：223 875 个精化点，已解缠。首尾两景之间的干涉图显示出火山口的隆升，
     约十个条纹，以 Pozzuoli 为中心。</p>
     <img src="../assets/campi/04_pc_intf_0_91.webp" alt="Campi Flegrei 精化点 2019-01-02 / 2021-12-29 的干涉图" loading="lazy">
     <p><span class="mo-cursor">有两件事需要你决定：DS 阈值和参考点</span></p>

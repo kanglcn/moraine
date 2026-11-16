@@ -13,7 +13,7 @@ moraine 的设计目标之一是让 AI 编程 agent 替你运行它：仓库里�
     下面是 2026-10-08 一次真实会话的精简记录：Claude Code 在 moraine 仓库里、在一个 GPU 节点上（用了机器上的一块
     A100，128 个 CPU 核）处理 Campi Flegrei 数据集（Sentinel-1 降轨 track 22，2019-01-02 到 2021-12-29 共 92 景，
     全分辨率 981 x 4160 像元，GAMMA 结果在 `data/CampiFlegrei/gamma`）。会话原文是英文，这里是译文，agent 的话有
-    删节；每条命令、它的输出、数字和图都来自那次运行。五条 pipeline 的计算共 500 秒。
+    删节；每条命令、它的输出、数字和图都来自那次运行。五条 pipeline 的计算共 380 秒。
 
 <div class="mo-chat mo-transcript" markdown>
 
@@ -52,7 +52,7 @@ $ moraine info raw/rslc.zarr raw/rslc_pyramid
 $ moraine quicklook raw/rslc_pyramid --show intf_seq --index 0 -o 01_intf_seq_0.png
 ```
 
-堆栈有 92 景（`raw/meta.toml` 列出了日期，间隔 12 天），幅度在预期范围内（p50 0.29），40 % 的像元是 nan：那是
+堆栈有 92 景（`raw/meta.toml` 列出了日期，间隔 12 天），幅度在预期范围内（p50 0.29），41 % 的像元是 nan：那是
 配准时被掩掉的 Pozzuoli 海湾，和数据集说明一致。第一幅 12 天干涉图是带噪声的单视相位，陆地上有结构，没有可疑之处
 （如果到处都是均匀噪声，说明参考影像日期错了）：
 
@@ -148,7 +148,7 @@ $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 -o 04_pc_intf_
 $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 --extent 14.08,40.80,14.16,40.86 -o zoom.png
 ```
 
-PS 候选点和 DS 合并成 675 687 个点；经过 Noise2Fringe Transformer 之后，330 754 个点（49 %）的时间相干性高于 0.8。
+PS 候选点和 DS 合并成 590 677 个点；经过 Noise2Fringe Transformer 之后，223 875 个点（38 %）的时间相干性高于 0.8。
 它们首尾两景之间的干涉图显示出以 Pozzuoli 为中心的同心隆升条纹，三年约十个条纹，穿过城镇连续；放大到
 最细层级（单个点）后，密集处的条纹依然清楚：
 
@@ -175,7 +175,7 @@ $ moraine info unw/pc_unw.zarr unw/pc_unw_pyramid
   unw/pc_unw_pyramid: ... min=-17.2502, max=13.8788, p01=-6.97704, p50=-0.147673, p99=5.69298
 ```
 
-330 754 个点的 91 幅序列干涉图 2 秒解缠完毕；数值如指南所料在 2π 的几倍以内，把结果重新缠绕能还原输入相位
+223 875 个点的 91 幅序列干涉图一秒钟解缠完毕；数值如指南所料在 2π 的几倍以内，把结果重新缠绕能还原输入相位
 （前十幅干涉图的最大差异 5.6e-7 rad）。解缠后的 12 天干涉图平滑，相邻区域之间没有孤立的 2π 跳变：
 
 ![解缠后的干涉图 45（2020-07-07 / 2020-07-19）](../assets/campi/05_unw_45.webp)
@@ -190,7 +190,7 @@ saved view.ipynb: open it in Jupyter or VS Code and run all cells
 <div class="mo-msg mo-msg--agent" markdown>
 <div class="mo-avatar">AI</div>
 <div class="mo-bubble" markdown>
-**完成。** 五条 pipeline 在 Campi Flegrei 堆栈（92 景，981 x 4160 像元）上跑完，一块 A100 上共 500 秒计算；每个
+**完成。** 五条 pipeline 在 Campi Flegrei 堆栈（92 景，981 x 4160 像元）上跑完，一块 A100 上共 380 秒计算；每个
 结果都在指南的范围内。
 
 | 步骤 | 结果 | 点数 |
@@ -198,12 +198,12 @@ saved view.ipynb: open it in Jupyter or VS Code and run all cells
 | 载入 | `raw/rslc.zarr` (981, 4160, 92) | |
 | PS 候选点 | `ps/ps_can_hix.zarr` | 530 886 |
 | DS | `ds/ds_hix.zarr`、`ds/ds_ph.zarr` | 1 123 313 个候选点中的 167 007 |
-| 精化点 | `pc/pc_hix.zarr`、`pc/pc_ph.zarr` (330 754, 92) | 330 754 |
-| 解缠 | `unw/pc_unw.zarr` (330 754, 91)，弧度 | |
+| 精化点 | `pc/pc_hix.zarr`、`pc/pc_ph.zarr` (223 875, 92) | 223 875 |
+| 解缠 | `unw/pc_unw.zarr` (223 875, 91)，弧度 | |
 
 我看到的：火山口以 Pozzuoli 为中心的隆升，在相位连接并滤波后的点上表现为 2019-01-02 到 2021-12-29 之间约十个
 条纹，以及平滑的 12 天解缠干涉图。有两件事要你决定：DS 筛选只保留了候选点的 14.9 %（`t_coh_w_min` 0.85），降到
-0.85 能在山坡上保留更多点；解缠相位还没有空间参考，读形变之前请只做点与点之间的相对比较，或者在 `view.ipynb`
+0.8 能在山坡上保留更多点；解缠相位还没有空间参考，读形变之前请只做点与点之间的相对比较，或者在 `view.ipynb`
 里双击选一个参考点。
 </div>
 </div>

@@ -28,7 +28,7 @@ GAMMA must be on PATH (`which base_calc phase_sim_orb geocode create_offset`).
 | step | command | output |
 |---|---|---|
 | rslc | load-gamma-flatten-rslc | `rslc.zarr` (nlines, width, nimages) complex64, flat earth and topography removed |
-| lat_lon_hgt | load-gamma-lat-lon-hgt | `lat.zarr`, `lon.zarr` float64, `hgt.zarr` float32, (nlines, width); nan where 0 in GAMMA |
+| lat_lon_hgt | load-gamma-lat-lon-hgt | `lat.zarr`, `lon.zarr` float64, `hgt.zarr` float32, (nlines, width); nan where the absolute value in the GAMMA file is below 1e-30 (GAMMA's no data) |
 | bperp | load-gamma-bperp | `bperp.zarr` (nlines, width, nimages) float32, meters: perpendicular baseline of every image relative to the reference image at every pixel, from the orbits of the `*.rslc.par` files; 0 for the reference, nan where lat / lon / hgt are nan |
 | look_vector | load-gamma-look-vector | `theta.zarr`, `phi.zarr` (elevation / orientation angle) |
 | range | load-gamma-range | `range.zarr` slant range distance |

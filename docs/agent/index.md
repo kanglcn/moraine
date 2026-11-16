@@ -15,7 +15,7 @@ pipelines, compares the results with the expected ranges, looks at the pictures 
     repository on a GPU node (one A100 of the machine, 128 CPU cores), processing the Campi Flegrei data set
     (Sentinel-1 descending track 22, 92 dates from 2019-01-02 to 2021-12-29, 981 x 4160 pixels at full
     resolution, GAMMA results in `data/CampiFlegrei/gamma`). The agent's words are shortened; every command, its
-    output, the numbers and the figures are from that run. The five pipelines took 500 s of processing.
+    output, the numbers and the figures are from that run. The five pipelines took 380 s of processing.
 
 <div class="mo-chat mo-transcript" markdown>
 
@@ -56,7 +56,7 @@ $ moraine quicklook raw/rslc_pyramid --show intf_seq --index 0 -o 01_intf_seq_0.
 ```
 
 The stack has the 92 dates (`raw/meta.toml` lists them, 12 days apart), the amplitude is in the expected range
-(p50 0.29) and 40 % of the pixels are nan: the Gulf of Pozzuoli, masked by the coregistration, as the data set
+(p50 0.29) and 41 % of the pixels are nan: the Gulf of Pozzuoli, masked by the coregistration, as the data set
 description says. The first 12 day interferogram is noisy single look phase with structure on land and nothing
 suspicious (uniform noise would mean a wrong reference date):
 
@@ -155,7 +155,7 @@ $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 -o 04_pc_intf_
 $ moraine quicklook pc/pc_ph_pyramid --show intf_all --index 0 91 --extent 14.08,40.80,14.16,40.86 -o zoom.png
 ```
 
-PS candidates and DS merge into 675 687 points; after the Noise2Fringe Transformer 330 754 (49 %) have a temporal
+PS candidates and DS merge into 590 677 points; after the Noise2Fringe Transformer 223 875 (38 %) have a temporal
 coherence above 0.8. Their interferogram between the first and the last image shows the concentric fringes of
 the caldera uplift centred on Pozzuoli, about ten fringes over three years, continuous across the town; zoomed in
 (level 0, single points) the fringes are still there in the dense parts:
@@ -184,7 +184,7 @@ $ moraine info unw/pc_unw.zarr unw/pc_unw_pyramid
   unw/pc_unw_pyramid: ... min=-17.2502, max=13.8788, p01=-6.97704, p50=-0.147673, p99=5.69298
 ```
 
-91 sequential interferograms of 330 754 points unwrapped in 2 seconds; the values stay within a few multiples of
+91 sequential interferograms of 223 875 points unwrapped in one second; the values stay within a few multiples of
 2π as the guide expects, and rewrapping the result gives back the input phase (largest difference 5.6e-7 rad over
 the first ten interferograms). The unwrapped 12 day interferograms are smooth, without isolated 2π jumps between
 neighbouring areas:
@@ -201,7 +201,7 @@ saved view.ipynb: open it in Jupyter or VS Code and run all cells
 <div class="mo-msg mo-msg--agent" markdown>
 <div class="mo-avatar">AI</div>
 <div class="mo-bubble" markdown>
-**Done.** All five pipelines ran on the Campi Flegrei stack (92 dates, 981 x 4160 pixels) in 500 s of processing
+**Done.** All five pipelines ran on the Campi Flegrei stack (92 dates, 981 x 4160 pixels) in 380 s of processing
 on one A100; every result is within the ranges of the guides.
 
 | step | result | points |
@@ -209,8 +209,8 @@ on one A100; every result is within the ranges of the guides.
 | load | `raw/rslc.zarr` (981, 4160, 92) | |
 | PS candidates | `ps/ps_can_hix.zarr` | 530 886 |
 | DS | `ds/ds_hix.zarr`, `ds/ds_ph.zarr` | 167 007 of 1 123 313 candidates |
-| refined points | `pc/pc_hix.zarr`, `pc/pc_ph.zarr` (330 754, 92) | 330 754 |
-| unwrapped | `unw/pc_unw.zarr` (330 754, 91), radians | |
+| refined points | `pc/pc_hix.zarr`, `pc/pc_ph.zarr` (223 875, 92) | 223 875 |
+| unwrapped | `unw/pc_unw.zarr` (223 875, 91), radians | |
 
 What I see: the uplift of the caldera, centred on Pozzuoli, as about ten fringes between 2019-01-02 and
 2021-12-29 in the phase linked and filtered points, and smooth unwrapped 12 day interferograms. Two things to

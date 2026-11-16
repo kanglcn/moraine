@@ -249,8 +249,8 @@ def ras_pyramid(
     chunks : tuple[int, int], default: (256, 256)
         output raster tile size
     rows : int, default: 1024
-        lines of the raster a process reads at a time, a power of 2; a process needs about 1 GB plus 3 x rows x
-        width x itemsize bytes
+        lines of the raster a process reads at a time, a power of 2; a process needs about 0.5 GB plus
+        max(40, 8 x itemsize) x rows x width bytes, more if rows is below the lines of a chunk of the raster
     method : str, default: 'decimate'
         how each level is made from the finer one: 'decimate' keeps every 2nd pixel, 'mean' averages the 2 x 2
         blocks (nan pixels left out, complex data as complex numbers; integer and boolean data give float32
