@@ -36,14 +36,16 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
   never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
 - GPU packages: `cupy` is imported only by the GPU code paths, inside their functions or in a module only they import
-  (`moraine/api/ds/emi_cuda_.py`), so that `import moraine` does not import it; `numba.cuda` (the kernels) only behind
-  `moraine.api.utils_.is_cuda_available()`; `torch` only inside the functions that run a model (decision 0002).
+  (`moraine/api/ds/emi_cuda_.py`), so that `import moraine` does not import it; zarr, which imports cupy wherever it is
+  installed, is imported first by `moraine/__init__.py` with cupy hidden (decision 0048); `numba.cuda` (the kernels)
+  only behind `moraine.api.utils_.is_cuda_available()`; `torch` only inside the functions that run a model
+  (decision 0002).
 
 ## API layer (moraine/api/)
 
 | module | responsibility | main names |
 |---|---|---|
-| `moraine/__init__.py` | version; re-exports the public API as `moraine.*` | |
+| `moraine/__init__.py` | version; imports zarr with cupy hidden; re-exports the public API as `moraine.*` | |
 | `moraine/__main__.py` | `python -m moraine` entry point | |
 | `moraine/api/__init__.py` | re-exports the public names of the foundations and stages below (`__all__`) | |
 | *internal utilities* | | |
