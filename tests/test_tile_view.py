@@ -375,6 +375,81 @@ def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
     assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
 
 
+# ---------------------------------------------------------------- named shows of real stacks and of matrices
+
+def _grid_points(tmp_path, data, name):
+    """Point data `data` (12, ...) at the points of a 3 x 4 grid (point p at line p // 4, column p % 4): the
+    pyramid, and the coordinates x, y (12,)."""
+    y, x = (c.astype(float) for c in np.divmod(np.arange(12), 4))
+    write_zarr(tmp_path / f'{name}_x.zarr', x); write_zarr(tmp_path / f'{name}_y.zarr', y)
+    write_zarr(tmp_path / f'{name}.zarr', data, (12,) + (1,) * (data.ndim - 1))
+    mc.pc_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'), x=str(tmp_path / f'{name}_x.zarr'),
+                  y=str(tmp_path / f'{name}_y.zarr'), ras_resolution=1)
+    return tmp_path / f'{name}_pyr', x, y
+
+
+def _check_points(layers, index, expected):
+    """The values (12,) `expected` of the points of `_grid_points` in each of `layers` for the slider values
+    `index`: rasterized (one cell per point) and drawn one by one (the value of the point itself)."""
+    for layer in layers:
+        geom = grid_geom(0, 0, 0, layer.edge_origin)
+        np.testing.assert_array_equal(layer.raster_values(geom, index)[:3, :4].ravel(), expected)
+        for k in (0, 6, 11):
+            line, col = divmod(k, 4)
+            found = layer.value(col + 0.1, line - 0.1, 0.25, index)
+            assert found['point'] == k and found['value'] == float(expected[k])
+
+
+# (show, sliders [(name, max)], slider values, the two images (i, j) of the slider values)
+NAMED_SHOWS = [('intf_0', [('image', 3)], {'image': 2}, (0, 2)),
+               ('intf_seq', [('image', 2)], {'image': 1}, (1, 2)),
+               ('intf_all', [('ref', 3), ('sec', 3)], {'ref': 3, 'sec': 1}, (3, 1))]
+
+
+def test_named_shows_of_real_stacks(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of real stacks, e.g. unwrapped phase or a time series: the difference
+    of the values of images i and j (not wrapped), of rasters and points; 'phase' needs complex data."""
+    ts = rng.uniform(-20, 20, (30, 20, 4)).astype(np.float32)        # differences of up to 40
+    write_zarr(tmp_path / 'ts.zarr', ts, (15, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'ts_pyr'))
+    pts = rng.uniform(-20, 20, (12, 4)).astype(np.float32)
+    pyr, x, y = _grid_points(tmp_path, pts, 'pts')
+    geom = grid_geom(0, 0, 0, RAS)
+    for show, sliders, index, (i, j) in NAMED_SHOWS:
+        for layer in (view(str(tmp_path / 'ts_pyr'), show=show), view(ts, show=show)):     # pyramid, in memory
+            assert [(k['name'], k['max']) for k in layer.kdims] == sliders
+            np.testing.assert_array_equal(layer.raster_values(geom, index)[:30, :20], ts[..., i] - ts[..., j])
+        _check_points([view(str(pyr), show=show), view(pts, x=x, y=y, show=show)], index, pts[:, i] - pts[:, j])
+    assert np.abs(ts[..., 3] - ts[..., 1]).max() > 2 * np.pi
+    with pytest.raises(ValueError, match='phase needs complex data with one index dimension'):
+        view(ts, show='phase').raster_values(geom, {'image': 0})
+
+
+def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of stacks of matrices (..., n, n), e.g. coherence matrices: element
+    (i, j) of the images of the sliders, its phase for complex data, of rasters and points; 'phase' needs one
+    stack dimension, and more than two are rejected."""
+    c = (rng.uniform(0.1, 1, (30, 20, 4, 4)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (30, 20, 4, 4)))
+         ).astype(np.complex64)
+    r = rng.normal(size=(30, 20, 4, 4)).astype(np.float32)
+    geom = grid_geom(0, 0, 0, RAS)
+    for name, m in (('c', c), ('r', r)):
+        write_zarr(tmp_path / f'{name}.zarr', m, (15, 20, 1, 1))
+        mc.ras_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'))
+        p = m[:3, :4].reshape(12, 4, 4)
+        pyr, x, y = _grid_points(tmp_path, p, f'{name}_pts')
+        element = np.angle if np.iscomplexobj(m) else (lambda a: a)
+        for show, sliders, index, (i, j) in NAMED_SHOWS:
+            for layer in (view(str(tmp_path / f'{name}_pyr'), show=show), view(m, show=show)):
+                assert [(k['name'], k['max']) for k in layer.kdims] == sliders
+                np.testing.assert_array_equal(layer.raster_values(geom, index)[:30, :20], element(m[..., i, j]))
+            _check_points([view(str(pyr), show=show), view(p, x=x, y=y, show=show)], index, element(p[:, i, j]))
+        with pytest.raises(ValueError, match='phase needs complex data with one index dimension'):
+            view(m, show='phase').raster_values(geom, {'image': 0})
+    with pytest.raises(ValueError, match='one or two index dimensions'):
+        view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
+
+
 # ---------------------------------------------------------------- time series
 
 def test_raster_time_series(tmp_path, stack, rng):
