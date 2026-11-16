@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+`download-era5` without a time, e.g. `--times ''`, stops with "times must have the time of at least one image", an argument error (a usage error, exit code 2, on the command line), before it makes the output directory, as `pc-tropo-era5` does; it made an empty directory and succeeded
+
 An empty list for a required list argument of a command, e.g. `times = []` of `download-era5` in a pipeline file, is a usage error (exit code 2) before anything runs: "download-era5: argument times needs at least one value, got an empty list: ..."; it failed with "IndexError: list index out of range" (exit code 1). An optional list argument passes an empty list to the command, which decides: `pc-sort` with `pc_in = []` and `pc = []` sorts the index and has no data to sort
 
 `moraine quicklook` and `moraine view` accept their options with a dash for an underscore, `--image-pairs` for `--image_pairs`, as the processing commands accept `--a-b` for `--a_b`; argparse stopped with "unrecognized arguments: --image-pairs" (exit code 2). The help shows `--image_pairs`, as that of the processing commands shows their options with underscores

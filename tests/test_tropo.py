@@ -371,6 +371,27 @@ def test_cli_argument_errors_are_usage_errors(tmp_path, capsys, monkeypatch):
     assert not out.exists()
 
 
+def test_download_era5_without_times_is_a_usage_error(tmp_path, capsys, monkeypatch):
+    """download-era5 without a time (`--times ''`, times = [] in Python) stops with an ArgumentError, a usage error
+    (exit code 2) on the command line, before it makes the output directory, as pc-tropo-era5 does; it made an empty
+    directory and succeeded. Nothing is downloaded: the downloads fail in this test."""
+    pytest.importorskip('h5py')
+
+    def no_download(*args, **kwargs):
+        raise AssertionError('no download in this test')
+    monkeypatch.setattr(ctr, '_ncar_file', no_download)
+    monkeypatch.setitem(sys.modules, 'cdsapi', types.SimpleNamespace(Client=no_download))
+    era5, bbox = tmp_path / 'era5', ['14.0', '40.7', '14.2', '40.9']
+    for times in ([''], [' ']):
+        assert main(['download-era5', '--out_dir', str(era5), '--times', *times, '--bbox', *bbox, '--json', '-q']) == 2
+        assert json_out(capsys) == {'version': 1, 'ok': False, 'error': 'times must have the time of at least one image'}
+        assert not era5.exists()
+    for times in ([], ''):
+        with pytest.raises(ArgumentError, match='^times must have the time of at least one image$'):
+            mc.download_era5(str(era5), times, bbox, source='cds')
+        assert not era5.exists()
+
+
 class _FakeClient:
     """cdsapi.Client of the tests: writes the file of the requested hour and area"""
     requests = []

@@ -380,6 +380,8 @@ def download_era5(
         raise ImportError("download-era5 needs cdsapi and h5py: pip install 'moraine[era5]'") from None
     area = _area(bbox)
     hours = _era5_hours(times)
+    if not hours:
+        raise ArgumentError('times must have the time of at least one image')
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     logger.info(f'{len(_times(times))} images need {len(hours)} hours of ERA5, area (north, west, south, east) {area}')
