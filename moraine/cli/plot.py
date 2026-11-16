@@ -397,8 +397,8 @@ def pc_pyramid(
     y : str, optional
         input: y coordinate of the points, shape (n_points,), e.g. latitude or web mercator y
     yx : str, optional
-        input: (y, x) coordinates of the points, shape (n_points, 2), e.g. gix; alternative to `x` and
-        `y`
+        input: (y, x) coordinates of the points, shape (n_points, 2), e.g. gix; instead of `x` and `y`, not
+        with them
     ras_resolution : float, default: 20
         minimum resolution of rendered raster data,
     ras_chunks : tuple[int, int], default: (256, 256)
@@ -424,6 +424,8 @@ def pc_pyramid(
     if pc_zarr.size == 0:
         raise ArgumentError(f'the point cloud is empty: {pc} has shape {pc_zarr.shape}; a point cloud pyramid needs '
                             'at least one value')
+    if x is not None and y is not None and yx is not None:
+        raise ArgumentError('give the coordinates of the points with `x` and `y` or with `yx`, not with both')
     if x is None and y is None:
         if yx is None:
             raise ArgumentError('give the coordinates of the points with `x` and `y` or with `yx`')

@@ -304,7 +304,8 @@ def test_point_cloud_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp
     y, the number of points of the coordinates against that of pc, and that they are given; and a point cloud without
     values. These are argument errors, on the command line usage errors (exit code 2). The output directory was
     cleaned before the shape of yx was checked, and the other cases failed later (a shape mismatch while the points
-    were rendered, "could not broadcast", a zarr error of a missing path), or wrote a broken pyramid."""
+    were rendered, "could not broadcast", a zarr error of a missing path), or wrote a broken pyramid. `yx` given with
+    `x` and `y` was ignored."""
     w = lambda name, data: write_zarr(tmp_path / name, data, tuple(max(1, n) for n in data.shape))
     pc, pc0 = w('pc.zarr', rng.random(10).astype(np.float32)), w('pc0.zarr', np.zeros((10, 0), np.float32))
     x8, x10, y10 = (w(f'{n}.zarr', rng.random(int(n[1:])).astype(np.float32)) for n in ('x8', 'x10', 'y10'))
@@ -319,6 +320,8 @@ def test_point_cloud_pyramid_inputs_are_checked_before_the_output_is_cleaned(tmp
             (pc, dict(x=x8, y=x8), 'pc (10,) and the coordinates x, y (8,) have different numbers of points'),
             (pc, dict(x=x10), 'give both `x` and `y`, or `yx`'),
             (pc, dict(y=y10, yx=yx10), 'give both `x` and `y`, or `yx`'),
+            (pc, dict(x=x10, y=y10, yx=yx10), 'give the coordinates of the points with `x` and `y` or with `yx`, not '
+                                              'with both'),
             (pc, {}, 'give the coordinates of the points with `x` and `y` or with `yx`'),
             (pc0, dict(yx=yx10), f'the point cloud is empty: {pc0} has shape (10, 0); a point cloud pyramid needs at '
                                  'least one value')]:
