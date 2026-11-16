@@ -38,9 +38,9 @@ reference image (from `raw/bperp.zarr` of the 01 step); pyramids `pc_can_temp_co
 
 | result | sample value | sane range |
 |---|---|---|
-| merged candidates | 675 687 | about PS + DS minus overlap |
+| merged candidates (run of 2026-11-15) | 675 689 | about PS + DS minus overlap |
 | `pc_can_temp_coh_pyramid` | p50 0.79, p01 0.21, p99 0.995 | 0..1 |
-| refined points (`pc_hix`) | 330 754 (49 % of the candidates; 99.9 % of the DS, 32 % of the PS candidates that are not DS) | |
+| refined points (`pc_hix`, run of 2026-11-15) | 330 753 (49 % of the candidates; 99.9 % of the DS, 32 % of the PS candidates that are not DS) | |
 | `pc_bperp` (run of 2026-11-14) | -73 to 142 m, no nan, 0 for the reference 20200707; over the points of an image it changes by 0.6 m (median) to 1.6 m | as `raw/bperp.zarr` |
 
 Run time: about 40 s with an A100 (n2ft 28 s for 91 image pairs).
