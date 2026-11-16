@@ -444,7 +444,8 @@ def _build_parser(with_commands=True):
     p.add_argument('paths', nargs='+'); _add_global(p)
     p = sub.add_parser('quicklook', help='save a PNG of a pyramid (made by ras-pyramid / pc-pyramid)')
     p.add_argument('pyramid', help='pyramid directory made by `moraine ras-pyramid` or `moraine pc-pyramid`')
-    p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
+    p.add_argument('-o', '--out', help='output PNG, a name ending with .png; .png is appended to a name without a '
+                                       'suffix (default: <pyramid name>.png)')
     p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
                    help='image of a stack, i j of 4D data (..., n, n), or two images (ref sec) with --show intf_all / '
                         'coh / coh_abs (default: the first)')
@@ -510,10 +511,9 @@ def _run(args):
         return _emit(args, result, lambda: [_print_summary(s) for s in result['summaries']])
     if sub == 'quicklook':
         from .summary import quicklook
-        out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
-        quicklook(args.pyramid, out, index=tuple(args.index), show=args.show, width=args.width, extent=args.extent,
-                  clim=args.clim)
-        return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
+        out = quicklook(args.pyramid, args.out or Path(args.pyramid.rstrip('/')).name + '.png', index=tuple(args.index),
+                        show=args.show, width=args.width, extent=args.extent, clim=args.clim)
+        return _emit(args, {'png': out}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
         out = view(args.pyramids, args.out, show=args.show, dates=args.dates, terrain=args.terrain,

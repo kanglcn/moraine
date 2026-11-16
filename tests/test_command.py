@@ -460,6 +460,38 @@ def test_quicklook_clim(tmp_path, capsys, rng):
     assert '--clim LOW,HIGH' in ' '.join(capsys.readouterr().out.split())
 
 
+def test_quicklook_output_name(tmp_path, capsys, rng, monkeypatch):
+    """`moraine quicklook -o NAME` without a suffix writes and reports NAME.png (matplotlib wrote NAME.png while the
+    command reported NAME, also as `png` of the JSON output); another suffix than .png is a usage error before
+    anything is drawn (matplotlib failed after drawing, exit code 1, or wrote another format, e.g. a PDF)."""
+    import moraine.cli as mc
+    import moraine.cli.tiles as tiles
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'pyr'))
+    capsys.readouterr()
+    pyr = str(tmp_path / 'pyr')
+    assert main(['quicklook', pyr, '-o', str(tmp_path / 'q'), '--json']) == 0
+    assert json_out(capsys)['png'] == str(tmp_path / 'q.png')
+    assert (tmp_path / 'q.png').stat().st_size > 1000 and not (tmp_path / 'q').exists()
+    assert main(['quicklook', pyr, '-o', str(tmp_path / 'a.b' / 'text')]) == 0             # a dot in a directory
+    assert capsys.readouterr().out == f"saved {tmp_path / 'a.b' / 'text.png'}\n"
+    assert (tmp_path / 'a.b' / 'text.png').exists()
+    assert quicklook(pyr, str(tmp_path / 'p')) == str(tmp_path / 'p.png') and (tmp_path / 'p.png').exists()
+    for name in ('q2.png', 'Q.PNG'):                                                        # .png in any case
+        assert main(['quicklook', pyr, '-o', str(tmp_path / name), '--json']) == 0
+        assert json_out(capsys)['png'] == str(tmp_path / name) and (tmp_path / name).stat().st_size > 1000
+    drawn = []
+    monkeypatch.setattr(tiles, 'render_png', lambda *args, **kwargs: drawn.append(args))
+    for name in ('x.txt', 'x.pdf', 'x.jpg', 'v1.2'):
+        assert main(['quicklook', pyr, '-o', str(tmp_path / name), '--json']) == 2, name
+        assert json_out(capsys)['error'] == (f'{tmp_path / name}: the image name must end with .png, or have no '
+                                             'suffix (then .png is appended)')
+        assert not (tmp_path / name).exists()
+    with pytest.raises(UsageError, match='must end with .png'):
+        quicklook(pyr, str(tmp_path / 'x.svg'))
+    assert drawn == []
+
+
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):
     """The help of `moraine quicklook` and `moraine view`, which the manual shows, says what the docstrings of the
     functions say: the default of --show, and the sliders of --index, also i j of 4D data (it did not say that)."""

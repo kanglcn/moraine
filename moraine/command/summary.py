@@ -4,6 +4,7 @@ with `moraine.cli.view`)."""
 __all__ = ['summarize', 'quicklook', 'view', 'pyramid_levels']
 
 import math
+import os
 from pathlib import Path
 
 import zarr
@@ -95,6 +96,17 @@ def _clim(clim):
     return low, high
 
 
+def _png_name(out)->str:
+    """The PNG file of quicklook: `out` ending with .png, or with .png appended without a suffix; UsageError for
+    another suffix."""
+    suffix = os.path.splitext(str(out))[1]
+    if not suffix:          # matplotlib would write OUT.png (or the format of its configuration) and not say so
+        return f'{out}.png'
+    if suffix.lower() != '.png':
+        raise UsageError(f'{out}: the image name must end with .png, or have no suffix (then .png is appended)')
+    return str(out)
+
+
 def quicklook(
     pyramid:str,
     out:str,
@@ -109,14 +121,15 @@ def quicklook(
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
     first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds). Wrong inputs raise a UsageError (the
     command exits with 2) before anything is drawn: a path that is not a pyramid or one to rebuild, a `show` that
-    does not fit the data, a wrong `extent` or `clim`, an `index` beyond the sliders.
+    does not fit the data, a wrong `extent` or `clim`, an `index` beyond the sliders, an `out` that is not a PNG.
 
     Parameters
     ----------
     pyramid : str
         pyramid directory made by `ras_pyramid` or `pc_pyramid`
     out : str
-        output PNG file
+        output PNG file, a name ending with .png; .png is appended to a name without a suffix, another suffix is
+        a UsageError
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
         (i, j) for 4D data (..., n, n), (ref, sec) for 'intf_all' / 'coh' / 'coh_abs', at most one value per slider
@@ -139,9 +152,10 @@ def quicklook(
     Returns
     -------
     str
-        the output path
+        the PNG file written: `out`, with .png appended to a name without a suffix
     """
     from ..cli.tiles import view as _view, view_index, _data_extent
+    out = _png_name(out)                            # UsageError
     try:        # the inputs, before anything is drawn: their errors are a wrong command line, with their messages
         if not pyramid_levels(Path(pyramid)):       # ValueError for a pyramid to rebuild
             raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras '
