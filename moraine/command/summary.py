@@ -3,6 +3,7 @@ with `moraine.cli.view`)."""
 
 __all__ = ['summarize', 'quicklook', 'view', 'pyramid_levels']
 
+import math
 from pathlib import Path
 
 import zarr
@@ -67,6 +68,33 @@ def summarize(
     return {'path': str(path), 'kind': 'file', 'bytes': p.stat().st_size}
 
 
+def _numbers(text)->list:
+    """The values of an option of numbers separated by commas or spaces, e.g. '-11,6' or '(-11, 6)': floats, and the
+    words that are not numbers as they are written."""
+    values = []
+    for word in str(text).replace('(', ' ').replace(')', ' ').replace(',', ' ').split():
+        try:
+            values.append(float(word))
+        except ValueError:
+            values.append(word)
+    return values
+
+
+def _clim(clim):
+    """(low, high) floats of a colour range: a text 'LOW,HIGH' or two numbers, finite and LOW < HIGH; None for None.
+    UsageError otherwise."""
+    if clim is None:
+        return None
+    try:
+        low, high = (float(v) for v in (_numbers(clim) if isinstance(clim, str) else clim))
+    except (TypeError, ValueError):         # not two values, or not numbers
+        low = high = math.nan
+    if not (math.isfinite(low) and math.isfinite(high) and low < high):
+        raise UsageError(f'clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the first and the last '
+                         f'colour (e.g. -11,6), got {clim!r}')
+    return low, high
+
+
 def quicklook(
     pyramid:str,
     out:str,
@@ -74,13 +102,14 @@ def quicklook(
     show:str=None,
     width:int=1000,
     extent:str=None,
+    clim:str=None,
 )->str:
     """Save a PNG of a pyramid, drawn like `moraine.cli.view` (``view(pyramid).png(out)``).
 
     Only the pyramid level matching the image size is read, however large the data are. Build the pyramid
     first with `ras_pyramid` (rasters) or `pc_pyramid` (point clouds). Wrong inputs raise a UsageError (the
     command exits with 2) before anything is drawn: a path that is not a pyramid or one to rebuild, a `show` that
-    does not fit the data, a wrong `extent`, an `index` beyond the sliders.
+    does not fit the data, a wrong `extent` or `clim`, an `index` beyond the sliders.
 
     Parameters
     ----------
@@ -101,6 +130,11 @@ def quicklook(
         the part to draw, four numbers separated by commas: "west,south,east,north" in degrees on a web
         mercator map, "range_min,azimuth_min,range_max,azimuth_max" in pixels on the radar grid; the whole
         scene by default. A smaller part shows finer pyramid levels, down to the data
+    clim : str or tuple, optional
+        the colour range, two numbers "LOW,HIGH" (or (low, high)) with LOW < HIGH: the values of the first and the
+        last colour, as `clim` of `moraine.cli.view` (e.g. "-11,6" for differences of a few millimetres); by default
+        (-pi, pi) for phases, the 1 % - 99 % range of the data otherwise and +-(p99 - p01) for the differences of two
+        images of a real stack
 
     Returns
     -------
@@ -112,9 +146,10 @@ def quicklook(
         if not pyramid_levels(Path(pyramid)):       # ValueError for a pyramid to rebuild
             raise ValueError(f'{pyramid} is not a pyramid; build one first with `moraine ras-pyramid --ras '
                              f'{pyramid} --out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)')
+        clim = _clim(clim)                          # UsageError
         if extent is not None and not isinstance(extent, (tuple, list)):
             extent = [float(v) for v in str(extent).replace('(', ' ').replace(')', ' ').replace(',', ' ').split()]
-        layer = _view(str(pyramid), show=show)      # ValueError for a show that does not fit the data
+        layer = _view(str(pyramid), show=show, clim=clim)      # ValueError for a show that does not fit the data
         if extent is not None:
             _data_extent(extent, layer.crs)
     except ValueError as e:

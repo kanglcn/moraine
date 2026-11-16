@@ -45,7 +45,9 @@ moraine quicklook raw/rslc_pyramid --show intf_all --index 0 91 --extent 1400,0,
 `--show` chooses what to draw of a stack: `phase` (default for complex data), `intf_0` (interferogram with
 the first image), `intf_seq` (the I-th sequential interferogram), `intf_all` (any pair `ref sec`), `coh`,
 `coh_abs`. Phases of complex data use a cyclic colour map over (-π, π]; other values `viridis` over the 1-99 %
-range, the differences of two images of a real stack (`intf_*` of unwrapped phase or displacement) over ±(p99 - p01).
+range, the differences of two images of a real stack (`intf_*` of unwrapped phase or displacement) over ±(p99 - p01);
+`--clim LOW,HIGH` sets another range, e.g. `--clim -11,6` for the differences of sequential images, which are often
+much smaller.
 `--extent` draws a part of the scene (`west,south,east,north` degrees on a map, `range_min,azimuth_min,range_max,azimuth_max`
 pixels on the radar grid): a smaller part is drawn from a finer level, down to single pixels or points; the
 title gives the extent and the level. Look at the whole scene first, then zoom into what looks wrong.

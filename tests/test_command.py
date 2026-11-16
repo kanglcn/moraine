@@ -425,6 +425,41 @@ def test_quicklook_index_of_the_sliders(tmp_path, capsys, rng):
     assert out.stat().st_size > 1000
 
 
+def test_quicklook_clim(tmp_path, capsys, rng):
+    """`moraine quicklook --clim LOW,HIGH` draws with the colour range of `clim` of `moraine.cli.view` (there was no
+    way to set it: the differences of a real stack were drawn over +-(p99 - p01), too wide for sequential pairs); a
+    LOW with a minus sign is the value of the option. Anything but two finite numbers with LOW < HIGH is a usage
+    error, before anything is drawn."""
+    import moraine.cli as mc
+    ts = np.cumsum(rng.normal(-5, 2, (30, 20, 4)), axis=-1).astype(np.float32)      # a time series in mm
+    write_zarr(tmp_path / 'ts.zarr', ts, (30, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
+    capsys.readouterr()
+    pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
+    expected = Path(mc.view(pyr, show='intf_seq', clim=(-11, 6)).png(str(tmp_path / 'v.png'), width=300)).read_bytes()
+    default = Path(mc.view(pyr, show='intf_seq').png(str(tmp_path / 'd.png'), width=300)).read_bytes()
+    assert expected != default
+    args = ['quicklook', pyr, '-o', str(out), '--show', 'intf_seq', '--width', '300', '--json']
+    for clim in (['--clim', '-11,6'], ['--clim=-11,6'], ['--clim', '-11 6'], ['--clim', '(-11, 6)'],
+                 ['--clim', '-1.1e1,6.0']):
+        assert main(args + clim) == 0, clim
+        assert json_out(capsys)['png'] == str(out) and out.read_bytes() == expected, clim
+        out.unlink()
+    assert quicklook(pyr, str(out), show='intf_seq', width=300, clim=(-11, 6)) == str(out)     # two numbers in Python
+    assert out.read_bytes() == expected
+    out.unlink()
+    for clim in ('6,-11', '1,1', '1', '1,2,3', 'a,b', 'nan,1', '1,inf', ''):
+        assert main(args + ['--clim', clim]) == 2, clim
+        assert json_out(capsys)['error'] == ('clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the '
+                                             f'first and the last colour (e.g. -11,6), got {clim!r}')
+    with pytest.raises(UsageError, match=r'^clim must be two numbers LOW,HIGH with LOW < HIGH.*got \(6, -11\)$'):
+        quicklook(pyr, str(out), clim=(6, -11))
+    assert not out.exists()
+    with pytest.raises(SystemExit):
+        main(['quicklook', '--help'])
+    assert '--clim LOW,HIGH' in ' '.join(capsys.readouterr().out.split())
+
+
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):
     """The help of `moraine quicklook` and `moraine view`, which the manual shows, says what the docstrings of the
     functions say: the default of --show, and the sliders of --index, also i j of 4D data (it did not say that)."""
