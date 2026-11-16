@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+requests is no longer a dependency: `download_dl_model` downloads the models with the standard library (`urllib.request`), with the certificates of the Python installation (of the system or the conda environment) instead of those of certifi. Errors are handled as before: a failed download (an HTTP error, no connection) prints the error and raises nothing, a missing output directory raises; a file cut short (fewer bytes than the server announced) is a failed download now, and a failed download writes no file (it could leave a partial file before, with urllib3 1.x even reported as downloaded)
+
 toml (unmaintained) is no longer a dependency: moraine reads TOML files with the standard library's `tomllib` (`view(dates=...)` and `--dates`, point cloud pyramids) and writes `meta.toml` (`load-gamma-metadata`) and `bounds.toml` (`pc-pyramid`) itself. The files have the same keys, values and types as before, read with `tomllib` or with `toml`; only the spaces in the lists differ. Scripts that read them with `toml.load` need toml installed, or the standard library as in the tutorials: `with open('meta.toml', 'rb') as f: meta = tomllib.load(f)`
 
 numcodecs is no longer a dependency of its own: moraine does not import it, and zarr, which requires it, still installs it

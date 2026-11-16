@@ -26,19 +26,20 @@ def _fetch_github_file(
     out_path : str
         output path
     """
-    import requests
+    import http.client
+    import urllib.request
     url = '/'.join(['https://raw.githubusercontent.com', gid, repo, 'refs','heads', branch, file_path])
     print(' '.join(['Downloading', url,'to',out_path]))
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
-
-        with open(out_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print(f"File '{out_path}' downloaded successfully.")
-    except requests.exceptions.RequestException as e:
+        # an HTTPError for bad status codes (4xx or 5xx); read() raises IncompleteRead for a file cut short
+        with urllib.request.urlopen(url) as response:
+            content = response.read()
+    except (OSError, http.client.HTTPException) as e:   # URLError, connection and read errors: printed, not raised
         print(f"Error downloading file: {e}")
+        return
+    with open(out_path, 'wb') as f:      # errors of the output file are raised
+        f.write(content)
+    print(f"File '{out_path}' downloaded successfully.")
 
 def download_dl_model(
     models:str|list=None,

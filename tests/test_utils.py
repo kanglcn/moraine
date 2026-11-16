@@ -112,3 +112,66 @@ def test_write_toml(tmp_path):
     assert all(type(v) is bool for v in back['flags'])
     with pytest.raises(TypeError, match='no TOML value'):
         write_toml(tmp_path / 'bad.toml', {'a': None})
+
+
+def test_download_dl_model(tmp_path, monkeypatch, capsys):
+    """The models are written as served; a missing file (HTTP 404), a file cut short and a refused connection print
+    an error, raise nothing and write no file; a missing output directory raises. A local HTTP server stands in for
+    GitHub, and connections elsewhere fail the test: no network."""
+    import http.server
+    import socket
+    import threading
+    import urllib.request
+    body = bytes(range(256)) * 40
+    served = {'/kanglcn/n2f/refs/heads/main/n2f.pth': (body, len(body)),
+              '/kanglcn/n2ft/refs/heads/main/n2ft.pth': (body[:100], len(body))}       # cut short
+    requested = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            requested.append(self.path)
+            if self.path not in served:
+                return self.send_error(404)
+            content, length = served[self.path]
+            self.send_response(200)
+            self.send_header('Content-Length', str(length))
+            self.end_headers()
+            self.wfile.write(content)
+            self.close_connection = True
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    with socket.socket() as s:
+        s.bind(('127.0.0.1', 0))
+        no_server = s.getsockname()[1]                  # a port nobody listens on
+    port = [server.server_address[1]]
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    monkeypatch.setattr(urllib.request, 'urlopen', lambda url, *a, **k: opener.open(
+        url.replace('https://raw.githubusercontent.com', f'http://127.0.0.1:{port[0]}'), *a, **k))
+    getaddrinfo = socket.getaddrinfo
+
+    def local_only(host, *args, **kwargs):
+        assert host == '127.0.0.1', f'the test must not connect to {host}'
+        return getaddrinfo(host, *args, **kwargs)
+    monkeypatch.setattr(socket, 'getaddrinfo', local_only)
+    try:
+        mr.download_dl_model(path=tmp_path)
+        assert requested == ['/kanglcn/n2f/refs/heads/main/n2f.pth', '/kanglcn/n2f/refs/heads/main/n2fs3d.pth',
+                             '/kanglcn/n2ft/refs/heads/main/n2ft.pth']
+        assert (tmp_path / 'n2f.pth').read_bytes() == body
+        assert not (tmp_path / 'n2fs3d.pth').exists() and not (tmp_path / 'n2ft.pth').exists()
+        out = capsys.readouterr().out
+        assert "n2f.pth' downloaded successfully" in out and out.count('Error downloading file') == 2
+        assert 'HTTP Error 404' in out and 'IncompleteRead' in out
+        port[0] = no_server
+        mr.download_dl_model('n2fs3d', path=tmp_path)
+        assert 'Error downloading file' in capsys.readouterr().out and not (tmp_path / 'n2fs3d.pth').exists()
+        port[0] = server.server_address[1]
+        with pytest.raises(FileNotFoundError):
+            mr.download_dl_model('n2f', path=tmp_path / 'no_such_directory')
+    finally:
+        server.shutdown()
+        server.server_close()
