@@ -346,6 +346,8 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
     write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    write_zarr(tmp_path / 'm5.zarr', rng.random((30, 20, 2, 2, 2)).astype(np.float32), (30, 20, 1, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'm5.zarr'), str(tmp_path / 'm5_pyr'))
     write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
     write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
     pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
@@ -360,12 +362,20 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
                                               'minimum before the maximum, got (30.0, 5.0, 10.0, 20.0)'),
             ([pyr, '--extent', '10,5,30'], 'extent must be (range_min, azimuth_min, range_max, azimuth_max) with the '
                                            'minimum before the maximum, got (10.0, 5.0, 30.0)'),
-            ([pyr, '--extent', 'west,5,30,20'], "could not convert string to float: 'west'"),
+            ([pyr, '--extent', 'west,5,30,20'], "extent must be four numbers (range_min, azimuth_min, range_max, "
+                                                "azimuth_max), pixels on the radar grid, got ('west', 5.0, 30.0, 20.0)"),
+            ([pyr, '--extent', 'west,south,east,north'], 'extent must be four numbers (range_min, azimuth_min, '
+                                                         'range_max, azimuth_max), pixels on the radar grid, got '
+                                                         "('west', 'south', 'east', 'north')"),
             ([pyr, '--show', 'phase'], 'phase needs complex data with one index dimension, got float32 with 1'),
-            ([pyr, '--show', 'coh'], 'input is not correct value of number of all pairs'),       # 4 is no n (n - 1) / 2
+            ([pyr, '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not shape (30, 20, 4): one "
+                                     'column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, '
+                                     '6, 10, ...) or the number of the image pairs given (none are given)'),
             ([str(tmp_path / 'r_pyr'), '--show', 'intf_seq'], 'the data must have one or two index dimensions, got 0'),
             ([str(tmp_path / 'r_pyr'), '--show', 'coh'], "show='coh' needs compressed coherence (..., n_pairs), not "
-                                                         "shape (30, 20)")]:
+                                                         "shape (30, 20)"),
+            ([str(tmp_path / 'm5_pyr')], 'data of shape (30, 20, 2, 2, 2): 3 stack dimensions, more than the shows of '
+                                         "a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; ")]:
         capsys.readouterr()
         assert main(['quicklook', *args, '-o', str(out), '--json']) == 2, args
         result = json_out(capsys)
@@ -381,6 +391,48 @@ def test_quicklook_wrong_inputs_are_usage_errors(tmp_path, capsys, rng, monkeypa
     capsys.readouterr()
     assert main(['quicklook', pyr, '-o', str(out), '--json']) == 1
     assert json_out(capsys)['error'] == 'ValueError: a chunk of the level cannot be read' and not out.exists()
+
+
+def test_view_and_info_reject_what_quicklook_rejects(tmp_path, capsys, rng):
+    """`moraine view` rejects a path that is not a pyramid, and `moraine view` and `moraine info` a pyramid to rebuild
+    or of a newer moraine, as `moraine quicklook` does: a usage error (exit code 2) with the same message (they
+    exited with 1, after "ValueError: "). info still summarizes what is not a pyramid, and a missing path stays a
+    processing error of info."""
+    import moraine.cli as mc
+    write_zarr(tmp_path / 'ts.zarr', rng.random((30, 20, 4)).astype(np.float32), (30, 20, 1))
+    write_zarr(tmp_path / 'old' / '0.zarr', np.ones((6, 8), np.float32))     # levels without the marker
+    write_zarr(tmp_path / 'old' / '1.zarr', np.ones((3, 4), np.float32))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'new'))
+    z0 = zarr.open(str(tmp_path / 'new' / '0.zarr'), mode='r+')
+    z0.attrs['moraine_pyramid'] = {**z0.attrs['moraine_pyramid'], 'version': 99}       # of a newer moraine
+    for i, n in enumerate([50, 25]):         # per-chunk arrays (ras2pc_ras_chunk), not levels of a pyramid
+        write_zarr(tmp_path / 'chunks' / f'{i}.zarr', rng.random((n, 11, 11)).astype(np.float32))
+    capsys.readouterr()
+    png, nb = tmp_path / 'q.png', tmp_path / 'v.ipynb'
+    options = {'quicklook': ['-o', str(png)], 'view': ['-o', str(nb)], 'info': []}
+    for path, error, commands in [
+            ('ts.zarr', f"{tmp_path / 'ts.zarr'} is not a pyramid; build one first with `moraine ras-pyramid --ras "
+                        f"{tmp_path / 'ts.zarr'} --out_dir <dir>` (rasters) or `moraine pc-pyramid` (point clouds)",
+             ('quicklook', 'view')),
+            ('missing', f"{tmp_path / 'missing'} is not a pyramid; build one first with", ('quicklook', 'view')),
+            ('chunks', f"{tmp_path / 'chunks'} is not a pyramid; build one first with", ('quicklook', 'view')),
+            ('old', f"{tmp_path / 'old'}: a pyramid without its marker (the attribute moraine_pyramid of 0.zarr), made "
+                    "by moraine before 0.10.0 or by a ras-pyramid that did not finish; rebuild it with `moraine "
+                    "ras-pyramid`", ('quicklook', 'view', 'info')),
+            ('new', f"{tmp_path / 'new'}: pyramid layout version 99 is newer than this moraine supports (1); update "
+                    "moraine", ('quicklook', 'view', 'info'))]:
+        errors = []
+        for command in commands:
+            assert main([command, str(tmp_path / path), *options[command], '--json']) == 2, (command, path)
+            result = json_out(capsys)
+            assert set(result) == {'version', 'ok', 'error'} and result['ok'] is False, (command, path)
+            errors.append(result['error'])
+        assert errors[0].startswith(error) and errors == errors[:1] * len(commands), (path, errors)
+    assert not png.exists() and not nb.exists()
+    assert main(['info', str(tmp_path / 'ts.zarr'), str(tmp_path / 'chunks'), '--json']) == 0
+    assert [s['kind'] for s in json_out(capsys)['summaries']] == ['array', 'directory']
+    assert main(['info', str(tmp_path / 'missing'), '--json']) == 1
+    assert json_out(capsys)['error'] == f"FileNotFoundError: {tmp_path / 'missing'} does not exist"
 
 
 def test_quicklook_index_within_the_sliders(tmp_path, capsys, rng):
@@ -423,6 +475,96 @@ def test_quicklook_index_of_the_sliders(tmp_path, capsys, rng):
     assert not out.exists()
     assert main(['quicklook', str(tmp_path / 'pyr'), '-o', str(out), '--json', '--index', '3']) == 0
     assert out.stat().st_size > 1000
+
+
+def test_quicklook_clim(tmp_path, capsys, rng):
+    """`moraine quicklook --clim LOW,HIGH` draws with the colour range of `clim` of `moraine.cli.view` (there was no
+    way to set it: the differences of a real stack were drawn over +-(p99 - p01), too wide for sequential pairs); a
+    LOW with a minus sign is the value of the option. Anything but two finite numbers with LOW < HIGH is a usage
+    error, before anything is drawn."""
+    import moraine.cli as mc
+    ts = np.cumsum(rng.normal(-5, 2, (30, 20, 4)), axis=-1).astype(np.float32)      # a time series in mm
+    write_zarr(tmp_path / 'ts.zarr', ts, (30, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'pyr'))
+    capsys.readouterr()
+    pyr, out = str(tmp_path / 'pyr'), tmp_path / 'q.png'
+    expected = Path(mc.view(pyr, show='intf_seq', clim=(-11, 6)).png(str(tmp_path / 'v.png'), width=300)).read_bytes()
+    default = Path(mc.view(pyr, show='intf_seq').png(str(tmp_path / 'd.png'), width=300)).read_bytes()
+    assert expected != default
+    args = ['quicklook', pyr, '-o', str(out), '--show', 'intf_seq', '--width', '300', '--json']
+    for clim in (['--clim', '-11,6'], ['--clim=-11,6'], ['--clim', '-11 6'], ['--clim', '(-11, 6)'],
+                 ['--clim', '-1.1e1,6.0']):
+        assert main(args + clim) == 0, clim
+        assert json_out(capsys)['png'] == str(out) and out.read_bytes() == expected, clim
+        out.unlink()
+    assert quicklook(pyr, str(out), show='intf_seq', width=300, clim=(-11, 6)) == str(out)     # two numbers in Python
+    assert out.read_bytes() == expected
+    out.unlink()
+    for clim in ('6,-11', '1,1', '1', '1,2,3', 'a,b', 'nan,1', '1,inf', ''):
+        assert main(args + ['--clim', clim]) == 2, clim
+        assert json_out(capsys)['error'] == ('clim must be two numbers LOW,HIGH with LOW < HIGH, the values of the '
+                                             f'first and the last colour (e.g. -11,6), got {clim!r}')
+    with pytest.raises(UsageError, match=r'^clim must be two numbers LOW,HIGH with LOW < HIGH.*got \(6, -11\)$'):
+        quicklook(pyr, str(out), clim=(6, -11))
+    assert not out.exists()
+    with pytest.raises(SystemExit):
+        main(['quicklook', '--help'])
+    assert '--clim LOW,HIGH' in ' '.join(capsys.readouterr().out.split())
+
+
+def test_quicklook_extent_starting_with_a_minus_sign(tmp_path, capsys, rng):
+    """`moraine quicklook --extent` takes a first number with a minus sign, a longitude west of Greenwich or the edge
+    -0.5 of the first pixel that the views give, as `--clim` does; argparse took the value for an unknown option
+    ("argument --extent: expected one argument")."""
+    import moraine.cli as mc
+    from moraine.cli.tiles import _lonlat_to_merc
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'r_pyr'))
+    gy, gx = np.divmod(np.arange(100), 10)
+    x0, y0 = _lonlat_to_merc(-122.42, 37.77)                                       # points in San Francisco
+    write_zarr(tmp_path / 'mx.zarr', x0 + 30.0 * gx); write_zarr(tmp_path / 'my.zarr', y0 + 30.0 * gy)
+    write_zarr(tmp_path / 'v.zarr', rng.random(100).astype(np.float32))
+    mc.pc_pyramid(str(tmp_path / 'v.zarr'), str(tmp_path / 'm_pyr'), x=str(tmp_path / 'mx.zarr'),
+                  y=str(tmp_path / 'my.zarr'), ras_resolution=30)
+    capsys.readouterr()
+    for pyr, extent in [('r_pyr', '-0.5,-0.5,10,15'), ('m_pyr', '-122.42,37.77,-122.418,37.772')]:
+        out = tmp_path / f'{pyr}.png'
+        for args in (['--extent', extent], [f'--extent={extent}']):
+            assert main(['quicklook', str(tmp_path / pyr), '-o', str(out), *args, '--json']) == 0, args
+            assert json_out(capsys)['png'] == str(out) and out.stat().st_size > 1000
+            out.unlink()
+
+
+def test_quicklook_output_name(tmp_path, capsys, rng, monkeypatch):
+    """`moraine quicklook -o NAME` without a suffix writes and reports NAME.png (matplotlib wrote NAME.png while the
+    command reported NAME, also as `png` of the JSON output); another suffix than .png is a usage error before
+    anything is drawn (matplotlib failed after drawing, exit code 1, or wrote another format, e.g. a PDF)."""
+    import moraine.cli as mc
+    import moraine.cli.tiles as tiles
+    write_zarr(tmp_path / 'r.zarr', rng.random((30, 20)).astype(np.float32))
+    mc.ras_pyramid(str(tmp_path / 'r.zarr'), str(tmp_path / 'pyr'))
+    capsys.readouterr()
+    pyr = str(tmp_path / 'pyr')
+    assert main(['quicklook', pyr, '-o', str(tmp_path / 'q'), '--json']) == 0
+    assert json_out(capsys)['png'] == str(tmp_path / 'q.png')
+    assert (tmp_path / 'q.png').stat().st_size > 1000 and not (tmp_path / 'q').exists()
+    assert main(['quicklook', pyr, '-o', str(tmp_path / 'a.b' / 'text')]) == 0             # a dot in a directory
+    assert capsys.readouterr().out == f"saved {tmp_path / 'a.b' / 'text.png'}\n"
+    assert (tmp_path / 'a.b' / 'text.png').exists()
+    assert quicklook(pyr, str(tmp_path / 'p')) == str(tmp_path / 'p.png') and (tmp_path / 'p.png').exists()
+    for name in ('q2.png', 'Q.PNG'):                                                        # .png in any case
+        assert main(['quicklook', pyr, '-o', str(tmp_path / name), '--json']) == 0
+        assert json_out(capsys)['png'] == str(tmp_path / name) and (tmp_path / name).stat().st_size > 1000
+    drawn = []
+    monkeypatch.setattr(tiles, 'render_png', lambda *args, **kwargs: drawn.append(args))
+    for name in ('x.txt', 'x.pdf', 'x.jpg', 'v1.2'):
+        assert main(['quicklook', pyr, '-o', str(tmp_path / name), '--json']) == 2, name
+        assert json_out(capsys)['error'] == (f'{tmp_path / name}: the image name must end with .png, or have no '
+                                             'suffix (then .png is appended)')
+        assert not (tmp_path / name).exists()
+    with pytest.raises(UsageError, match='must end with .png'):
+        quicklook(pyr, str(tmp_path / 'x.svg'))
+    assert drawn == []
 
 
 def test_quicklook_and_view_help_agree_with_the_docstrings(capsys):

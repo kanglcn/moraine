@@ -244,6 +244,22 @@ def test_point_data_in_memory(grid_pc):
         view(val, x=gx)
 
 
+def test_point_data_without_points(tmp_path):
+    """Point data without points, arrays or zarr paths, are an error of `view` that says so; it was numpy's "zero-size
+    array to reduction operation minimum which has no identity"."""
+    import re
+    write_zarr(tmp_path / 'pc.zarr', np.empty((0, 3), np.complex64), (1, 3))
+    write_zarr(tmp_path / 'x.zarr', np.empty(0), (1,)); write_zarr(tmp_path / 'y.zarr', np.empty(0), (1,))
+    for data, x, y, kw, shape in [
+            (np.empty(0, np.float32), np.empty(0), np.empty(0), {}, '(0,)'),
+            (np.empty((0, 3), np.complex64), np.empty(0), np.empty(0), dict(resolution=7.5, show='intf_seq'), '(0, 3)'),
+            (str(tmp_path / 'pc.zarr'), str(tmp_path / 'x.zarr'), str(tmp_path / 'y.zarr'), {}, '(0, 3)')]:
+        with pytest.raises(ValueError, match='^' + re.escape(f'the point data have no points: x (0,), y (0,) and data '
+                                                             f'{shape}; there is nothing to view') + '$'):
+            view(data, x=x, y=y, **kw)
+    assert view(np.ones(1, np.float32), x=np.zeros(1), y=np.zeros(1)).n_points == 1        # one point is enough
+
+
 def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
     """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
     coordinates (a pyramid without the tree is rejected: tests/test_contracts.py); points in memory get one built."""
@@ -346,6 +362,31 @@ def test_coherence_sliders(tmp_path):
     assert (layer.raster_values(geom, [1, 1])[:3, :4] == 1).all()
     with pytest.raises(ValueError, match='image pairs'):
         view(str(pyr), show='coh', image_pairs=str(tmp_path / 'pairs.txt'))
+
+
+def test_coherence_of_data_that_are_not_compressed_coherence(tmp_path):
+    """'coh' and 'coh_abs' of data that are not compressed coherence say what compressed coherence is, with the shape
+    of the data (of the points for point data): one column per image pair, n (n - 1) / 2 for all pairs of n images or
+    as many as the image pairs given. They said "input is not correct value of number of all pairs" (`nimage_from_npair`)
+    and "3 image pairs for data with 6 pairs", data without columns failed with a numpy error, and the shape of point
+    data was that of their raster."""
+    import re
+    x, y = np.arange(12.0) % 4, np.arange(12.0) // 4
+    rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
+            'number of the image pairs given')
+    for data, kw, error in [
+            (np.ones((10, 10, 4), np.complex64), {}, f'not shape (10, 10, 4): {rule} (none are given)'),
+            (np.ones((10, 10, 0), np.complex64), {}, f'not shape (10, 10, 0): {rule} (none are given)'),
+            (np.ones((12, 4), np.complex64), dict(x=x, y=y), f'not shape (12, 4): {rule} (none are given)'),
+            (np.ones((10, 10, 6), np.complex64), dict(image_pairs=[[0, 1], [0, 2], [1, 2]]),
+             f'not shape (10, 10, 6): {rule} (3)'),
+            (np.ones(12, np.complex64), dict(x=x, y=y), 'not shape (12,)')]:
+        for show in ('coh', 'coh_abs'):
+            with pytest.raises(ValueError, match='^' + re.escape(f'show={show!r} needs compressed coherence (..., '
+                                                                 f'n_pairs), {error}') + '$'):
+                view(data, show=show, **kw)
+    assert [k['max'] for k in view(np.ones((10, 10, 6), np.complex64), show='coh').kdims] == [3, 3]    # 4 images
+    assert [k['max'] for k in view(np.ones((10, 10, 1), np.complex64), show='coh_abs').kdims] == [1, 1]
 
 
 def test_coherence_sliders_reach_the_last_image(tmp_path):
@@ -478,6 +519,42 @@ def test_named_shows_that_do_not_fit_the_data(tmp_path, rng):
     with pytest.raises(ValueError, match='^phase needs complex data'):
         view(ts[:3, :4].reshape(12, 3), x=x, y=y, show='phase')
     assert view(np.ones((10, 10, 2), np.complex64), show='intf_seq').kdims == [{'name': 'image', 'max': 0}]
+
+
+def test_default_show_of_more_than_two_stack_dimensions(tmp_path, rng):
+    """The default show of data with three or more stack dimensions, rasters and points, real and complex, is an error
+    of `view` that names the shape and the shows (the view was made and failed when drawn: "2 indices given for data
+    with 3 index dimensions"); a show function, e.g. that of the message, draws them."""
+    import re
+    a = rng.random((10, 8, 2, 3, 4)).astype(np.float32)
+    write_zarr(tmp_path / 'a.zarr', a, (10, 8, 1, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'a.zarr'), str(tmp_path / 'a_pyr'))
+    p = a[:3, :4].reshape(12, 2, 3, 4)
+    pyr, x, y = _grid_points(tmp_path, p, 'pts')
+    shows = ("more than the shows of a view take (the default and 'intf_0', 'intf_seq', 'intf_all': one or two; "
+             "'phase', 'coh', 'coh_abs': one); show them with a function of the visible stack and its sliders, e.g. ")
+    for data, kw, error in [
+            (a, {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                    "sliders={{'i': 2, 'j': 3}}"),
+            (str(tmp_path / 'a_pyr'), {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, "
+                                          "0], sliders={{'i': 2, 'j': 3}}"),
+            (a.astype(np.complex64), {}, "(10, 8, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, "
+                                         "0], sliders={{'i': 2, 'j': 3}}"),
+            (p, dict(x=x, y=y), "(12, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                                "sliders={{'i': 2, 'j': 3}}"),
+            (str(pyr), {}, "(12, 2, 3, 4): 3 stack dimensions, {}show=lambda v, i, j: v[..., i, j, 0], "
+                           "sliders={{'i': 2, 'j': 3}}"),
+            (np.ones((5, 5, 2, 2, 2, 2), np.float32), {}, "(5, 5, 2, 2, 2, 2): 4 stack dimensions, {}show=lambda v, i, "
+                                                          "j: v[..., i, j, 0, 0], sliders={{'i': 2, 'j': 2}}")]:
+        with pytest.raises(ValueError, match='^' + re.escape('data of shape ' + error.format(shows)) + '$'):
+            view(data, **kw)
+    geom = grid_geom(0, 0, 0, RAS)
+    for layer in (view(a, show=lambda v, i, j: v[..., i, j, 0], sliders={'i': 2, 'j': 3}),
+                  view(str(tmp_path / 'a_pyr'), show=lambda v, i, j: v[..., i, j, 0], sliders={'i': 2, 'j': 3})):
+        assert [(k['name'], k['max']) for k in layer.kdims] == [('i', 1), ('j', 2)]
+        np.testing.assert_array_equal(layer.raster_values(geom, {'i': 1, 'j': 2})[:10, :8], a[..., 1, 2, 0])
+    _check_points([view(str(pyr), show=lambda v, i, j: v[..., i, j, 3], sliders={'i': 2, 'j': 3})], {'i': 0, 'j': 1},
+                  p[:, 0, 1, 3])
 
 
 def test_named_shows_of_real_data_have_linear_colours(tmp_path, rng):
@@ -790,6 +867,19 @@ def test_png(tmp_path, ras, stack, grid_pc, mercator_pc):
     assert view(str(mercator_pc[-1])).png(str(tmp_path / 'm.png'))
 
 
+def test_png_of_a_name_without_a_suffix(tmp_path, monkeypatch):
+    """`.png(path)` of a name without a suffix writes and returns path.png, a PNG; it returned the name, and
+    matplotlib wrote the file with the suffix and the format of its configuration (savefig.format, png by default)."""
+    import matplotlib
+    v = view(np.ones((10, 10), np.float32))
+    assert v.png(str(tmp_path / 'name')) == str(tmp_path / 'name.png')
+    assert (tmp_path / 'name.png').stat().st_size > 1000 and not (tmp_path / 'name').exists()
+    monkeypatch.setitem(matplotlib.rcParams, 'savefig.format', 'pdf')
+    assert v.png(str(tmp_path / 'other')) == str(tmp_path / 'other.png')
+    assert (tmp_path / 'other.png').read_bytes()[:4] == b'\x89PNG' and not (tmp_path / 'other.pdf').exists()
+    assert v.png(str(tmp_path / 'third.png')) == str(tmp_path / 'third.png')       # a name with a suffix as it is
+
+
 def test_png_extent(tmp_path, ras, mercator_pc):
     """A part of the scene is drawn from the finest level that fits, down to the data themselves; extents are
     pixels on the radar grid and degrees on web mercator; the view describes the extent and the finest cell."""
@@ -819,6 +909,21 @@ def test_png_extent(tmp_path, ras, mercator_pc):
     assert mlayer.png(str(tmp_path / 'mpart.png'), extent=(lon0, lat0, (lon0 + lon1) / 2, (lat0 + lat1) / 2))
     assert 'extent lon ' in repr(mlayer) and 'finest cell' in repr(mlayer) and 'levels 0..' in repr(mlayer)
     assert 'extent range -0.5 .. 499.5, azimuth -0.5 .. 299.5' in repr(layer)          # cell edges
+
+
+def test_png_extent_of_words(tmp_path, ras, mercator_pc):
+    """An extent of words (e.g. 'west' typed for its number) is an error that says that the extent is four numbers and
+    what they are, on the radar grid and on web mercator; it was "could not convert string to float: 'west'"."""
+    a, pyr = ras
+    out = tmp_path / 'e.png'
+    with pytest.raises(ValueError, match=r"^extent must be four numbers \(range_min, azimuth_min, range_max, "
+                                         r"azimuth_max\), pixels on the radar grid, got \('west', 'south', 'east', "
+                                         r"'north'\)$"):
+        view(str(pyr)).png(str(out), extent=('west', 'south', 'east', 'north'))
+    with pytest.raises(ValueError, match=r"^extent must be four numbers \(west, south, east, north\), longitudes and "
+                                         r"latitudes in degrees, got \(14.1, 'south', 14.2, None\)$"):
+        view(str(mercator_pc[-1])).png(str(out), extent=(14.1, 'south', 14.2, None))
+    assert not out.exists()
 
 
 def test_png_index_within_the_sliders(tmp_path, stack):

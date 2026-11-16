@@ -444,7 +444,8 @@ def _build_parser(with_commands=True):
     p.add_argument('paths', nargs='+'); _add_global(p)
     p = sub.add_parser('quicklook', help='save a PNG of a pyramid (made by ras-pyramid / pc-pyramid)')
     p.add_argument('pyramid', help='pyramid directory made by `moraine ras-pyramid` or `moraine pc-pyramid`')
-    p.add_argument('-o', '--out', help='output PNG (default: <pyramid name>.png)')
+    p.add_argument('-o', '--out', help='output PNG, a name ending with .png; .png is appended to a name without a '
+                                       'suffix (default: <pyramid name>.png)')
     p.add_argument('--index', type=int, nargs='+', default=[], metavar='I',
                    help='image of a stack, i j of 4D data (..., n, n), or two images (ref sec) with --show intf_all / '
                         'coh / coh_abs (default: the first)')
@@ -455,6 +456,10 @@ def _build_parser(with_commands=True):
     p.add_argument('--extent', help='part to draw, finer levels for smaller parts: "west,south,east,north" degrees '
                    '(web mercator) or "range_min,azimuth_min,range_max,azimuth_max" pixels (radar grid); '
                    'default: the whole scene')
+    p.add_argument('--clim', metavar='LOW,HIGH',
+                   help='colour range, the values of the first and the last colour, LOW < HIGH, e.g. --clim -11,6 '
+                        'for differences of a few millimetres (default: (-pi, pi) for phases, the 1 - 99 %% range of '
+                        'the data otherwise, +-(p99 - p01) for the differences of two images of a real stack)')
     _add_global(p)
     p = sub.add_parser('view', help='write a notebook with interactive maps of pyramids (moraine.cli.view)')
     p.add_argument('pyramids', nargs='+', help='pyramid directories made by `moraine ras-pyramid` / `moraine pc-pyramid`')
@@ -501,14 +506,18 @@ def _run(args):
             print('\nOther: info, quicklook, view, run, status.  `moraine COMMAND --help` for details.')
         return _emit(args, result, text)
     if sub == 'info':
-        from .summary import summarize
-        result = {'summaries': [summarize(p) for p in args.paths]}
+        from .summary import summarize, _pyramid_input
+        summaries = []
+        for path in args.paths:
+            _pyramid_input(path, pyramid=False)     # a pyramid to rebuild: a usage error, as for quicklook and view
+            summaries.append(summarize(path))
+        result = {'summaries': summaries}
         return _emit(args, result, lambda: [_print_summary(s) for s in result['summaries']])
     if sub == 'quicklook':
         from .summary import quicklook
-        out = args.out or Path(args.pyramid.rstrip('/')).name + '.png'
-        quicklook(args.pyramid, out, index=tuple(args.index), show=args.show, width=args.width, extent=args.extent)
-        return _emit(args, {'png': str(out)}, lambda: print(f'saved {out}'))
+        out = quicklook(args.pyramid, args.out or Path(args.pyramid.rstrip('/')).name + '.png', index=tuple(args.index),
+                        show=args.show, width=args.width, extent=args.extent, clim=args.clim)
+        return _emit(args, {'png': out}, lambda: print(f'saved {out}'))
     if sub == 'view':
         from .summary import view
         out = view(args.pyramids, args.out, show=args.show, dates=args.dates, terrain=args.terrain,
@@ -535,9 +544,24 @@ def _run(args):
     return _emit(args, record, text)
 
 
+# options of quicklook whose value is a list of numbers that may start with a minus sign
+_NUMBER_OPTIONS = ('--clim', '--extent')
+
+
 def _normalize_options(argv):
-    """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands."""
-    if not argv or argv[0] in ('list', 'info', 'quicklook', 'view', 'run', 'status'):
+    """Accept --is-shp-dir for --is_shp_dir (and --no-x-y for --no-x_y) in processing commands, and a value of
+    `_NUMBER_OPTIONS` of quicklook that starts with a minus sign (--clim -11,6 for --clim=-11,6, --extent
+    -122.5,37.5,-122,38 for --extent=-122.5,37.5,-122,38)."""
+    if argv and argv[0] == 'quicklook':
+        out = []
+        for tok in argv:
+            # argparse takes '-11,6' for an unknown option: only a single number may start with a minus sign
+            if out and out[-1] in _NUMBER_OPTIONS and re.match(r'-\.?\d', tok):
+                out[-1] = f'{out[-1]}={tok}'
+            else:
+                out.append(tok)
+        return out
+    if not argv or argv[0] in ('list', 'info', 'view', 'run', 'status'):
         return argv
     out = []
     for tok in argv:

@@ -118,8 +118,8 @@ Objects describing a path (`moraine info`, outputs of commands and steps). `kind
 `kind` is `raster pyramid` or `point cloud pyramid` (see the pyramid contract). The statistics are those
 of all the data (the points of a point cloud pyramid), computed when the pyramid was built. A pyramid without
 them, made before moraine 0.10.0, or one whose `ras-pyramid` / `pc-pyramid` did not finish is not summarized:
-`moraine info` fails with an error asking to rebuild it, and the summary of such an output is a failed summary
-(decision 0049). For complex data
+`moraine info` fails with a usage error (exit code 2) asking to rebuild it, and the summary of such an output is a
+failed summary (decision 0049). For complex data
 the value fields are named `amplitude_min`, `amplitude_max`, ... and describe the amplitude; for boolean
 data only `true_fraction` is given.
 

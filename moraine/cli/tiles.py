@@ -7,6 +7,7 @@ __all__ = ['view']
 import inspect
 import io
 import math
+import os
 from collections import namedtuple
 from functools import partial
 from pathlib import Path
@@ -228,15 +229,22 @@ def _show_coh(tnet, kind):
     return coh
 
 
-def _image_pairs(image_pairs, n_pairs):
-    """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs."""
-    from ..api.tnet import TempNet, check_image_pairs, nimage_from_npair
+def _image_pairs(image_pairs, n_pairs, wrong):
+    """TempNet of `image_pairs` (file, array or None: all pairs of the images) for `n_pairs` pairs; a ValueError
+    starting with the text `wrong` if `n_pairs` is neither the number of all pairs of n images, n (n - 1) / 2, nor
+    that of the image pairs given."""
+    from ..api.tnet import TempNet, check_image_pairs
+    rule = ('one column per image pair, n_pairs = n (n - 1) / 2 for all pairs of n images (1, 3, 6, 10, ...) or the '
+            'number of the image pairs given')
     if image_pairs is None:
-        return TempNet.from_bandwidth(nimage_from_npair(n_pairs))
+        n = round((1 + math.sqrt(1 + 8 * n_pairs)) / 2)        # n (n - 1) / 2 = n_pairs
+        if n_pairs < 1 or n * (n - 1) // 2 != n_pairs:
+            raise ValueError(f'{wrong}: {rule} (none are given)')
+        return TempNet.from_bandwidth(n)
     pairs = np.loadtxt(image_pairs, dtype=np.int32, ndmin=2) if isinstance(image_pairs, (str, Path)) \
         else np.asarray(image_pairs, dtype=np.int32)
     if len(pairs) != n_pairs:
-        raise ValueError(f'{len(pairs)} image pairs for data with {n_pairs} pairs')
+        raise ValueError(f'{wrong}: {rule} ({len(pairs)})')
     check_image_pairs(pairs)        # the column of the pair of the sliders is searched in this order (decision 0047)
     return TempNet(pairs, check_if_valid=False)         # the network may leave out images
 
@@ -273,15 +281,17 @@ def _crs(x0, y0, xm, ym, res, crs, what):
     return 'web_mercator'
 
 
-def _show(base, show, image_pairs, sliders, dates):
+def _show(base, show, image_pairs, sliders, dates, shape):
     """(name, function f(v, *slider values) of the visible data v (`_Visible`), sliders [(name, count)],
-    colours, default slider values) of a `show` option; colours of `_colours`: 'phase', 'values' or 'differences'
-    (of two images of a real stack), None for a function (guessed from its values)."""
+    colours, default slider values) of a `show` option for the level 0 `base` of data of `shape` (of the points for a
+    point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
+    stack), None for a function (guessed from its values)."""
     stack = tuple(base.shape[2:])
     if show in ('coh', 'coh_abs'):
+        wrong = f"show={show!r} needs compressed coherence (..., n_pairs), not shape {shape}"
         if len(stack) != 1:
-            raise ValueError(f"show={show!r} needs compressed coherence (..., n_pairs), not shape {base.shape}")
-        tnet = _image_pairs(image_pairs, stack[0])
+            raise ValueError(wrong)
+        tnet = _image_pairs(image_pairs, stack[0], wrong)
         n = int(tnet.image_pairs.max()) + 1          # the last pair need not hold the last image
         counts = [n, n]
         return show, _show_coh(tnet, 'phase' if show == 'coh' else 'abs'), list(zip(SLIDERS[show], counts)), \
@@ -317,6 +327,12 @@ def _show(base, show, image_pairs, sliders, dates):
         raise ValueError(f'the data must have one or two index dimensions, got {len(stack)}')
     if show == 'intf_seq' and stack[0] < 2:
         raise ValueError(f'intf_seq needs at least two images, got {stack[0]}')
+    if show is None and len(stack) > 2:              # the default has two sliders, i and j: it would fail when drawn
+        example = (f"show=lambda v, i, j: v[..., i, j{', 0' * (len(stack) - 2)}], "
+                   f"sliders={{'i': {stack[0]}, 'j': {stack[1]}}}")
+        raise ValueError(f"data of shape {shape}: {len(stack)} stack dimensions, more than the shows of a view take "
+                         f"(the default and 'intf_0', 'intf_seq', 'intf_all': one or two; 'phase', 'coh', 'coh_abs': "
+                         f'one); show them with a function of the visible stack and its sliders, e.g. {example}')
     if show is None:                                 # sliders over the first two stack dimensions
         fn, names, counts = (_show_angle if complex_data else _show_values), ('i', 'j'), list(stack)
     else:
@@ -429,7 +445,7 @@ class _Shown:
         Parameters
         ----------
         path : str
-            output PNG file
+            output PNG file; .png is appended to a name without a suffix
         width : int, default: 1000
             image width in pixels
         index : dict or tuple, optional
@@ -444,7 +460,7 @@ class _Shown:
         Returns
         -------
         str
-            the output path
+            the output path, with .png appended to a name without a suffix
         """
         return render_png(self._panels(), path, width=width, index=index, extent=extent)
 
@@ -604,7 +620,8 @@ class _Layer(_Shown):
         self.levels, self.max_level = levels, max_level
         self.dates = _dates(dates)
         self.polygon_file = None if polygons is None else str(polygons)
-        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates)
+        shape = (self.n_points, *base.shape[2:]) if is_pc else tuple(base.shape)     # the data as the user gave them
+        name, self.show_fn, counts, colours, index = _show(base, show, image_pairs, sliders, self.dates, shape)
         self.show_name = name if isinstance(name, str) else ('function' if callable(show) else None)
         self.kdims = [{'name': k, 'max': int(n) - 1} for k, n in counts]
         self.default_index = {k['name']: index.get(k['name'], 0) for k in self.kdims}
@@ -880,6 +897,9 @@ class PointLayer(_Layer):
             self._pc = np.asarray(_open(data)[...])
             if not (self._x.shape == self._y.shape == self._pc.shape[:1]):
                 raise ValueError(f'x {self._x.shape}, y {self._y.shape} and data {self._pc.shape} do not match')
+            if self._x.size == 0:           # no extent to rasterize them in
+                raise ValueError(f'the point data have no points: x {self._x.shape}, y {self._y.shape} and data '
+                                 f'{self._pc.shape}; there is nothing to view')
             if resolution is None:
                 if not (np.all(self._x == np.round(self._x)) and np.all(self._y == np.round(self._y))):
                     raise ValueError('give `resolution` (cell size of the rasterized points): the coordinates '
@@ -1013,9 +1033,14 @@ def _merc_to_lonlat(x, y):
 def _data_extent(extent, crs):
     """(x0, y0, x1, y1) in data coordinates of a user extent: (west, south, east, north) degrees on web
     mercator, (range_min, azimuth_min, range_max, azimuth_max) pixels on the radar grid."""
-    e = [float(v) for v in extent]
+    what = '(west, south, east, north)' if crs == 'web_mercator' else '(range_min, azimuth_min, range_max, azimuth_max)'
+    try:
+        e = [float(v) for v in extent]
+    except (TypeError, ValueError):         # words, e.g. the names of the numbers typed for them
+        meaning = 'longitudes and latitudes in degrees' if crs == 'web_mercator' else 'pixels on the radar grid'
+        given = tuple(extent) if isinstance(extent, (list, tuple)) else repr(extent)
+        raise ValueError(f'extent must be four numbers {what}, {meaning}, got {given}') from None
     if len(e) != 4 or not (e[0] < e[2] and e[1] < e[3]):
-        what = '(west, south, east, north)' if crs == 'web_mercator' else '(range_min, azimuth_min, range_max, azimuth_max)'
         raise ValueError(f'extent must be {what} with the minimum before the maximum, got {tuple(extent)}')
     if crs == 'web_mercator':
         x0, y0 = _lonlat_to_merc(e[0], e[1])
@@ -1104,6 +1129,8 @@ def render_png(panels, path, width=1000, index=None, extent=None):
             fig.colorbar(ScalarMappable(Normalize(*layer.clim), cmap), ax=ax, label=layer.bar_label,
                          fraction=0.04, pad=0.02)
     fig.tight_layout()
+    if not os.path.splitext(str(path))[1]:      # matplotlib would add the suffix of its default format, not saying so
+        path = f'{path}.png'
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, bbox_inches='tight')
     return str(path)
@@ -1148,7 +1175,7 @@ def view(
     data : str or np.ndarray
         a pyramid directory made by `ras_pyramid` or `pc_pyramid`; a raster, (nlines, width[, n[, m]]), as
         array or zarr path (read into memory, at most 512 MiB); or point data, (n_points[, n[, m]]), with `x`
-        and `y`
+        and `y` and at least one point
     x : str or np.ndarray, optional
         x coordinate (range or web mercator x) of point data that is not a pyramid, (n_points,)
     y : str or np.ndarray, optional
@@ -1161,8 +1188,8 @@ def view(
         magnitude of compressed coherence (..., n_pairs), sliders ref and sec), or a function ``f(v, *sliders)``
         of the visible stack ``v`` (index it like a numpy array, e.g. ``v[..., ref]``) whose other arguments are
         sliders named like them, e.g. ``lambda v, ref, sec: np.angle(v[..., ref] * np.conj(v[..., sec]))``; the
-        phase for complex data, the values otherwise by default. A named show that does not fit the data is a
-        ValueError
+        phase for complex data, the values otherwise by default, for data with at most two stack dimensions. A named
+        show that does not fit the data is a ValueError, as is the default for data with more stack dimensions
     dates : list or str, optional
         date of each image, or a toml file with ``dates`` (e.g. of `load_gamma_metadata`), shown with the
         sliders and on the time axis
@@ -1202,7 +1229,7 @@ def view(
     image_pairs : str, optional
         image pair file (`image_pairs`) of compressed coherence for 'coh' / 'coh_abs', sorted by reference and then
         secondary index without duplicates, every reference index smaller than its secondary index, as made by
-        `moraine image-pairs`; all pairs by default
+        `moraine image-pairs`; all pairs of n images by default, n_pairs = n (n - 1) / 2
     sliders : dict, optional
         number of values of each slider of a `show` function, e.g. {'ref': 17, 'sec': 17}; from the stack
         shape or `dates` by default

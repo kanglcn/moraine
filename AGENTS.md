@@ -94,7 +94,8 @@ Never load large arrays to look at them. Use:
   p99; amplitude for complex data) and `warnings` for all-nan, infinite or constant values, also of single
   images of a stack.
 - `moraine quicklook PYRAMID -o out.png` draws the whole scene of a pyramid (use
-  `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack).
+  `--show intf_seq --index I` for the I-th sequential interferogram of an rslc or phase stack;
+  `--clim LOW,HIGH` sets the colour range, e.g. for the differences of sequential images of a real stack).
   Look at the PNG: fringes should be continuous, noise should be where coherence is low. Zoom in with
   `--extent west,south,east,north` (degrees; `range_min,azimuth_min,range_max,azimuth_max` pixels on the
   radar grid): a smaller part is drawn from a finer pyramid level, down to single pixels / points; the title

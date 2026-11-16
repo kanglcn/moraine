@@ -386,9 +386,10 @@ def test_marker_is_written_last(tmp_path, rng, monkeypatch):
 
 
 @pytest.mark.parametrize('case', ['unfinished', 'no method', 'no stats', 'no rtree'])
-def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, case):
+def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, capsys, case):
     """Every reader rejects a pyramid of moraine before 0.10.0 (without the marker, a marker without `method` or
-    `stats`, a point cloud pyramid without rtree.zarr) and one whose command did not finish, and asks to rebuild it."""
+    `stats`, a point cloud pyramid without rtree.zarr) and one whose command did not finish, and asks to rebuild it;
+    for `moraine info`, `quicklook` and `view` it is a usage error (exit code 2) with the error of the JSON output."""
     import shutil
     import moraine.cli.plot as plot
     from moraine.command.summary import quicklook, view as notebook
@@ -411,11 +412,18 @@ def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, case):
             z0 = zarr.open(str(pyr / '0.zarr'), mode='r+')
             z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != case[3:]}
     command = 'pc-pyramid' if case == 'no rtree' else 'ras-pyramid'
-    for read in (pyramid_levels, summarize, lambda p: notebook([p], str(tmp_path / 'v.ipynb')), mc.view):
+    for read in (pyramid_levels, summarize, mc.view):
         with pytest.raises(ValueError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):
             read(str(pyr))
-    with pytest.raises(UsageError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):    # a wrong input
-        quicklook(str(pyr), str(tmp_path / 'q.png'))
+    for read in (lambda p: quicklook(p, str(tmp_path / 'q.png')), lambda p: notebook([p], str(tmp_path / 'v.ipynb'))):
+        with pytest.raises(UsageError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):  # a wrong input
+            read(str(pyr))
+    capsys.readouterr()
+    for args in (['info'], ['quicklook', '-o', str(tmp_path / 'q.png')], ['view', '-o', str(tmp_path / 'v.ipynb')]):
+        assert main([*args, str(pyr), '--json']) == 2, args
+        out = json_out(capsys)
+        _check(out, 'Every output', 'error')
+        assert out['ok'] is False and re.search(f'before 0.10.0.*rebuild it with `moraine {command}`', out['error'])
 
 
 # ---------------------------------------------------------------- data conventions

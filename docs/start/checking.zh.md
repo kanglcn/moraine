@@ -41,7 +41,8 @@ moraine quicklook raw/rslc_pyramid --show intf_all --index 0 91 --extent 1400,0,
 
 `--show` 选择堆栈要画什么：`phase`（复数数据的默认值）、`intf_0`（与第一景的干涉图）、`intf_seq`（第 I 幅序列
 干涉图）、`intf_all`（任意像对 `ref sec`）、`coh`、`coh_abs`。复数数据的相位用 (-π, π] 上的循环色标，其他值用 1-99 %
-范围内的 `viridis`，实数堆栈两景之差（解缠相位或形变的 `intf_*`）用 ±(p99 - p01) 范围内的 `viridis`。`--extent`
+范围内的 `viridis`，实数堆栈两景之差（解缠相位或形变的 `intf_*`）用 ±(p99 - p01) 范围内的 `viridis`；
+`--clim LOW,HIGH` 设定别的范围，例如相邻两景之差常常小得多，可用 `--clim -11,6`。`--extent`
 画场景的一部分（地图上是 `west,south,east,north` 度，雷达网格上是
 `range_min,azimuth_min,range_max,azimuth_max` 像元）：范围越小用的层级越细，直到单个像元 / 点；标题给出范围和层级。
 先看整幅场景，再放大看起来不对的地方。
