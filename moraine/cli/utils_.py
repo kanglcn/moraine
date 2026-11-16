@@ -10,6 +10,10 @@ import shutil
 
 import numpy as np
 
+class ArgumentError(ValueError):
+    """Arguments of a command that do not fit together, e.g. an optional argument left out that the other inputs
+    need; the command line reports it as a usage error (exit code 2)."""
+
 def mk_clean_dir(path):
     path = Path(path)
     if path.exists():

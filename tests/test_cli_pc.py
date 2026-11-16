@@ -222,6 +222,24 @@ def test_pc_select_data(w, rng):
     np.testing.assert_array_equal(r(w('pc.zarr')), pc_in[iidx, 0])
 
 
+def test_pc_select_data_grid_index_by_hilbert_index_needs_shape(w, rng, tmp_path):
+    """pc-select-data of a grid index `idx_in` by a hilbert index `idx` needs `shape`, as its help says: without it
+    a ValueError asks for it before the indices are read (pc_hix failed with "TypeError: cannot unpack non-iterable
+    NoneType object") and nothing is written; with it the points of `idx` are selected, in the order of `idx`."""
+    shape = (100, 100)
+    gix_in = random_gix(rng, shape, 1000); pc_in = rng.random((1000, 3)).astype(np.float32)
+    hix_in = mr.pc_hix(gix_in, shape)
+    iidx = rng.choice(1000, size=300, replace=False)
+    iidx = iidx[np.argsort(hix_in[iidx])]                     # the points to select, in hilbert order
+    w('gix_in.zarr', gix_in, (200, 1)); w('hix.zarr', hix_in[iidx], (200,)); w('pc_in.zarr', pc_in, (200, 1))
+    with pytest.raises(ValueError, match=r'shape \(nlines, width\) is needed when a grid index and a hilbert index '
+                                         r'are mixed: idx_in is a grid index, idx a hilbert index'):
+        mc.pc_select_data(w('gix_in.zarr'), w('hix.zarr'), w('pc_in.zarr'), w('pc.zarr'))
+    assert not (tmp_path / 'pc.zarr').exists()
+    mc.pc_select_data(w('gix_in.zarr'), w('hix.zarr'), w('pc_in.zarr'), w('pc.zarr'), shape=shape)
+    np.testing.assert_array_equal(r(w('pc.zarr')), pc_in[iidx])
+
+
 def test_bool2gix(tmp_path):
     rng = np.random.default_rng(0)
     is_pc = rng.random((30, 40)) < 0.2

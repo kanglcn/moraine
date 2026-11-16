@@ -98,7 +98,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr log helper | |
 | `moraine/cli/zarr_.py` | parallel zarr read / write, directories of per chunk zarrs | |
 | `moraine/cli/executor.py` | `Executor`: the workers of a command (threads of the process, spawned processes, one per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`) | |
-| `moraine/cli/utils_.py` | small helpers (clean output directories, write TOML files: `meta.toml`, `bounds.toml`) | |
+| `moraine/cli/utils_.py` | small helpers (clean output directories, write TOML files: `meta.toml`, `bounds.toml`); `ArgumentError`, the arguments a command rejects as not fitting together (a usage error on the command line) | |
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs; the perpendicular baselines from the orbits of the par files) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |

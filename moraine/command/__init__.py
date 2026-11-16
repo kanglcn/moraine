@@ -37,6 +37,7 @@ from pathlib import Path
 import numpy as np
 
 from ..api.tnet import check_image_pairs
+from ..cli.utils_ import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
 _MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'ts', 'plot']
@@ -563,12 +564,13 @@ def main(argv=None):
     try:
         return _run(args) or 0
     except Exception as e:
+        usage = isinstance(e, (UsageError, ArgumentError))     # also arguments that a command rejects
         if getattr(args, 'traceback', False):
             import traceback; traceback.print_exc()
-        msg = f'{type(e).__name__}: {e}' if not isinstance(e, UsageError) else str(e)
+        msg = str(e) if usage else f'{type(e).__name__}: {e}'
         if getattr(args, 'json', False):
             print(json.dumps({'version': JSON_VERSION, 'ok': False, 'error': msg}))
         print(f'moraine: error: {msg}', file=sys.stderr)
-        if not getattr(args, 'traceback', False) and not isinstance(e, UsageError):
+        if not getattr(args, 'traceback', False) and not usage:
             print('(add --traceback for details)', file=sys.stderr)
-        return 2 if isinstance(e, UsageError) else 1
+        return 2 if usage else 1
