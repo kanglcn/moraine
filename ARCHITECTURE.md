@@ -35,8 +35,9 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
   `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
   never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
-- GPU packages (`cupy`, `numba.cuda`) are imported only behind `moraine.api.utils_.is_cuda_available()`;
-  `torch` only inside the functions that run a model (decision 0002).
+- GPU packages: `cupy` is imported only by the GPU code paths, inside their functions or in a module only they import
+  (`moraine/api/ds/emi_cuda_.py`), so that `import moraine` does not import it; `numba.cuda` (the kernels) only behind
+  `moraine.api.utils_.is_cuda_available()`; `torch` only inside the functions that run a model (decision 0002).
 
 ## API layer (moraine/api/)
 

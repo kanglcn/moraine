@@ -5,10 +5,6 @@ __all__ = ['download_dl_model']
 import functools
 import importlib
 from pathlib import Path
-import requests
-from ..utils_.device import is_cuda_available
-if is_cuda_available():
-    import cupy as cp
 
 def _fetch_github_file(
     gid:str,
@@ -30,6 +26,7 @@ def _fetch_github_file(
     out_path : str
         output path
     """
+    import requests
     url = '/'.join(['https://raw.githubusercontent.com', gid, repo, 'refs','heads', branch, file_path])
     print(' '.join(['Downloading', url,'to',out_path]))
     try:
@@ -141,4 +138,5 @@ def _get_model(name, path=None, device='cpu', compile=False, half=False):
     return _load_model(name, None if path is None else str(path), device, compile, half)
 
 def _cuda_device():
+    import cupy as cp
     return f'cuda:{cp.cuda.runtime.getDevice()}'

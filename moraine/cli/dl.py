@@ -11,8 +11,6 @@ import itertools
 from ..api.utils_ import ngpjit
 
 from ..api.utils_ import is_cuda_available
-if is_cuda_available():
-    import cupy as cp
 import moraine as mr
 from ..api.utils_.chunk import chunkwise_knn_mapping
 from .zarr_ import parallel_read_zarr, parallel_write_zarr, check_ndim
@@ -65,6 +63,7 @@ if is_cuda_available():
         out[i,j] = ref[i,j]*sec[i,j].conjugate()
 
     def _cli_pre_infer_n2f_cp(ref,sec):
+        import cupy as cp
         intf = cp.empty_like(ref)
         if intf.size > 0:
             _intf_cuda[(intf.size+127)//128, 128](ref, sec, intf)
@@ -125,6 +124,8 @@ def _cli_n2f_out_chunk(
         filter on the GPU
     """
     rslc_zarr = zarr.open(rslc,mode='r')
+    if cuda:
+        import cupy as cp
     xp = cp if cuda else np
     # the output chunk stays on the GPU until all pairs are filtered: one copy to the host instead of one per pair
     out = xp.empty((out_slices[0].stop-out_slices[0].start, out_slices[1].stop-out_slices[1].start, image_pairs.shape[0]),

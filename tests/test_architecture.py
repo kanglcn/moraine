@@ -2,6 +2,7 @@
 import ast
 import importlib
 import inspect
+import os
 import re
 import subprocess
 import sys
@@ -78,6 +79,26 @@ def test_import_moraine_does_not_import_numexpr_or_pandas():
             'print([m for m in ("numexpr", "pandas") if m in sys.modules])')
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
     assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
+
+
+def test_import_moraine_does_not_import_cupy():
+    """With a GPU visible, cupy (which imports pytest) is imported by the GPU code paths only: not by `import moraine`
+    and not by the dispatch of numpy arrays. zarr imports cupy for its GPU buffers wherever cupy is installed, so zarr
+    is imported first with cupy hidden."""
+    code = ('import sys; sys.modules["cupy"] = None; import zarr; del sys.modules["cupy"]; '
+            'import numpy, moraine, moraine.cli, moraine.command; from moraine.api.utils_ import get_array_module; '
+            'assert get_array_module(numpy.zeros(1)) is numpy; '
+            'print([m for m in ("cupy", "pytest") if m in sys.modules])')
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO,
+                         env={**os.environ, 'CUDA_VISIBLE_DEVICES': '0'})
+    assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
+
+
+def test_import_moraine_does_not_import_requests():
+    """requests is needed only to download the deep learning models"""
+    code = 'import sys, moraine, moraine.cli, moraine.command; print("requests" in sys.modules)'
+    out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
+    assert out.stdout.strip().endswith('False'), out.stdout + out.stderr
 
 
 # ---------------------------------------------------------------- inside the API (decision 0041)

@@ -8,7 +8,6 @@ import numpy as np
 from ..utils_.device import is_cuda_available, get_array_module
 from ..utils_.jit import mcuda_jit
 if is_cuda_available():
-    import cupy as cp
     from numba import cuda
 import numba
 from numba import prange
@@ -64,6 +63,7 @@ if is_cuda_available():
         ref : int, default: 0
         regularize : bool, default: False
         """
+        import cupy as cp
         n_points = coh.shape[0]
         max_batch_size = 2**20
         num_batchs = np.ceil(n_points/max_batch_size).astype(int)
@@ -523,6 +523,7 @@ def ds_temp_coh(coh:np.ndarray,
     if xp is np:
         out = _ds_temp_coh_numba(coh, ph, ref, sec, inv_n, log_p)
     else:
+        import cupy as cp
         out = tuple(cp.empty(n_points, dtype=cp.float32) for _ in range(3)) + (cp.empty(n_points, dtype=cp.int16),)
         if n_points > 0:
             n_blocks = (n_points*32+block_size-1)//block_size

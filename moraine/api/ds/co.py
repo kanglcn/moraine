@@ -7,7 +7,6 @@ import numpy as np
 from ..utils_.device import is_cuda_available, get_array_module
 from ..utils_.jit import mcuda_jit
 if is_cuda_available():
-    import cupy as cp
     from numba import cuda
 from ..utils_.jit import ngpjit, ngjit
 from ..tnet import TempNet, nimage_from_npair
@@ -270,6 +269,7 @@ if is_cuda_available():
     def _shp_products_cp(rslc, az_idx, r_idx, pc_is_shp, max_bytes=2**30):
         """for batches of points: (start, stop, c, n) with c = X^H X of the SHP samples X (n_shp, nimages) of every
         point, (b, nimages, nimages), and the number of SHPs n, (b,)"""
+        import cupy as cp
         nlines, width, nimages = rslc.shape
         n_pc = az_idx.shape[0]
         az_win, r_win = pc_is_shp.shape[1:]
@@ -289,6 +289,7 @@ if is_cuda_available():
             yield start, stop, c, cp.count_nonzero(valid, axis=1)
 
     def _emperical_co_pc_cp(rslc, az_idx, r_idx, pc_is_shp, image_pairs):
+        import cupy as cp
         ref = cp.asarray(image_pairs[:,0]); sec = cp.asarray(image_pairs[:,1])
         coh = cp.empty((az_idx.shape[0], image_pairs.shape[0]), dtype=rslc.dtype)
         for start, stop, c, _ in _shp_products_cp(rslc, az_idx, r_idx, pc_is_shp):
@@ -715,6 +716,7 @@ def _shp_n_looks(pc_is_shp:np.ndarray,
     pc_is_shp = xp.ascontiguousarray(pc_is_shp)
     if xp is np:
         return _shp_n_looks_numba(pc_is_shp, rho2, max_az, max_r)
+    import cupy as cp
     n_points = pc_is_shp.shape[0]
     n_looks = cp.empty(n_points, dtype=cp.float32)
     if n_points > 0:
