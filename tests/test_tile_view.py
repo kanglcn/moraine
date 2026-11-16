@@ -450,6 +450,37 @@ def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
         view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
 
 
+def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
+    """By default complex data with two stack dimensions, e.g. coherence matrices (..., n, n), show the phase of
+    element (i, j) of the sliders i and j in the colours of phases, as real ones show its value (it failed when
+    drawn); complex data without a stack show their phase."""
+    c = (rng.uniform(0.1, 1, (30, 20, 3, 3)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (30, 20, 3, 3)))
+         ).astype(np.complex64)
+    write_zarr(tmp_path / 'c.zarr', c, (15, 20, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'c.zarr'), str(tmp_path / 'c_pyr'))
+    p = c[:3, :4].reshape(12, 3, 3)
+    pyr, x, y = _grid_points(tmp_path, p, 'pts')
+    rasters = [view(str(tmp_path / 'c_pyr')), view(c)]
+    points = [view(str(pyr)), view(p, x=x, y=y)]
+    for layer in rasters + points:
+        assert [(k['name'], k['max']) for k in layer.kdims] == [('i', 2), ('j', 2)]
+        assert layer.default_index == {'i': 0, 'j': 0} and layer.show_name is None
+        assert layer.clim == pytest.approx((-np.pi, np.pi)) and layer.bar_label == 'phase (rad)'
+    geom = grid_geom(0, 0, 0, RAS)
+    for layer in rasters:
+        np.testing.assert_array_equal(layer.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], np.angle(c[..., 1, 2]))
+        assert layer.value(7, 3, 1, {'i': 2, 'j': 0})['value'] == float(np.angle(c[3, 7, 2, 0]))
+    _check_points(points, {'i': 2, 'j': 0}, np.angle(p[:, 2, 0]))
+    view(str(tmp_path / 'c_pyr')).png(str(tmp_path / 'c.png'), index=(1, 2))
+    assert (tmp_path / 'c.png').stat().st_size > 1000
+    real = view(c.real)
+    assert [(k['name'], k['max']) for k in real.kdims] == [('i', 2), ('j', 2)] and real.bar_label == 'raster'
+    np.testing.assert_array_equal(real.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], c.real[..., 1, 2])
+    flat = view(c[..., 0, 1])
+    assert flat.kdims == [] and flat.clim == pytest.approx((-np.pi, np.pi))
+    np.testing.assert_array_equal(flat.raster_values(geom)[:30, :20], np.angle(c[..., 0, 1]))
+
+
 # ---------------------------------------------------------------- time series
 
 def test_raster_time_series(tmp_path, stack, rng):

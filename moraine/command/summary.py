@@ -93,7 +93,7 @@ def quicklook(
         output PNG file
     index : tuple, default: ()
         slider values in the order of the sliders: (image,) for 3D data or 'phase' / 'intf_0' / 'intf_seq',
-        (ref, sec) for 'intf_all'; the first images by default
+        (i, j) for 4D data, (ref, sec) for 'intf_all'; the first images by default
     show : str, optional
         what to show of a stack, see `moraine.cli.view`; the phase for complex data by default
     width : int, default: 1000

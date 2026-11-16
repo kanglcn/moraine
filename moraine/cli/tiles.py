@@ -181,9 +181,9 @@ def _show_values(v, *index):
     return v[(..., *index)]
 
 
-def _show_angle(v):
-    """The phase of complex data without a stack (the default)."""
-    return np.angle(v[...])
+def _show_angle(v, *index):
+    """The phase of complex data at the slider values `index`, one per stack dimension (the default)."""
+    return np.angle(_show_values(v, *index))
 
 
 def _show_named(name, v, *index):
