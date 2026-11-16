@@ -374,6 +374,116 @@ def test_coherence_image_pairs_of_the_data_conventions(tmp_path):
     assert layer.raster_values(geom, {'ref': 1, 'sec': 3})[0, 0] == pytest.approx(0.2)     # column 1: 2 / 10
 
 
+# ---------------------------------------------------------------- named shows of real stacks and of matrices
+
+def _grid_points(tmp_path, data, name):
+    """Point data `data` (12, ...) at the points of a 3 x 4 grid (point p at line p // 4, column p % 4): the
+    pyramid, and the coordinates x, y (12,)."""
+    y, x = (c.astype(float) for c in np.divmod(np.arange(12), 4))
+    write_zarr(tmp_path / f'{name}_x.zarr', x); write_zarr(tmp_path / f'{name}_y.zarr', y)
+    write_zarr(tmp_path / f'{name}.zarr', data, (12,) + (1,) * (data.ndim - 1))
+    mc.pc_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'), x=str(tmp_path / f'{name}_x.zarr'),
+                  y=str(tmp_path / f'{name}_y.zarr'), ras_resolution=1)
+    return tmp_path / f'{name}_pyr', x, y
+
+
+def _check_points(layers, index, expected):
+    """The values (12,) `expected` of the points of `_grid_points` in each of `layers` for the slider values
+    `index`, to float32 rounding (numpy may compute the phases of contiguous arrays with other SIMD code):
+    rasterized (one cell per point) and drawn one by one (the value of the point itself)."""
+    for layer in layers:
+        geom = grid_geom(0, 0, 0, layer.edge_origin)
+        np.testing.assert_allclose(layer.raster_values(geom, index)[:3, :4].ravel(), expected, rtol=1e-6, atol=1e-6)
+        for k in (0, 6, 11):
+            line, col = divmod(k, 4)
+            found = layer.value(col + 0.1, line - 0.1, 0.25, index)
+            assert found['point'] == k and found['value'] == pytest.approx(float(expected[k]), rel=1e-6, abs=1e-6)
+
+
+# (show, sliders [(name, max)], slider values, the two images (i, j) of the slider values)
+NAMED_SHOWS = [('intf_0', [('image', 3)], {'image': 2}, (0, 2)),
+               ('intf_seq', [('image', 2)], {'image': 1}, (1, 2)),
+               ('intf_all', [('ref', 3), ('sec', 3)], {'ref': 3, 'sec': 1}, (3, 1))]
+
+
+def test_named_shows_of_real_stacks(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of real stacks, e.g. unwrapped phase or a time series: the difference
+    of the values of images i and j (not wrapped), of rasters and points; 'phase' needs complex data."""
+    ts = rng.uniform(-20, 20, (30, 20, 4)).astype(np.float32)        # differences of up to 40
+    write_zarr(tmp_path / 'ts.zarr', ts, (15, 20, 1))
+    mc.ras_pyramid(str(tmp_path / 'ts.zarr'), str(tmp_path / 'ts_pyr'))
+    pts = rng.uniform(-20, 20, (12, 4)).astype(np.float32)
+    pyr, x, y = _grid_points(tmp_path, pts, 'pts')
+    geom = grid_geom(0, 0, 0, RAS)
+    for show, sliders, index, (i, j) in NAMED_SHOWS:
+        for layer in (view(str(tmp_path / 'ts_pyr'), show=show), view(ts, show=show)):     # pyramid, in memory
+            assert [(k['name'], k['max']) for k in layer.kdims] == sliders
+            np.testing.assert_array_equal(layer.raster_values(geom, index)[:30, :20], ts[..., i] - ts[..., j])
+        _check_points([view(str(pyr), show=show), view(pts, x=x, y=y, show=show)], index, pts[:, i] - pts[:, j])
+    assert np.abs(ts[..., 3] - ts[..., 1]).max() > 2 * np.pi
+    with pytest.raises(ValueError, match='phase needs complex data with one index dimension'):
+        view(ts, show='phase').raster_values(geom, {'image': 0})
+
+
+def test_named_shows_of_stacks_of_matrices(tmp_path, rng):
+    """'intf_0', 'intf_seq' and 'intf_all' of stacks of matrices (..., n, n), e.g. coherence matrices: element
+    (i, j) of the images of the sliders, its phase for complex data, of rasters and points; 'phase' needs one
+    stack dimension, and more than two are rejected."""
+    c = (rng.uniform(0.1, 1, (30, 20, 4, 4)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (30, 20, 4, 4)))
+         ).astype(np.complex64)
+    r = rng.normal(size=(30, 20, 4, 4)).astype(np.float32)
+    geom = grid_geom(0, 0, 0, RAS)
+    for name, m in (('c', c), ('r', r)):
+        write_zarr(tmp_path / f'{name}.zarr', m, (15, 20, 1, 1))
+        mc.ras_pyramid(str(tmp_path / f'{name}.zarr'), str(tmp_path / f'{name}_pyr'))
+        p = m[:3, :4].reshape(12, 4, 4)
+        pyr, x, y = _grid_points(tmp_path, p, f'{name}_pts')
+        element = np.angle if np.iscomplexobj(m) else (lambda a: a)
+        for show, sliders, index, (i, j) in NAMED_SHOWS:
+            for layer in (view(str(tmp_path / f'{name}_pyr'), show=show), view(m, show=show)):
+                assert [(k['name'], k['max']) for k in layer.kdims] == sliders
+                np.testing.assert_allclose(layer.raster_values(geom, index)[:30, :20], element(m[..., i, j]),
+                                           rtol=1e-6, atol=1e-6)
+            _check_points([view(str(pyr), show=show), view(p, x=x, y=y, show=show)], index, element(p[:, i, j]))
+        with pytest.raises(ValueError, match='phase needs complex data with one index dimension'):
+            view(m, show='phase').raster_values(geom, {'image': 0})
+    with pytest.raises(ValueError, match='one or two index dimensions'):
+        view(np.ones((10, 10, 2, 2, 2), np.complex64), show='intf_all').raster_values(geom, {'ref': 0, 'sec': 1})
+
+
+def test_default_show_of_complex_stacks_of_matrices(tmp_path, rng):
+    """By default complex data with two stack dimensions, e.g. coherence matrices (..., n, n), show the phase of
+    element (i, j) of the sliders i and j in the colours of phases, as real ones show its value (it failed when
+    drawn); complex data without a stack show their phase."""
+    c = (rng.uniform(0.1, 1, (30, 20, 3, 3)) * np.exp(1j * rng.uniform(-np.pi, np.pi, (30, 20, 3, 3)))
+         ).astype(np.complex64)
+    write_zarr(tmp_path / 'c.zarr', c, (15, 20, 1, 1))
+    mc.ras_pyramid(str(tmp_path / 'c.zarr'), str(tmp_path / 'c_pyr'))
+    p = c[:3, :4].reshape(12, 3, 3)
+    pyr, x, y = _grid_points(tmp_path, p, 'pts')
+    rasters = [view(str(tmp_path / 'c_pyr')), view(c)]
+    points = [view(str(pyr)), view(p, x=x, y=y)]
+    for layer in rasters + points:
+        assert [(k['name'], k['max']) for k in layer.kdims] == [('i', 2), ('j', 2)]
+        assert layer.default_index == {'i': 0, 'j': 0} and layer.show_name is None
+        assert layer.clim == pytest.approx((-np.pi, np.pi)) and layer.bar_label == 'phase (rad)'
+    geom = grid_geom(0, 0, 0, RAS)
+    for layer in rasters:
+        np.testing.assert_allclose(layer.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], np.angle(c[..., 1, 2]),
+                                   rtol=1e-6, atol=1e-6)
+        assert layer.value(7, 3, 1, {'i': 2, 'j': 0})['value'] == pytest.approx(float(np.angle(c[3, 7, 2, 0])),
+                                                                                rel=1e-6, abs=1e-6)
+    _check_points(points, {'i': 2, 'j': 0}, np.angle(p[:, 2, 0]))
+    view(str(tmp_path / 'c_pyr')).png(str(tmp_path / 'c.png'), index=(1, 2))
+    assert (tmp_path / 'c.png').stat().st_size > 1000
+    real = view(c.real)
+    assert [(k['name'], k['max']) for k in real.kdims] == [('i', 2), ('j', 2)] and real.bar_label == 'raster'
+    np.testing.assert_array_equal(real.raster_values(geom, {'i': 1, 'j': 2})[:30, :20], c.real[..., 1, 2])
+    flat = view(c[..., 0, 1])
+    assert flat.kdims == [] and flat.clim == pytest.approx((-np.pi, np.pi))
+    np.testing.assert_allclose(flat.raster_values(geom)[:30, :20], np.angle(c[..., 0, 1]), rtol=1e-6, atol=1e-6)
+
+
 # ---------------------------------------------------------------- time series
 
 def test_raster_time_series(tmp_path, stack, rng):
@@ -613,3 +723,39 @@ def test_png_extent(tmp_path, ras, mercator_pc):
     assert mlayer.png(str(tmp_path / 'mpart.png'), extent=(lon0, lat0, (lon0 + lon1) / 2, (lat0 + lat1) / 2))
     assert 'extent lon ' in repr(mlayer) and 'finest cell' in repr(mlayer) and 'levels 0..' in repr(mlayer)
     assert 'extent range -0.5 .. 499.5, azimuth -0.5 .. 299.5' in repr(layer)          # cell edges
+
+
+def test_png_index_within_the_sliders(tmp_path, stack):
+    """`png(index=...)` draws the slider values given, by name or in the order of the sliders, within the ranges of
+    the sliders only: values beyond the images (they drew nan for coherence or failed with an IndexError) and
+    negative ones (they failed or drew an image counted from the end) are errors that name the ranges."""
+    from moraine.cli.tiles import TILE
+    s, pyr = stack                                                      # 4 images
+    out = tmp_path / 'i.png'
+    for show, index, match in [
+            ('intf_all', (0, 6), r"slider 'sec' = 6 is outside its range 0 \.\. 3; the sliders are ref 0 \.\. 3, "
+                                 r"sec 0 \.\. 3$"),
+            ('intf_all', {'ref': -1}, r"slider 'ref' = -1 is outside its range 0 \.\. 3;"),
+            ('phase', {'image': 4}, r"slider 'image' = 4 is outside its range 0 \.\. 3$"),
+            ('intf_seq', (3,), r"slider 'image' = 3 is outside its range 0 \.\. 2$")]:
+        with pytest.raises(ValueError, match=match):
+            view(str(pyr), show=show).png(str(out), index=index)
+    _, coh_pyr = _coh_pc(tmp_path, np.array([(i, j) for i in range(4) for j in range(i + 1, 4)]))
+    with pytest.raises(ValueError, match=r"slider 'sec' = 6 is outside its range 0 \.\. 3"):
+        view(str(coh_pyr), show='coh').png(str(out), index=(0, 6))
+    with pytest.raises(ValueError, match=r"slider 'image' = 5 is outside its range 0 \.\. 3$"):   # the merged slider
+        (view(str(pyr)) + view(np.ones((60, 40, 6), np.complex64))).png(str(out), index={'image': 5})
+    assert not out.exists()
+    # the values given are drawn, the last ones of the sliders too
+    layer = view(str(pyr), show='intf_all')
+    drawn = []
+    raster_values = layer.raster_values
+    layer.raster_values = lambda geom, index=(), size=(TILE, TILE): \
+        drawn.append((geom, size, raster_values(geom, index, size))) or drawn[-1][2]
+    for index, (i, j) in [((3, 0), (3, 0)), ({'sec': 3}, (0, 3))]:
+        layer.png(str(out), width=200, index=index)
+        geom, size, values = drawn[-1]
+        cols = np.floor(geom.x0 + np.arange(size[0]) * geom.sx + 0.5).astype(int)
+        rows = np.floor(geom.y0 + np.arange(size[1]) * geom.sy + 0.5).astype(int)
+        np.testing.assert_allclose(values, np.angle(s[..., i] * s[..., j].conj())[np.ix_(rows, cols)], rtol=1e-5,
+                                   atol=1e-6)

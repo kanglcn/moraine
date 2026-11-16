@@ -335,6 +335,29 @@ def test_quicklook_command(tmp_path, capsys, rng):
     assert 'not a pyramid' in json_out(capsys)['error']
 
 
+def test_quicklook_index_within_the_sliders(tmp_path, capsys, rng):
+    """`moraine quicklook --index` outside the ranges of the sliders is a usage error that names them (beyond the
+    last image it drew nan for coherence)."""
+    import moraine.cli as mc
+    gy, gx = np.divmod(np.arange(12), 4)
+    write_zarr(tmp_path / 'gy.zarr', gy.astype(float)); write_zarr(tmp_path / 'gx.zarr', gx.astype(float))
+    coh = (0.5 * np.exp(1j * rng.uniform(-np.pi, np.pi, (12, 6)))).astype(np.complex64)     # all pairs of 4 images
+    write_zarr(tmp_path / 'coh.zarr', coh, (12, 1))
+    mc.pc_pyramid(str(tmp_path / 'coh.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'gx.zarr'),
+                  y=str(tmp_path / 'gy.zarr'), ras_resolution=1)
+    capsys.readouterr()
+    out = tmp_path / 'q.png'
+    args = ['quicklook', str(tmp_path / 'pyr'), '-o', str(out), '--show', 'coh', '--json', '--index']
+    assert main(args + ['0', '6']) == 2
+    result = json_out(capsys)
+    assert result['ok'] is False and result['error'] == ("--index 0 6: slider 'sec' = 6 is outside its range 0 .. 3; "
+                                                         "the sliders are ref 0 .. 3, sec 0 .. 3")
+    assert not out.exists()
+    assert main(args + ['3', '0']) == 0 and out.stat().st_size > 1000
+    with pytest.raises(UsageError, match=r"--index 0 -1: slider 'sec' = -1 is outside its range 0 \.\. 3"):
+        quicklook(str(tmp_path / 'pyr'), str(tmp_path / 'p.png'), index=(0, -1), show='coh')
+
+
 @pytest.mark.parametrize('data,warning', [
     (np.full((60, 40), np.nan, np.float32), 'all values are nan'),
     (np.where(np.arange(2400).reshape(60, 40) % 97 == 0, np.inf, 1.5).astype(np.float32), 'infinite values'),
