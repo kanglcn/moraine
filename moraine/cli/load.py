@@ -11,7 +11,6 @@ import logging
 import math
 import datetime
 from decimal import Decimal
-import toml
 import zarr
 
 import numpy as np
@@ -24,6 +23,7 @@ from ..api.utils_.chunk import all_chunk_slices
 from ..api.utils_.orbit import bperp as _bperp
 from .logging import mc_logger
 from .executor import Executor, Chunk
+from .utils_ import write_toml
 
 def _read_gamma_par(par):
     """Keys and values of a GAMMA parameter file (image, DEM, ...).
@@ -455,8 +455,7 @@ def load_gamma_metadata(rslc_dir:str,
     meta['perpendicular_baseline'] = base
 
     Path(meta_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(meta_file,'w') as f:
-        a = toml.dump(meta,f,encoder=toml.TomlNumpyEncoder())
+    a = write_toml(meta_file, meta)
     logger.info('All meta data: \n'+a)
     logger.info('writing data in toml file.')
     logger.info('Done.')

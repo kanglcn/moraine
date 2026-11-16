@@ -330,8 +330,8 @@ def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
     write_zarr(tmp_path / 'pc.zarr', np.arange(len(x), dtype=np.float32))
     mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(tmp_path / 'pyr'), x=str(tmp_path / 'x.zarr'),
                   y=str(tmp_path / 'y.zarr'), ras_resolution=res)
-    import toml
-    bx0, by0, bxm, bym = toml.load(tmp_path / 'pyr' / 'bounds.toml')['bounds']
+    import tomllib
+    bx0, by0, bxm, bym = tomllib.loads((tmp_path / 'pyr' / 'bounds.toml').read_text())['bounds']
     idx = zarr.open(str(tmp_path / 'pyr' / 'idx_0.zarr'), mode='r')[:]
     assert idx.shape == (60, 40)
     assert (bx0, by0) == (pytest.approx(x0), pytest.approx(y0))

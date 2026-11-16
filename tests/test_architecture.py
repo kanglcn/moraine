@@ -83,19 +83,22 @@ def test_import_moraine_does_not_import_numexpr_or_pandas():
 
 def test_import_moraine_does_not_import_cupy():
     """With a GPU visible, cupy (which imports pytest) is imported by the GPU code paths only: not by `import moraine`
-    and not by the dispatch of numpy arrays. zarr imports cupy for its GPU buffers wherever cupy is installed, so zarr
-    is imported first with cupy hidden."""
-    code = ('import sys; sys.modules["cupy"] = None; import zarr; del sys.modules["cupy"]; '
-            'import numpy, moraine, moraine.cli, moraine.command; from moraine.api.utils_ import get_array_module; '
-            'assert get_array_module(numpy.zeros(1)) is numpy; '
-            'print([m for m in ("cupy", "pytest") if m in sys.modules])')
+    and not by the dispatch of numpy arrays. zarr imports cupy for its GPU buffers wherever cupy is installed, so
+    moraine imports zarr with cupy hidden (decision 0050) and restores sys.modules: cupy imports afterwards."""
+    code = ('import sys, importlib.util, numpy, moraine, moraine.cli, moraine.command\n'
+            'from moraine.api.utils_ import get_array_module\n'
+            'assert get_array_module(numpy.zeros(1)) is numpy\n'
+            'print([m for m in ("cupy", "pytest") if m in sys.modules])\n'
+            'if importlib.util.find_spec("cupy"):\n'
+            '    import cupy\n'
+            '    assert sys.modules["cupy"] is cupy and hasattr(cupy, "ndarray")\n')
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO,
                          env={**os.environ, 'CUDA_VISIBLE_DEVICES': '0'})
-    assert out.stdout.strip().endswith('[]'), out.stdout + out.stderr
+    assert out.returncode == 0 and out.stdout.strip().endswith('[]'), out.stdout + out.stderr
 
 
 def test_import_moraine_does_not_import_requests():
-    """requests is needed only to download the deep learning models"""
+    """requests is not a dependency any more: the deep learning models are downloaded with urllib"""
     code = 'import sys, moraine, moraine.cli, moraine.command; print("requests" in sys.modules)'
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, cwd=REPO)
     assert out.stdout.strip().endswith('False'), out.stdout + out.stderr

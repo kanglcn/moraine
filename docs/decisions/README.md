@@ -57,6 +57,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0047](0047-image-pairs-sorted-reference-first.md) | Image pairs are sorted without duplicates, the reference index smaller than the secondary | Accepted |
 | [0048](0048-dem-error-in-two-parts.md) | Deformation products, with the DEM error in two parts | Accepted |
 | [0049](0049-pyramids-of-moraine-0-10-or-later-only.md) | Only complete pyramids of moraine 0.10.0 or later are read; their statistics are the stored ones | Accepted |
+| [0050](0050-zarr-imported-with-cupy-hidden.md) | zarr is imported with cupy hidden | Accepted |
 
 ## Writing a record
 

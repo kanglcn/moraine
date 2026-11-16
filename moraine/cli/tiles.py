@@ -131,8 +131,9 @@ def _dates(dates):
     if dates is None:
         return []
     if isinstance(dates, (str, Path)):
-        import toml
-        dates = toml.load(dates)['dates']
+        import tomllib
+        with open(dates, 'rb') as f:
+            dates = tomllib.load(f)['dates']
     return [str(d) for d in dates]
 
 
@@ -794,7 +795,7 @@ class PointLayer(_Layer):
                  size=None, terrain=None):
         self._rtree = None
         if isinstance(data, (str, Path)) and pyramid_levels(Path(data)):
-            import toml
+            import tomllib
             p = Path(data)
             levels = pyramid_levels(p)
             cache = {}
@@ -813,7 +814,8 @@ class PointLayer(_Layer):
             self._x, self._y, self._pc = (zarr.open(str(p / f'{n}.zarr'), mode='r') for n in ('x', 'y', 'pc'))
             self._rtree_dir = p
             self.method = meta['method']
-            x0, y0, xm, ym = (float(v) for v in toml.load(p / 'bounds.toml')['bounds'])
+            with open(p / 'bounds.toml', 'rb') as f:
+                x0, y0, xm, ym = (float(v) for v in tomllib.load(f)['bounds'])
             base = level_of(0)
             ny, nx = base.shape[:2]
             res = (xm - x0) / (nx - 1) if nx > 1 else ((ym - y0) / (ny - 1) if ny > 1 else 1.0)

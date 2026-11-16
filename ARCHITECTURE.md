@@ -36,14 +36,16 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
   never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
 - GPU packages: `cupy` is imported only by the GPU code paths, inside their functions or in a module only they import
-  (`moraine/api/ds/emi_cuda_.py`), so that `import moraine` does not import it; `numba.cuda` (the kernels) only behind
-  `moraine.api.utils_.is_cuda_available()`; `torch` only inside the functions that run a model (decision 0002).
+  (`moraine/api/ds/emi_cuda_.py`), so that `import moraine` does not import it; zarr, which imports cupy wherever it is
+  installed, is imported first by `moraine/__init__.py` with cupy hidden (decision 0050); `numba.cuda` (the kernels)
+  only behind `moraine.api.utils_.is_cuda_available()`; `torch` only inside the functions that run a model
+  (decision 0002).
 
 ## API layer (moraine/api/)
 
 | module | responsibility | main names |
 |---|---|---|
-| `moraine/__init__.py` | version; re-exports the public API as `moraine.*` | |
+| `moraine/__init__.py` | version; imports zarr with cupy hidden; re-exports the public API as `moraine.*` | |
 | `moraine/__main__.py` | `python -m moraine` entry point | |
 | `moraine/api/__init__.py` | re-exports the public names of the foundations and stages below (`__all__`) | |
 | *internal utilities* | | |
@@ -96,7 +98,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/logging.py` | `@mc_logger` (argument logging, marks a function as a command), zarr log helper | |
 | `moraine/cli/zarr_.py` | parallel zarr read / write, directories of per chunk zarrs | |
 | `moraine/cli/executor.py` | `Executor`: the workers of a command (threads of the process, spawned processes, one per GPU) running tasks on zarr chunks (`Chunk`, `chunk_task`) | |
-| `moraine/cli/utils_.py` | small helpers (clean output directories) | |
+| `moraine/cli/utils_.py` | small helpers (clean output directories, write TOML files: `meta.toml`, `bounds.toml`) | |
 | `moraine/cli/load.py` | load GAMMA results (runs GAMMA programs; the perpendicular baselines from the orbits of the par files) | `load-gamma-*` |
 | `moraine/cli/transform.py` | coordinate transformation (pyproj) | `transform` |
 | `moraine/cli/tnet.py` | image pair files | `image-pairs` |

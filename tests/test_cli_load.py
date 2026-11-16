@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
-import toml
 import zarr
 
 import moraine.cli as mc
@@ -211,7 +210,7 @@ def test_load_gamma_bperp(gamma, tmp_path, monkeypatch):
     out = zarr.open(str(tmp_path / 'bperp.zarr'), mode='r')
     assert out.shape == (NLINES, WIDTH, NIMAGES)
     centre = out[NLINES//2, WIDTH//2]
-    base = np.array(toml.load(tmp_path / 'meta.toml')['perpendicular_baseline'])
+    base = np.array(tomllib.loads((tmp_path / 'meta.toml').read_text())['perpendicular_baseline'])
     np.testing.assert_allclose(centre, base, rtol=0, atol=0.2)
 
 
