@@ -220,6 +220,22 @@ def test_show_function_sliders_need_a_value():
         [{'name': 'i', 'max': 0}]
 
 
+def test_sliders_need_a_show_function_that_takes_them():
+    """sliders, the ranges of the sliders of a show function, are a ValueError when the view is made with another show
+    (whose sliders follow from the data) and for names that are not sliders of the function; they were ignored
+    without a word, as image_pairs without a coherence show were."""
+    import re
+    a = np.ones((20, 30, 4), np.float32)
+    for kw, error in [
+            (dict(sliders={'i': 2}), 'sliders is used only by a show function, not by the default show'),
+            (dict(show='intf_seq', sliders={'i': 2}), "sliders is used only by a show function, not by show='intf_seq'"),
+            (dict(show=lambda v, i: v[..., i], sliders={'i': 2, 'k': 3}),
+             "sliders={'i': 2, 'k': 3}: ['k'] are not sliders of the show function, whose sliders are ['i']")]:
+        with pytest.raises(ValueError, match='^' + re.escape(error) + '$'):
+            view(a, **kw)
+    assert view(a, show=lambda v, i: v[..., i], sliders={'i': 2}).kdims == [{'name': 'i', 'max': 1}]
+
+
 # ---------------------------------------------------------------- point clouds
 
 def test_point_cloud_raster_zoom(grid_pc):

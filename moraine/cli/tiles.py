@@ -295,6 +295,9 @@ def _show(base, show, image_pairs, sliders, dates, shape):
     point cloud, for the messages); colours of `_colours`: 'phase', 'values' or 'differences' (of two images of a real
     stack), None for a function (guessed from its values)."""
     _image_pairs_show(show, image_pairs)
+    if sliders is not None and not callable(show):  # the sliders of the other shows follow from the data
+        raise ValueError(f"sliders is used only by a show function, not by "
+                         f"{'the default show' if show is None else f'show={show!r}'}")
     stack = tuple(base.shape[2:])
     if 0 in stack:                                   # its sliders would be 0 .. -1: every tile would fail
         raise ValueError(f'data of shape {shape}: a stack without images or image pairs (a stack dimension of length '
@@ -316,6 +319,10 @@ def _show(base, show, image_pairs, sliders, dates, shape):
             missing = [n for n in names if n not in sliders]
             if missing:
                 raise ValueError(f'sliders={sliders} misses {missing}')
+            unused = [n for n in sliders if n not in names]
+            if unused:
+                raise ValueError(f'sliders={sliders}: {unused} are not sliders of the show function, whose sliders are '
+                                 f'{names}')
             counts = [int(sliders[n]) for n in names]
             for n, c in zip(names, counts):           # a slider 0 .. -1 would fail when drawn
                 if c < 1:
@@ -1270,7 +1277,8 @@ def view(
         ValueError
     sliders : dict, optional
         number of values of each slider of a `show` function, 1 or more, e.g. {'ref': 17, 'sec': 17}; from the stack
-        shape or `dates` by default
+        shape or `dates` by default. Given with another show or with names that are not sliders of the function, a
+        ValueError
     crs : str, optional
         'grid' (radar grid, azimuth down) or 'web_mercator' (metres, north up); from the coordinates by default
 
