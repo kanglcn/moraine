@@ -122,6 +122,24 @@ def test_both_languages_cite_the_same_decisions(zh):
                                   f'only in {zh.name}: {sorted(zh_cited - en_cited)}')
 
 
+# superseded record -> the record that supersedes it, from the status column of the index of docs/decisions/
+SUPERSEDED = dict(re.findall(r'^\| \[(\d{4})\]\(.*\| Superseded by (\d{4}) \|$',
+                             (REPO / 'docs' / 'decisions' / 'README.md').read_text(), re.M))
+
+
+@pytest.mark.parametrize('doc', [p for p in DOCS if p.parent.name != 'decisions'],
+                         ids=lambda p: str(p.relative_to(REPO)))
+def test_docs_cite_no_superseded_decision(doc):
+    assert SUPERSEDED, 'no superseded record found in the index of docs/decisions/'
+    stale = []
+    for old in sorted(_cited_decisions(doc.read_text()) & SUPERSEDED.keys()):
+        new = SUPERSEDED[old]
+        while new in SUPERSEDED:        # the record in force at the end of a chain of supersessions
+            new = SUPERSEDED[new]
+        stale.append(f'{old} (superseded; in force: {new})')
+    assert not stale, f'{doc.relative_to(REPO)} cites decision {", ".join(stale)}'
+
+
 @pytest.mark.slow
 def test_manual_builds(tmp_path):
     if shutil.which('mkdocs') is None and importlib.util.find_spec('mkdocs') is None:
