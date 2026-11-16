@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+Without h5py, `download-era5` and `pc-tropo-era5` report a wrong argument as such, a usage error (exit code 2), and only right arguments as the missing h5py (an ImportError, exit code 1): they checked for h5py first, so any call failed with "ImportError: ... needs h5py"
+
 The `outputs` and `inputs` of a command (`--json`, the state of a pipeline step) leave out arguments that are empty strings, which are not paths: as the working directory they were listed as an output when the command made a file in it (`"outputs": ["era5", ""]` of `download-era5 --out_dir era5 --times ''`), otherwise as an input
 
 `download-era5` without a time, e.g. `--times ''`, stops with "times must have the time of at least one image", an argument error (a usage error, exit code 2, on the command line), before it makes the output directory, as `pc-tropo-era5` does; it made an empty directory and succeeded

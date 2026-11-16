@@ -374,14 +374,14 @@ def download_era5(
     logger = logging.getLogger(__name__)
     if source not in ('ncar', 'cds'):
         raise ArgumentError(f"source must be 'ncar' or 'cds', not {source!r}")
-    try:
-        import h5py  # noqa: F401
-    except ImportError:
-        raise ImportError("download-era5 needs cdsapi and h5py: pip install 'moraine[era5]'") from None
     area = _area(bbox)
     hours = _era5_hours(times)
     if not hours:
         raise ArgumentError('times must have the time of at least one image')
+    try:                    # after the arguments: a wrong one is a usage error also without h5py
+        import h5py  # noqa: F401
+    except ImportError:
+        raise ImportError("download-era5 needs cdsapi and h5py: pip install 'moraine[era5]'") from None
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     logger.info(f'{len(_times(times))} images need {len(hours)} hours of ERA5, area (north, west, south, east) {area}')
@@ -487,10 +487,6 @@ def pc_tropo_era5(
         point and image
     """
     logger = logging.getLogger(__name__)
-    try:
-        import h5py  # noqa: F401
-    except ImportError:
-        raise ImportError("pc-tropo-era5 needs h5py: pip install 'moraine[era5]'") from None
     lon_zarr = zarr.open(lon, mode='r'); logger.zarr_info(lon, lon_zarr)
     n_points = lon_zarr.shape[0]
     for name, path in (('lon', lon), ('lat', lat), ('hgt', hgt), ('theta', theta)):
@@ -508,6 +504,10 @@ def pc_tropo_era5(
     if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < nimages:
         raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
     geoid = _geoid(geoid)
+    try:                    # after the arguments: a wrong one is a usage error also without h5py
+        import h5py  # noqa: F401
+    except ImportError:
+        raise ImportError("pc-tropo-era5 needs h5py: pip install 'moraine[era5]'") from None
     hours = _era5_hours(t_img)
     missing = [h for h in hours if not _era5_path(era5_dir, h).is_file()]
     if missing:
