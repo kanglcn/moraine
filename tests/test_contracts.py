@@ -350,6 +350,19 @@ def test_newer_pyramid_is_rejected(tmp_path, rng):
         pyramid_levels(tmp_path / 'pyr')
 
 
+def test_marker_is_written_last(tmp_path, rng, monkeypatch):
+    """A pyramid is complete when it has the marker: one whose statistics table could not be written has none."""
+    import moraine.cli.plot as plot
+
+    def full_disk(part):
+        raise OSError('no space left on device')
+    write_zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
+    monkeypatch.setattr(plot, '_channel_row', full_disk)
+    with pytest.raises(OSError, match='no space left'):
+        mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
+    assert 'moraine_pyramid' not in zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r').attrs
+
+
 # ---------------------------------------------------------------- data conventions
 
 @pytest.mark.parametrize('pairs, match', [

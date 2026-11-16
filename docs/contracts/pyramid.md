@@ -7,8 +7,9 @@ Version 1. Multi resolution copies of rasters and point clouds made by the `ras-
 ## Marker
 
 `0.zarr` carries the attribute `moraine_pyramid = {"version": 1, "kind": "raster" | "point cloud", "method":
-..., "stats": {...}}`. Readers reject versions newer than they support. Pyramids made before the marker existed
-are recognized by level 1 being half the size of level 0.
+..., "stats": {...}}`, written after everything else: a pyramid is complete when it has the marker. Readers reject
+versions newer than they support. Pyramids made before the marker existed are recognized by level 1 being half the
+size of level 0.
 
 `method` (optional, absent in pyramids made before it existed) says how each level is made from the finer
 one: `"decimate"` (the default of rasters: every 2nd pixel) or `"mean"` (the mean of the 2 x 2 blocks over the

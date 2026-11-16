@@ -191,14 +191,15 @@ def _channel_row(p):
 
 
 def _write_stats(out_dir, z0, kind, method, parts, channel_shape, dtype):
-    """Write the marker of the pyramid (`kind`, `method`, the statistics of all its data) into `z0` (level 0) and
-    the per channel table stats.zarr; `parts` are the `_part_stats` of the channels in the order of `np.ndindex`."""
-    z0.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': kind, 'method': method,
-                                   'stats': _pool_stats(parts, dtype)}
+    """Write the per channel table stats.zarr and the marker of the pyramid (`kind`, `method`, the statistics of all
+    its data) into `z0` (level 0); `parts` are the `_part_stats` of the channels in the order of `np.ndindex`."""
     table = np.array([_channel_row(p) for p in parts], dtype=np.float64).reshape(*channel_shape, len(_STATS_COLUMNS))
     t = zarr.open(str(Path(out_dir) / 'stats.zarr'), mode='w', shape=table.shape, dtype=np.float64, chunks=table.shape)
     t[...] = table
     t.attrs['columns'] = list(_STATS_COLUMNS)
+    # the marker after everything else: a pyramid is complete when it has one
+    z0.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': kind, 'method': method,
+                                   'stats': _pool_stats(parts, dtype)}
 
 
 @mc_logger
