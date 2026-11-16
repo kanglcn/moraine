@@ -5,7 +5,7 @@ site_url: https://kanglcn.github.io/moraine/
 repo_url: https://github.com/kanglcn/moraine
 repo_name: kanglcn/moraine
 edit_uri: edit/main/docs/
-copyright: moraine is GPL-3.0; the deep learning models are CC BY-NC-SA 4.0
+copyright: moraine is GPL-3.0-or-later; the deep learning models are CC BY-NC-SA 4.0
 
 docs_dir: docs
 # not pages: the generator, its examples (included as snippets) and the theme overrides

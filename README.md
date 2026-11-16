@@ -17,7 +17,7 @@
   <a href="https://kanglcn.github.io/moraine/"><img src="https://github.com/kanglcn/moraine/actions/workflows/docs.yaml/badge.svg?branch=main" alt="Manual"></a>
   <a href="https://pypi.org/project/moraine/"><img src="https://img.shields.io/pypi/v/moraine" alt="PyPI version"></a>
   <a href="https://pypi.org/project/moraine/"><img src="https://img.shields.io/pypi/pyversions/moraine" alt="Python versions"></a>
-  <a href="https://github.com/kanglcn/moraine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+  <a href="https://github.com/kanglcn/moraine/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue" alt="License: GPL-3.0-or-later"></a>
 </p>
 
 <p align="center">
@@ -187,8 +187,9 @@ maps the code and the [design decisions](https://kanglcn.github.io/moraine/decis
 
 ## 📜 License
 
-moraine is free software under the [GPL-3.0](https://github.com/kanglcn/moraine/blob/main/LICENSE). The trained deep
-learning models, downloaded by `moraine.download_dl_model()`, are under
+moraine is free software under the GNU General Public License, version 3 or (at your option) any later version
+([GPL-3.0-or-later](https://github.com/kanglcn/moraine/blob/main/LICENSE)). The trained deep learning models,
+downloaded by `moraine.download_dl_model()`, are under
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ## ⭐ Star history
