@@ -5,16 +5,13 @@ __all__ = ['emperical_co_pc']
 
 import logging
 from pathlib import Path
-import zarr
 import numpy as np
 
 import moraine as mr
-from ..api.utils_.chunk import all_chunk_slices_with_overlap
 from .logging import mc_logger
-from .zarr_ import parallel_read_zarr, check_ndim
-from .executor import Executor, Chunk, Device
+from .executor import Executor, Chunk
 from .utils_ import mk_clean_dir
-from .pl import _pc_by_ras_chunk, _make_pc_zarr
+from .pl import _ras_chunk_inputs, _make_pc_zarr
 
 @mc_logger
 def emperical_co_pc(
@@ -64,51 +61,25 @@ def emperical_co_pc(
         tasks a worker runs at the same time. Default: 2
     """
     logger = logging.getLogger(__name__)
-    is_shp_dir = Path(is_shp_dir)
     coh_dir = Path(coh_dir); mk_clean_dir(coh_dir)
     if n_looks_dir is not None: n_looks_dir = Path(n_looks_dir); mk_clean_dir(n_looks_dir)
-    rslc_zarr = zarr.open(rslc, mode='r')
-    logger.zarr_info(rslc, rslc_zarr)
-    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
-    nlines, width, nimage = rslc_zarr.shape
-    if chunks is None: chunks = rslc_zarr.chunks[:2]
-    chunks = tuple(chunks)
     if threads_per_worker is None and not cuda: threads_per_worker = 2
-    is_shp0_zarr = zarr.open(sorted(is_shp_dir.glob('*.zarr'))[0], mode='r')
-    az_win, r_win = is_shp0_zarr.shape[1:]
-    az_half_win = int((az_win-1)/2)
-    r_half_win = int((r_win-1)/2)
-    logger.info(f'azimuth window size and half azimuth window size: {az_win}, {az_half_win}')
-    logger.info(f'range window size and half range window size: {r_win}, {r_half_win}')
-    logger.info(f'parallel processing azimuth, range chunk size: {chunks}')
-    gix_zarr = zarr.open(gix, mode='r')
-    logger.zarr_info(gix, gix_zarr)
-    check_ndim('gix', gix_zarr, 2, '(n_points, 2)')
-    logger.info('loading gix into memory.')
-    gix = parallel_read_zarr(gix_zarr, (slice(None), slice(None)))
-    logger.info('convert gix to the order of ras chunk')
-    ras_chunk_order_gix, chunk_bounds = _pc_by_ras_chunk(gix, chunks, (nlines, width), (az_half_win, r_half_win))
-    del gix
+    rslc_zarr, chunk_inputs = _ras_chunk_inputs(rslc, is_shp_dir, gix, chunks, logger)
     if image_pairs is None:
-        image_pairs = mr.TempNet.from_bandwidth(nimage).image_pairs
+        image_pairs = mr.TempNet.from_bandwidth(rslc_zarr.shape[2]).image_pairs
     image_pairs = np.asarray(image_pairs).astype(np.int32)
     n_image_pairs = image_pairs.shape[0]
     return_n_looks = n_looks_dir is not None
-    in_slices = all_chunk_slices_with_overlap((nlines, width, nimage), (*chunks, nimage), (az_half_win, r_half_win, 0))
     # one task per raster chunk with points: the rslc of the chunk with its halo, the grid index of its points
     # (relative to the chunk) and their SHPs in; the coherence (and number of looks) of its points out, one zarr per
     # chunk
     tasks = []
-    for j, in_sl in enumerate(in_slices):
-        b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
-        if b1 == b0:
-            continue
-        _make_pc_zarr(coh_dir/f'{j}.zarr', b1-b0, n_image_pairs, np.complex64)
+    for j, n, inputs in chunk_inputs:
+        _make_pc_zarr(coh_dir/f'{j}.zarr', n, n_image_pairs, np.complex64)
         outputs = [Chunk(str(coh_dir/f'{j}.zarr'))]
         if return_n_looks:
-            _make_pc_zarr(n_looks_dir/f'{j}.zarr', b1-b0, 0, np.float32)
+            _make_pc_zarr(n_looks_dir/f'{j}.zarr', n, 0, np.float32)
             outputs.append(Chunk(str(n_looks_dir/f'{j}.zarr')))
-        inputs = [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]), Chunk(str(is_shp_dir/f'{j}.zarr'))]
         tasks.append((inputs, outputs))
     logger.info(f'coherence of {len(tasks)} raster chunks with points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:

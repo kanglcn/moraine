@@ -47,6 +47,9 @@ def test_api_argument_errors():
     gix = np.array([[0, 1], [0, 2]]); hix = np.array([3, 5])
     with pytest.raises(ValueError, match='both be gix'):
         mr.pc_union(gix, hix)
+    for fn in (mr.pc_union, mr.pc_intersect, mr.pc_diff):
+        with pytest.raises(ValueError, match='both be gix'):
+            fn(hix.reshape(2, 1, 1), hix.reshape(2, 1, 1))
     with pytest.raises(ValueError, match='sorted and unique'):
         mr.pc_union(np.array([5, 3]), hix)
     with pytest.raises(ValueError, match='bandwidth 10 is larger than the number of images 5'):

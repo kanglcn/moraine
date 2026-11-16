@@ -31,6 +31,43 @@ def _make_pc_zarr(path, n_points, nimages, dtype):
     chunks = (n_points, 1) if nimages else (n_points,)
     zarr.open(str(path), mode='w', shape=shape, dtype=dtype, chunks=chunks)
 
+
+def _ras_chunk_inputs(rslc, is_shp_dir, gix, chunks, logger):
+    """The rslc zarr and the task inputs of the commands per raster chunk of points (`emperical-co-pc`,
+    `emperical-co-emi-temp-coh-pc`): for every raster chunk with points its number, its number of points and the
+    inputs (the rslc of the chunk with the halo of the SHP window, the grid index of its points relative to that and
+    their SHPs). `chunks` is the processing chunk size (azimuth, range), the rslc chunks if None."""
+    is_shp_dir = Path(is_shp_dir)
+    rslc_zarr = zarr.open(rslc, mode='r')
+    logger.zarr_info(rslc, rslc_zarr)
+    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
+    nlines, width, nimage = rslc_zarr.shape
+    if chunks is None: chunks = rslc_zarr.chunks[:2]
+    chunks = tuple(chunks)
+    is_shp0_zarr = zarr.open(sorted(is_shp_dir.glob('*.zarr'))[0], mode='r')
+    az_win, r_win = is_shp0_zarr.shape[1:]
+    az_half_win = int((az_win-1)/2)
+    r_half_win = int((r_win-1)/2)
+    logger.info(f'azimuth window size and half azimuth window size: {az_win}, {az_half_win}')
+    logger.info(f'range window size and half range window size: {r_win}, {r_half_win}')
+    logger.info(f'parallel processing azimuth, range chunk size: {chunks}')
+    gix_zarr = zarr.open(gix, mode='r')
+    logger.zarr_info(gix, gix_zarr)
+    check_ndim('gix', gix_zarr, 2, '(n_points, 2)')
+    logger.info('loading gix into memory.')
+    gix = parallel_read_zarr(gix_zarr, (slice(None), slice(None)))
+    logger.info('convert gix to the order of ras chunk')
+    ras_chunk_order_gix, chunk_bounds = _pc_by_ras_chunk(gix, chunks, (nlines, width), (az_half_win, r_half_win))
+    del gix
+    in_slices = all_chunk_slices_with_overlap((nlines, width, nimage), (*chunks, nimage), (az_half_win, r_half_win, 0))
+    inputs = []
+    for j, in_sl in enumerate(in_slices):
+        b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
+        if b1 > b0:
+            inputs.append((j, b1-b0, [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]),
+                                      Chunk(str(is_shp_dir/f'{j}.zarr'))]))
+    return rslc_zarr, inputs
+
 @mc_logger
 def emi(
     coh:str,
@@ -254,7 +291,6 @@ def emperical_co_emi_temp_coh_pc(
         tasks a worker runs at the same time. Default: 2
     """
     logger = logging.getLogger(__name__)
-    is_shp_dir = Path(is_shp_dir)
     ph_dir = Path(ph_dir); mk_clean_dir(ph_dir)
     t_coh_dir = Path(t_coh_dir); mk_clean_dir(t_coh_dir)
     weighted = (t_coh_w_dir is not None) or (eff_n_pairs_dir is not None) or (n_components_dir is not None)
@@ -263,49 +299,24 @@ def emperical_co_emi_temp_coh_pc(
         if d is not None:
             d = Path(d); mk_clean_dir(d)
         extra_dirs.append(d)
-    rslc_zarr = zarr.open(rslc, mode='r')
-    logger.zarr_info(rslc, rslc_zarr)
-    check_ndim('rslc', rslc_zarr, 3, '(nlines, width, nimages)')
-    nlines, width, nimage = rslc_zarr.shape
-    if chunks is None: chunks = rslc_zarr.chunks[:2]
-    chunks = tuple(chunks)
     if threads_per_worker is None and not cuda: threads_per_worker = 2
-    is_shp0_zarr = zarr.open(sorted(is_shp_dir.glob('*.zarr'))[0], mode='r')
-    az_win, r_win = is_shp0_zarr.shape[1:]
-    az_half_win = int((az_win-1)/2)
-    r_half_win = int((r_win-1)/2)
-    logger.info(f'azimuth window size and half azimuth window size: {az_win}, {az_half_win}')
-    logger.info(f'range window size and half range window size: {r_win}, {r_half_win}')
-    logger.info(f'parallel processing azimuth, range chunk size: {chunks}')
-    gix_zarr = zarr.open(gix, mode='r')
-    logger.zarr_info(gix, gix_zarr)
-    check_ndim('gix', gix_zarr, 2, '(n_points, 2)')
-    logger.info('loading gix into memory.')
-    gix = parallel_read_zarr(gix_zarr, (slice(None), slice(None)))
-    logger.info('convert gix to the order of ras chunk')
-    ras_chunk_order_gix, chunk_bounds = _pc_by_ras_chunk(gix, chunks, (nlines, width), (az_half_win, r_half_win))
-    del gix
-    in_slices = all_chunk_slices_with_overlap((nlines, width, nimage), (*chunks, nimage), (az_half_win, r_half_win, 0))
+    rslc_zarr, chunk_inputs = _ras_chunk_inputs(rslc, is_shp_dir, gix, chunks, logger)
     # one task per raster chunk with points: the rslc of the chunk with its halo, the grid index of its points
     # (relative to the chunk) and their SHPs in; the phase history and the temporal coherences of its points out,
     # one zarr per chunk
     tasks = []
-    for j, in_sl in enumerate(in_slices):
-        b0, b1 = int(chunk_bounds[j]), int(chunk_bounds[j+1])
-        if b1 == b0:
-            continue
-        _make_pc_zarr(ph_dir/f'{j}.zarr', b1-b0, nimage, rslc_zarr.dtype)
-        _make_pc_zarr(t_coh_dir/f'{j}.zarr', b1-b0, 0, np.float32)
+    for j, n, inputs in chunk_inputs:
+        _make_pc_zarr(ph_dir/f'{j}.zarr', n, rslc_zarr.shape[2], rslc_zarr.dtype)
+        _make_pc_zarr(t_coh_dir/f'{j}.zarr', n, 0, np.float32)
         outputs = [Chunk(str(ph_dir/f'{j}.zarr')), Chunk(str(t_coh_dir/f'{j}.zarr'))]
         for d, dtype in zip(extra_dirs, (np.float32, np.float32, np.int16)):
             if d is None:
                 outputs.append(None)
             else:
-                _make_pc_zarr(d/f'{j}.zarr', b1-b0, 0, dtype)
+                _make_pc_zarr(d/f'{j}.zarr', n, 0, dtype)
                 outputs.append(Chunk(str(d/f'{j}.zarr')))
         if not weighted:
             outputs = outputs[:2]
-        inputs = [Chunk(rslc, in_sl), Device(ras_chunk_order_gix[b0:b1]), Chunk(str(is_shp_dir/f'{j}.zarr'))]
         tasks.append((inputs, outputs))
     logger.info(f'coherence, phase linking and temporal coherence of {len(tasks)} raster chunks with points')
     with Executor(cuda=cuda, n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
