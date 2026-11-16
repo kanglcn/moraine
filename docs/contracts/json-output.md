@@ -116,9 +116,10 @@ Objects describing a path (`moraine info`, outputs of commands and steps). `kind
 ### pyramid summary
 
 `kind` is `raster pyramid` or `point cloud pyramid` (see the pyramid contract). The statistics are those
-of all the data, computed when the pyramid was built (`stats_level` 0); for pyramids made without them they
-come from the finest level of at most 64 MiB (`stats_level` > 0), point cloud pyramids skipping empty cells.
-For complex data
+of all the data (the points of a point cloud pyramid), computed when the pyramid was built. A pyramid without
+them, made before moraine 0.10.0, or one whose `ras-pyramid` / `pc-pyramid` did not finish is not summarized:
+`moraine info` fails with an error asking to rebuild it, and the summary of such an output is a failed summary
+(decision 0048). For complex data
 the value fields are named `amplitude_min`, `amplitude_max`, ... and describe the amplitude; for boolean
 data only `true_fraction` is given.
 
@@ -129,8 +130,8 @@ data only `true_fraction` is given.
 | `shape` | list of integers | shape of level 0 |
 | `dtype` | string | numpy dtype of the data (of the points for a point cloud pyramid) |
 | `levels` | integer | number of levels |
-| `method` | string | *optional*, how the levels are made: `decimate` or `mean` (rasters), `first` or `mean` (point clouds); absent for pyramids made before it existed |
-| `stats_level` | integer | level used for the statistics, 0 when they are of all the data |
+| `method` | string | how the levels are made: `decimate` or `mean` (rasters), `first` or `mean` (point clouds) |
+| `stats_level` | integer | always 0: the statistics are of all the data (the level they came from in pyramids made before 0.10.0, which are not summarized any more); to be removed with the next version of this contract |
 | `nan_fraction` | number | *optional*, fraction of nan values |
 | `min` | number | *optional*, minimum (finite values) |
 | `max` | number | *optional*, maximum |

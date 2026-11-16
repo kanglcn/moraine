@@ -42,7 +42,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0032](0032-window-arrays-whole-window-per-chunk.md) | Window arrays keep the whole window of a pixel in one chunk | Accepted |
 | [0033](0033-executor-for-commands.md) | The commands run their work as tasks of an executor, not as dask array graphs | Accepted |
 | [0034](0034-own-workers-no-dask.md) | The workers of the commands are moraine's own; dask is not a dependency | Accepted |
-| [0035](0035-pyramid-levels-and-statistics.md) | Pyramid levels by decimation or by mean; statistics of the data computed when a pyramid is built | Accepted |
+| [0035](0035-pyramid-levels-and-statistics.md) | Pyramid levels by decimation or by mean; statistics of the data computed when a pyramid is built | Superseded by 0048 |
 | [0036](0036-3d-views-over-terrain.md) | 3D views over the terrain with deck.gl and public elevation tiles | Accepted |
 | [0037](0037-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
 | [0038](0038-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
@@ -55,6 +55,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies | Accepted |
 | [0046](0046-pyramid-processes-from-a-forkserver.md) | The pyramids render in processes started by a forkserver | Accepted |
 | [0047](0047-image-pairs-sorted-reference-first.md) | Image pairs are sorted without duplicates, the reference index smaller than the secondary | Accepted |
+| [0048](0048-pyramids-of-moraine-0-10-or-later-only.md) | Only complete pyramids of moraine 0.10.0 or later are read; their statistics are the stored ones | Accepted |
 
 ## Writing a record
 

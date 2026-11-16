@@ -1,6 +1,6 @@
 # The viewer: how it works, what was learnt, what is open
 
-Implementation notes of the visualization system (`moraine.cli.view`, decisions 0007, 0018, 0035, 0036) for
+Implementation notes of the visualization system (`moraine.cli.view`, decisions 0007, 0018, 0035, 0036, 0048) for
 whoever changes it next. The user documentation is the docstring of `view` and `AGENTS.md`; the formats are
 in `docs/contracts/pyramid.md`. Updated 2026-10-10.
 
@@ -8,8 +8,8 @@ in `docs/contracts/pyramid.md`. Updated 2026-10-10.
 
 | part | role |
 |---|---|
-| `moraine/cli/plot.py` | pyramids: `ras_pyramid` (bands of `rows` lines, levels by decimation or mean), `pc_pyramid` (points rasterized on a web mercator / radar grid of `ras_resolution`, `idx_l.zarr` per level, `rtree.zarr`), statistics of all the data at build time (`stats` in the marker, `stats.zarr`), `_pyramid_stats`, `_channel_warnings` |
-| `moraine/cli/tiles.py` | the layers: `RasterLayer`, `PointLayer` (pyramid or in memory), `_setup` (colours, sliders, time series, `size`, `terrain`), `_show` (every `show`, named, default or the user's, is a function `f(v, *sliders)` of the visible data `_Visible`: the pixels of a level or points), `raster_values` (the level with at least a cell per pixel sampled at the pixel centres), `render` -> uint8 palette indices, `png` (8 bit palette PNG, index 255 transparent), probes `value` / `locate` / `series` (the cell drawn at the zoom shown, points through `idx_l`, R-tree only where points are drawn one by one: `points_in` reads `rtree.zarr` or builds the tree on its first query), `Overlay` (`*`), `Layout` (`+`), `describe` (the text `repr`), `render_png` (`.png()`, 2D only), `view()` |
+| `moraine/cli/plot.py` | pyramids: `ras_pyramid` (bands of `rows` lines, levels by decimation or mean), `pc_pyramid` (points rasterized on a web mercator / radar grid of `ras_resolution`, `idx_l.zarr` per level, `rtree.zarr`), statistics of all the data at build time (`stats` in the marker, `stats.zarr`), `pyramid_levels` (rejects pyramids without the marker of moraine 0.10.0 or later, decision 0048), `_channel_warnings` |
+| `moraine/cli/tiles.py` | the layers: `RasterLayer`, `PointLayer` (pyramid or in memory), `_setup` (colours, sliders, time series, `size`, `terrain`), `_show` (every `show`, named, default or the user's, is a function `f(v, *sliders)` of the visible data `_Visible`: the pixels of a level or points), `raster_values` (the level with at least a cell per pixel sampled at the pixel centres), `render` -> uint8 palette indices, `png` (8 bit palette PNG, index 255 transparent), probes `value` / `locate` / `series` (the cell drawn at the zoom shown, points through `idx_l`, R-tree only where points are drawn one by one: on its first query `points_in` reads `rtree.zarr` of a pyramid or builds the tree of points in memory), `Overlay` (`*`), `Layout` (`+`), `describe` (the text `repr`), `render_png` (`.png()`, 2D only), `view()` |
 | `moraine/cli/viewer.py` | `TileView` (anywidget): traits `crs`, `view_origin`, `extent`, `frame`, `size`, `zoom`, `max_zoom`, `panels` (layers: label, colours, clim, opacity, sliders), `kdims`, `index`, `dates`, `polygons`, `selected`, `reference`, `terrain`; `_on_msg` answers the browser's messages |
 | `moraine/cli/viewer.js` | the front end: one module, two map backends behind one small interface, `makeLeafletPanel` (2D) and `makeDeckPanel` (3D) |
 | `moraine/cli/viewer.css` | the styles (`.moraine-tv-*`) |

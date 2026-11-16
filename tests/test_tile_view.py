@@ -246,8 +246,7 @@ def test_point_data_in_memory(grid_pc):
 
 def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
     """The points of a pyramid are found with the bounding box tree saved by `pc_pyramid`, without reading all
-    coordinates; a pyramid made without the tree gets one built."""
-    import shutil
+    coordinates (a pyramid without the tree is rejected: tests/test_contracts.py); points in memory get one built."""
     from moraine.api.pc.rtree import HilbertRtree
     pts, pyr = grid_pc
     layer = view(str(pyr))
@@ -256,8 +255,8 @@ def test_point_cloud_rtree_from_pyramid(grid_pc, monkeypatch):
     idx = layer.points_in(box)
     assert sorted(pts[i] for i in idx) == [(y, x) for y in range(29, 33) for x in range(20, 24) if (x + y) % 3 == 0]
     monkeypatch.undo()
-    shutil.rmtree(pyr / 'rtree.zarr')
-    np.testing.assert_array_equal(np.sort(view(str(pyr)).points_in(box)), np.sort(idx))
+    gy, gx, val = (zarr.open(str(pyr.parent / f'{n}.zarr'), mode='r')[:] for n in ('gy', 'gx', 'val'))
+    np.testing.assert_array_equal(np.sort(view(val, x=gx, y=gy).points_in(box)), np.sort(idx))
 
 
 def test_web_mercator(mercator_pc):

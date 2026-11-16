@@ -363,6 +363,38 @@ def test_marker_is_written_last(tmp_path, rng, monkeypatch):
     assert 'moraine_pyramid' not in zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r').attrs
 
 
+@pytest.mark.parametrize('case', ['unfinished', 'no method', 'no stats', 'no rtree'])
+def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, case):
+    """Every reader rejects a pyramid of moraine before 0.10.0 (without the marker, a marker without `method` or
+    `stats`, a point cloud pyramid without rtree.zarr) and one whose command did not finish, and asks to rebuild it."""
+    import shutil
+    import moraine.cli.plot as plot
+    from moraine.command.summary import quicklook, view as notebook
+    pyr = tmp_path / 'pyr'
+    if case == 'no rtree':
+        g = random_gix(rng, (20, 10), 50)
+        write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+        write_zarr(tmp_path / 'pc.zarr', rng.random(50).astype(np.float32))
+        mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(pyr), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
+                      ras_resolution=1)
+        shutil.rmtree(pyr / 'rtree.zarr')
+    else:
+        write_zarr(tmp_path / 'ras.zarr', rng.random((30, 20)).astype(np.float32))
+        if case == 'unfinished':     # the levels are there, the marker is not
+            monkeypatch.setattr(plot, '_channel_row', lambda part: 1 / 0)
+            with pytest.raises(ZeroDivisionError):
+                mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(pyr))
+        else:
+            mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(pyr))
+            z0 = zarr.open(str(pyr / '0.zarr'), mode='r+')
+            z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != case[3:]}
+    command = 'pc-pyramid' if case == 'no rtree' else 'ras-pyramid'
+    for read in (pyramid_levels, summarize, lambda p: quicklook(p, str(tmp_path / 'q.png')),
+                 lambda p: notebook([p], str(tmp_path / 'v.ipynb')), mc.view):
+        with pytest.raises(ValueError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):
+            read(str(pyr))
+
+
 # ---------------------------------------------------------------- data conventions
 
 @pytest.mark.parametrize('pairs, match', [

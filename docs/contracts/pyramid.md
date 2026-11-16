@@ -8,21 +8,20 @@ Version 1. Multi resolution copies of rasters and point clouds made by the `ras-
 
 `0.zarr` carries the attribute `moraine_pyramid = {"version": 1, "kind": "raster" | "point cloud", "method":
 ..., "stats": {...}}`, written after everything else: a pyramid is complete when it has the marker. Readers reject
-versions newer than they support. Pyramids made before the marker existed are recognized by level 1 being half the
-size of level 0.
+versions newer than they support, and ask to rebuild (decision 0048) a directory whose levels halve in size without
+the marker (a pyramid of moraine before 0.10.0, or one whose `ras-pyramid` / `pc-pyramid` did not finish), a marker
+without `method` or `stats` and a point cloud pyramid without `rtree.zarr` (both made before 0.10.0).
 
-`method` (optional, absent in pyramids made before it existed) says how each level is made from the finer
-one: `"decimate"` (the default of rasters: every 2nd pixel) or `"mean"` (the mean of the 2 x 2 blocks over the
-finite pixels) for rasters, `"first"` (the default: the first cell with a point of each 2 x 2 block) or `"mean"`
-(the mean of the cells with points) for point clouds. A pyramid without `method` is `decimate` / `first`.
+`method` says how each level is made from the finer one: `"decimate"` (the default of rasters: every 2nd pixel) or
+`"mean"` (the mean of the 2 x 2 blocks over the finite pixels) for rasters, `"first"` (the default: the first cell
+with a point of each 2 x 2 block) or `"mean"` (the mean of the cells with points) for point clouds.
 
-`stats` (optional, written since the statistics are computed when the pyramid is built) are the statistics
-of all the data (the points of a point cloud pyramid): `nan_fraction`, `min`, `max`, `mean`, `std` (exact),
-`p01`, `p50`, `p99` (of a regular sample of at most 2**23 finite values) and `warnings`; for complex data
-the value fields describe the amplitude and are named `amplitude_min`, ...; for boolean data only
-`true_fraction`. The optional `stats.zarr`, shape `(*channels, 8)` float64 with the attribute `columns`
-(nan_fraction, min, max, mean, std, p01, p50, p99), has the same statistics of every channel (image, pair)
-of a stack, nan where a channel has no finite value.
+`stats` are the statistics of all the data (the points of a point cloud pyramid), computed when the pyramid is
+built: `nan_fraction`, `min`, `max`, `mean`, `std` (exact), `p01`, `p50`, `p99` (of a regular sample of at most
+2**23 finite values) and `warnings`; for complex data the value fields describe the amplitude and are named
+`amplitude_min`, ...; for boolean data only `true_fraction`. `stats.zarr`, shape `(*channels, 8)` float64 with the
+attribute `columns` (nan_fraction, min, max, mean, std, p01, p50, p99), has the same statistics of every channel
+(image, pair) of a stack, nan where a channel has no finite value.
 
 ## Raster pyramid (`ras-pyramid`)
 
@@ -51,8 +50,7 @@ of a stack, nan where a channel has no finite value.
 ├── 0.zarr ...    the points rasterized on a grid of `ras_resolution`, level l with cell size ras_resolution * 2**l
 ├── idx_0.zarr ...   per level, the index of the point shown in each cell, -1 for empty cells
 ├── rtree.zarr    bounding box tree of the points (`HilbertRtree`): (n_nodes, 4) float64, [x0, y0, xm, ym] of
-│                 each node, `page_size` (points per leaf) and `n_points` in its attributes; optional, readers
-│                 build it from x.zarr / y.zarr when a pyramid has none
+│                 each node, `page_size` (points per leaf) and `n_points` in its attributes
 └── stats.zarr    per channel statistics of the points (see the marker above)
 ```
 
@@ -60,8 +58,7 @@ of a stack, nan where a channel has no finite value.
 - Cell (i, j) of level 0 is centred at (x0 + j * ras_resolution, y0 + i * ras_resolution) of `bounds`; every
   point is in the cell of its nearest centre and the grid reaches the cells of the largest coordinates, so
   `bounds` = [min x, min y, x0 + (width - 1) * ras_resolution, y0 + (nlines - 1) * ras_resolution] and points
-  in different cells never share one. Pyramids made before this was fixed may have the points of the last
-  line or column merged into the previous one.
+  in different cells never share one.
 - Cells without points are nan in `l.zarr` and -1 in `idx_l.zarr`; the cells have the dtype of the points for
   floating point and complex data and are float32 for integer and boolean data.
 - `idx_l` keeps the first non empty cell of each 2 x 2 block for the next level. With `method` first, `l.zarr`

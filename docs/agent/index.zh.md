@@ -47,8 +47,8 @@ $ moraine run examples/01_load.toml --workdir manual_demo/campi \
 $ moraine info raw/rslc.zarr raw/rslc_pyramid
   raw/rslc.zarr: complex64 (981, 4160, 92) chunks (1000, 1000, 1)
   raw/rslc_pyramid: complex64 (981, 4160, 92) raster pyramid, 10 levels
-    stats_level=3, nan_fraction=0.404627, amplitude_min=0.000157993, amplitude_max=25.4198,
-    amplitude_mean=0.363668, amplitude_std=0.345799, amplitude_p01=0.0229478, amplitude_p50=0.288358, amplitude_p99=1.56296
+    method=decimate, stats_level=0, nan_fraction=0.406469, amplitude_min=1.02638e-05, amplitude_max=44.9585,
+    amplitude_mean=0.362736, amplitude_std=0.338638, amplitude_p01=0.0229022, amplitude_p50=0.28838, amplitude_p99=1.53751
 $ moraine quicklook raw/rslc_pyramid --show intf_seq --index 0 -o 01_intf_seq_0.png
 ```
 

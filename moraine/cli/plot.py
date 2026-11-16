@@ -483,10 +483,12 @@ def pc_pyramid(
 def pyramid_levels(path)->list:
     """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one.
 
-    Pyramids carry ``moraine_pyramid = {version, kind}`` in the attributes of ``0.zarr``
-    (docs/contracts/pyramid.md). Older pyramids without it are recognized by their levels halving in size,
-    which also tells them apart from directories of per-chunk arrays (``0.zarr``, ``1.zarr``, ... made by
-    `ras2pc_ras_chunk`).
+    A pyramid carries ``moraine_pyramid = {version, kind, method, stats}`` in the attributes of ``0.zarr``, written
+    when it is complete (docs/contracts/pyramid.md). ValueError for a pyramid of a newer moraine and for one to
+    rebuild: levels halving in size without the marker (made before moraine 0.10.0, or its command did not finish),
+    a marker without ``method`` or ``stats``, a point cloud pyramid without ``rtree.zarr`` (made before 0.10.0).
+    Directories of other arrays named ``0.zarr``, ``1.zarr``, ... (the per-chunk arrays of `ras2pc_ras_chunk`) are
+    not pyramids.
     """
     p = Path(path)
     if not p.is_dir() or not (p / '0.zarr').exists():
@@ -495,23 +497,33 @@ def pyramid_levels(path)->list:
         z0 = zarr.open(str(p / '0.zarr'), mode='r')
     except Exception:
         return []
-    levels = sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
-    meta = z0.attrs.get('moraine_pyramid') if hasattr(z0, 'attrs') else None
-    if meta:
-        if meta.get('version', 0) > PYRAMID_VERSION:
-            raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
-                             f'supports ({PYRAMID_VERSION}); update moraine')
-        return levels
-    if not (p / '1.zarr').exists():
-        return []
+    meta = z0.attrs.get('moraine_pyramid')
+    command = 'pc-pyramid' if (p / 'bounds.toml').exists() else 'ras-pyramid'
+    if not meta:
+        if not _levels_halve(p, z0):
+            return []
+        old = (f'a pyramid without its marker (the attribute moraine_pyramid of 0.zarr), made by moraine before '
+               f'0.10.0 or by a {command} that did not finish')
+    elif meta.get('version', 0) > PYRAMID_VERSION:
+        raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
+                         f'supports ({PYRAMID_VERSION}); update moraine')
+    elif 'method' not in meta or 'stats' not in meta:
+        old = 'a pyramid of moraine before 0.10.0, without the statistics of its data'
+    elif command == 'pc-pyramid' and not (p / 'rtree.zarr').exists():
+        old = 'a point cloud pyramid of moraine before 0.10.0, without rtree.zarr'
+    else:
+        return sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
+    raise ValueError(f'{path}: {old}; rebuild it with `moraine {command}`')
+
+
+def _levels_halve(p, z0):
+    """True if 1.zarr of the directory `p` is half the size of 0.zarr (`z0`), as the levels of a pyramid."""
     try:
         z1 = zarr.open(str(p / '1.zarr'), mode='r')
     except Exception:
-        return []
-    if z0.ndim < 2 or z1.ndim != z0.ndim or \
-       tuple(z1.shape[:2]) != tuple(-(-n // 2) for n in z0.shape[:2]):
-        return []
-    return levels
+        return False
+    return isinstance(z0, zarr.Array) and isinstance(z1, zarr.Array) and z0.ndim >= 2 and z1.ndim == z0.ndim and \
+        tuple(z1.shape[:2]) == tuple(-(-n // 2) for n in z0.shape[:2])
 
 
 def _round(x):
@@ -524,24 +536,6 @@ def _round(x):
 def _stats(a):
     """Statistics and warnings of the values of an array, as `_pool_stats` of the array as one part."""
     return _pool_stats([_part_stats(a, 1)], a.dtype)
-
-
-def _pyramid_stats(p, levels, max_bytes):
-    """Statistics of a pyramid: those of all its data, computed when it was built (`stats_level` 0); for a pyramid
-    made without them, from the finest level read within `max_bytes`, a regular decimation of the scene."""
-    meta = zarr.open(str(p / '0.zarr'), mode='r').attrs.get('moraine_pyramid') or {}
-    if meta.get('stats'):
-        return {'stats_level': 0, **meta['stats']}
-    level = levels[-1]
-    for lv in levels:
-        if zarr.open(str(p / f'{lv}.zarr'), mode='r').nbytes <= max_bytes:
-            level = lv
-            break
-    a = np.asarray(zarr.open(str(p / f'{level}.zarr'), mode='r')[...])
-    idx_path = p / f'idx_{level}.zarr'
-    if idx_path.exists():   # point cloud pyramid: skip the cells without points (idx == -1)
-        a = a[np.asarray(zarr.open(str(idx_path), mode='r')[...]) != -1]
-    return {'stats_level': level, **_stats(a.ravel())}
 
 
 def _channel_warnings(p, limit=20):
