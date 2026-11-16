@@ -1,17 +1,21 @@
-# Deformation products of the refined points (decision 0040; tutorial: nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb).
+# Deformation products of the refined points (decision 0048; tutorial: nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb).
 # Needs 04_refine.toml and 05_unwrap.toml. The unwrapped phase of every image relative to a reference area, then
-# the line of sight displacement in millimeters, positive towards the satellite.
+# the line of sight displacement in millimeters, positive towards the satellite, and the DEM error of every point.
 #
 #   moraine run examples/06_products.toml --workdir WORK
 #
 # Outputs in WORK/disp/: pc_ref_mask (reference points), pc_ts_ref (phase relative to them, radians), ref_value
-# (the reference value of every image), pc_disp (displacement, mm, shape (n_points, nimages)).
+# (the reference value of every image), pc_disp (displacement, mm, shape (n_points, nimages)), pc_sc_dem_error
+# (spatially correlated DEM error, m, shape (n_points,)), pc_dem_error (the whole DEM error: that relative to the
+# neighbourhood of 04_refine.toml plus the spatially correlated one, m), pc_disp_demcor (displacement without the
+# DEM error, mm).
 
 [vars]
 # reference area: a stable, coherent area in one region of the closure correction (`unw/pc_region.zarr`),
 # here a box of longitude / latitude; a polygon drawn on a map works too (`polygon-mask`, see the guide)
 ref_area = "(lon > 14.225) & (lat > 40.82) & (lat < 40.89)"
 wavelength = { file = "raw/meta.toml", key = "radar_wavelength" }   # m, from the metadata of 01_load.toml
+dates = { file = "raw/meta.toml", key = "dates" }                   # YYYYMMDD of every image, from the metadata
 
 [[step]]
 name = "ref_mask"
@@ -38,10 +42,60 @@ out = "disp/pc_disp.zarr"
 wavelength = "${wavelength}"
 
 [[step]]
+name = "sc_dem_error"             # spatially correlated DEM error, from the differences of neighbouring dates
+run = "pc-sc-dem-error"
+disp = "disp/pc_disp.zarr"
+bperp = "pc/pc_bperp.zarr"
+slant_range = "pc/pc_range.zarr"
+theta = "pc/pc_theta.zarr"
+dates = "${dates}"
+dh = "disp/pc_sc_dem_error.zarr"
+out = "disp/pc_disp_demcor.zarr"
+
+[[step]]
+name = "dem_error"                # the whole DEM error: relative to the neighbourhood (04) plus spatially correlated
+run = "math"
+output = "disp/pc_dem_error.zarr"
+operation = "su + sc"
+[step.kw]
+su = "pc/pc_su_dem_error.zarr"
+sc = "disp/pc_sc_dem_error.zarr"
+
+[[step]]
 name = "disp_pyramid"
 run = "pc-pyramid"
 pc = "disp/pc_disp.zarr"
 out_dir = "disp/pc_disp_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "sc_dem_error_pyramid"
+run = "pc-pyramid"
+pc = "disp/pc_sc_dem_error.zarr"
+out_dir = "disp/pc_sc_dem_error_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "dem_error_pyramid"
+run = "pc-pyramid"
+pc = "disp/pc_dem_error.zarr"
+out_dir = "disp/pc_dem_error_pyramid"
+method = "mean"
+x = "pc/pc_e.zarr"
+y = "pc/pc_n.zarr"
+ras_resolution = 20
+
+[[step]]
+name = "disp_demcor_pyramid"
+run = "pc-pyramid"
+pc = "disp/pc_disp_demcor.zarr"
+out_dir = "disp/pc_disp_demcor_pyramid"
 method = "mean"
 x = "pc/pc_e.zarr"
 y = "pc/pc_n.zarr"

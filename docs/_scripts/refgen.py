@@ -109,7 +109,9 @@ def _usage(cmd) -> str:
         if p.kind == 'bool':
             tok = f'--{p.name} | --no-{p.name}'
         elif p.kind == 'list':
-            tok = f'--{p.name} PATH [PATH ...]'
+            # as the command line parser: paths of arrays (the help names them or says input / output) or strings
+            meta = 'PATH' if re.search(r'\bpaths?\b|^(input|output)\b', p.help or '', re.I) else 'STR'
+            tok = f'--{p.name} {meta} [{meta} ...]'
         elif p.kind == 'tuple':
             tok = f'--{p.name} ' + ' '.join(['INT'] * (p.n or 2))
         elif p.kind == 'pairs':

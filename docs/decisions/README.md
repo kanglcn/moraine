@@ -47,7 +47,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0037](0037-manual-website-generated.md) | The manual is a website generated from the docstrings, the command registry and docs/ | Accepted |
 | [0038](0038-sample-data-campi-flegrei.md) | The sample data set of the examples, guides and manual is Campi Flegrei | Accepted |
 | [0039](0039-zarr-one-file-per-chunk-no-sharding.md) | Zarr arrays are written one file per chunk, without sharding | Accepted |
-| [0040](0040-deformation-products.md) | Deformation products: displacement time series, DEM error and velocity | Accepted |
+| [0040](0040-deformation-products.md) | Deformation products: displacement time series, DEM error and velocity | Superseded by 0048 |
 | [0041](0041-api-grouped-by-stage.md) | The API is grouped by processing stage | Accepted |
 | [0042](0042-formulas-in-the-manual-mathjax.md) | Formulas in the manual are LaTeX, typeset by MathJax | Accepted |
 | [0043](0043-no-threaded-library-in-numba-parallel-kernels.md) | Numba parallel kernels call no threaded library (BLAS, LAPACK) | Accepted |
@@ -55,6 +55,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0045](0045-own-elementwise-expressions-no-numexpr.md) | Elementwise expressions are evaluated by moraine; numexpr and pandas are not dependencies | Accepted |
 | [0046](0046-pyramid-processes-from-a-forkserver.md) | The pyramids render in processes started by a forkserver | Accepted |
 | [0047](0047-image-pairs-sorted-reference-first.md) | Image pairs are sorted without duplicates, the reference index smaller than the secondary | Accepted |
+| [0048](0048-dem-error-in-two-parts.md) | Deformation products, with the DEM error in two parts | Accepted |
 
 ## Writing a record
 

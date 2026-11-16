@@ -30,3 +30,22 @@ print(disp.round(2))
 
 The referenced phases in millimeters along the line of sight: the moving points come towards the satellite by
 1.77 mm per image (0.4 rad); a whole cycle of unwrapping error is half a wavelength, 27.7 mm.
+
+```python exec="true" source="above" result="text" session="ts"
+rng = np.random.default_rng(0)
+dates = ['20190102', '20190114', '20190126', '20190207', '20190219', '20190303', '20190315', '20190327']
+bperp = rng.normal(0, 80, (3, 8)).astype(np.float32)            # perpendicular baselines, m
+slant_range = np.full(3, 850e3, dtype=np.float32)                 # m
+theta = np.full(3, 0.96, dtype=np.float32)                        # elevation of the look vector, rad
+c = 1000 * bperp / (slant_range * np.cos(theta))[:, None]         # mm per m of DEM error
+days = 12 * np.arange(8)
+dh_true = np.array([0.0, 10.0, -5.0])                             # m above the DEM
+disp = (0.1 * days + (c - c[:, :1]) * dh_true[:, None]).astype(np.float32)
+dh, out = mr.pc_sc_dem_error(disp, bperp, slant_range, theta, dates)
+print(dh.round(2))
+print(out.round(2))
+```
+
+Points on the DEM, 10 m above and 5 m below it, moving towards the satellite by 0.1 mm per day: the DEM error comes
+back from the differences between neighbouring dates, and the displacement without it is the motion alone, 1.2 mm
+per 12 days.

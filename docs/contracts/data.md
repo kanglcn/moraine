@@ -56,8 +56,12 @@ Decision 0019.
 - Unwrapped phase: float32 radians, `(n_points, n_pairs)`.
 - Unwrapped phase of the images (phase time series): float32 radians, `(n_points, nimages)`, relative to a
   reference image whose column is 0; interferogram (a, b) is `ts[:, a] - ts[:, b]` (decision 0022).
-- Displacements (decision 0040): line of sight, float32 millimeters, positive towards the satellite (a shorter
+- Displacements (decision 0048): line of sight, float32 millimeters, positive towards the satellite (a shorter
   range), same shape as the phase they come from; velocities in millimeters per year.
+- DEM errors (decision 0048): float32 meters, `(n_points,)`, the height of the scatterer minus the height used in
+  the processing (positive above it): relative to the neighbourhood in the filtered interferograms
+  (`pc-su-dem-error`, before the unwrapping), spatially correlated relative to the reference area of the
+  displacements (`pc-sc-dem-error`), and their sum, the whole DEM error.
 
 ## Polygons
 

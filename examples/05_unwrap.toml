@@ -1,6 +1,8 @@
 # Phase unwrapping of the refined points (tutorial: nbs/Tutorials/CLI/{Xinpu,CampiFlegrei}/05_unwrap.ipynb).
 # Needs 04_refine.toml. Extended minimum cost flow (EMCF) on a network of image pairs that closes loops, then
-# the correction of unwrapping errors by phase closure, which gives the unwrapped phase of every image.
+# the correction of unwrapping errors by phase closure, which gives the unwrapped phase of every image. The
+# phase unwrapped is that of the refined points without their DEM error relative to the neighbourhood
+# (pc_ph_demcor of 04_refine.toml).
 #
 #   moraine run examples/05_unwrap.toml --workdir WORK
 #
@@ -24,7 +26,7 @@ shape = "${shape}"
 [[step]]
 name = "pairs"                    # every image with the next three: the network closes loops
 run = "image-pairs"
-rslc = "pc/pc_ph.zarr"
+rslc = "pc/pc_ph_demcor.zarr"
 bandwidth = 3
 out = "unw/pairs_hop3.txt"
 
@@ -32,7 +34,7 @@ out = "unw/pairs_hop3.txt"
 name = "unwrap"
 run = "emcf-pc"
 gix = "unw/pc_gix.zarr"
-ph = "pc/pc_ph.zarr"
+ph = "pc/pc_ph_demcor.zarr"
 image_pairs = "unw/pairs_hop3.txt"
 unw_ph = "unw/pc_unw.zarr"
 range_pixel_spacing = "${range_pixel_spacing}"
@@ -42,7 +44,7 @@ azimuth_pixel_spacing = "${azimuth_pixel_spacing}"
 name = "closure"                  # whole cycle corrections where loops do not close; phase of every image
 run = "unwrap-correct-closure-pc"
 gix = "unw/pc_gix.zarr"
-ph = "pc/pc_ph.zarr"
+ph = "pc/pc_ph_demcor.zarr"
 unw_ph = "unw/pc_unw.zarr"
 image_pairs = "unw/pairs_hop3.txt"
 ts = "unw/pc_ts.zarr"

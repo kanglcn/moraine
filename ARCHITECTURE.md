@@ -78,14 +78,14 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/dl/pc.py` | n2ft filtering of point cloud interferograms | `n2ft` |
 | `moraine/api/dl/unet_torch_.py` | UNet of n2f / n2fs3d (must match the published weights) | `UNet` |
 | `moraine/api/dl/n2ft_torch_.py` | point transformer of n2ft (must match the published weights) | `N2FT` |
-| `moraine/api/pqm.py` | pixel quality: temporal coherence | `temp_coh` |
+| `moraine/api/pqm.py` | pixel quality: temporal coherence, also with the DEM error relative to the neighbourhood fitted (decision 0048) | `temp_coh`, `pc_su_dem_error` |
 | `moraine/api/unwrap/__init__.py` | phase unwrapping; re-exports `mcf_pc`, `emcf_pc`, `unwrap_correct_closure_pc`, `gamma_mcf_pt` | |
 | `moraine/api/unwrap/delaunay_.py` | 2D Delaunay triangulation (sweep-hull, numba, exact for integer coordinates) as half-edges | `delaunay_halfedges`, `delaunay` |
 | `moraine/api/unwrap/mcf.py` | minimum cost flow (successive shortest paths) on the Delaunay half-edges, unwrapping of one interferogram | `mcf_pc` |
 | `moraine/api/unwrap/emcf.py` | extended minimum cost flow (EMCF) of any network of interferograms | `emcf_pc` |
 | `moraine/api/unwrap/closure.py` | correction of unwrapping errors by phase closure per region (MintPy-like) to the unwrapped image phases; L1 fit on a network of image pairs | `unwrap_correct_closure_pc` |
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
-| `moraine/api/ts.py` | deformation products of point clouds (decision 0040): spatial reference, displacement | `pc_reference`, `pc_disp` |
+| `moraine/api/ts.py` | deformation products of point clouds (decision 0048): spatial reference, displacement, DEM error | `pc_reference`, `pc_disp`, `pc_sc_dem_error` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
 ## CLI layer (moraine/cli/)
@@ -107,9 +107,9 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/shp.py` | SHP test and selection | `shp-test`, `select-shp` |
 | `moraine/cli/co.py` | coherence of point clouds per raster chunk | `emperical-co-pc` |
 | `moraine/cli/pl.py` | phase linking, DS temporal coherence, fused coherence + phase linking | `emi`, `ds-temp-coh`, `emperical-co-emi-temp-coh-pc` |
-| `moraine/cli/pqm.py` | temporal coherence | `temp-coh` |
+| `moraine/cli/pqm.py` | temporal coherence, also with the DEM error relative to the neighbourhood fitted | `temp-coh`, `pc-su-dem-error` |
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
-| `moraine/cli/ts.py` | deformation products of point clouds (decision 0040) | `pc-reference`, `pc-disp` |
+| `moraine/cli/ts.py` | deformation products of point clouds (decision 0048) | `pc-reference`, `pc-disp`, `pc-sc-dem-error` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |
 | `moraine/cli/plot.py` | pyramids of rasters / point clouds, pyramid reading and the rules to show them | `ras-pyramid`, `pc-pyramid` |
 | `moraine/cli/tiles.py` | views (`view`): rasters and point clouds from pyramids or arrays, tiles and PNG images, value / point / time series at a position, `*` overlay and `+` layout, text description | (notebook, no command) |
