@@ -105,8 +105,10 @@ def test_summarize_is_metadata_only(tmp_path, rng):
     write_zarr(tmp_path / 'f.zarr', rng.random((300, 200)).astype(np.float32), (100, 100))
     assert summarize(str(tmp_path / 'f.zarr')) == {'path': str(tmp_path / 'f.zarr'), 'kind': 'array',
                                                    'shape': [300, 200], 'dtype': 'float32', 'chunks': [100, 100]}
+    # levels halving in size without the marker: a pyramid of moraine before 0.10.0 (or one that did not finish)
     write_zarr(tmp_path / 'd' / '0.zarr', np.ones((6, 8), np.float32)); write_zarr(tmp_path / 'd' / '1.zarr', np.ones((3, 4), np.float32))
-    assert summarize(str(tmp_path / 'd'))['kind'] == 'raster pyramid'   # levels halving in size
+    with pytest.raises(ValueError, match='before 0.10.0.*rebuild it with `moraine ras-pyramid`'):
+        summarize(str(tmp_path / 'd'))
     with pytest.raises(FileNotFoundError):
         summarize(str(tmp_path / 'missing.zarr'))
 
@@ -291,12 +293,8 @@ def test_pyramids(tmp_path, rng):
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'ras_pyramid'))
     assert pyramid_levels(tmp_path / 'ras_pyramid')[:2] == [0, 1] and pyramid_levels(tmp_path / 'ras.zarr') == []
     s = summarize(str(tmp_path / 'ras_pyramid'))
-    assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1
+    assert s['kind'] == 'raster pyramid' and s['shape'] == [300, 200, 3] and s['levels'] > 1 and s['method'] == 'decimate'
     assert s['stats_level'] == 0 and abs(s['amplitude_mean'] - np.abs(ras).mean()) < 1e-3 and 'warnings' not in s
-    assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000) == s         # the statistics of the pyramid
-    z0 = zarr.open(str(tmp_path / 'ras_pyramid' / '0.zarr'), mode='r+')               # a pyramid made without them
-    z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != 'stats'}
-    assert summarize(str(tmp_path / 'ras_pyramid'), max_bytes=100_000)['stats_level'] > 0     # coarser level
     # the images of a stack that are all nan or constant are named
     bad = ras.copy(); bad[..., 1] = np.nan; bad[..., 2] = 1 + 0j
     write_zarr(tmp_path / 'bad.zarr', bad, (100, 100, 1))

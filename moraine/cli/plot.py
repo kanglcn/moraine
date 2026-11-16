@@ -73,7 +73,7 @@ def _ras_pyramid_channel(channel_idx):
             f = 2 ** level
             parallel_write_zarr(cur.astype(zarrs[level].dtype, copy=False), zarrs[level],
                                 (slice(r0 // f, r0 // f + cur.shape[0]), slice(None), *channel))
-        tops.append(cur); counts.append(cnt)
+        tops.append(cur.copy()); counts.append(cnt)     # a copy: a decimated level is a view of the whole band
     if band_levels < len(zarrs) - 1:
         cur = np.concatenate(tops, axis=0)
         cnt = np.concatenate(counts, axis=0) if mean else None
@@ -113,11 +113,35 @@ def _block_mean(values, count):
 def _merge_parts(parts):
     """One `_part_stats` of the parts (bands) of a channel."""
     finite = [p for p in parts if p['n'] - p['nan'] - p['inf']]
+    _, mean, m2 = _moments(parts)
     return {'n': sum(p['n'] for p in parts), 'nan': sum(p['nan'] for p in parts), 'inf': sum(p['inf'] for p in parts),
-            'sum': sum(p['sum'] for p in parts), 'sum2': sum(p['sum2'] for p in parts),
+            'mean': mean, 'm2': m2,
             'min': min(p['min'] for p in finite) if finite else np.nan,
             'max': max(p['max'] for p in finite) if finite else np.nan,
             'sample': np.concatenate([p['sample'] for p in parts]) if parts else np.empty(0)}
+
+
+def _moments(parts):
+    """(number, mean, sum of the squared deviations from the mean) of the finite values of all `parts`."""
+    # the parts are combined two at a time by their numbers, means and sums of squared deviations (Chan, Golub and
+    # LeVeque 1983); sums of the values and of their squares lose the digits of the variance where the mean is
+    # large against the standard deviation (1e4 +- 0.01, the amplitude of phases of modulus 1)
+    m = [(p['n'] - p['nan'] - p['inf'], p['mean'], p['m2']) for p in parts]
+    while len(m) > 1:
+        m = [_combine(*m[i:i + 2]) for i in range(0, len(m), 2)]
+    return m[0] if m else (0, 0.0, 0.0)
+
+
+def _combine(a, b=None):
+    """(number, mean, sum of the squared deviations) of the values of two parts given as such triples."""
+    if b is None or not b[0]:
+        return a
+    if not a[0]:
+        return b
+    n = a[0] + b[0]
+    d = b[1] - a[1]
+    return n, a[1] + d * b[0] / n, a[2] + b[2] + d * d * a[0] * b[0] / n
+
 
 def _sample_step(n_values):
     """Every `step`-th finite value of the data goes into the sample for the percentiles of the statistics."""
@@ -125,8 +149,9 @@ def _sample_step(n_values):
 
 
 def _part_stats(a, step):
-    """Exact sums and a regular sample of a part of the data (a channel or a band), pooled by `_pool_stats`: of
-    the amplitude for complex data, of 0 / 1 for booleans."""
+    """Numbers of values, nan and infinite values of a part of the data (a channel or a band), and the mean, the
+    sum of the squared deviations from it (``m2``), the minimum, maximum and a regular sample of its finite values,
+    pooled by `_pool_stats`: of the amplitude for complex data, of 0 / 1 for booleans."""
     a = np.asarray(a).ravel()
     if a.dtype == bool:
         v, nan = a.astype(np.float64), np.zeros(a.shape, bool)
@@ -138,9 +163,12 @@ def _part_stats(a, step):
         nan = np.isnan(v)
     inf = np.isinf(v)
     finite = v[~(nan | inf)]
-    return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'sum': float(finite.sum()),
-            'sum2': float(np.square(finite).sum()), 'min': float(finite.min()) if finite.size else np.nan,
-            'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step]}
+    mean = float(finite.mean()) if finite.size else 0.0
+    dev = finite - mean
+    # a copy: a view of `finite` would keep all the values of the part, until a channel's bands are merged
+    return {'n': int(a.size), 'nan': int(nan.sum()), 'inf': int(inf.sum()), 'mean': mean,
+            'm2': float(np.square(dev, out=dev).sum()), 'min': float(finite.min()) if finite.size else np.nan,
+            'max': float(finite.max()) if finite.size else np.nan, 'sample': finite[::step].copy()}
 
 
 def _pool_stats(parts, dtype):
@@ -153,8 +181,8 @@ def _pool_stats(parts, dtype):
     n_finite = n - nan - inf
     out, warnings = {}, []
     if n_finite:
-        mean = sum(p['sum'] for p in parts) / n_finite
-        std = math.sqrt(max(sum(p['sum2'] for p in parts) / n_finite - mean ** 2, 0.0))
+        _, mean, m2 = _moments(parts)
+        std = math.sqrt(m2 / n_finite)
         lo = min(p['min'] for p in parts if p['n'] - p['nan'] - p['inf'])
         hi = max(p['max'] for p in parts if p['n'] - p['nan'] - p['inf'])
         pct = np.percentile(np.concatenate([p['sample'] for p in parts]), [1, 50, 99])
@@ -185,20 +213,20 @@ def _channel_row(p):
     n_finite = p['n'] - p['nan'] - p['inf']
     if not n_finite:
         return [p['nan'] / p['n'] if p['n'] else np.nan] + [np.nan] * (len(_STATS_COLUMNS) - 1)
-    mean = p['sum'] / n_finite
     pct = np.percentile(p['sample'], [1, 50, 99]) if p['sample'].size else [np.nan] * 3
-    return [p['nan'] / p['n'], p['min'], p['max'], mean, math.sqrt(max(p['sum2'] / n_finite - mean ** 2, 0.0)), *pct]
+    return [p['nan'] / p['n'], p['min'], p['max'], p['mean'], math.sqrt(p['m2'] / n_finite), *pct]
 
 
 def _write_stats(out_dir, z0, kind, method, parts, channel_shape, dtype):
-    """Write the marker of the pyramid (`kind`, `method`, the statistics of all its data) into `z0` (level 0) and
-    the per channel table stats.zarr; `parts` are the `_part_stats` of the channels in the order of `np.ndindex`."""
-    z0.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': kind, 'method': method,
-                                   'stats': _pool_stats(parts, dtype)}
+    """Write the per channel table stats.zarr and the marker of the pyramid (`kind`, `method`, the statistics of all
+    its data) into `z0` (level 0); `parts` are the `_part_stats` of the channels in the order of `np.ndindex`."""
     table = np.array([_channel_row(p) for p in parts], dtype=np.float64).reshape(*channel_shape, len(_STATS_COLUMNS))
     t = zarr.open(str(Path(out_dir) / 'stats.zarr'), mode='w', shape=table.shape, dtype=np.float64, chunks=table.shape)
     t[...] = table
     t.attrs['columns'] = list(_STATS_COLUMNS)
+    # the marker after everything else: a pyramid is complete when it has one
+    z0.attrs['moraine_pyramid'] = {'version': PYRAMID_VERSION, 'kind': kind, 'method': method,
+                                   'stats': _pool_stats(parts, dtype)}
 
 
 @mc_logger
@@ -482,10 +510,12 @@ def pc_pyramid(
 def pyramid_levels(path)->list:
     """Zoom levels [0, 1, ...] of a pyramid made by `ras_pyramid` / `pc_pyramid`, [] if `path` is not one.
 
-    Pyramids carry ``moraine_pyramid = {version, kind}`` in the attributes of ``0.zarr``
-    (docs/contracts/pyramid.md). Older pyramids without it are recognized by their levels halving in size,
-    which also tells them apart from directories of per-chunk arrays (``0.zarr``, ``1.zarr``, ... made by
-    `ras2pc_ras_chunk`).
+    A pyramid carries ``moraine_pyramid = {version, kind, method, stats}`` in the attributes of ``0.zarr``, written
+    when it is complete (docs/contracts/pyramid.md). ValueError for a pyramid of a newer moraine and for one to
+    rebuild: levels halving in size without the marker (made before moraine 0.10.0, or its command did not finish),
+    a marker without ``method`` or ``stats``, a point cloud pyramid without ``rtree.zarr`` (made before 0.10.0).
+    Directories of other arrays named ``0.zarr``, ``1.zarr``, ... (the per-chunk arrays of `ras2pc_ras_chunk`) are
+    not pyramids.
     """
     p = Path(path)
     if not p.is_dir() or not (p / '0.zarr').exists():
@@ -494,23 +524,33 @@ def pyramid_levels(path)->list:
         z0 = zarr.open(str(p / '0.zarr'), mode='r')
     except Exception:
         return []
-    levels = sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
-    meta = z0.attrs.get('moraine_pyramid') if hasattr(z0, 'attrs') else None
-    if meta:
-        if meta.get('version', 0) > PYRAMID_VERSION:
-            raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
-                             f'supports ({PYRAMID_VERSION}); update moraine')
-        return levels
-    if not (p / '1.zarr').exists():
-        return []
+    meta = z0.attrs.get('moraine_pyramid')
+    command = 'pc-pyramid' if (p / 'bounds.toml').exists() else 'ras-pyramid'
+    if not meta:
+        if not _levels_halve(p, z0):
+            return []
+        old = (f'a pyramid without its marker (the attribute moraine_pyramid of 0.zarr), made by moraine before '
+               f'0.10.0 or by a {command} that did not finish')
+    elif meta.get('version', 0) > PYRAMID_VERSION:
+        raise ValueError(f'{path}: pyramid layout version {meta["version"]} is newer than this moraine '
+                         f'supports ({PYRAMID_VERSION}); update moraine')
+    elif 'method' not in meta or 'stats' not in meta:
+        old = 'a pyramid of moraine before 0.10.0, without the statistics of its data'
+    elif command == 'pc-pyramid' and not (p / 'rtree.zarr').exists():
+        old = 'a point cloud pyramid of moraine before 0.10.0, without rtree.zarr'
+    else:
+        return sorted(int(q.stem) for q in p.glob('*.zarr') if q.stem.isdigit())
+    raise ValueError(f'{path}: {old}; rebuild it with `moraine {command}`')
+
+
+def _levels_halve(p, z0):
+    """True if 1.zarr of the directory `p` is half the size of 0.zarr (`z0`), as the levels of a pyramid."""
     try:
         z1 = zarr.open(str(p / '1.zarr'), mode='r')
     except Exception:
-        return []
-    if z0.ndim < 2 or z1.ndim != z0.ndim or \
-       tuple(z1.shape[:2]) != tuple(-(-n // 2) for n in z0.shape[:2]):
-        return []
-    return levels
+        return False
+    return isinstance(z0, zarr.Array) and isinstance(z1, zarr.Array) and z0.ndim >= 2 and z1.ndim == z0.ndim and \
+        tuple(z1.shape[:2]) == tuple(-(-n // 2) for n in z0.shape[:2])
 
 
 def _round(x):
@@ -523,24 +563,6 @@ def _round(x):
 def _stats(a):
     """Statistics and warnings of the values of an array, as `_pool_stats` of the array as one part."""
     return _pool_stats([_part_stats(a, 1)], a.dtype)
-
-
-def _pyramid_stats(p, levels, max_bytes):
-    """Statistics of a pyramid: those of all its data, computed when it was built (`stats_level` 0); for a pyramid
-    made without them, from the finest level read within `max_bytes`, a regular decimation of the scene."""
-    meta = zarr.open(str(p / '0.zarr'), mode='r').attrs.get('moraine_pyramid') or {}
-    if meta.get('stats'):
-        return {'stats_level': 0, **meta['stats']}
-    level = levels[-1]
-    for lv in levels:
-        if zarr.open(str(p / f'{lv}.zarr'), mode='r').nbytes <= max_bytes:
-            level = lv
-            break
-    a = np.asarray(zarr.open(str(p / f'{level}.zarr'), mode='r')[...])
-    idx_path = p / f'idx_{level}.zarr'
-    if idx_path.exists():   # point cloud pyramid: skip the cells without points (idx == -1)
-        a = a[np.asarray(zarr.open(str(idx_path), mode='r')[...]) != -1]
-    return {'stats_level': level, **_stats(a.ravel())}
 
 
 def _channel_warnings(p, limit=20):

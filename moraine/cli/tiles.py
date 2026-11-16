@@ -15,7 +15,7 @@ import numpy as np
 import zarr
 
 from ..api.pc.rtree import HilbertRtree
-from .plot import pyramid_levels, _pyramid_stats, _stats, _cyclic_cmap, _RTREE_PAGE
+from .plot import pyramid_levels, _stats, _cyclic_cmap, _RTREE_PAGE
 
 TILE = 256               # tile edge in screen pixels
 PROBE = 4                # the value under the cursor is of the nearest point within this many screen pixels
@@ -694,9 +694,10 @@ class RasterLayer(_Layer):
                 if level not in cache:
                     cache[level] = zarr.open(str(p / f'{level}.zarr'), mode='r')
                 return cache[level]
-            max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
+            meta = level_of(0).attrs['moraine_pyramid']      # with method and stats: checked by pyramid_levels
+            max_level, stats = levels[-1], lambda: meta['stats']
             self.label = label or p.name
-            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
+            self.method = meta['method']
         else:
             a = data
             self.method = None
@@ -807,10 +808,11 @@ class PointLayer(_Layer):
                 if ('idx', level) not in cache:
                     cache['idx', level] = zarr.open(str(p / f'idx_{level}.zarr'), mode='r')
                 return cache['idx', level]
-            max_level, stats = levels[-1], lambda: _pyramid_stats(p, levels, STATS_BYTES)
+            meta = level_of(0).attrs['moraine_pyramid']      # with method and stats: checked by pyramid_levels
+            max_level, stats = levels[-1], lambda: meta['stats']
             self._x, self._y, self._pc = (zarr.open(str(p / f'{n}.zarr'), mode='r') for n in ('x', 'y', 'pc'))
             self._rtree_dir = p
-            self.method = (level_of(0).attrs.get('moraine_pyramid') or {}).get('method')
+            self.method = meta['method']
             x0, y0, xm, ym = (float(v) for v in toml.load(p / 'bounds.toml')['bounds'])
             base = level_of(0)
             ny, nx = base.shape[:2]
@@ -847,11 +849,10 @@ class PointLayer(_Layer):
     def points_in(self, bounds):
         """Indices of the points within `bounds` (x0, y0, xm, ym) in data coordinates."""
         if self._rtree is None:     # on the first query: overviews do not read the coordinates
-            saved = None if self._rtree_dir is None else self._rtree_dir / 'rtree.zarr'
-            if saved is not None and saved.exists():
-                self._rtree = HilbertRtree.load(str(saved))
-            else:                   # points in memory, or a pyramid made without the tree
+            if self._rtree_dir is None:     # points in memory
                 self._rtree = HilbertRtree.build(self._x[:], self._y[:], page_size=_RTREE_PAGE)
+            else:                           # saved by pc_pyramid, checked by pyramid_levels
+                self._rtree = HilbertRtree.load(str(self._rtree_dir / 'rtree.zarr'))
         return self._rtree.bbox_query(bounds, self._x, self._y)
 
     def point_radius(self, s):

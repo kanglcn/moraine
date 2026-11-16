@@ -341,6 +341,28 @@ def test_point_cloud_pyramid_every_point_in_its_cell(tmp_path, res, x0, y0):
     assert (idx != -1).sum() == len(x)
 
 
+def test_pyramid_statistics_keep_their_digits(tmp_path, rng):
+    """The standard deviation keeps its digits where the mean is large against it, in the marker and in stats.zarr:
+    values of 1e5 +- 0.01 in bands and channels of a raster, the amplitude of complex points of modulus 1."""
+    ras = 1e5 + 0.01 * rng.standard_normal((64, 37, 3))
+    write_zarr(tmp_path / 'ras.zarr', ras, (16, 37, 1))
+    mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'), rows=16)
+    pyr = tmp_path / 'pyr'
+    assert zarr.open(str(pyr / '0.zarr'), mode='r').attrs['moraine_pyramid']['stats']['std'] == \
+        pytest.approx(ras.std(), rel=1e-5)
+    table = zarr.open(str(pyr / 'stats.zarr'), mode='r')
+    np.testing.assert_allclose(table[:, table.attrs['columns'].index('std')], ras.std(axis=(0, 1)), rtol=1e-9)
+    n = 2000
+    g = random_gix(rng, (60, 50), n)
+    write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+    ph = np.exp(1j * rng.uniform(-np.pi, np.pi, (n, 2))).astype(np.complex64)
+    write_zarr(tmp_path / 'ph.zarr', ph, (n, 1))
+    mc.pc_pyramid(str(tmp_path / 'ph.zarr'), str(tmp_path / 'pc_pyr'), x=str(tmp_path / 'x.zarr'),
+                  y=str(tmp_path / 'y.zarr'), ras_resolution=1)
+    stats = zarr.open(str(tmp_path / 'pc_pyr' / '0.zarr'), mode='r').attrs['moraine_pyramid']['stats']
+    assert stats['amplitude_std'] == pytest.approx(np.abs(ph).astype(np.float64).std(), rel=1e-5)
+
+
 def test_newer_pyramid_is_rejected(tmp_path, rng):
     write_zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
     mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
@@ -348,6 +370,51 @@ def test_newer_pyramid_is_rejected(tmp_path, rng):
         'version': PYRAMID_VERSION + 1, 'kind': 'raster'}
     with pytest.raises(ValueError):
         pyramid_levels(tmp_path / 'pyr')
+
+
+def test_marker_is_written_last(tmp_path, rng, monkeypatch):
+    """A pyramid is complete when it has the marker: one whose statistics table could not be written has none."""
+    import moraine.cli.plot as plot
+
+    def full_disk(part):
+        raise OSError('no space left on device')
+    write_zarr(tmp_path / 'ras.zarr', rng.random((16, 16)).astype(np.float32))
+    monkeypatch.setattr(plot, '_channel_row', full_disk)
+    with pytest.raises(OSError, match='no space left'):
+        mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(tmp_path / 'pyr'))
+    assert 'moraine_pyramid' not in zarr.open(str(tmp_path / 'pyr' / '0.zarr'), mode='r').attrs
+
+
+@pytest.mark.parametrize('case', ['unfinished', 'no method', 'no stats', 'no rtree'])
+def test_pyramid_to_rebuild_is_rejected(tmp_path, rng, monkeypatch, case):
+    """Every reader rejects a pyramid of moraine before 0.10.0 (without the marker, a marker without `method` or
+    `stats`, a point cloud pyramid without rtree.zarr) and one whose command did not finish, and asks to rebuild it."""
+    import shutil
+    import moraine.cli.plot as plot
+    from moraine.command.summary import quicklook, view as notebook
+    pyr = tmp_path / 'pyr'
+    if case == 'no rtree':
+        g = random_gix(rng, (20, 10), 50)
+        write_zarr(tmp_path / 'x.zarr', g[:, 1].astype(float)); write_zarr(tmp_path / 'y.zarr', g[:, 0].astype(float))
+        write_zarr(tmp_path / 'pc.zarr', rng.random(50).astype(np.float32))
+        mc.pc_pyramid(str(tmp_path / 'pc.zarr'), str(pyr), x=str(tmp_path / 'x.zarr'), y=str(tmp_path / 'y.zarr'),
+                      ras_resolution=1)
+        shutil.rmtree(pyr / 'rtree.zarr')
+    else:
+        write_zarr(tmp_path / 'ras.zarr', rng.random((30, 20)).astype(np.float32))
+        if case == 'unfinished':     # the levels are there, the marker is not
+            monkeypatch.setattr(plot, '_channel_row', lambda part: 1 / 0)
+            with pytest.raises(ZeroDivisionError):
+                mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(pyr))
+        else:
+            mc.ras_pyramid(str(tmp_path / 'ras.zarr'), str(pyr))
+            z0 = zarr.open(str(pyr / '0.zarr'), mode='r+')
+            z0.attrs['moraine_pyramid'] = {k: v for k, v in z0.attrs['moraine_pyramid'].items() if k != case[3:]}
+    command = 'pc-pyramid' if case == 'no rtree' else 'ras-pyramid'
+    for read in (pyramid_levels, summarize, lambda p: quicklook(p, str(tmp_path / 'q.png')),
+                 lambda p: notebook([p], str(tmp_path / 'v.ipynb')), mc.view):
+        with pytest.raises(ValueError, match=f'before 0.10.0.*rebuild it with `moraine {command}`'):
+            read(str(pyr))
 
 
 # ---------------------------------------------------------------- data conventions

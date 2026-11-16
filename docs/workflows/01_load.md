@@ -44,8 +44,8 @@ Sample data (Campi Flegrei, 981 x 4160 x 92, 2026-11-13): 148 s, 118 s of it `ph
 | result | sample value | sane range |
 |---|---|---|
 | `rslc.zarr` | complex64 (981, 4160, 92), chunks (1000, 1000, 1) | the number of dates in `rslc/` |
-| `rslc_pyramid` amplitude | p01 0.023, p50 0.29, p99 1.56 | p50 roughly 0.1-1 |
-| `rslc_pyramid` nan_fraction | 0.40 (the Gulf of Pozzuoli, zero in the coregistered SLCs) | small, unless water or the footprint is masked |
+| `rslc_pyramid` amplitude (2026-11-15) | p01 0.023, p50 0.29, p99 1.54 | p50 roughly 0.1-1 |
+| `rslc_pyramid` nan_fraction (2026-11-15) | 0.41 (the Gulf of Pozzuoli, zero in the coregistered SLCs) | small, unless water or the footprint is masked |
 | `meta.toml` dates | 92, 12 days apart | all dates of `rslc/`, in order |
 | `meta.toml` times (2026-11-15) | 05:12:13.78 to 05:12:31.89 UTC, on the days of `dates` | one per date, on its day (except an acquisition across 00:00 UTC); about the same time of day for one track (here within 22 s) |
 | `bperp.zarr` | -73 to 142 m; varies by 0.6 m (median) to 1.6 m over the scene in an image; at the scene centre within 6 mm of `perpendicular_baseline` of `meta.toml` | within the orbit tube of the satellite (Sentinel-1: a few hundred m); 0 for the reference date |
@@ -63,7 +63,7 @@ look phase with structure on land, nan on the gulf.*
 
 - `moraine info raw/rslc.zarr`: shape (nlines, width, number of dates in `rslc/`).
 - `moraine info raw/rslc_pyramid`: amplitude p50 around 0.1-1. A nan_fraction near 1 means the GAMMA files did
-  not match; on the sample data 0.40 is the sea.
+  not match; on the sample data 0.41 is the sea.
 - `moraine quicklook raw/rslc_pyramid --show intf_seq --index I -o intf.png`: sequential
   interferograms. Expect noisy phase with visible fringes / structure in coherent areas; pure uniform
   noise everywhere suggests a wrong reference date or unflattened data.
