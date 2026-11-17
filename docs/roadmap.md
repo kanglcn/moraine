@@ -88,17 +88,6 @@ GeoPackage (decision 0055) are done. Left: rasters to GeoTIFF (the results are o
 web mercator levels of a pyramid are regular grids), the turbulent atmosphere (step 8). Stage 4 (time series
 inversion) is replaced by those image phases (decision 0022).
 
-## New pages of the coherence batches on the CPU
-
-The fused DS step (`emperical-co-emi-temp-coh-pc`) allocates a new array for the coherence of every batch of points
-(1 GB by default), which the coherence kernel writes once. On 128 cores, writing these new pages (page faults) took
-about 8 of the 10 µs per point of the coherence on the CPU for 92 images and 7 x 27 windows, the computation itself
-about 1.8 µs (benchmark of `emperical_co_pc` on 51 200 points, AMD EPYC 7742, 2026-11-12); for the 1.12 M candidates
-of the Campi Flegrei example, whose CPU phase linking step takes 23 s, that is probably about half of the step. Idea:
-reuse one buffer for all batches of a task (the coherence kernel writes into a given array), or allocate it with numpy,
-which asks for huge pages (transparent huge pages are `madvise` on the development cluster, so the arrays of numba get
-4 KB pages). Measure on the Campi Flegrei example and on a 10 M point case, with the memory.
-
 ## Latitudes and longitudes of exactly 0
 
 `load-gamma-lat-lon-hgt` sets every latitude, longitude and height with an absolute value below 1e-30 to NaN, each
