@@ -13,16 +13,19 @@ latitude of the points); the default is the one of the sample data set (a box ea
 the height of the geoid above the WGS84 ellipsoid at the scene in meters, 0 if the heights of the DEM are above the
 geoid (see [The troposphere](#the-troposphere)); 46 m for the sample data. The radar wavelength in meters
 (`wavelength`, 0.0554658 m for Sentinel-1), the dates of the images (`dates`), their UTC times (`times`) and the
-longitude / latitude box of the DEM (`lonlat_bbox`) are read from `raw/meta.toml` of `01_load`.
+longitude / latitude box of the DEM (`lonlat_bbox`) are read from `raw/meta.toml` of `01_load`. `era5_dir` is the
+directory of the ERA5 files, `era5` in the working directory by default; working directories of the same scene can
+share one, so that ERA5 is downloaded once (see [The troposphere](#the-troposphere)).
 
 ## Steps
 
 1. `pc-disp`: line of sight displacement in millimeters from the unwrapped phase of every image (`unw/pc_ts.zarr`,
    relative to the first image), `1000 * wavelength / (4 pi)` per radian (4.41 mm for Sentinel-1), positive towards
    the satellite (a shorter range).
-2. `download-era5`: the ERA5 pressure levels of the whole hours around the time of every image into `WORK/era5/`,
-   one file per hour, from the NSF NCAR archive of ERA5 on AWS (no account) or, with `source = "cds"`, from the
-   Copernicus Climate Data Store; files already there are kept, so a rerun continues an interrupted download.
+2. `download-era5`: the ERA5 pressure levels of the whole hours around the time of every image into `WORK/era5/`
+   (`era5_dir`), one file per hour, from the NSF NCAR archive of ERA5 on AWS (no account) or, with
+   `source = "cds"`, from the Copernicus Climate Data Store; files already there are kept, so a rerun continues an
+   interrupted download.
 3. `pc-tropo-era5`: the displacement the troposphere causes at every point in every image relative to the first
    image, from ERA5 at the height of the point.
 4. `math`: the displacement without it, `disp - tropo`.
@@ -52,8 +55,8 @@ longitude / latitude box of the DEM (`lonlat_bbox`) are read from `raw/meta.toml
 9. `pc-pyramid` of the displacement, the troposphere, the two DEM errors, the displacement without the DEM error, the
    velocity, its standard deviation and the residual RMS of the points on the map.
 
-Outputs in `WORK/era5/`: `era5_YYYYMMDD_HH.nc`, the geopotential, temperature and specific humidity of ERA5 on its
-37 pressure levels over the scene for the hour (UTC), two hours per image. In `WORK/disp/`:
+Outputs in `WORK/era5/` (`era5_dir`): `era5_YYYYMMDD_HH.nc`, the geopotential, temperature and specific humidity of
+ERA5 on its 37 pressure levels over the scene for the hour (UTC), two hours per image. In `WORK/disp/`:
 
 - `pc_disp_unref.zarr` (n_points, nimages) float32: the line of sight displacement in millimeters relative to the
   first image, positive towards the satellite.
@@ -139,6 +142,17 @@ the sine of the elevation of the look vector. ERA5 does not resolve the turbulen
 Both need the package h5py, the Climate Data Store also cdsapi: `pip install 'moraine[era5]'`. On a node without the
 network, run the pipeline once where the network is, or copy the files into `WORK/era5/`: files that hold their hour
 over the area are kept, and nothing is downloaded then.
+
+The files of a scene are small (5.1 MB for the 184 hours of the sample data), while the NSF NCAR archive sends the
+whole earth for every hour. To process a scene again in another working directory, give it the directory of the
+files of the first one; the `era5` step then only checks them (less than a second on the sample data):
+
+```bash
+moraine run examples/06_products.toml --workdir WORK2 --var era5_dir=/path/to/WORK/era5
+```
+
+Keep one directory per area: a file that does not hold its hour over the area of the scene is downloaded again and
+replaced.
 
 The heights of the levels of ERA5 are above the geoid (mean sea level); `pc-tropo-era5` takes `hgt - geoid` as the
 height of a point above the geoid. The heights of the DEM of the processing (`raw/hgt.zarr` of `01_load`, from GAMMA)
@@ -390,7 +404,7 @@ about 1 km east of Rione Terra; about 0 in the east and in the west.*
   not found": `~/.cdsapirc` is of the old Data Store (see [The troposphere](#the-troposphere)); an error about the
   licence: accept the licence of the dataset on its page. A connection error: the node has no network.
 - `pc-tropo-era5` fails with "no ERA5 file": the `era5` step did not finish; with "outside the grid": the files are of
-  another area (delete `WORK/era5/` and run again).
+  another area (delete the files of `era5_dir`, or give another `era5_dir`, and run again).
 - `pc-tropo-era5` fails with "geoid": the value is not in meters; with "elevation angle": `theta` is not the elevation
   of the look vector in radians.
 - Jumps of about 27.7 mm (half a wavelength for Sentinel-1) between areas or dates are whole cycles of unwrapping
