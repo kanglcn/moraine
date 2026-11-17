@@ -61,6 +61,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0051](0051-troposphere-from-era5-pressure-levels.md) | Tropospheric delay from ERA5 pressure levels, computed by moraine | Accepted |
 | [0052](0052-argument-errors-are-usage-errors.md) | Errors in the arguments of a command are usage errors, raised as ArgumentError in any layer | Accepted |
 | [0053](0053-troposphere-power-law-of-height.md) | The troposphere stratified with height, fitted to the displacement as a power law of the height | Accepted |
+| [0054](0054-velocity-with-dates-excluded-by-the-user.md) | Velocity of points by least squares, with the dates to exclude given by the user | Accepted |
 
 ## Writing a record
 

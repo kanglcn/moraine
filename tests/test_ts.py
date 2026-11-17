@@ -420,3 +420,229 @@ def test_pc_sc_dem_error_argument_errors(tmp_path):
         mc.pc_sc_dem_error(**{**paths, 'disp': three}, **outputs, dates=dates[:3])
     with pytest.raises(ArgumentError, match='at least 4 images'):
         mc.pc_sc_dem_error(**{**paths, 'disp': three, 'bperp': three}, **outputs, dates=dates[:3])
+
+
+# ---------------------------------------------------------------- velocity
+
+def _design(days, periods=()):
+    t = np.asarray(days, dtype=np.float64) / 365.25
+    columns = [np.ones_like(t), t]
+    for period in periods:
+        columns += [np.cos(2 * np.pi * t / period), np.sin(2 * np.pi * t / period)]
+    return np.stack(columns, axis=1)
+
+
+@pytest.mark.parametrize('gaps', [False, True])
+@pytest.mark.parametrize('periods', [None, [1], [1, 0.5]])
+def test_pc_velocity_api_exact(gaps, periods):
+    # the model itself, no noise: the coefficients exact, the residuals 0
+    n_points, nimages = 200, 40
+    dates, days = _dates(nimages, gaps=gaps)
+    g = _design(days, periods or [])
+    coef_true = np.random.default_rng(2).normal(0, 10, (n_points, g.shape[1]))
+    disp = (coef_true @ g.T).astype(np.float32)
+    velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates, periods=periods)
+    for a, shape in ((velocity, (n_points,)), (velocity_std, (n_points,)), (rms, (n_points,)),
+                     (coef, (n_points, g.shape[1])), (residual, (n_points, nimages))):
+        assert a.shape == shape and a.dtype == np.float32
+    np.testing.assert_allclose(coef, coef_true, atol=2e-4)          # float32 input: 1e-6 of about 100 mm
+    np.testing.assert_array_equal(velocity, coef[:, 1])
+    np.testing.assert_allclose(residual, 0, atol=2e-5)
+    np.testing.assert_allclose(rms, 0, atol=2e-5)
+    np.testing.assert_allclose(velocity_std, 0, atol=2e-5)
+
+
+def test_pc_velocity_api_is_the_least_squares():
+    dates, days = _dates(30, gaps=True)
+    rng = np.random.default_rng(3)
+    disp = rng.normal(0, 5, (20, 30)).astype(np.float32)
+    g = _design(days, [1])
+    velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, ','.join(dates), periods='1')
+    expected, rss = np.linalg.lstsq(g, disp.T.astype(np.float64), rcond=None)[:2]
+    np.testing.assert_allclose(coef, expected.T, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(residual, disp - expected.T @ g.T, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(rms, np.sqrt(rss / 30), rtol=1e-5)
+    np.testing.assert_allclose(velocity_std, np.sqrt(rss / (30 - 4) * np.linalg.inv(g.T @ g)[1, 1]), rtol=1e-5)
+
+
+def test_pc_velocity_api_std_follows_the_noise():
+    # white noise of 2 mm: the standard deviation from the residuals is the spread of the velocity errors
+    n_points, nimages = 20000, 60
+    dates, days = _dates(nimages, gaps=True)
+    rng = np.random.default_rng(4)
+    v = rng.normal(0, 20, (n_points, 1))
+    disp = (v * days / 365.25 + 3 * np.cos(2 * np.pi * days / 365.25) + rng.normal(0, 2, (n_points, nimages)))
+    velocity, velocity_std = mr.pc_velocity(disp.astype(np.float32), dates, periods=[1])[:2]
+    g = _design(days, [1])
+    theory = 2 * np.sqrt(np.linalg.inv(g.T @ g)[1, 1])
+    errors = velocity - v[:, 0]
+    assert abs(errors.mean()) < 3 * theory / np.sqrt(n_points)
+    assert abs(errors.std() / theory - 1) < 0.03
+    assert abs(np.sqrt(np.mean(velocity_std.astype(np.float64) ** 2)) / theory - 1) < 0.01
+
+
+def test_pc_velocity_api_exclude():
+    # one image with a large error of every point: excluded, the fit is that of the other images, and its residual
+    # shows the error
+    n_points, nimages = 100, 25
+    dates, days = _dates(nimages)
+    rng = np.random.default_rng(5)
+    disp = 4 * days / 365.25 + rng.normal(0, 0.5, (n_points, nimages))
+    disp[:, -1] += 30
+    disp = disp.astype(np.float32)
+    velocity = mr.pc_velocity(disp, dates)[0]
+    assert np.median(velocity) > 8                               # the last image pulls the line
+    velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates, exclude=[dates[-1]])
+    kept = mr.pc_velocity(disp[:, :-1], dates[:-1])
+    for a, b in zip((velocity, velocity_std, rms, coef), kept[:4]):
+        np.testing.assert_allclose(a, b, rtol=1e-5, atol=1e-5)
+    np.testing.assert_allclose(residual[:, :-1], kept[4], rtol=1e-5, atol=1e-5)
+    assert abs(np.median(velocity) - 4) < 0.2
+    assert 28 < np.median(residual[:, -1]) < 32
+    assert np.sqrt(np.mean(residual[:, -1] ** 2)) > 20 * np.sqrt(np.mean(residual[:, :-1] ** 2))
+    # the first date excluded: the time is still counted from it
+    first = mr.pc_velocity(disp, dates, exclude=f'{dates[0]} {dates[-1]}')[3]
+    expected = np.linalg.lstsq(_design(days[1:-1]), disp[:, 1:-1].T.astype(np.float64), rcond=None)[0].T
+    np.testing.assert_allclose(first, expected, rtol=1e-5, atol=1e-4)
+
+
+def test_pc_velocity_api_nan():
+    n_points, nimages = 8, 12
+    dates, days = _dates(nimages, gaps=True)
+    rng = np.random.default_rng(6)
+    disp = rng.normal(0, 3, (n_points, nimages)).astype(np.float32)
+    disp[1] = np.nan                                       # no value
+    disp[2, 3:] = np.nan                                   # 3 values for 2 coefficients: fewer than p + 2
+    disp[3, 4:] = np.nan                                   # 4 values: enough
+    disp[4, [0, 5, 6]] = np.nan                            # some values missing
+    velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates)
+    for a in (velocity, velocity_std, rms, coef[:, 0], coef[:, 1]):
+        assert np.isnan(a[[1, 2]]).all() and np.isfinite(a[[0, 3, 4, 5, 6, 7]]).all()
+    assert np.isnan(residual[[1, 2]]).all()
+    np.testing.assert_array_equal(np.isnan(residual[[0, 3, 4, 5, 6, 7]]), np.isnan(disp[[0, 3, 4, 5, 6, 7]]))
+    g = _design(days)
+    for i in (3, 4):
+        ok = np.isfinite(disp[i])
+        expected = np.linalg.lstsq(g[ok], disp[i, ok].astype(np.float64), rcond=None)[0]
+        np.testing.assert_allclose(coef[i], expected, rtol=1e-5, atol=1e-5)
+    # the points with all values are those of the fit without the others
+    np.testing.assert_array_equal(velocity[[0, 5, 6, 7]], mr.pc_velocity(disp[[0, 5, 6, 7]], dates)[0])
+    # values left only at dates one year apart: the annual term is not defined there, nan
+    one_year = [str(d).replace('-', '') for d in np.datetime64('2019-01-02') + np.arange(5) * 365]
+    yearly = rng.normal(0, 3, (2, 5)).astype(np.float32)
+    dense = np.concatenate([yearly, rng.normal(0, 3, (2, 4)).astype(np.float32)], axis=1)
+    extra = ['20190301', '20190601', '20190901', '20191201']
+    order = np.argsort(one_year + extra)
+    dense = dense[:, order]
+    dense[0, np.isin(np.array(one_year + extra)[order], extra)] = np.nan
+    v = mr.pc_velocity(dense, list(np.array(one_year + extra)[order]), periods=[1])[0]
+    assert np.isnan(v[0]) and np.isfinite(v[1])
+
+
+@pytest.mark.parametrize('change, match', [
+    (dict(disp=np.zeros(12, np.float32)), r'disp must have shape \(n_points, nimages\)'),
+    (dict(disp=np.zeros((3, 12), np.int32)), 'disp must be floating point'),
+    (dict(dates='20190102'), '1 dates for 12 images'),
+    (dict(exclude=['20190103']), 'exclude: 20190103 not among the dates'),
+    (dict(periods=[1, -0.5]), 'periods must be positive numbers of years'),
+    (dict(periods='annual'), 'periods must be numbers of years'),
+    (dict(periods=[1, 1]), 'cannot be told apart'),
+    (dict(periods=[12 / 365.25]), 'cannot be told apart'),        # the period of the sampling: a constant
+    (dict(periods=[1, 0.5], exclude=_dates(12)[0][:5]), r'7 dates to fit \(12 images, 5 excluded\) for 6 coefficients'),
+])
+def test_pc_velocity_api_errors(change, match):
+    args = dict(disp=np.zeros((3, 12), np.float32), dates=_dates(12)[0])
+    args.update(change)
+    with pytest.raises(ArgumentError, match=match):
+        mr.pc_velocity(**args)
+
+
+@pytest.mark.gpu
+def test_pc_velocity_api_gpu():
+    import cupy as cp
+    n_points, nimages = 300, 30
+    dates, days = _dates(nimages, gaps=True)
+    rng = np.random.default_rng(7)
+    disp = (rng.normal(0, 10, (n_points, 1)) * days / 365.25 + rng.normal(0, 2, (n_points, nimages))).astype(np.float32)
+    disp[3, 4:9] = np.nan
+    out = mr.pc_velocity(cp.asarray(disp), dates, exclude=[dates[7]], periods=[1])
+    assert all(isinstance(a, cp.ndarray) for a in out)
+    for a, b in zip(out, mr.pc_velocity(disp, dates, exclude=[dates[7]], periods=[1])):
+        np.testing.assert_allclose(cp.asnumpy(a), b, rtol=1e-5, atol=1e-4)
+
+
+def _velocity_inputs(tmp_path, n_points=50, nimages=20):
+    dates, days = _dates(nimages, gaps=True)
+    rng = np.random.default_rng(8)
+    disp = rng.normal(0, 10, (n_points, 1)) * days / 365.25 + rng.normal(0, 1, (n_points, nimages))
+    disp[:, 6] += rng.normal(0, 8, n_points)               # a noisy image
+    disp[:25, 11] += 20                                    # an image with an error of the first half of the points
+    disp = disp.astype(np.float32)
+    disp[7, 4] = np.nan
+    disp[9] = np.nan
+    mask = np.zeros(n_points, dtype=bool); mask[25:] = True
+    return (write_zarr(tmp_path / 'disp.zarr', disp, (20, 1)), write_zarr(tmp_path / 'mask.zarr', mask, (20,)),
+            disp, mask, dates)
+
+
+def test_pc_velocity(tmp_path):
+    disp_path, mask_path, disp, mask, dates = _velocity_inputs(tmp_path)
+    names = ('velocity', 'velocity_std', 'rms', 'image_rms', 'coef')
+    outputs = {name: str(tmp_path / f'{name}.zarr') for name in names}
+    mc.pc_velocity(disp_path, **outputs, dates=dates, exclude=[dates[6]], periods=[1, 0.5], out_chunks=10)
+    expected = mr.pc_velocity(disp, dates, exclude=[dates[6]], periods=[1, 0.5])
+    z = {name: zarr.open(path, mode='r') for name, path in outputs.items()}
+    for name, a in zip(('velocity', 'velocity_std', 'rms', 'coef'), expected[:4]):
+        assert z[name].shape == a.shape and z[name].dtype == np.float32
+        assert z[name].chunks == ((10, 1) if name == 'coef' else (10,))
+        np.testing.assert_array_equal(z[name][:], a)
+    assert np.isnan(z['velocity'][9]) and np.isfinite(z['velocity'][7])
+    residual = expected[4]
+    image_rms = np.sqrt(np.nanmean(residual ** 2, axis=0))
+    assert z['image_rms'].shape == (20,) and z['image_rms'].dtype == np.float32
+    np.testing.assert_allclose(z['image_rms'][:], image_rms, rtol=1e-5)
+    assert np.argsort(image_rms)[-2:].tolist() == [11, 6]       # the excluded image is still there
+    # the mask: the image with the error of the points outside it is like the others
+    mc.pc_velocity(disp_path, str(tmp_path / 'v2.zarr'), str(tmp_path / 's2.zarr'), dates,
+                   image_rms=str(tmp_path / 'i2.zarr'), mask=mask_path, exclude=[dates[6]], periods=[1, 0.5], processes=True, n_workers=2)
+    np.testing.assert_allclose(zarr.open(str(tmp_path / 'i2.zarr'), mode='r')[:],
+                               np.sqrt(np.nanmean(residual[mask] ** 2, axis=0)), rtol=1e-5)
+    assert zarr.open(str(tmp_path / 'v2.zarr'), mode='r').chunks == (20,)
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'v2.zarr'), mode='r')[:], expected[0])
+
+
+def test_pc_velocity_command_line_and_pipeline(tmp_path):
+    disp_path, mask_path, disp, mask, dates = _velocity_inputs(tmp_path)
+    expected = mr.pc_velocity(disp, dates, exclude=[dates[6], dates[11]], periods=[1])
+    assert main(['pc-velocity', '--disp', disp_path, '--velocity', str(tmp_path / 'v.zarr'), '--velocity_std',
+                 str(tmp_path / 's.zarr'), '--dates', *dates, '--exclude', dates[6], dates[11], '--periods', '1']) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'v.zarr'), mode='r')[:], expected[0])
+    # one excluded date, the periods of a list and the dates of the metadata
+    (tmp_path / 'meta.toml').write_text(f'dates = {dates}\n'.replace("'", '"'))
+    lines = ['[vars]', 'dates = { file = "meta.toml", key = "dates" }', '', '[[step]]', 'name = "velocity"',
+             'run = "pc-velocity"', f'disp = "{disp_path}"', 'velocity = "v2.zarr"', 'velocity_std = "s2.zarr"',
+             'dates = "${dates}"', f'exclude = ["{dates[6]}"]', 'periods = [1, 0.5]']
+    (tmp_path / 'p.toml').write_text('\n'.join(lines) + '\n')
+    assert main(['run', str(tmp_path / 'p.toml'), '-q']) == 0
+    np.testing.assert_array_equal(zarr.open(str(tmp_path / 'v2.zarr'), mode='r')[:],
+                                  mr.pc_velocity(disp, dates, exclude=[dates[6]], periods=[1, 0.5])[0])
+
+
+def test_pc_velocity_argument_errors(tmp_path):
+    disp_path, mask_path, disp, mask, dates = _velocity_inputs(tmp_path)
+    out = dict(velocity=str(tmp_path / 'v.zarr'), velocity_std=str(tmp_path / 's.zarr'))
+    short = write_zarr(tmp_path / 'short.zarr', np.zeros(49, bool), (20,))
+    for kwargs, match in [
+        (dict(dates=dates[:-1]), '19 dates for 20 images'),
+        (dict(dates=dates, exclude=['20190101']), 'exclude: 20190101 not among the dates'),
+        (dict(dates=dates, periods=[0]), 'periods must be positive'),
+        (dict(dates=dates, exclude=dates[3:]), r'3 dates to fit \(20 images, 17 excluded\) for 2 coefficients'),
+        (dict(dates=dates, mask=short), r'mask must be bool of shape \(50,\)'),
+        (dict(dates=dates, mask=disp_path), r'mask must be bool of shape \(50,\)'),
+    ]:
+        with pytest.raises(ArgumentError, match=match):
+            mc.pc_velocity(disp_path, **out, **kwargs)
+        assert not (tmp_path / 'v.zarr').exists() and not (tmp_path / 's.zarr').exists()
+    one = write_zarr(tmp_path / 'one.zarr', disp[:, 0], (20,))
+    with pytest.raises(ArgumentError, match=r'disp must have shape \(n_points, nimages\)'):
+        mc.pc_velocity(one, **out, dates=dates)

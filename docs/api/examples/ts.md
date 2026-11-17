@@ -49,3 +49,24 @@ print(out.round(2))
 Points on the DEM, 10 m above and 5 m below it, moving towards the satellite by 0.1 mm per day: the DEM error comes
 back from the differences between neighbouring dates, and the displacement without it is the motion alone, 1.2 mm
 per 12 days.
+
+```python exec="true" source="above" result="text" session="ts"
+dates = [str(d).replace('-', '') for d in np.datetime64('2019-01-02') + 12 * np.arange(60)]
+t = 12 * np.arange(60) / 365.25                                   # years from the first date
+v_true = np.array([0.0, 10.0, -5.0])                              # mm per year
+disp = v_true[:, None] * t + 2 * np.sin(2 * np.pi * t) + rng.normal(0, 1, (3, 60))
+disp[:, 20] += 15                                                 # one date with a large error of every point
+disp = disp.astype(np.float32)
+velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates, periods=[1])
+print(velocity.round(2), velocity_std.round(2), rms.round(2))
+print(np.sqrt((residual ** 2).mean(axis=0)).argmax(), dates[20])   # the date with the largest residual RMS
+velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates, exclude=[dates[20]], periods=[1])
+print(velocity.round(2), velocity_std.round(2), rms.round(2))
+print(coef.round(2))                                              # a, v, cosine and sine of the annual term
+print(residual[:, 20].round(1))                                   # the excluded date keeps its residual
+```
+
+Three points moving by 0, 10 and -5 mm per year with an annual term of 2 mm and 1 mm of noise: the residual RMS over
+the points shows the date with the error; left out of the fit, the velocities come back to within about one standard
+deviation (0.24 mm per year) and the residual RMS of the points to the noise, and the residual of that date is its
+error.
