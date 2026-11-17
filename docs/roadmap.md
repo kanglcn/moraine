@@ -78,15 +78,37 @@ rejects the bands spoiled by deformation, which removes the need for a mask wher
 in scale; overlapping windows with a K that varies over the scene, for scenes larger than the stratification; h0 and
 alpha from the profiles of ERA5 instead of the defaults. Points need a grid for the band filtering.
 
+## Corrections of every image: solid earth tides, ionosphere, GACOS
+
+Step 3 of decision 0048: corrections of every image from models or external data, each optional, each a field per
+image at the points that is subtracted from the displacement before the spatial reference. The troposphere from ERA5
+(decision 0051) and from the displacement (decision 0053) is done. Left, in this order:
+
+- Solid earth tides (started 2026-11-17): the Sun and the Moon deform the solid Earth, up to about 30 cm up and a few
+  cm horizontally, twice a day. Between two images the change is nearly constant over a scene, which the spatial
+  reference removes; what is left is a gradient of the order of 0.05 mm per km (estimated from the degree 2 tide):
+  about 2 mm over 40 km, about 1 cm over a whole frame. Own code of the IERS Conventions (2010, section 7.1.1, steps 1
+  and 2) with the Sun and the Moon from low precision series, at every point and the time of every image, projected
+  on the look vector; validated against the test cases of the IERS routine DEHANTTIDEINEL and against PySolid (used
+  by MintPy).
+- Ionosphere from TEC maps: the ionosphere delays the range by 40.31 TEC / f^2 (TEC in electrons per square meter,
+  f the radar frequency in Hz), about 1.4 cm per TECU at C band and 25 cm at L band. Global ionosphere maps (IONEX
+  files of the IGS analysis centres, about 2.5 by 5 degrees, every one or two hours) give the vertical TEC; mapped to
+  the slant at the ionospheric pierce point, with the part of the TEC below the satellite, they remove the long
+  wavelengths (ramps) only, as MintPy's `iono_tec` (Yunjun et al., 2022). A download command like `download-era5`.
+- Troposphere from GACOS: the zenith delays of GACOS (files the user orders from the GACOS website), interpolated at
+  the points like ERA5, as an alternative to it.
+
 ## Next stages of decision 0012
 
 Deformation products (stage 5): started, the steps and their order are decision 0048
 (`docs/decisions/0048-dem-error-in-two-parts.md`): the spatial reference of the image phases of
 `unwrap-correct-closure-pc`, the displacement and the DEM error (relative to the neighbourhood in 04, spatially
 correlated in 06), the velocity and the residual of every image (decision 0054) and the export of points to
-GeoPackage (decision 0055) are done. Left: rasters to GeoTIFF (the results are on the radar grid or as points; the
-web mercator levels of a pyramid are regular grids), the turbulent atmosphere (step 8). Stage 4 (time series
-inversion) is replaced by those image phases (decision 0022).
+GeoPackage (decision 0055) are done. Left: the corrections of every image other than the troposphere (step 3, see
+above), rasters to GeoTIFF (the results are on the radar grid or as points; the web mercator levels of a pyramid are
+regular grids), the turbulent atmosphere (step 8). Stage 4 (time series inversion) is replaced by those image phases
+(decision 0022).
 
 ## Latitudes and longitudes of exactly 0
 
