@@ -208,6 +208,7 @@ nav:
       - pu: cli/pu.md
       - tropo: cli/tropo.md
       - ts: cli/ts.md
+      - export: cli/export.md
       - plot: cli/plot.md
       - JSON output: contracts/json-output.md
   - Python API:

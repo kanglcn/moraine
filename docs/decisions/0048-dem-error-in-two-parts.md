@@ -69,7 +69,8 @@ baseline of every point is known (decision 0044).
      (mm / year), its standard deviation from the residuals and the residual RMS (mm).
   8. Turbulent atmosphere: optional and later, a spatial low pass of the temporal high pass of the displacement,
      subtracted, then steps 4 to 7 again.
-  9. Export (points to CSV / GeoPackage, rasters to GeoTIFF): later.
+  9. Export (points to CSV / GeoPackage, rasters to GeoTIFF): later. (Points done as decision 0055, to GeoPackage
+     only; rasters to GeoTIFF later.)
 - Units: displacements in millimeters, velocities in millimeters per year, DEM errors in meters, phases in radians.
   Displacements and velocities are positive towards the satellite.
 - The commands take the values they need as arguments and never read `meta.toml`: the radar wavelength (m) and the

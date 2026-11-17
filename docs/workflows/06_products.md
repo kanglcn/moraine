@@ -2,7 +2,7 @@
 
 Pipeline: `examples/06_products.toml`. Tutorial: `nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb`.
 Needs `04_refine`, `05_unwrap` and the network for ERA5 (see [The troposphere](#the-troposphere)). The steps and
-conventions are decision 0048, the troposphere decision 0051, the velocity decision 0054.
+conventions are decision 0048, the troposphere decision 0051, the velocity decision 0054, the export decision 0055.
 
 ```bash
 moraine run examples/06_products.toml --workdir WORK
@@ -52,8 +52,10 @@ share one, so that ERA5 is downloaded once (see [The troposphere](#the-troposphe
 8. `pc-velocity`: the velocity of every point, a straight line in time fitted to the displacement without the DEM
    error over the dates not in `[vars] exclude` (none by default), its standard deviation and the residual RMS of
    every point and of every image (see [The velocity](#the-velocity)).
-9. `pc-pyramid` of the displacement, the troposphere, the two DEM errors, the displacement without the DEM error, the
-   velocity, its standard deviation and the residual RMS of the points on the map.
+9. `pc-export`: the points with their velocity, the displacement without the DEM error and more in a GeoPackage
+   file for GIS software (see [The points in GIS software](#the-points-in-gis-software)).
+10. `pc-pyramid` of the displacement, the troposphere, the two DEM errors, the displacement without the DEM error,
+    the velocity, its standard deviation and the residual RMS of the points on the map.
 
 Outputs in `WORK/era5/` (`era5_dir`): `era5_YYYYMMDD_HH.nc`, the geopotential, temperature and specific humidity of
 ERA5 on its 37 pressure levels over the scene for the hour (UTC), two hours per image. In `WORK/disp/`:
@@ -84,6 +86,8 @@ ERA5 on its 37 pressure levels over the scene for the hour (UTC), two hours per 
   dates, in millimeters: how far the displacement is from a straight line.
 - `image_rms.zarr` (nimages,) float32: the root mean square of the residuals of every image over the points, in
   millimeters, the excluded dates included.
+- `points.gpkg`: a GeoPackage file with the layer `points`, one point per point of the arrays (see
+  [The points in GIS software](#the-points-in-gis-software)).
 
 ## The reference area
 
@@ -316,6 +320,42 @@ On the sample data (2026-11-16):
 - An annual term (`periods = [1]`) is 1.3 mm (median amplitude) on the points 8 km or more from Rione Terra, 0.7 mm
   in the reference area; it changes the velocities by 0.37 mm per year (median).
 
+## The points in GIS software
+
+`pc-export` writes points to a GeoPackage file (decision 0055), one SQLite file that QGIS opens by drag and drop
+(or Layer > Add Layer > Add Vector Layer) and GDAL reads. The `export` step writes `disp/points.gpkg` with the layer
+`points`: a point at the longitude and latitude of every point (WGS84, EPSG:4326) with the fields
+
+| field | value | unit |
+|---|---|---|
+| `point` | index of the point in the arrays of the working directory, the `ref_point` of the maps | |
+| `VEL` | velocity (`pc_velocity.zarr`), positive towards the satellite | mm per year |
+| `V_STDEV` | its standard deviation (`pc_velocity_std.zarr`) | mm per year |
+| `HEIGHT` | height of the DEM (`pc/pc_hgt.zarr`) | m |
+| `COHERENCE` | temporal coherence of `04_refine` (`pc/pc_temp_coh.zarr`) | |
+| `DEM_ERROR` | the whole DEM error (`pc_dem_error.zarr`) | m |
+| `RMS` | residual RMS of the point (`pc_residual_rms.zarr`) | mm |
+| `D20190102`, ... | the displacement without the DEM error at every date (`pc_disp_demcor.zarr`), D followed by YYYYMMDD | mm |
+
+These are the field names of `save_qgis` of MintPy; according to its documentation, the QGIS plugin InSAR Explorer
+takes the velocity from `VEL` and the time series from the `D` fields of a Shapefile or GeoPackage layer, and plots
+the time series of a point clicked on the map. Missing values (nan) are
+NULL. The file has a spatial index, so that QGIS draws hundreds of thousands of points without delay when zoomed in.
+
+In a copy of the example, the fields are the extra keyword arguments of the step (`[step.kw]`): add any array of
+one value per point (e.g. `SC_DEM_ERROR = "disp/pc_sc_dem_error.zarr"`), remove fields, or rename them; `ts` takes
+another time series (e.g. `disp/pc_disp.zarr`, the displacement with the DEM error), and without `ts` and `dates` the
+file has no time series. `mask` writes only the points of a bool mask, e.g. of an area drawn on a map
+(`polygon-mask`), for a smaller file. On the command line:
+
+```bash
+moraine pc-export --out area.gpkg --lon pc/pc_lon.zarr --lat pc/pc_lat.zarr --mask area_mask.zarr \
+    --kw VEL=disp/pc_velocity.zarr --kw V_STDEV=disp/pc_velocity_std.zarr
+```
+
+The file takes about 10 bytes per point and field: 330 MB for the sample data (336 830 points, 99 fields), 9.7 GB for
+10 million points with the 92 dates and 6 fields.
+
 ## Expected results (sample data, Campi Flegrei, 336 830 points, 92 images)
 
 | result | sample value | sane range |
@@ -339,15 +379,17 @@ On the sample data (2026-11-16):
 | velocity of the reference points / of Pozzuoli | median 0.03 / 85.7 mm per year | about 0 / tens of mm per year |
 | `disp/pc_velocity_std_pyramid` | p01 0.23, p50 0.69, p99 1.33, max 2.2 (mm per year) | a few tenths of mm per year; larger where the deformation is not a line |
 | `disp/pc_residual_rms_pyramid` | p01 1.9, p50 5.7, p99 11.0, max 18 (mm) | a few mm; larger where the deformation is not a line (Pozzuoli 9.9 mm) |
+| log of `export` | 336830 of 336830 points written to disp/points.gpkg (314.4 MiB) | every point; about 10 bytes per point and field |
 
 Run time: `download-era5` from the NSF NCAR archive 6.1 s per day with the four worker processes, about 9.5 minutes
 for the 92 days (from the Climate Data Store, hour by hour, about 55 minutes); `pc-tropo-era5` 2.6 s, `math` 5.2 and
-0.1 s, `pc-reference` 1.1 s, `pc-disp` 0.9 s, `pc-sc-dem-error` 1.3 s, `pc-velocity` 0.8 s, the eight pyramids 6.4,
+0.1 s, `pc-reference` 1.1 s, `pc-disp` 0.9 s, `pc-sc-dem-error` 1.3 s, `pc-velocity` 0.8 s, `pc-export` 9.5 s, the eight pyramids 6.4,
 5.1, 1.5, 1.6, 4.5, 1.0, 1.0 and 1.2 s; 1.6 GB peak memory for the pipeline. Large data (10 million points, 92 images, 4 threads):
 `pc-reference` 10.3 s and 0.9 GB, `pc-disp` 15.5 s and 0.97 GB, `pc-tropo-era5` 28.8 s and 0.92 GB (184 hours of
 ERA5; 16 threads: 32.6 s, 2.35 GB), `pc-sc-dem-error` 27 s and 3.4 GB (16 threads: 28 s, 9.4 GB; the reading and
 writing of the chunks limit it), `pc-velocity` 12.6 s and 2.5 GB (with an annual and a semiannual term, the
-coefficients and a mask: 14.6 s; 16 threads: 10.7 s, 8.0 GB).
+coefficients and a mask: 14.6 s; 16 threads: 10.7 s, 8.0 GB), `pc-export` of the 92 dates and 6 fields 306 s and
+1.65 GB (SQLite writes from one thread; a file of 9.7 GB).
 
 ## Figures
 
@@ -390,6 +432,8 @@ about 1 km east of Rione Terra; about 0 in the east and in the west.*
   time series.
 - `moraine quicklook disp/pc_velocity_pyramid -o v.png`: about 0 in the reference area, the known motion with its
   sign; the log of `velocity`: the images with a residual RMS of more than about 3 times the median.
+- `disp/points.gpkg` in QGIS: the points over the scene, `VEL` as in `disp/pc_velocity_pyramid`; with GDAL,
+  `ogrinfo -so disp/points.gpkg points` gives the number of points, the extent and the fields.
 - `moraine quicklook disp/pc_sc_dem_error_pyramid -o dh.png`: about 0 in the reference area; smooth patterns of
   several meters over kilometers are atmosphere. `pc/pc_su_dem_error_pyramid` of `04_refine`: buildings stand out
   from their surroundings.
@@ -415,3 +459,6 @@ about 1 km east of Rione Terra; about 0 in the east and in the west.*
 - `pc-velocity` fails with "not among the dates of the images": a date of `exclude` is not one of `dates` (YYYYMMDD);
   with "dates to fit ... at least": too many dates are excluded for the coefficients; with "cannot be told apart": a
   period of `periods` is not in years (e.g. 365 for one year) or two periods are the same.
+- `pc-export` fails with "is used twice" or "is also the field of the date": two fields with the same name (ignoring
+  case); with "lon / lat must be in degrees": `lon` and `lat` are not the longitude and latitude (e.g. `pc/pc_e.zarr`,
+  web mercator); with "not finite": a point without a position, select the points with `mask`.
