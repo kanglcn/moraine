@@ -24,7 +24,7 @@ moraine run examples/06_products.toml --workdir WORK --var "ref_area=(lon > ...)
 | `examples/03_ds.toml` | [03 DS processing](03_ds.md) | SHP, DS candidates, coherence, phase linking, DS selection | `WORK/ds/` |
 | `examples/04_refine.toml` | [04 Merge and refine](04_refine.md) | PS + DS, Noise2Fringe Transformer, temporal coherence with the DEM error relative to the neighbourhood | `WORK/pc/` |
 | `examples/05_unwrap.toml` | [05 Phase unwrapping](05_unwrap.md) | EMCF on a network of image pairs, phase closure correction, phase of every image | `WORK/unw/` |
-| `examples/06_products.toml` | [06 Deformation products](06_products.md) | line of sight displacement in millimeters, troposphere from ERA5, reference area, DEM error, velocity | `WORK/era5/`, `WORK/disp/` |
+| `examples/06_products.toml` | [06 Deformation products](06_products.md) | line of sight displacement in millimeters, troposphere from ERA5, reference area, DEM error, velocity, export to GIS software | `WORK/era5/`, `WORK/disp/` |
 
 To change a parameter, copy the file into the working directory and edit the copy, or override a `[vars]` value
 with `--var name=value`. A rerun skips the steps whose arguments and inputs did not change and reruns everything

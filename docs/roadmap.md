@@ -83,7 +83,9 @@ alpha from the profiles of ERA5 instead of the defaults. Points need a grid for 
 Deformation products (stage 5): started, the steps and their order are decision 0048
 (`docs/decisions/0048-dem-error-in-two-parts.md`): the spatial reference of the image phases of
 `unwrap-correct-closure-pc`, the displacement and the DEM error (relative to the neighbourhood in 04, spatially
-correlated in 06), the velocity and the residual of every image (decision 0054) are done. Stage 4 (time series
+correlated in 06), the velocity and the residual of every image (decision 0054) and the export of points to
+GeoPackage (decision 0055) are done. Left: rasters to GeoTIFF (the results are on the radar grid or as points; the
+web mercator levels of a pyramid are regular grids), the turbulent atmosphere (step 8). Stage 4 (time series
 inversion) is replaced by those image phases (decision 0022).
 
 ## New pages of the coherence batches on the CPU

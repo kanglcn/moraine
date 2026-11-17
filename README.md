@@ -101,7 +101,7 @@ guide with the parameters to tune, the expected results and the checks.
 | 03 | [DS](https://kanglcn.github.io/moraine/workflows/03_ds/) | statistically homogeneous pixels, coherence matrices, EMI phase linking, DS selection | `shp-test`, `emperical-co-emi-temp-coh-pc` |
 | 04 | [Refine](https://kanglcn.github.io/moraine/workflows/04_refine/) | PS and DS merged, Noise2Fringe Transformer, temporal coherence | `pc-union`, `n2ft`, `temp-coh` |
 | 05 | [Unwrap](https://kanglcn.github.io/moraine/workflows/05_unwrap/) | EMCF on a network of image pairs, phase closure correction | `emcf-pc`, `unwrap-correct-closure-pc` |
-| 06 | [Products](https://kanglcn.github.io/moraine/workflows/06_products/) | line of sight displacement in millimetres, troposphere from ERA5, reference area, DEM error, velocity | `pc-disp`, `download-era5`, `pc-tropo-era5`, `pc-reference`, `pc-sc-dem-error`, `pc-velocity` |
+| 06 | [Products](https://kanglcn.github.io/moraine/workflows/06_products/) | line of sight displacement in millimetres, troposphere from ERA5, reference area, DEM error, velocity, GeoPackage of the points for GIS software | `pc-disp`, `download-era5`, `pc-tropo-era5`, `pc-reference`, `pc-sc-dem-error`, `pc-velocity`, `pc-export` |
 
 ## 🚀 Quick start
 

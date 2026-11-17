@@ -1,4 +1,4 @@
-# Deformation products of the refined points (decisions 0048, 0051, 0054; tutorial:
+# Deformation products of the refined points (decisions 0048, 0051, 0054, 0055; tutorial:
 # nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb). Needs 04_refine.toml and 05_unwrap.toml, and the network for
 # ERA5 (from the NSF NCAR archive on AWS; source = "cds" in the era5 step for the Copernicus Climate Data Store, see
 # the guide). The line of sight displacement in millimeters, positive towards the satellite, corrected for the
@@ -13,7 +13,8 @@
 # (spatially correlated DEM error, m, shape (n_points,)), pc_dem_error (the whole DEM error: that relative to the
 # neighbourhood of 04_refine.toml plus the spatially correlated one, m), pc_disp_demcor (displacement without the DEM
 # error, mm), pc_velocity and pc_velocity_std (velocity and its standard deviation, mm per year, shape (n_points,)),
-# pc_residual_rms (residual RMS of every point, mm), image_rms (residual RMS of every image, mm, shape (nimages,)).
+# pc_residual_rms (residual RMS of every point, mm), image_rms (residual RMS of every image, mm, shape (nimages,)),
+# points.gpkg (the points with the velocity, the displacement and more, a GeoPackage file for GIS software).
 
 [vars]
 # reference area: a stable, coherent area in one region of the closure correction (`unw/pc_region.zarr`),
@@ -115,6 +116,22 @@ velocity = "disp/pc_velocity.zarr"
 velocity_std = "disp/pc_velocity_std.zarr"
 rms = "disp/pc_residual_rms.zarr"
 image_rms = "disp/image_rms.zarr"
+
+[[step]]
+name = "export"                   # the points for GIS software (QGIS), with the field names of MintPy's save_qgis
+run = "pc-export"
+out = "disp/points.gpkg"
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+ts = "disp/pc_disp_demcor.zarr"   # one field per date: D followed by YYYYMMDD, mm
+dates = "${dates}"
+[step.kw]
+VEL = "disp/pc_velocity.zarr"             # mm per year
+V_STDEV = "disp/pc_velocity_std.zarr"     # mm per year
+HEIGHT = "pc/pc_hgt.zarr"                 # m, the height of the DEM
+COHERENCE = "pc/pc_temp_coh.zarr"         # temporal coherence of 04_refine
+DEM_ERROR = "disp/pc_dem_error.zarr"      # m
+RMS = "disp/pc_residual_rms.zarr"         # mm
 
 [[step]]
 name = "disp_pyramid"
