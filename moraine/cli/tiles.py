@@ -1207,9 +1207,10 @@ def view(
     (``.png(path)``); ``a * b`` overlays views on one map, ``a + b`` shows maps side by side with linked zoom and
     pan and shared sliders.
 
-    On the map: zoom and pan read only what is on screen; sliders choose the image of a stack; the cursor shows
-    the values of all layers; click a pixel or point to plot its time series, double click one to make it the
-    reference of the time series; draw polygons with the polygon button. In Python, ``.selected``,
+    On the map: zoom and pan read only what is on screen; sliders choose the image of a stack (their buttons and
+    arrow keys step one image); the cursor shows the values of all layers; click a pixel or point to plot its time
+    series (against the dates of `dates`), double click one to make it the reference of the time series; draw
+    polygons with the polygon button. In Python, ``.selected``,
     ``.reference``, ``.polygons`` and ``.index`` (slider values; set it to move the sliders, within their ranges)
     follow the map. Point clouds are drawn as
     individual points when zoomed in; web mercator coordinates are drawn north up over a base map, or over the

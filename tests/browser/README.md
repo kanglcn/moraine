@@ -5,8 +5,8 @@ Two tests run it outside the notebook, with a fake anywidget model that answers 
 
 | test | what runs | what it checks |
 |---|---|---|
-| `smoke.mjs` | the module in jsdom with the real Leaflet and a fake deck.gl | the 2D and 3D code paths: tile requests, slider swaps, probes, markers, polygons, the loading of the deck.gl bundle under an AMD loader, the interpolated elevation tiles |
-| `e2e/e2e.mjs` | the module in headless Chromium with the real Leaflet and deck.gl (WebGL through SwiftShader) | what the user does: hover, click (time series), double click (reference), drag, slider, zoom; the probed point is compared with deck.gl's projection to the metre |
+| `smoke.mjs` | the module in jsdom with the real Leaflet and a fake deck.gl | the 2D and 3D code paths: tile requests, slider swaps, slider stepping, colour bar ticks, the scale bar, the time axis of the chart, probes, markers, polygons, the loading of the deck.gl bundle under an AMD loader, the interpolated elevation tiles |
+| `e2e/e2e.mjs` | the module in headless Chromium with the real Leaflet and deck.gl (WebGL through SwiftShader) | what the user does: hover, click (time series against the dates), double click (reference), drag, slider (mouse, arrow keys, buttons), zoom; the probed point is compared with deck.gl's projection to the metre |
 
 They need node (20 or later) and internet access for the Leaflet and deck.gl bundles (jsdelivr); the elevation
 and base map tiles are made by the test page itself.

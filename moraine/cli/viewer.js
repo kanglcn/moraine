@@ -16,6 +16,8 @@ const TILE_PX = 256;               // pixels of a tile
 const TERRARIUM = { rScaler: 256, gScaler: 1, bScaler: 1 / 256, offset: -32768 };
 const TERRAIN_SCHEME = "moraine-terrain://";     // elevation tile requests of the 3D views, answered by terrainFetch
 const REF_COLOR = [224, 0, 0], SEL_COLOR = [255, 255, 255];     // markers of the reference and the clicked point
+const STEP_DELAY = 250;            // ms: steps of a slider by keys or buttons are applied once the stepping pauses
+const DAY = 86400000;              // ms
 const css = (c) => `rgb(${c.join(",")})`;
 
 function loadCss() {
@@ -94,6 +96,52 @@ function drawTicks(container, v0, v1, pos, size, horizontal) {
     tick.style[horizontal ? "left" : "top"] = `${p}px`;
     container.appendChild(tick);
   }
+}
+
+// the time (ms, UTC) of a date YYYYMMDD or YYYY-MM-DD, NaN for anything else
+function parseDate(s) {
+  const m = /^(\d{4})-?(\d{2})-?(\d{2})/.exec(String(s));
+  if (!m) return NaN;
+  const t = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  return new Date(t).getUTCDate() === +m[3] ? t : NaN;
+}
+
+// calendar ticks over the times [t0, t1] (ms): every k days, months or years, the finest of at most `n` ticks;
+// [{t, label}] labelled YYYY-MM-DD, YYYY-MM or YYYY
+function timeTicks(t0, t1, n) {
+  const iso = (t) => new Date(t).toISOString().slice(0, 10);
+  const y0 = new Date(t0).getUTCFullYear(), y1 = new Date(t1).getUTCFullYear();
+  const days = (k) => {
+    const out = [];
+    for (let t = Math.ceil(t0 / (k * DAY)) * k * DAY; t <= t1; t += k * DAY) out.push({ t, label: iso(t) });
+    return out;
+  };
+  const months = (k) => {
+    const out = [];
+    for (let i = Math.ceil((y0 * 12 + new Date(t0).getUTCMonth()) / k) * k; i <= y1 * 12 + 11; i += k) {
+      const t = Date.UTC(Math.floor(i / 12), i % 12, 1);
+      if (t >= t0 && t <= t1) out.push({ t, label: iso(t).slice(0, 7) });
+    }
+    return out;
+  };
+  const years = (k) => {
+    const out = [];
+    for (let y = Math.ceil(y0 / k) * k; y <= y1; y += k) {
+      const t = Date.UTC(y, 0, 1);
+      if (t >= t0) out.push({ t, label: String(y) });
+    }
+    return out;
+  };
+  // [ticks, k, days between ticks at least]: steps whose ticks would be far too many are not made
+  const steps = [[days, 1, 1], [days, 2, 2], [days, 5, 5], [days, 10, 10], [months, 1, 28], [months, 2, 59],
+                 [months, 3, 89], [months, 6, 181], [years, 1, 365], [years, 2, 730], [years, 5, 1826],
+                 [years, 10, 3652], [years, 20, 7305], [years, 50, 18262], [years, 100, 36524]];
+  for (const [f, k, d] of steps) {
+    if ((t1 - t0) / (d * DAY) > n + 1) continue;
+    const ticks = f(k);
+    if (ticks.length <= n) return ticks;
+  }
+  return years(1000);
 }
 
 // a map of `width` x `height` screen pixels; the column of the map (and the axis below it) then follows its width
@@ -204,25 +252,50 @@ async function render({ model, el }) {
     // the size given in python; otherwise the map takes the width of the notebook with the aspect of the scene
     // once it is in the page (observeSize)
     if (size.length === 2) setMapSize(mapEl, plot, size[0], size[1]);
-    for (const info of panel.layers) {
+    const bars = panel.layers.map((info) => {
       const bar = document.createElement("div");
       bar.className = "moraine-tv-bar";
-      bar.innerHTML = `<span class="hi"></span><div class="ramp"></div><span class="lo"></span><span class="label"></span>`;
+      bar.innerHTML = `<span class="hi"></span><div class="rampbox"><div class="ramp"></div><div class="ticks"></div></div>
+        <span class="lo"></span><span class="label"></span>`;
       bar.querySelector(".ramp").style.background = `linear-gradient(to top, ${info.colors.join(",")})`;
-      bar.querySelector(".ramp").style.height = `${Math.min(fh, 300) / Math.max(1, panel.layers.length)}px`;
       bar.querySelector(".lo").textContent = fmt(info.clim[0]);
       bar.querySelector(".hi").textContent = fmt(info.clim[1]);
       bar.querySelector(".label").textContent = info.bar_label;
       box.querySelector(".moraine-tv-bars").appendChild(bar);
+      return { ramp: bar.querySelector(".ramp"), ticks: bar.querySelector(".ticks"), clim: info.clim };
+    });
+    const view = { p, box, mapEl, plot, bars };
+    sizeBars(view, fh);
+    return view;
+  }
+
+  // the colour bars of a map, `height` pixels high in all (at most 300): the values of the ends above and below
+  // each ramp, ticks at round values between them
+  function sizeBars(view, height) {
+    const h = Math.min(height, 300) / Math.max(1, view.bars.length);
+    for (const { ramp, ticks, clim: [lo, hi] } of view.bars) {
+      ramp.style.height = `${h}px`;
+      ticks.replaceChildren();
+      if (!(hi > lo)) continue;
+      const step = tickStep(hi - lo, Math.max(1, Math.floor(h / 30)));
+      const digits = Math.max(0, -Math.floor(Math.log10(step)));
+      for (let k = Math.ceil(lo / step); k * step <= hi; k++) {
+        const y = (hi - k * step) / (hi - lo) * h;
+        if (y < 8 || y > h - 8) continue;       // next to the values of the ends
+        const tick = document.createElement("span");
+        tick.className = "tick";
+        tick.textContent = (k * step).toFixed(digits);
+        tick.style.top = `${y}px`;
+        ticks.appendChild(tick);
+      }
     }
-    return { p, box, mapEl, plot, ramps: box.querySelectorAll(".moraine-tv-bar .ramp") };
   }
 
   // the element may not be in the page yet (size 0): once it has its size, size the map automatically (unless
   // given) and let the backend fit the data into it (`onSized(first)`); later size changes keep the view
   function observeSize(view, onSized) {
     let shown = false;
-    const { mapEl, plot, ramps } = view;
+    const { mapEl, plot } = view;
     const sized = () => {
       if (!mapEl.clientWidth || !mapEl.clientHeight) return;
       if (!shown && size.length !== 2) {
@@ -232,7 +305,7 @@ async function render({ model, el }) {
       }
       onSized(!shown);
       shown = true;
-      ramps.forEach((r) => { r.style.height = `${Math.min(mapEl.clientHeight, 300) / Math.max(1, ramps.length)}px`; });
+      sizeBars(view, mapEl.clientHeight);
     };
     // the sizes are changed in the next frame, not within the observer's own notification
     view.resize = new ResizeObserver(() => requestAnimationFrame(sized));
@@ -337,6 +410,8 @@ async function render({ model, el }) {
       }
       baseMaps["none"] = L.layerGroup();
       baseMaps["Satellite (Esri)"].addTo(map);
+      // a scale bar in metres; the radar grid has its pixels on the axes
+      L.control.scale({ imperial: false, position: "bottomleft" }).addTo(map);
     }
     const overlays = {};
     const tiles = panel.layers.map((info, l) => {
@@ -803,20 +878,46 @@ async function render({ model, el }) {
   }
 
   // ---------------------------------------------------------------- sliders
+  // a slider moved with the mouse is applied when released; the keys of a focused slider (arrows, Page Up / Down,
+  // Home, End) and its buttons step it, applied once the stepping pauses: every applied value asks for the tiles
+  // of an image
   const imageText = (i) => dates.length > i ? `${i} (${dates[i]})` : String(i);
   const sliderInputs = {};
+  const stepTimers = new Set();
   for (const kdim of model.get("kdims")) {
-    const row = document.createElement("label");
-    row.innerHTML = `<span></span><input type="range" min="0" max="${kdim.max}" step="1"><output></output>`;
+    const row = document.createElement("div");
+    row.className = "slider";
+    row.innerHTML = `<span></span><button class="prev" title="previous (or the left arrow key on the slider)">&#8249;</button>`
+      + `<input type="range" min="0" max="${kdim.max}" step="1">`
+      + `<button class="next" title="next (or the right arrow key on the slider)">&#8250;</button><output></output>`;
     row.querySelector("span").textContent = kdim.label || kdim.name;
     const input = row.querySelector("input"), output = row.querySelector("output");
     input.value = model.get("index")[kdim.name];
-    output.textContent = imageText(Number(input.value));
-    input.addEventListener("input", () => { output.textContent = imageText(Number(input.value)); });
-    input.addEventListener("change", () => {
+    const show = () => { output.textContent = imageText(Number(input.value)); };
+    show();
+    let timer = null, keyed = false;
+    const apply = () => {
+      clearTimeout(timer);
+      stepTimers.delete(timer);
+      if (Number(input.value) === model.get("index")[kdim.name]) return;
       model.set("index", { ...model.get("index"), [kdim.name]: Number(input.value) });
       model.save_changes();
-    });
+    };
+    const later = () => {
+      clearTimeout(timer);
+      stepTimers.delete(timer);
+      timer = setTimeout(apply, STEP_DELAY);
+      stepTimers.add(timer);
+    };
+    input.addEventListener("input", show);
+    input.addEventListener("pointerdown", () => { keyed = false; });
+    input.addEventListener("keydown", () => { keyed = true; });
+    input.addEventListener("change", () => { if (keyed) later(); else apply(); keyed = false; });
+    const step = (d) => { input.value = String(Math.min(kdim.max, Math.max(0, Number(input.value) + d))); show(); later(); };
+    row.querySelector(".prev").addEventListener("click", () => step(-1));
+    row.querySelector(".next").addEventListener("click", () => step(1));
+    // the keys of the slider and its buttons are not for the notebook (cell navigation)
+    row.addEventListener("keydown", (e) => e.stopPropagation());
     sliderInputs[kdim.name] = [input, output];
     sliders.appendChild(row);
   }
@@ -880,12 +981,18 @@ async function render({ model, el }) {
       drawChart(msg.values, relative ? `${name} relative to ${pointName(ref)}` : name);
     });
   }
+  // the time series: against the dates when there is one per value (YYYYMMDD or YYYY-MM-DD, in order), the
+  // positions in the series otherwise
   function drawChart(values, title) {
     const W = Math.max(views[0].mapEl.clientWidth + 64, 400), H = 200, m = { l: 56, r: 12, t: 22, b: 34 };
     const n = values.length, finite = values.filter((v) => v !== null);
     let y0 = Math.min(...finite), y1 = Math.max(...finite);
     if (!finite.length) { y0 = 0; y1 = 1; } else if (y0 === y1) { y0 -= 1; y1 += 1; }
-    const px = (i) => m.l + (n > 1 ? i / (n - 1) : 0.5) * (W - m.l - m.r);
+    const times = dates.length === n ? dates.map(parseDate) : [];
+    const timed = n > 1 && times.length === n && times.every((t, i) => Number.isFinite(t) && (i === 0 || t >= times[i - 1]))
+      && times[n - 1] > times[0];
+    const tx = (t) => m.l + (t - times[0]) / (times[n - 1] - times[0]) * (W - m.l - m.r);
+    const px = timed ? (i) => tx(times[i]) : (i) => m.l + (n > 1 ? i / (n - 1) : 0.5) * (W - m.l - m.r);
     const py = (v) => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
     const ns = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(ns, "svg");
@@ -906,8 +1013,19 @@ async function render({ model, el }) {
       add("text", { x: m.l - 4, y: py(v) + 4, class: "ytick" }, v.toFixed(digits));
     }
     const xlab = (i) => dates.length === n ? dates[i] : String(i);
-    const every = Math.max(1, Math.ceil(n / Math.floor((W - m.l - m.r) / 72)));
-    for (let i = 0; i < n; i += every) add("text", { x: px(i), y: H - m.b + 16, class: "xtick" }, xlab(i));
+    const nTicks = Math.max(2, Math.floor((W - m.l - m.r) / 72));
+    // labels centred on their ticks, those at the right end ending there (not cut by the edge)
+    const xtick = (x, label) => add("text", { x, y: H - m.b + 16, class: x > W - 36 ? "xtick end" : "xtick" }, label);
+    if (timed) {
+      for (const { t, label } of timeTicks(times[0], times[n - 1], nTicks)) {
+        add("line", { x1: tx(t), y1: m.t, x2: tx(t), y2: H - m.b, class: "grid" });
+        add("line", { x1: tx(t), y1: H - m.b, x2: tx(t), y2: H - m.b + 4, class: "axis" });
+        xtick(tx(t), label);
+      }
+    } else {
+      const every = Math.max(1, Math.ceil(n / nTicks));
+      for (let i = 0; i < n; i += every) xtick(px(i), xlab(i));
+    }
     let path = "";
     values.forEach((v, i) => { if (v !== null) path += `${path && values[i - 1] !== null ? "L" : "M"}${px(i)},${py(v)}`; });
     add("path", { d: path, class: "line" });
@@ -1006,6 +1124,7 @@ async function render({ model, el }) {
   return () => {
     document.removeEventListener("keydown", onKey);
     clearTimeout(clickTimer);
+    for (const t of stepTimers) clearTimeout(t);
     model.off("msg:custom", onMessage);
     model.off("change:polygons", drawPolygons);
     model.off("change:index", onIndex);
