@@ -2,7 +2,7 @@
 
 Pipeline: `examples/06_products.toml`. Tutorial: `nbs/Tutorials/CLI/CampiFlegrei/06_products.ipynb`.
 Needs `04_refine`, `05_unwrap` and the network for ERA5 (see [The troposphere](#the-troposphere)). The steps and
-conventions are decision 0048, the troposphere decision 0051.
+conventions are decision 0048, the troposphere decision 0051, the velocity decision 0054.
 
 ```bash
 moraine run examples/06_products.toml --workdir WORK
@@ -46,8 +46,11 @@ longitude / latitude box of the DEM (`lonlat_bbox`) are read from `raw/meta.toml
    point (`pc/pc_bperp.zarr` of `04_refine`), and the displacement without it; `math` adds the DEM error relative to
    the neighbourhood of `04_refine`: the whole DEM error, the height of the scatterer above the DEM of the processing
    (see [The DEM error](#the-dem-error)).
-8. `pc-pyramid` of the displacement, the troposphere, the two DEM errors and the displacement without the DEM error
-   on the map.
+8. `pc-velocity`: the velocity of every point, a straight line in time fitted to the displacement without the DEM
+   error over the dates not in `[vars] exclude` (none by default), its standard deviation and the residual RMS of
+   every point and of every image (see [The velocity](#the-velocity)).
+9. `pc-pyramid` of the displacement, the troposphere, the two DEM errors, the displacement without the DEM error, the
+   velocity, its standard deviation and the residual RMS of the points on the map.
 
 Outputs in `WORK/era5/`: `era5_YYYYMMDD_HH.nc`, the geopotential, temperature and specific humidity of ERA5 on its
 37 pressure levels over the scene for the hour (UTC), two hours per image. In `WORK/disp/`:
@@ -71,6 +74,13 @@ Outputs in `WORK/era5/`: `era5_YYYYMMDD_HH.nc`, the geopotential, temperature an
 - `pc_disp_demcor.zarr` (n_points, nimages) float32: `pc_disp.zarr` without the spatially correlated DEM error term,
   in millimeters (the part relative to the neighbourhood was removed before the unwrapping): the displacement
   without the DEM error.
+- `pc_velocity.zarr` (n_points,) float32: the line of sight velocity in millimeters per year, positive towards the
+  satellite, relative to the reference area.
+- `pc_velocity_std.zarr` (n_points,) float32: its standard deviation in millimeters per year, from the residuals.
+- `pc_residual_rms.zarr` (n_points,) float32: the root mean square of the residuals of every point over the fitted
+  dates, in millimeters: how far the displacement is from a straight line.
+- `image_rms.zarr` (nimages,) float32: the root mean square of the residuals of every image over the points, in
+  millimeters, the excluded dates included.
 
 ## The reference area
 
@@ -244,6 +254,54 @@ Pozzuoli). The correlation of the two halves is 0.42 with the troposphere from E
 turbulent atmosphere is left (decision 0048, step 8, later). With the small baselines of Sentinel-1 the correction
 of the DEM error changes the displacements by a few millimeters.
 
+## The velocity
+
+`pc-velocity` fits a straight line in time to the displacement of every point without the DEM error, by least
+squares with equal weights (decision 0054): the velocity in millimeters per year, positive towards the satellite and
+relative to the reference area. Its standard deviation comes from the residuals of the point and assumes
+uncorrelated noise. The residual RMS of a point (`pc_residual_rms.zarr`) is the deformation that a line does not
+describe plus the noise; the residual RMS of an image over the points (`image_rms.zarr`, listed from the largest in
+the log of the step) shows the dates that fit worse than the others.
+
+No date is left out automatically, and the displacements keep all dates. To leave dates out of the velocity, look at
+them first (`moraine quicklook disp/pc_disp_demcor_pyramid --show intf_seq --index I --clim -30,30` shows the change
+from the date before, image I), then give them as `exclude`; a rerun computes only the velocity and its pyramids
+again:
+
+```bash
+moraine run examples/06_products.toml --workdir WORK --var exclude=20210912,20210714
+```
+
+In a copy of the example, `periods = [1]` in the `velocity` step adds an annual cosine and sine to the line (`[1, 0.5]`
+also a semiannual term) and `coef = "disp/pc_velocity_coef.zarr"` keeps the coefficients (the constant in mm, the
+velocity, then the cosine and sine amplitudes in mm). Over a deforming area the residual RMS of the images holds the
+deformation that a line does not describe; `mask` (a bool mask of the points, e.g. `disp/pc_stable_mask.zarr` of
+[The troposphere from the displacement](#the-troposphere-from-the-displacement-optional)) takes the image RMS over
+other points only.
+
+On the sample data (2026-11-16):
+
+- The velocity is 0.0 mm per year in the reference area (median; median absolute deviation 0.8 mm per year) and
+  0.0 mm per year on the points 8 km or more from Rione Terra (2.4 mm per year), up to 123 mm per year about 1.2 km
+  east of Rione Terra; the 662 points of Pozzuoli rise by 85.7 mm per year (median).
+- The uplift accelerates: the residual of Pozzuoli is +13, -13 and +13 mm in the first, the middle and the last image
+  (median), and its residual RMS is 9.9 mm, against 2.5 mm in the reference area.
+- The standard deviation is 0.69 mm per year (median), 0.30 in the reference area. There the velocities from the odd
+  and from the even dates differ by 0.56 mm per year (robust standard deviation), as their standard deviations
+  predict (0.60). At Pozzuoli they differ by 0.36 mm per year where the standard deviations predict 2.4: the
+  residual holds the acceleration, the same in both halves, and the standard deviation is too large there. The means
+  of that difference over cells of 1 km vary by 0.62 mm per year, where noise uncorrelated between the points would
+  give 0.03: the atmosphere left is correlated over kilometers, so the velocities of areas some kilometers apart are
+  uncertain by about 0.3 mm per year, which the standard deviation of a point does not include.
+- The residual RMS of the images is 4.9 mm (median); the largest are 2021-09-12 (16.7 mm, 3.4 times the median) and
+  2021-07-14 (13.4 mm, 2.7 times), also over the points 8 km or more from Rione Terra (14.2 and 13.1 mm, 4.4 and 4.0
+  times their median of 3.3 mm). Their residuals are planes of about 1.5 mm per km from east to west (25 mm across
+  the scene) left after ERA5, with 3 - 4 mm around the plane and no jumps of 27.7 mm: atmosphere (or ionosphere) of
+  the day, not unwrapping errors. Excluded, they change the velocities by 0.10 mm per year (median; 0.38 at the
+  99th percentile), Pozzuoli by 0.3 mm per year.
+- An annual term (`periods = [1]`) is 1.3 mm (median amplitude) on the points 8 km or more from Rione Terra, 0.7 mm
+  in the reference area; it changes the velocities by 0.37 mm per year (median).
+
 ## Expected results (sample data, Campi Flegrei, 336 830 points, 92 images)
 
 | result | sample value | sane range |
@@ -262,20 +320,26 @@ of the DEM error changes the displacements by a few millimeters.
 | `disp/pc_dem_error_pyramid` (the whole DEM error) | p01 -10.3, p50 6.2, p99 21.2, min -65, max 82 (m) | buildings and the large scale atmosphere |
 | `disp/pc_disp_demcor_pyramid` | p01 -26.2, p50 2.2, p99 187.5, min -112, max 368 (mm); warning "constant values: image 0" | that of `pc_disp_pyramid` within a few mm |
 | Pozzuoli without the DEM error | 0, 26, 73, 93, 143, 208, 255 mm: the median changes by at most 3.3 mm | a few mm |
+| log of `velocity` | 92 fitted, 0 excluded; velocity of 336 830 points (0 nan): percentiles 1, 50, 99 -7.45, 1.60, 95.51 mm per year; standard deviation (median) 0.69 mm per year; residual RMS of the images median 4.86 mm, largest 20210912 16.73 mm (3.4 x the median), 20210714 13.36 mm (2.7 x) | no nan; images of more than 3 times the median: look at them (see [The velocity](#the-velocity)) |
+| `disp/pc_velocity_pyramid` | p01 -7.4, p50 1.6, p99 95.5, min -30, max 123 (mm per year) | the uplift of Pozzuoli positive, about 0 in the reference area |
+| velocity of the reference points / of Pozzuoli | median 0.03 / 85.7 mm per year | about 0 / tens of mm per year |
+| `disp/pc_velocity_std_pyramid` | p01 0.23, p50 0.69, p99 1.33, max 2.2 (mm per year) | a few tenths of mm per year; larger where the deformation is not a line |
+| `disp/pc_residual_rms_pyramid` | p01 1.9, p50 5.7, p99 11.0, max 18 (mm) | a few mm; larger where the deformation is not a line (Pozzuoli 9.9 mm) |
 
 Run time: `download-era5` from the NSF NCAR archive 6.1 s per day with the four worker processes, about 9.5 minutes
 for the 92 days (from the Climate Data Store, hour by hour, about 55 minutes); `pc-tropo-era5` 2.6 s, `math` 5.2 and
-0.1 s, `pc-reference` 1.1 s, `pc-disp` 0.9 s, `pc-sc-dem-error` 1.3 s, the five pyramids 6.4, 5.1, 1.5, 1.6 and 4.5 s;
-1.6 GB peak memory for the pipeline. Large data (10 million points, 92 images, 4 threads):
+0.1 s, `pc-reference` 1.1 s, `pc-disp` 0.9 s, `pc-sc-dem-error` 1.3 s, `pc-velocity` 0.8 s, the eight pyramids 6.4,
+5.1, 1.5, 1.6, 4.5, 1.0, 1.0 and 1.2 s; 1.6 GB peak memory for the pipeline. Large data (10 million points, 92 images, 4 threads):
 `pc-reference` 10.3 s and 0.9 GB, `pc-disp` 15.5 s and 0.97 GB, `pc-tropo-era5` 28.8 s and 0.92 GB (184 hours of
 ERA5; 16 threads: 32.6 s, 2.35 GB), `pc-sc-dem-error` 27 s and 3.4 GB (16 threads: 28 s, 9.4 GB; the reading and
-writing of the chunks limit it).
+writing of the chunks limit it), `pc-velocity` 12.6 s and 2.5 GB (with an annual and a semiannual term, the
+coefficients and a mask: 14.6 s; 16 threads: 10.7 s, 8.0 GB).
 
 ## Figures
 
 Quicklooks of the sample data runs of 2026-10-19 (the displacement, with 1.8 % fewer points and without the
-troposphere; the map looks the same), 2026-11-15 (the DEM error, before the troposphere) and 2026-11-15 with the
-troposphere (the numbers above are from this run):
+troposphere; the map looks the same), 2026-11-15 (the DEM error, before the troposphere), 2026-11-15 with the
+troposphere and 2026-11-16 with the velocity (the numbers above are from the last two, which agree):
 
 ![Troposphere of 2020-08-12](../assets/campi/06_tropo_49.webp)
 
@@ -297,6 +361,12 @@ the box, rising to 10 - 20 m towards Pozzuoli and the west. These kilometer scal
 odd and the even dates (atmosphere through the baselines); the buildings are in the part relative to the
 neighbourhood of `04_refine`.*
 
+![Velocity](../assets/campi/06_velocity.webp)
+
+*Line of sight velocity from 2019-01-02 to 2021-12-29 relative to the box east of the caldera,
+`disp/pc_velocity_pyramid --clim -10,100`: the bell of the uplift of Pozzuoli, above 100 mm per year at its centre,
+about 1 km east of Rione Terra; about 0 in the east and in the west.*
+
 ## Checks
 
 - `moraine info disp/pc_disp_pyramid`: only the warning for image 0; values within a few hundred millimeters.
@@ -304,6 +374,8 @@ neighbourhood of `04_refine`.*
   sign of a known motion right (uplift: positive).
 - `moraine view disp/pc_disp_pyramid --dates raw/meta.toml -o view.ipynb`: click points for their displacement
   time series.
+- `moraine quicklook disp/pc_velocity_pyramid -o v.png`: about 0 in the reference area, the known motion with its
+  sign; the log of `velocity`: the images with a residual RMS of more than about 3 times the median.
 - `moraine quicklook disp/pc_sc_dem_error_pyramid -o dh.png`: about 0 in the reference area; smooth patterns of
   several meters over kilometers are atmosphere. `pc/pc_su_dem_error_pyramid` of `04_refine`: buildings stand out
   from their surroundings.
@@ -326,4 +398,6 @@ neighbourhood of `04_refine`.*
 - `pc-sc-dem-error` fails with "N dates for M images" or "must increase": the dates are not those of the images of
   the stack; with "bperp must have shape": `pc/pc_bperp.zarr` is not of these points (rerun `04_refine`);
   `pc/pc_bperp.zarr` missing: the working directory was made before the `bperp` step of `01_load`.
-- The velocity and the residual of every image are not computed yet (decision 0048, later steps).
+- `pc-velocity` fails with "not among the dates of the images": a date of `exclude` is not one of `dates` (YYYYMMDD);
+  with "dates to fit ... at least": too many dates are excluded for the coefficients; with "cannot be told apart": a
+  period of `periods` is not in years (e.g. 365 for one year) or two periods are the same.

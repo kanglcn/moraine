@@ -61,12 +61,12 @@ baseline of every point is known (decision 0044).
      instead of the mean of the scene in the fit; no clamping of the spatially correlated part to the range of its
      neighbours, as the part relative to the neighbourhood from n2ft is smaller than the local DEM error (see below)
      and the rest is in this part; no constant of the reference image (its noise is a matter of step 6).
-  6. Residual RMS of every image over the points of the region of the reference, from a residual defined with this
-     step: the reference date (lowest RMS, optional change of the time reference) and the dates to exclude (RMS > 3
-     times the median).
-  7. Velocity per point: least squares of a time function (linear by default, an annual cosine and sine optional)
-     over the dates not excluded; velocity (mm / year), its standard deviation from the residuals and the residual
-     RMS (mm).
+  6. (Replaced by decision 0054: no automatic choice of dates.) Residual RMS of every image over the points of the
+     region of the reference, from a residual defined with this step: the reference date (lowest RMS, optional
+     change of the time reference) and the dates to exclude (RMS > 3 times the median).
+  7. (Done as decision 0054, with the dates to exclude given by the user.) Velocity per point: least squares of a
+     time function (linear by default, an annual cosine and sine optional) over the dates not excluded; velocity
+     (mm / year), its standard deviation from the residuals and the residual RMS (mm).
   8. Turbulent atmosphere: optional and later, a spatial low pass of the temporal high pass of the displacement,
      subtracted, then steps 4 to 7 again.
   9. Export (points to CSV / GeoPackage, rasters to GeoTIFF): later.

@@ -39,7 +39,7 @@ request before running anything.
    | `examples/03_ds.toml` | `docs/workflows/03_ds.md` | SHP, DS candidates, phase linking, DS refinement |
    | `examples/04_refine.toml` | `docs/workflows/04_refine.md` | merge PS and DS, refine with n2ft and the DEM error relative to the neighbourhood |
    | `examples/05_unwrap.toml` | `docs/workflows/05_unwrap.md` | EMCF unwrapping, phase closure correction, phase of every image |
-   | `examples/06_products.toml` | `docs/workflows/06_products.md` | line of sight displacement (mm), troposphere from ERA5, reference area, DEM error |
+   | `examples/06_products.toml` | `docs/workflows/06_products.md` | line of sight displacement (mm), troposphere from ERA5, reference area, DEM error, velocity (mm per year) |
 
    They share one working directory and read each other's outputs, so run them in this order:
 

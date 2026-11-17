@@ -1,6 +1,7 @@
-"""Deformation products of point clouds (CLI): spatial reference, displacement, DEM error (decision 0048)"""
+"""Deformation products of point clouds (CLI): spatial reference, displacement, DEM error, velocity (decisions 0048,
+0054)"""
 
-__all__ = ['pc_reference', 'pc_disp', 'pc_sc_dem_error']
+__all__ = ['pc_reference', 'pc_disp', 'pc_sc_dem_error', 'pc_velocity']
 
 import logging
 
@@ -8,7 +9,7 @@ import numpy as np
 import zarr
 
 import moraine as mr
-from ..api.ts import _days
+from ..api.ts import _days, _date_list, _excluded, _periods, _velocity_design
 from .logging import mc_logger
 from .executor import Executor, Chunk
 from .utils_ import ArgumentError
@@ -257,7 +258,7 @@ def pc_sc_dem_error(
     if nimages < 4:
         raise ArgumentError(f'the DEM error needs at least 4 images, got {nimages}')
     days = _days(dates, nimages)
-    dates = [str(d).strip() for d in (dates.replace(',', ' ').split() if isinstance(dates, str) else dates)]
+    dates = _date_list(dates)
     if isinstance(ref, (bool, np.bool_)) or not isinstance(ref, (int, np.integer)) or not 0 <= ref < nimages:
         raise ArgumentError(f'ref must be the index of one of the {nimages} images, got {ref!r}')
     logger.info(f'{nimages} images from {dates[0]} to {dates[-1]} ({int(days[-1])} days), relative to image {ref} '
@@ -285,4 +286,161 @@ def pc_sc_dem_error(
                     f'{p01:.2f}, {p50:.2f}, {p99:.2f} m')
     else:
         logger.warning('dh is nan at every point')
+    logger.info('done.')
+
+
+def _velocity_block(disp, mask, dates, exclude, periods):
+    """`pc_velocity` of a block of points, and the sums of the squared residuals of every image over the points of
+    `mask` (all points for None) with their numbers"""
+    velocity, velocity_std, rms, coef, residual = mr.pc_velocity(disp, dates, exclude, periods)
+    if mask is not None:
+        residual = residual[mask]
+    ok = np.isfinite(residual)
+    residual = np.where(ok, residual, 0)
+    sq = np.einsum('ik,ik->k', residual, residual, dtype=np.float64)
+    return velocity, velocity_std, rms, coef, sq, ok.sum(axis=0)
+
+
+@mc_logger
+def pc_velocity(
+    disp:str,
+    velocity:str,
+    velocity_std:str,
+    dates:list[str],
+    rms:str=None,
+    image_rms:str=None,
+    coef:str=None,
+    mask:str=None,
+    exclude:list[str]=None,
+    periods:list[float]|str=None,
+    out_chunks:int=None,
+    processes=False,
+    n_workers=1,
+    threads_per_worker=4,
+):
+    """Velocity of every point from its displacement time series: least squares of a straight line in time, plus
+    optional periodic terms.
+
+    The displacement of every point is fitted, with equal weights, by
+    d(t) = a + v t + sum_j (c_j cos(2 pi t / P_j) + s_j sin(2 pi t / P_j)), t in years (365.25 days) from the first
+    date, over the dates not excluded at which the point has a value. The standard deviation of the velocity is that
+    of the least squares for uncorrelated noise of the size of the residuals; noise correlated in time (atmosphere,
+    deformation the model does not describe) makes it too small. The residual RMS of every image over the points
+    shows the images that fit worse than the others (atmosphere, unwrapping errors), to exclude in a next run.
+
+    Parameters
+    ----------
+    disp : str
+        input: line of sight displacement in millimeters, shape (n_points, nimages), floating point, chunks
+        (points_block, 1); the images in date order, positive towards the satellite (`pc-disp`, `pc-sc-dem-error`);
+        nan for no value
+    velocity : str
+        output: velocity v in millimeters per year, shape (n_points,), float32, chunks (out_chunks,); positive towards
+        the satellite; nan for the points with fewer than p + 2 dates with a value among those fitted
+        (p = 2 + 2 len(periods) coefficients)
+    velocity_std : str
+        output: standard deviation of the velocity in millimeters per year, shape (n_points,), float32, chunks
+        (out_chunks,); nan where `velocity` is nan
+    dates : list of str
+        date of every image, YYYYMMDD, in increasing order (`dates` of the metadata of `load-gamma-metadata`); at
+        least p + 2 of them not excluded
+    rms : str, optional
+        output: root mean square of the residuals of every point over the fitted dates with a value, in millimeters,
+        shape (n_points,), float32, chunks (out_chunks,); nan where `velocity` is nan
+    image_rms : str, optional
+        output: root mean square of the residuals of every image over the points of `mask` with a value, in
+        millimeters, shape (nimages,), float32, the excluded dates included; nan for an image without such a point
+    coef : str, optional
+        output: coefficients of the fit, shape (n_points, p), float32, chunks (out_chunks, 1): a (the displacement of
+        the line at the first date, mm), v (mm per year), then c_j and s_j (mm) of every period in the order of
+        `periods`; nan where `velocity` is nan
+    mask : str, optional
+        input: the points of `image_rms`, bool, shape (n_points,), e.g. those outside the deforming area; all points
+        by default
+    exclude : list of str, optional
+        dates left out of the fit, YYYYMMDD, each one of `dates`, e.g. those of a large `image_rms`; none by default
+    periods : list of float, optional
+        periods P_j of the periodic terms in years, positive, e.g. [1] for an annual term, [1, 0.5] for annual and
+        semiannual terms; none by default (a straight line)
+    out_chunks : int, optional
+        point chunk size of the outputs, that of `disp` by default; the points of a task
+    processes : default: False
+        use processes for the workers instead of threads
+    n_workers : default: 1
+        number of workers
+    threads_per_worker : default: 4
+        tasks (blocks of `out_chunks` points) a worker processes at the same time; a task holds about 30 bytes per
+        point and image
+    """
+    logger = logging.getLogger(__name__)
+    disp_zarr = zarr.open(disp, mode='r'); logger.zarr_info(disp, disp_zarr)
+    if disp_zarr.ndim != 2:
+        raise ArgumentError(f'disp must have shape (n_points, nimages), got shape {disp_zarr.shape}')
+    if not np.issubdtype(disp_zarr.dtype, np.floating):
+        raise ArgumentError(f'disp must be floating point, got {disp_zarr.dtype}')
+    n_points, nimages = disp_zarr.shape
+    # the dates, the excluded dates and the periods are checked before anything is written
+    mr.pc_velocity(np.zeros((0, nimages), dtype=np.float32), dates, exclude, periods)
+    days = _days(dates, nimages)
+    dates = _date_list(dates)
+    excluded = _excluded(exclude, dates)
+    periods = _periods(periods)
+    p = _velocity_design(days, periods).shape[1]
+    if mask is not None:
+        mask_zarr = zarr.open(mask, mode='r'); logger.zarr_info(mask, mask_zarr)
+        if mask_zarr.dtype != bool or mask_zarr.shape != (n_points,):
+            raise ArgumentError(f'mask must be bool of shape ({n_points},), got {mask_zarr.dtype} {mask_zarr.shape}')
+    logger.info(f'{nimages} images from {dates[0]} to {dates[-1]} ({days[-1] / 365.25:.2f} years): '
+                f'{nimages - int(excluded.sum())} fitted, {int(excluded.sum())} excluded'
+                + (f' ({", ".join(np.asarray(dates)[excluded])})' if excluded.any() else ''))
+    logger.info('model: a constant, the velocity' + ''.join(f', a cosine and a sine of {P:g} years' for P in periods))
+
+    if out_chunks is None:
+        out_chunks = disp_zarr.chunks[0]
+    outputs = {}
+    for name, path in (('velocity', velocity), ('velocity_std', velocity_std), ('rms', rms)):
+        if path is not None:
+            outputs[name] = zarr.open(path, mode='w', shape=(n_points,), dtype=np.float32, chunks=(out_chunks,))
+            logger.zarr_info(path, outputs[name])
+    if coef is not None:
+        z = zarr.open(coef, mode='w', shape=(n_points, p), dtype=np.float32, chunks=(out_chunks, 1))
+        logger.zarr_info(coef, z)
+    # one task per block of points with all its images (whole chunks of the outputs)
+    images = slice(0, nimages)
+    tasks = []
+    for start in range(0, n_points, out_chunks):
+        points = slice(start, min(start + out_chunks, n_points))
+        tasks.append(([Chunk(disp, (points, images)), None if mask is None else Chunk(mask, (points,))],
+                      [Chunk(velocity, (points,)), Chunk(velocity_std, (points,)),
+                       None if rms is None else Chunk(rms, (points,)),
+                       None if coef is None else Chunk(coef, (points, slice(0, p)))]))
+    with Executor(n_workers=n_workers, threads_per_worker=threads_per_worker, processes=processes) as ex:
+        sums = ex.map_chunks(_velocity_block, tasks, desc='point blocks', dates=dates,
+                             exclude=list(np.asarray(dates)[excluded]), periods=periods)
+
+    values = outputs['velocity'][:]          # 4 bytes per point, for the log
+    ok = np.isfinite(values)
+    if ok.any():
+        p01, p50, p99 = np.percentile(values[ok], [1, 50, 99])
+        std50 = np.median(outputs['velocity_std'][:][ok])
+        logger.info(f'velocity of {int(ok.sum())} points ({n_points - int(ok.sum())} nan): percentiles 1, 50, 99 '
+                    f'{p01:.2f}, {p50:.2f}, {p99:.2f} mm per year; standard deviation (median) {std50:.2f} mm per year')
+    else:
+        logger.warning('the velocity is nan at every point')
+
+    sq = np.sum([s[0] for s in sums], axis=0) if sums else np.zeros(nimages)
+    count = np.sum([s[1] for s in sums], axis=0) if sums else np.zeros(nimages, dtype=int)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        image = np.where(count > 0, np.sqrt(sq / np.maximum(count, 1)), np.nan).astype(np.float32)
+    if np.isfinite(image).any():
+        median = np.nanmedian(image[~excluded]) if np.isfinite(image[~excluded]).any() else np.nanmedian(image)
+        worst = [k for k in np.argsort(-np.nan_to_num(image, nan=-1))[:5] if np.isfinite(image[k])]
+        logger.info(f'residual RMS of the images over {int(count.max())} points'
+                    f'{" of the mask" if mask is not None else ""}: median {median:.2f} mm (fitted images); largest: '
+                    + ', '.join(f'{dates[k]} {image[k]:.2f} mm ({image[k] / median:.1f} x the median'
+                                f'{", excluded" if excluded[k] else ""})' for k in worst))
+    if image_rms is not None:
+        z = zarr.open(image_rms, mode='w', shape=(nimages,), dtype=np.float32, chunks=(nimages,))
+        z[:] = image
+        logger.zarr_info(image_rms, z)
     logger.info('done.')

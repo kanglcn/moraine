@@ -138,8 +138,8 @@ The example pipelines implement one common chain; every step is a command and ca
    (`emcf-pc`) or every interferogram alone (`mcf-pc`), unwrapping errors corrected by phase closure, which gives the
    unwrapped phase of every image ([05](../workflows/05_unwrap.md)).
 6. **Products**: line of sight displacement in millimeters, corrected for the troposphere with ERA5 and relative to a
-   reference area, and the DEM error of every point ([06](../workflows/06_products.md)); the velocity follows
-   (decisions 0048, 0051).
+   reference area, the DEM error and the velocity of every point ([06](../workflows/06_products.md); decisions 0048,
+   0051, 0054).
 
 ## Pipelines, resuming and JSON
 

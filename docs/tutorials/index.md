@@ -12,7 +12,7 @@ caldera near Naples: urban, many PS and DS; how the data were prepared is in `da
 | [03 DS processing](CampiFlegrei/03_ds.md) | SHP, DS candidates, coherence matrices, phase linking, DS selection |
 | [04 Pixel refinement](CampiFlegrei/04_refine.md) | merge PS and DS, Noise2Fringe Transformer, temporal coherence |
 | [05 Phase unwrapping](CampiFlegrei/05_unwrap.md) | EMCF unwrapping and phase closure correction |
-| [06 Deformation products](CampiFlegrei/06_products.md) | line of sight displacement in millimeters, troposphere from ERA5, reference area, DEM error |
+| [06 Deformation products](CampiFlegrei/06_products.md) | line of sight displacement in millimeters, troposphere from ERA5, reference area, DEM error, velocity |
 
 !!! info "Text and code only"
     The notebooks are committed without outputs, so these pages show the text and the code but not the figures.
