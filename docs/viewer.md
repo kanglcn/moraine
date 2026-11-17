@@ -2,7 +2,7 @@
 
 Implementation notes of the visualization system (`moraine.cli.view`, decisions 0018, 0036, 0049) for
 whoever changes it next. The user documentation is the docstring of `view` and `AGENTS.md`; the formats are
-in `docs/contracts/pyramid.md`. Updated 2026-10-10.
+in `docs/contracts/pyramid.md`. Updated 2026-11-17.
 
 ## Parts
 
@@ -48,7 +48,23 @@ cancels a request that already left (a later `cancel` message could not overtake
 - Maps take the width of the notebook (at most 700 px high, the aspect of the scene) or `size=(w, h)`; the
   corner handle resizes them (pointer capture); `ResizeObserver` fits the scene when the element gets its size
   (deferred to the next frame).
-- Markers (clicked point white, reference red), polygons (drawn here only, saved as GeoJSON), axes with ticks.
+- Markers (clicked point white, reference red), polygons (drawn here only, saved as GeoJSON), axes with ticks;
+  a scale bar in metres on web mercator maps (`L.control.scale`; none on the radar grid, whose axes are pixels).
+
+## Controls of both views
+
+- Colour bars: the values of the ends (the colour limits) above and below each ramp, ticks at round values
+  (`tickStep`, one per about 30 px) between them, none within 8 px of the ends; all bars of a map share 300 px
+  at most, resized with the map (`sizeBars`).
+- Sliders: moved with the mouse, a value is applied when the slider is released (`change`); the keys of a
+  focused slider (the browser's own stepping: arrows, Page Up / Down, Home, End) and the buttons on both sides
+  step it, shown at once and applied 250 ms after the last step (`STEP_DELAY`): every applied value asks for the
+  tiles of an image, and the old layers stay until their tiles are in, so holding a key would pile up requests.
+  `keydown` events of a slider row stop there, so the notebook does not move between cells.
+- Time series chart: against the dates (`parseDate`: YYYYMMDD or YYYY-MM-DD) when there is one per value and
+  they are in order, with calendar ticks every k days, months or years (`timeTicks`, the finest with at most
+  one tick per 72 px); the positions in the series otherwise (the series of image pairs, dates that are not
+  dates). Labels at the right end are right aligned.
 
 ## 3D views (deck.gl 9.1.12)
 
@@ -128,8 +144,7 @@ Listed in `docs/roadmap.md` (Visualization) so that they are not lost; the detai
   (`pc-pyramid` of `hgt` with `x=e`, `y=n`: needs 2D inputs flattened, and the fill rule above) for offline
   use or the processing DEM; `overzoomedTile` in a Worker if zooming in stalls (about 10 ms per tile on the
   main thread); Google photorealistic 3D Tiles with the user's key (`Tile3DLayer`).
-- Both: one message for all the tiles of a screen (the kernel answers one by one now); the time axis of the
-  series chart by date; colour bar ticks, a scale bar, keyboard stepping of the sliders; Leaflet and deck.gl
+- Both: one message for all the tiles of a screen (the kernel answers one by one now); Leaflet and deck.gl
   shipped with the package for offline use and for China (jsdelivr is unreliable there, npmmirror has no
   deck.gl); a Tianditu base map with a key; quicklooks of `moraine run` with `show` / `index` per step.
 - Pyramids: level 0 as a symlink to the source array (disk); colorcet and pillow as dependencies.

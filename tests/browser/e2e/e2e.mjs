@@ -59,6 +59,48 @@ async function test2d() {
   await page.close();
 }
 
+// the controls in a real browser: the arrow keys of a focused slider (the browser's own stepping), the slider
+// buttons, the time axis of the chart, the colour bar ticks and the scale bar
+async function testControls() {
+  const page = await open("?dates=1");
+  await sleep(1500);
+  const index = () => page.evaluate(() => window.model.state.index.image);
+  const tileImages = () => page.evaluate(() => [...new Set(window.requests.filter((r) => r.type === "tile").map((r) => r.index.image))]);
+  let notebookKeys = 0;
+  await page.evaluate(() => { window.notebookKeys = 0; document.addEventListener("keydown", () => window.notebookKeys++); });
+  await page.focus(".moraine-tv-sliders .slider input");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.$eval(".moraine-tv-sliders .slider output", (e) => e.textContent), "2 (20190208)", "keys step the slider");
+  assert.equal(await index(), 0, "not applied while stepping");
+  await sleep(600);
+  assert.equal(await index(), 2, "applied after the pause");
+  assert.deepEqual((await tileImages()).sort(), [0, 2], "tiles of image 2, none of image 1");
+  notebookKeys = await page.evaluate(() => window.notebookKeys);
+  assert.equal(notebookKeys, 0, "the keys stop at the slider");
+  await page.click(".moraine-tv-sliders .slider .next");
+  await sleep(600);
+  assert.equal(await index(), 3, "the next button");
+  await page.click(".moraine-tv-sliders .slider .prev");
+  await page.click(".moraine-tv-sliders .slider .prev");
+  await sleep(600);
+  assert.equal(await index(), 1, "the previous button");
+  const barTicks = await page.$$eval(".moraine-tv-bar .tick", (ts) => ts.map((t) => t.textContent));
+  assert.ok(barTicks.length >= 3, `colour bar ticks ${barTicks}`);
+  const scale = await page.$eval(".leaflet-control-scale-line", (e) => e.textContent);
+  assert.match(scale, /^\d+ k?m$/, `scale bar "${scale}"`);
+  const b = await mapBox(page);
+  await page.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
+  await sleep(600);
+  const labels = await page.$$eval(".moraine-tv-chart .xtick", (ts) => ts.map((t) => t.textContent));
+  assert.ok(labels.length >= 2 && labels.every((l) => /^\d{4}-\d{2}$/.test(l)), `time axis ticks ${labels}`);
+  if (process.env.MORAINE_SCREENSHOT) await page.screenshot({ path: process.env.MORAINE_SCREENSHOT, fullPage: true });
+  const log = await page.evaluate(() => window.log);
+  assert.equal(log.length, 0, `controls: errors in the page ${JSON.stringify(log).slice(0, 300)}`);
+  console.log(`controls ok: colour bar ${barTicks}, scale "${scale}", time axis ${labels}`);
+  await page.close();
+}
+
 async function test3d() {
   const page = await open("?terrain=1");
   await page.waitForFunction(() => window.requests.filter((r) => r.type === "terrain").length > 4, null, { timeout: 60000 });
@@ -134,6 +176,7 @@ async function test3d() {
 
 try {
   await test2d();
+  await testControls();
   await test3d();
   console.log("all ok");
 } finally {

@@ -77,6 +77,7 @@ const model = {
     }, 10);
   },
 };
+if (new URLSearchParams(location.search).get("dates") === "1") state.dates = ["20190102", "20190114", "20190208", "20200101"];
 if (new URLSearchParams(location.search).get("terrain") === "1") {
   state.terrain = { url: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png", max_zoom: 15, attribution: "Terrain: test" };
 }

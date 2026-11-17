@@ -106,8 +106,7 @@ the 3D view over the terrain is decision 0036.
   instead of disks draped over it; points at their own heights (`z=`); a DEM served by the kernel (`pc-pyramid`
   of `hgt` with `x=e`, `y=n`) for offline use or the DEM of the processing; the interpolated elevation tiles
   made in a Worker; Google photorealistic 3D Tiles with the user's key.
-- Both views: one message for all the tiles of a screen instead of one per tile; the time axis of the series
-  chart by date; colour bar ticks, a scale bar, keyboard stepping of the sliders; Leaflet and deck.gl shipped
+- Both views: one message for all the tiles of a screen instead of one per tile; Leaflet and deck.gl shipped
   with the package for offline use and for China; a Tianditu base map with a key; quicklooks of `moraine run`
   with `show` / `index` per step.
 - Pyramids: level 0 as a symlink to the source array; colorcet and pillow as dependencies.

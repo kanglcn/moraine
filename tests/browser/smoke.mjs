@@ -378,7 +378,137 @@ async function testLoadDeck() {
   console.log("loadDeck ok");
 }
 
+// colour bar ticks, the scale bar, slider stepping by buttons and keys, the time axis of the chart
+async function testControls() {
+  const dates = ["20190102", "20190114", "20190208", "20200101"];
+  const model = makeModel({ ...structuredClone(base), dates });
+  const el = document.createElement("div");
+  document.getElementById("root").appendChild(el);
+  const cleanup = await widget.render({ model, el });
+  fire_resize();
+  await sleep(50);
+  // two colour bars of 150 px (the map is 500 px high, 300 px for all bars): ticks every 2 over (-3.14, 3.14)
+  const bar = el.querySelector(".moraine-tv-bar");
+  assert.equal(bar.querySelector(".ramp").style.height, "150px");
+  const ticks = [...bar.querySelectorAll(".tick")];
+  assert.deepEqual(ticks.map((t) => t.textContent), ["-2", "0", "2"]);
+  assert.equal(ticks[1].style.top, "75px", "0 in the middle of the ramp");
+  assert.equal(bar.querySelector(".hi").textContent, "3.14");
+  // the scale bar of a web mercator map
+  assert.ok(el.querySelector(".leaflet-control-scale"), "scale bar");
+  // slider buttons: the steps are applied once the stepping pauses, as one change
+  model.sent = [];
+  let notebookKeys = 0;
+  const onDocKey = () => { notebookKeys++; };
+  document.addEventListener("keydown", onDocKey);
+  const row = el.querySelector(".moraine-tv-sliders .slider"), input = row.querySelector("input");
+  row.querySelector(".next").click();
+  row.querySelector(".next").click();
+  assert.equal(row.querySelector("output").textContent, "2 (20190208)", "the value is shown at once");
+  assert.equal(model.get("index").image, 0, "not applied yet");
+  await sleep(320);
+  assert.equal(model.get("index").image, 2, "applied after the pause");
+  const swapped = model.sent.filter((m) => m.type === "tile");
+  assert.ok(swapped.length > 0 && swapped.every((m) => m.layer === 0 && m.index.image === 2), "one swap to image 2");
+  row.querySelector(".next").click(); row.querySelector(".next").click();
+  await sleep(320);
+  assert.equal(model.get("index").image, 3, "stops at the last image");
+  row.querySelector(".prev").click();
+  await sleep(320);
+  assert.equal(model.get("index").image, 2);
+  // keys: a key changes the value (the browser does), the change is applied after the pause; keys do not reach
+  // the notebook
+  input.dispatchEvent(new window.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+  input.value = "1";
+  input.dispatchEvent(new window.Event("input"));
+  input.dispatchEvent(new window.Event("change"));
+  assert.equal(model.get("index").image, 2, "a key step is not applied at once");
+  await sleep(320);
+  assert.equal(model.get("index").image, 1);
+  assert.equal(notebookKeys, 0, "slider keys stop at the slider");
+  // the mouse: applied when released
+  input.dispatchEvent(new window.MouseEvent("pointerdown", { bubbles: true }));
+  input.value = "3";
+  input.dispatchEvent(new window.Event("change"));
+  assert.equal(model.get("index").image, 3, "a mouse change is applied at once");
+  document.removeEventListener("keydown", onDocKey);
+  // the time series against the dates
+  const mapEl = el.querySelector(".moraine-tv-map");
+  mapEl.dispatchEvent(new window.MouseEvent("click", { clientX: 350, clientY: 250, bubbles: true }));
+  await sleep(300);
+  const series = model.take("series");
+  model.reply(series.id, { type: "series", layer: 0, label: "pc_ph", key: 5, point: 5, x: 1570000, y: 4990000, values: [0, 1, null, 2] });
+  const svg = el.querySelector(".moraine-tv-chart svg");
+  const cx = [...svg.querySelectorAll("circle")].map((c) => Number(c.getAttribute("cx")));
+  const t = dates.map((d) => Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6)));
+  const W = Number(svg.getAttribute("width")), x0 = 56, x1 = W - 12;
+  const expected = [0, 1, 3].map((i) => x0 + (t[i] - t[0]) / (t[3] - t[0]) * (x1 - x0));
+  cx.forEach((x, k) => assert.ok(Math.abs(x - expected[k]) < 1e-6, `point ${k} at ${x}, expected ${expected[k]}`));
+  const labels = [...svg.querySelectorAll(".xtick")].map((e) => e.textContent);
+  assert.ok(labels.length >= 2 && labels.every((l) => /^\d{4}-\d{2}$/.test(l)), `month ticks: ${labels}`);
+  assert.equal(svg.querySelector("circle title").textContent, "20190102: 0");
+  cleanup();
+  // dates that are not dates: the positions in the series
+  const el2 = document.createElement("div");
+  document.getElementById("root").appendChild(el2);
+  const model2 = makeModel(structuredClone(base));
+  const cleanup2 = await widget.render({ model: model2, el: el2 });
+  fire_resize();
+  await sleep(50);
+  el2.querySelector(".moraine-tv-map").dispatchEvent(new window.MouseEvent("click", { clientX: 350, clientY: 250, bubbles: true }));
+  await sleep(300);
+  const s2 = model2.take("series");
+  model2.reply(s2.id, { type: "series", layer: 0, label: "pc_ph", key: 5, point: 5, x: 1570000, y: 4990000, values: [0, 1, 2, 3] });
+  const cx2 = [...el2.querySelectorAll(".moraine-tv-chart circle")].map((c) => Number(c.getAttribute("cx")));
+  assert.ok(Math.abs((cx2[1] - cx2[0]) - (cx2[3] - cx2[2])) < 1e-6, "evenly spaced");
+  assert.deepEqual([...el2.querySelectorAll(".moraine-tv-chart .xtick")].map((e) => e.textContent), ["a", "b", "c", "d"]);
+  cleanup2();
+  console.log(`controls ok: bar ticks ${ticks.map((t) => t.textContent)}, time ticks ${labels}`);
+}
+
+// the dates and the calendar ticks of the chart (functions of the module, taken from its source)
+function testTimeTicks() {
+  const src = readFileSync(join(here, "..", "..", "moraine", "cli", "viewer.js"), "utf8");
+  const fn = (name) => src.slice(src.indexOf(`function ${name}(`), src.indexOf("\n}\n", src.indexOf(`function ${name}(`)) + 2);
+  const { parseDate, timeTicks } = new Function(`const DAY = 86400000;\n${fn("parseDate")}\n${fn("timeTicks")}\nreturn { parseDate, timeTicks };`)();
+  assert.equal(parseDate("20190102"), Date.UTC(2019, 0, 2));
+  assert.equal(parseDate("2020-02-29"), Date.UTC(2020, 1, 29));
+  assert.ok(Number.isNaN(parseDate("20190229")), "no 29 February 2019");
+  assert.ok(Number.isNaN(parseDate("a")) && Number.isNaN(parseDate("2019")));
+  const labels = (a, b, n) => timeTicks(parseDate(a), parseDate(b), n).map((t) => t.label);
+  // three years (the Campi Flegrei example) on a chart of 9 ticks: every 6 months
+  assert.deepEqual(labels("20190102", "20211229", 9), ["2019-07", "2020-01", "2020-07", "2021-01", "2021-07"]);
+  assert.deepEqual(labels("20190102", "20211229", 3), ["2020", "2021"]);
+  // days
+  assert.deepEqual(labels("20190102", "20190114", 9), ["2019-01-02", "2019-01-04", "2019-01-06", "2019-01-08", "2019-01-10", "2019-01-12", "2019-01-14"]);
+  // decades
+  assert.deepEqual(labels("19920601", "20221231", 9), ["1995", "2000", "2005", "2010", "2015", "2020"]);
+  for (const [a, b, n] of [["20190102", "20211229", 9], ["20190102", "20190114", 4], ["19920601", "20221231", 2]]) {
+    const ticks = timeTicks(parseDate(a), parseDate(b), n);
+    assert.ok(ticks.length <= n && ticks.every(({ t }) => t >= parseDate(a) && t <= parseDate(b)), `${a} .. ${b}, ${n}`);
+  }
+  console.log("time ticks ok");
+}
+
+// the radar grid: axes in pixels, no scale bar
+async function testGrid() {
+  const model = makeModel({ ...structuredClone(base), crs: "grid", view_origin: [0.5, 0.5], extent: [0, 0, 4160, 981],
+                            frame: [700, 165], axis_labels: ["range", "azimuth"] });
+  const el = document.createElement("div");
+  document.getElementById("root").appendChild(el);
+  const cleanup = await widget.render({ model, el });
+  fire_resize();
+  await sleep(50);
+  assert.ok(el.querySelector(".moraine-tv-xaxis .tick"), "axis ticks");
+  assert.equal(el.querySelector(".leaflet-control-scale"), null, "no scale bar on the radar grid");
+  cleanup();
+  console.log("grid ok");
+}
+
 try {
+  testTimeTicks();
+  await testControls();
+  await testGrid();
   await test2d();
   await test3d();
   await test3dLinked();

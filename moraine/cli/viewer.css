@@ -22,10 +22,18 @@
 .moraine-tv-yaxis .title { position: absolute; left: 0; top: 50%; writing-mode: vertical-rl;
                            transform: translateY(-50%) rotate(180deg); }
 .moraine-tv-tile { image-rendering: pixelated; }
-.moraine-tv-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.moraine-tv-bar { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-right: 40px; }
+.moraine-tv-bar .rampbox { position: relative; }
 .moraine-tv-bar .ramp { width: 14px; border: 1px solid #888; }
+.moraine-tv-bar .ticks { position: absolute; left: 100%; top: 1px; }
+.moraine-tv-bar .tick { position: absolute; left: 0; transform: translateY(-50%); padding-left: 7px; white-space: nowrap;
+                        font-size: 11px; }
+.moraine-tv-bar .tick::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px;
+                                border-top: 1px solid #555; }
 .moraine-tv-bar .label { writing-mode: vertical-rl; transform: rotate(180deg); margin-top: 4px; }
-.moraine-tv-sliders label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.moraine-tv-sliders label, .moraine-tv-sliders .slider { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.moraine-tv-sliders .slider button { font: 14px sans-serif; line-height: 1; padding: 0 6px; border: 1px solid #999;
+                                     border-radius: 3px; background: #f6f6f6; cursor: pointer; }
 .moraine-tv-sliders input { width: 300px; }
 .moraine-tv-status { min-height: 1.4em; margin-top: 4px; font-family: monospace; }
 .moraine-tv-toolbar { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
@@ -40,6 +48,7 @@
 .moraine-tv-chart .grid { stroke: #e4e4e4; }
 .moraine-tv-chart .ytick { text-anchor: end; fill: #333; }
 .moraine-tv-chart .xtick { text-anchor: middle; fill: #333; }
+.moraine-tv-chart .xtick.end { text-anchor: end; }
 .moraine-tv-chart .line { fill: none; stroke: #1f77b4; stroke-width: 1.5; }
 .moraine-tv-chart .dot { fill: #1f77b4; }
 .moraine-tv-panels { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
