@@ -15,7 +15,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 ```
 
 - **API** (`moraine/api/`): algorithms on arrays in memory, grouped by the stages of the processing chain
-  (`ps`, `ds`, `dl`, `pqm`, `unwrap`, `tropo`, `tide`, `ts`) and the foundations they share (`pc`, `tnet`, `polygon`, `slc`), the
+  (`ps`, `ds`, `dl`, `pqm`, `unwrap`, `tropo`, `tide`, `iono`, `ts`) and the foundations they share (`pc`, `tnet`, `polygon`, `slc`), the
   internal utilities in `moraine/api/utils_/` (decisions 0015, 0041). A module is one method or one data structure,
   a topic of several modules is a subpackage. `import moraine` re-exports the public names as `moraine.*`. Most
   functions accept numpy (CPU, numba) or cupy (GPU) arrays and return the same kind
@@ -32,7 +32,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 - The CLI layer does not import `moraine.command`.
 - Inside the API (decision 0041): `moraine/api/utils_/` imports no other part of the API; a foundation (`pc`,
   `tnet`, `polygon`, `slc`) imports `utils_` and other foundations; a stage (`ps`, `ds`, `dl`, `pqm`, `unwrap`,
-  `tropo`, `tide`, `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
+  `tropo`, `tide`, `iono`, `ts`) imports `utils_` and the foundations, never another stage. The API modules import each other relatively,
   never through `import moraine`.
 - Exception: `moraine/__main__.py` is the `python -m moraine` entry point and imports `moraine.command`.
 - GPU packages: `cupy` is imported only by the GPU code paths, inside their functions or in a module only they import
@@ -91,6 +91,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/api/unwrap/gamma.py` | wrapper of GAMMA `mcf_pt` | `gamma_mcf_pt` |
 | `moraine/api/tropo.py` | tropospheric delay of points from the ERA5 reanalysis on pressure levels (decision 0051); the troposphere stratified with height fitted to the displacement as a power law of the height (decision 0053) | `era5_zenith_delay`, `pc_tropo_era5`, `pc_tropo_powerlaw` |
 | `moraine/api/tide.py` | solid earth tides of points: the displacement of the ground by the tides of the Sun and the Moon of the IERS Conventions (2010), and its line of sight displacement relative to a reference image (decision 0056) | `solid_tide`, `pc_solid_tide` |
+| `moraine/api/iono.py` | ionosphere of points from global ionosphere maps (decision 0057): IONEX files, pierce points of the look vectors in the thin layer, the vertical TEC interpolated in the maps turned with the Sun, the line of sight displacement relative to a reference image | `read_ionex`, `pierce_point`, `ionex_vtec`, `pc_iono_tec` |
 | `moraine/api/ts.py` | deformation products of point clouds (decisions 0048, 0054): spatial reference, displacement, DEM error, velocity | `pc_reference`, `pc_disp`, `pc_sc_dem_error`, `pc_velocity` |
 | `moraine/dl_model/__init__.py` | package directory where the `.pth` models are downloaded (data, not API: it stays in place so downloaded models remain valid) | |
 
@@ -117,6 +118,7 @@ moraine/api/       numpy / cupy arrays in memory              (API layer)
 | `moraine/cli/pu.py` | point cloud unwrapping | `mcf-pc`, `emcf-pc`, `unwrap-correct-closure-pc`, `gamma-mcf-pt` |
 | `moraine/cli/tropo.py` | tropospheric delay from ERA5 (decision 0051): download of the pressure levels from the NSF NCAR archive on AWS (HTTP range requests) or the Copernicus Climate Data Store (cdsapi), delay of point clouds (netCDF4 files read with h5py) ; the troposphere stratified with height from the displacement (decision 0053) | `download-era5`, `pc-tropo-era5`, `pc-tropo-powerlaw` |
 | `moraine/cli/tide.py` | the line of sight displacement of point clouds caused by the solid earth tides (decision 0056) | `pc-solid-tide` |
+| `moraine/cli/iono.py` | ionosphere (decision 0057): download of the final global ionosphere maps of JPL from its server (urllib, gzip), the line of sight displacement of point clouds | `download-ionex`, `pc-iono-tec` |
 | `moraine/cli/ts.py` | deformation products of point clouds (decisions 0048, 0054) | `pc-reference`, `pc-disp`, `pc-sc-dem-error`, `pc-velocity` |
 | `moraine/cli/export.py` | export of point clouds to a GeoPackage file for GIS software, written with sqlite3 (decision 0055) | `pc-export` |
 | `moraine/cli/dl.py` | n2f / n2ft filtering of stacks | `n2f`, `n2ft` |

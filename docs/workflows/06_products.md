@@ -218,6 +218,65 @@ to 2019-01-02): the mean of the tides over the points is between -73 and +201 mm
 the spread over the points (p99 - p1) is 0.6 mm in the median image and 2.3 mm at most (standard deviation 0.18 and
 0.97 mm). It grows with the size of the scene: about ten times larger over a whole Sentinel-1 frame.
 
+## The ionosphere (optional)
+
+The ionosphere advances the phase of the radar signal: the line of sight looks shorter by 40.31 STEC / f^2 (STEC the
+electrons per square meter along it, f the radar frequency), 13.8 mm per TEC unit (1e16 electrons per square meter)
+at the wavelength of Sentinel-1, about 240 mm at L band. `download-ionex` downloads the final global ionosphere maps
+of JPL (the vertical TEC, 2.5 by 5 degrees, every 2 hours) from JPL's server, without an account: one file of about
+110 kB per day of the images, from 2008-11-19 on, about six weeks after the day. `pc-iono-tec` (decision 0057) takes
+the vertical TEC of the maps where the look vector of every point crosses their layer at 450 km (for Sentinel-1
+about 280 km from the point, towards the satellite) at the time of every image, times the slant factor of the line
+there, and gives the line of sight displacement relative to the reference image in millimeters, positive towards the
+satellite (more electrons). The maps resolve hundreds of kilometers: the correction removes ramps over a scene, from
+the gradient of the TEC and from the incidence angle, which changes the slant path across the swath, not smaller
+structures. With Sentinel-1 it works on descending tracks and on ascending tracks at mid-latitudes, not at low
+latitudes at dusk (strong ionosphere), nor at L band (Wang et al., 2026, IEEE TGRS). `ratio` takes a part of the TEC
+only, the part below the satellite (1, all of it, by default; see decision 0057).
+
+It is not in the example; to use it, add these steps after `tropocor` (or `tidecor`, then
+`disp = "disp/pc_disp_tidecor.zarr"`) and give `reference` the new displacement (`pc = "disp/pc_disp_ionocor.zarr"`):
+
+```toml
+[[step]]
+name = "ionex"                    # the global ionosphere maps of JPL of the days of the images
+run = "download-ionex"
+out_dir = "ionex"
+times = "${times}"
+
+[[step]]
+name = "iono"                     # the ionosphere in the line of sight, relative to the reference image
+run = "pc-iono-tec"
+ionex_dir = "ionex"
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+theta = "pc/pc_theta.zarr"
+phi = "pc/pc_phi.zarr"
+out = "disp/pc_iono.zarr"
+times = "${times}"
+wavelength = "${wavelength}"
+
+[[step]]
+name = "ionocor"
+run = "math"
+output = "disp/pc_disp_ionocor.zarr"
+operation = "disp - iono"
+[step.kw]
+disp = "disp/pc_disp_tropocor.zarr"
+iono = "disp/pc_iono.zarr"
+```
+
+Files already in `ionex` are kept: working directories of a scene can share one directory, and on a node without the
+network the files (`JPLGddd0.yyI.gz`) can be copied there. The log of `iono` gives the vertical TEC at the scene
+(median, lowest and highest image) and the standard deviation of the ionosphere over the points in every image.
+
+On the sample data (2026-11-17; the 330 754 points of the run of 2026-10-10, 17 by 14 km, 92 images at 05:12 UTC,
+relative to 2019-01-02): the vertical TEC at the scene is 5.7 to 14.8 TEC units (median 9.1); the mean of the
+ionosphere over the points is between -5.7 and +142 mm, removed by the spatial reference; the spread over the points
+(p99 - p1) is 0.50 mm in the median image and 1.41 mm at most, as large as the error of the gradients of the maps
+over 17 km: a scene this small gains nothing. Over an area of a Sentinel-1 frame (3 by 2 degrees, incidence 30 to 46
+degrees, the same times) the spread is 12 mm in the median image and 42 mm at most.
+
 ## The troposphere from the displacement (optional)
 
 ERA5 is a model; the stratification of the lower troposphere at the time of an image is in the displacement itself.
@@ -491,6 +550,9 @@ about 1 km east of Rione Terra; about 0 in the east and in the west.*
   another area (delete the files of `era5_dir`, or give another `era5_dir`, and run again).
 - `pc-tropo-era5` fails with "geoid": the value is not in meters; with "elevation angle": `theta` is not the elevation
   of the look vector in radians.
+- `download-ionex` fails with "is not on the server of JPL": the maps of the last weeks are not out yet; with "from
+  2008-11-19 on": the images are older than the maps on JPL's server. `pc-iono-tec` fails with "no IONEX file": the
+  `ionex` step did not finish.
 - Jumps of about 27.7 mm (half a wavelength for Sentinel-1) between areas or dates are whole cycles of unwrapping
   errors: check the regions and the change fraction of `05_unwrap`.
 - `pc-sc-dem-error` fails with "N dates for M images" or "must increase": the dates are not those of the images of
