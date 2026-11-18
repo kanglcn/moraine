@@ -1,7 +1,7 @@
 """Internal utilities, not re-exported as moraine.*
 
 numba decorators, the CPU and GPU of the process, the error of wrong arguments, chunks of arrays, raster coordinates,
-GAMMA files.
+GAMMA files, times of images.
 """
 
 from . import jit, device, errors

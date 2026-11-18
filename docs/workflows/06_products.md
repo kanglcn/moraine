@@ -178,6 +178,46 @@ The points of the sample data cover 17 by 14 km, less than a cell of ERA5, with 
 atmosphere, which ERA5 does not resolve, dominates; scenes with more relief and larger extent gain more. The median
 displacement of Pozzuoli changes by up to 17 mm.
 
+## The solid earth tides (optional)
+
+The Sun and the Moon deform the solid Earth, up to about 30 cm up and a few cm horizontally, twice a day.
+`pc-solid-tide` (decision 0056) computes this displacement at every point at the time of every image (IERS
+Conventions 2010) and projects it on the look vector: the line of sight displacement relative to the reference image
+in millimeters, positive towards the satellite. Between two images it is nearly the same at all the points of a scene,
+which the spatial reference removes; what is left grows with the size of the scene, of the order of 0.05 mm per km. It
+is not in the example; to use it, add these steps after `tropocor` and give `reference` the new displacement
+(`pc = "disp/pc_disp_tidecor.zarr"`):
+
+```toml
+[[step]]
+name = "tide"                     # the solid earth tides in the line of sight, relative to the reference image
+run = "pc-solid-tide"
+lon = "pc/pc_lon.zarr"
+lat = "pc/pc_lat.zarr"
+theta = "pc/pc_theta.zarr"
+phi = "pc/pc_phi.zarr"
+out = "disp/pc_tide.zarr"
+times = "${times}"
+
+[[step]]
+name = "tidecor"
+run = "math"
+output = "disp/pc_disp_tidecor.zarr"
+operation = "disp - tide"
+[step.kw]
+disp = "disp/pc_disp_tropocor.zarr"
+tide = "disp/pc_tide.zarr"
+```
+
+Without ERA5, subtract the tides from `disp/pc_disp_unref.zarr`; with the troposphere from the displacement (next
+section), fit it to `disp/pc_disp_tidecor.zarr`. The log of `tide` gives the standard deviation of the tides over the
+points in every image.
+
+On the sample data (2026-11-17; the 330 754 points of the run of 2026-10-10, about 17 by 14 km, 92 images, relative
+to 2019-01-02): the mean of the tides over the points is between -73 and +201 mm, removed by the spatial reference;
+the spread over the points (p99 - p1) is 0.6 mm in the median image and 2.3 mm at most (standard deviation 0.18 and
+0.97 mm). It grows with the size of the scene: about ten times larger over a whole Sentinel-1 frame.
+
 ## The troposphere from the displacement (optional)
 
 ERA5 is a model; the stratification of the lower troposphere at the time of an image is in the displacement itself.
