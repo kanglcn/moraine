@@ -82,19 +82,17 @@ alpha from the profiles of ERA5 instead of the defaults. Points need a grid for 
 
 Step 3 of decision 0048: corrections of every image from models or external data, each optional, each a field per
 image at the points that is subtracted from the displacement before the spatial reference. The troposphere from ERA5
-(decision 0051) and from the displacement (decision 0053) and the solid earth tides (decision 0056) are done.
-Left, in this order:
+(decision 0051) and from the displacement (decision 0053), the solid earth tides (decision 0056) and the ionosphere
+from the global ionosphere maps of JPL (decision 0057) are done. Left, in this order:
 
-- Ionosphere from TEC maps: the ionosphere delays the range by 40.31 TEC / f^2 (TEC in electrons per square meter,
-  f the radar frequency in Hz), about 1.4 cm per TECU at C band and 25 cm at L band. Global ionosphere maps (IONEX
-  files of the IGS analysis centres, about 2.5 by 5 degrees, every one or two hours) give the vertical TEC; mapped to
-  the slant at the ionospheric pierce point, with the part of the TEC below the satellite, they remove the long
-  wavelengths (ramps) only, as MintPy's `iono_tec` (Yunjun et al., 2022). A download command like `download-era5`.
 - Troposphere from GACOS: the zenith delays of GACOS (files the user orders from the GACOS website), interpolated at
   the points like ERA5, as an alternative to it.
 - Solid earth tides at the time of every point (zero Doppler time from the orbits, as `load-gamma-bperp`) instead of
   one time per image (decision 0056): within 12 s of the centre time the error is at most 0.5 mm, more for stacks
   of several frames.
+- Ionosphere (decision 0057): other maps, the high resolution maps of JPL (JPLH, 2 by 2 degrees, every hour, from
+  2023-12-11 on), CODE or the 15 minute maps of UPC (LZW compressed), the rapid maps for the weeks before the final
+  ones; the split spectrum method for the smaller structures, strong ionosphere and L band.
 
 ## Next stages of decision 0012
 

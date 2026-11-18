@@ -17,6 +17,7 @@ from .pqm import *
 from .pu import *
 from .tropo import *
 from .tide import *
+from .iono import *
 from .ts import *
 from .export import *
 from .plot import *

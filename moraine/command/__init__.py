@@ -40,7 +40,7 @@ from ..api.tnet import check_image_pairs, _integer_image_pairs
 from ..api.utils_.errors import ArgumentError
 
 # modules of moraine.cli whose logged functions become commands
-_MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'tropo', 'tide', 'ts', 'export', 'plot']
+_MODULES = ['load', 'transform', 'tnet', 'math', 'polygon', 'pc', 'ps', 'shp', 'co', 'pl', 'dl', 'pqm', 'pu', 'tropo', 'tide', 'iono', 'ts', 'export', 'plot']
 # version of the --json output format, see docs/contracts/json-output.md
 JSON_VERSION = 1
 

@@ -208,6 +208,7 @@ nav:
       - pu: cli/pu.md
       - tropo: cli/tropo.md
       - tide: cli/tide.md
+      - iono: cli/iono.md
       - ts: cli/ts.md
       - export: cli/export.md
       - plot: cli/plot.md
@@ -225,6 +226,7 @@ nav:
       - unwrap: api/unwrap.md
       - tropo: api/tropo.md
       - tide: api/tide.md
+      - iono: api/iono.md
       - ts: api/ts.md
       - utils: api/utils.md
       - moraine.cli in python: api/cli.md

@@ -64,6 +64,7 @@ before changing the design; a decision is changed by a new record, not by editin
 | [0054](0054-velocity-with-dates-excluded-by-the-user.md) | Velocity of points by least squares, with the dates to exclude given by the user | Accepted |
 | [0055](0055-export-of-points-to-geopackage.md) | Export of points to GeoPackage, written without GDAL, with the field names of MintPy | Accepted |
 | [0056](0056-solid-earth-tides-of-the-iers-conventions.md) | Solid earth tides of the IERS Conventions, own code, one time per image | Accepted |
+| [0057](0057-ionosphere-from-global-ionosphere-maps.md) | Ionosphere from the global ionosphere maps of JPL, at the pierce point of every point | Accepted |
 
 ## Writing a record
 
