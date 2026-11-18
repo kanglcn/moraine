@@ -18,7 +18,8 @@ import numpy as np
 import zarr
 
 import moraine as mr
-from ..api.tropo import _times, _era5_hours, _geoid, _powerlaw_x, _estimation_points, _powerlaw_column
+from ..api.utils_.times import _times
+from ..api.tropo import _era5_hours, _geoid, _powerlaw_x, _estimation_points, _powerlaw_column
 from .logging import mc_logger
 from .utils_ import ArgumentError
 from .executor import Executor, Chunk

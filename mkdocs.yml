@@ -207,6 +207,7 @@ nav:
       - pqm: cli/pqm.md
       - pu: cli/pu.md
       - tropo: cli/tropo.md
+      - tide: cli/tide.md
       - ts: cli/ts.md
       - export: cli/export.md
       - plot: cli/plot.md
@@ -223,6 +224,7 @@ nav:
       - pqm: api/pqm.md
       - unwrap: api/unwrap.md
       - tropo: api/tropo.md
+      - tide: api/tide.md
       - ts: api/ts.md
       - utils: api/utils.md
       - moraine.cli in python: api/cli.md
